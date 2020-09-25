@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rpg</title>
+    <link rel="stylesheet" href="styles/styles.css">
+    <script src="JS/GameTest.js"></script>
+    <script src="JS/Jugador.js"></script>
+    <script src="JS/Enemigo.js"></script>
+
+</head>
+
+<body>
+
+    <div class="header">
+        <h1>Pick a class</h1>
+    </div>
+    <div id="interface" class="main-container">
+        <div class="classpick-interface">
+            <a href="#" onclick="Manager.setGameStart('fighter')">
+                <div class="class">
+                    <img src="imgs/avatars/fighter.png" alt="Fighter image" class="avatars">
+                    <h2>Fighter</h2>
+                    <p>Fighter share an unparalleled mastery with weapons and armor, and a thorough knowledge of the
+                        skills of combat. They are well acquainted with death, both meting it out and staring it
+                        defiantly in the face.</p>
+                </div>
+            </a>
+
+            <a href="#" onclick="Manager.setGameStart('mage')">
+                <div class="class">
+                    <img src="imgs/avatars/mage.png" alt="Mage image" class="avatars">
+                    <h2>Mage</h2>
+                    <p>Mages spend their lives in the study and practice of magic. Good-aligned mages offer counsel to
+                        nobles and others in power, while evil mages dwell in isolated sites to perform unspeakable
+                        experiments without interference.</p>
+                </div>
+            </a>
+
+            <a href="#" onclick="Manager.setGameStart('rogue')">
+                <div class="class">
+                    <img src="imgs/avatars/rogue.png" alt="Rogue image" class="avatars">
+                    <h2>Rogue</h2>
+                    <p>The rogue or thief is one of the standard playable character classes in most editions of the
+                        Dungeons & Dragons fantasy role-playing game.[1] A rogue is a versatile character, capable of
+                        sneaky combat and nimble tricks. The rogue is stealthy and dexterous, and in early editions was
+                        the only official base class from the Player's Handbook capable of finding and disarming traps
+                        and picking locks. The rogue also has the ability to "sneak attack" ("backstab" in previous
+                        editions) enemies who are caught off-guard or taken by surprise, inflicting extra damage.</p>
+                </div>
+            </a>
+
+
+
+        </div>
+    </div>
+
+</body>
+
+</html>
