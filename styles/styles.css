@@ -6,6 +6,10 @@
     --quinteario: #f9edcc;
 }
 
+a {
+    text-decoration: none;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -14,7 +18,10 @@
 }
 
 body {
+    display: flex;
+    flex-direction: column;
     font-family: Georgia, 'Times New Roman', Times, serif;
+
 }
 
 .header {
@@ -34,8 +41,7 @@ body {
 
 .main-container {
     display: flex;
-    justify-content: center;
-    align-items: center;
+    flex-direction: column;
     background-color: var(--cuarteario);
     width: 100%;
     height: 100%;
@@ -76,4 +82,78 @@ body {
 
 a {
     color: var(--primario);
+}
+
+.class2 h3 {
+    font-size: 1.5em;
+    margin: auto;
+    padding: 5px;
+    color: var(--primario);
+    font-weight: 5000;
+
+
+}
+
+.class2 {
+    display: flex;
+    background: var(--terciario);
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border-style: solid;
+    border-color: wheat;
+}
+
+.class2 p {
+    padding: 5px;
+    margin: 10px;
+    color: var(--primario)
+}
+
+.btn {
+    box-shadow: 3px 4px 0px 0px #3b0d00;
+    background: linear-gradient(to bottom, #591a09 5%, #c24b2b 100%);
+    background-color: #591a09;
+    border: 1px solid #611604;
+    display: inline-block;
+    cursor: pointer;
+    color: #ffffff;
+    font-family: Arial;
+    font-size: 17px;
+    font-weight: bold;
+    padding: 12px 44px;
+    text-decoration: none;
+    text-shadow: 0px 1px 0px #528ecc;
+    width: 100%;
+}
+
+.btn:hover {
+    background: linear-gradient(to bottom, #c24b2b 5%, #591a09 100%);
+    background-color: #c24b2b;
+}
+
+.btn:active {
+    position: relative;
+    top: 1px;
+}
+
+.arena {
+    display: flex;
+    margin: auto;
+    width: 100%;
+    height: 40vh;
+
+
+}
+
+.avatarFight {
+    margin: auto;
+    width: 30vh;
+    height: 30vh;
+}
+
+.enemy {
+    display: flex;
+    flex-direction: column;
+
 }
