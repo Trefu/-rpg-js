@@ -97,7 +97,7 @@ a {
 .class2 {
     display: flex;
     background: var(--terciario);
-    flex-direction: column;
+
     justify-content: center;
     align-items: center;
     border-style: solid;
@@ -149,7 +149,7 @@ a {
 .avatarFight {
     margin: auto;
     width: 30vh;
-    height: 30vh;
+    height: 50vh;
 }
 
 .enemy {

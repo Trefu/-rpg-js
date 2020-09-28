@@ -62,13 +62,14 @@ let Manager = {
         let getInterface = document.getElementById("interface");
         getInterface.innerHTML = `<img class="avatarFight" src="imgs/avatars/${classType}.png">
         <div class="class2">
-        <h3>${classType}</h3>
-        <p>Health: ${player.hp}</p>
+        <h3>${classType.toUpperCase()}</h3>
+        <p id="player-health">Health: ${player.hp}</p>
         <p>Armor: ${player.armor}</p>
         <p>Strength: ${player.strength}</p>
         <p>Dexterity: ${player.dexterity}</p>
         <p>Intelligence: ${player.intelligence}</p>
-        <p>Weapon: ${player.weapon.name} Damage= 1d${player.weapon.damage}</p>
+        <p>Weapon: ${player.weapon.name} </p>
+        <p>Damage : 1d${player.weapon.damage}</p>
         </div>
         <div id="actions"></div>
         <div id="arena"> <img src="imgs/arena.jpg" alt="arena" class="arena"> </div>
@@ -83,8 +84,8 @@ let Manager = {
         <a href="#" class="btn" onclick="Manager.setFight()">Search an enemy!</a>
         `;
     },
-    //crear enemigo aleatorio
 
+    //crear enemigo aleatorio
     setFight: function () {
         let enemy01 = new Enemy("Goblin", 7, 15, -1, 2, 0, shortSword);
         let enemy02 = new Enemy("Violet Fungus", 18, 5, -4, -4, -5, spores);
@@ -109,85 +110,23 @@ let Manager = {
             case 5:
                 enemy = enemy05
                 break;
+
         }
+        alert("One " + enemy.classType + " appears to fight you!")
         let getEnemyInterface = document.getElementById("enemy");
-        getEnemyInterface.innerHTML = `<img class="avatarFight" src="imgs/enemy/${enemy.classType}.png">
+        getEnemyInterface.innerHTML = `
         <div class="class2">
         <h3>${enemy.classType}</h3>
-        <p>Health: ${enemy.hp}</p>
+        <p id="enemy-health">Health: ${enemy.hp}</p>
         <p>Armor: ${enemy.armor}</p>
         <p>Strength: ${enemy.strength}</p>
         <p>Dexterity: ${enemy.dexterity}</p>
         <p>Intelligence: ${enemy.intelligence}</p>
-        <p>Weapon: ${enemy.weapon.name} Damage= 1d${enemy.weapon.damage}</p>
+        <p>Weapon: ${enemy.weapon.name}</p>
+        <p> Damage: 1d${enemy.weapon.damage}</p>
         </div>
+        <img class="avatarFight" src="imgs/enemy/${enemy.classType}.png">
         `;
+        getActions.innerHTML = `<a href="#" class="btn" onclick="PlayerMoves.meeleAttack()">Attack!</a>  `
     }
 };
-
-
-
-
-
-/*var a = Math.floor(Math.random() * (10 - 1 + 1)) + 1;
-let espada = 6;
-let daga = 4;
-let espadon = 12;
-
-const Jugador = {
-    bonos: {
-        fue: 1,
-        des: 1,
-        cons: 1,
-        int: 1,
-        sab: 1,
-        car: 1,
-    },
-    salud: 10,
-    armor: 10,
-    equipo: {
-        arma: espada,
-    },
-    attack: function attack(bicho) {
-        let attackScore = Math.floor(Math.random() * 20 + 1 + this.bonos.fue);
-        if (attackScore >= bicho.armor) {
-            console.log("Impacto con " + attackScore);
-            bicho.salud -= dmgTotal(Jugador.equipo.arma);
-            console.log("Salud restante " + bicho.salud);
-
-        } else {
-            console.log("Miss " + attackScore);
-        }
-        return attackScore;
-    }
-}
-
-const Enemy = {
-    salud: 100,
-    armor: 9,
-    attack: 3,
-
-
-}
-
-function dmgTotal(object) {
-    let dmg = Math.floor(Math.random() * object + 1);
-    console.log(dmg);
-    return dmg;
-}
-
-
-
-
-personaje.Atacar(enemigo) {
-     if(personaje.ataque > enemigo.defensa) {
-          hacerDaño(enemigo, personaje.daño);
-     }
-}
- Entidad seria el enemigo, dado el ejemplo de arriba, y cantidad de daño, si es que queres,
-  el daño que va hacer en algun numerito 
-function hacerDaño(entidad, cantidadDaño) {
-    // Podes meter el calculo que quieras, o cualquier ganzada
-    entidad.vida = entidad.vida - cantidadDaño;
-}
-*/
