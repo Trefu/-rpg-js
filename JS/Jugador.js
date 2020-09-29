@@ -1,4 +1,3 @@
-'use stric'
 let player;
 
 function Player(classType, hp, armor, strength, dexterity, intelligence, weapon) {
@@ -18,11 +17,45 @@ let PlayerMoves = {
             return ini = Math.floor(Math.random() * 20 + dex + 1);
         }
         //funcion para calcular el daño
-        let weaponDmg = function () {
-            return weaponDmg = Math.floor(Math.random() * player.weapon.damage + 1);
+        let weaponDmg = function (equipedWeapon) {
+            return damage = Math.floor(Math.random() * equipedWeapon + 1);
         }
-        let getAttackScore = function (strength) {
-            return getAttackScore = Math.floor(Math.random() * 20 + 1 + strength);
+        let getAttackResults = function (attacker, defender) {
+            let attackResult = Math.floor(Math.random() * 20 + attacker.strength + 3);
+            let damageDeal;
+            if (attackResult <= 0) {
+                alert(`${attacker.classType} miss with 1`)
+                return getAttackResults;
+            } else if (attackResult == 1) {
+                damageDeal = weaponDmg(defender.weapon.damage);
+                attacker.hp -= damageDeal
+                playerhp.innerHTML = "Health: " + player.hp;
+                enemyhp.innerHTML = "Health: " + enemy.hp;
+                alert(`The ${attacker.classType} miss with Nat 1 and get hit by ${defender.classType}!. ${attacker.classType} takes ${damageDeal} damages`)
+                return getAttackResults;
+            } else if (attackResult == 20) {
+                damageDeal = weaponDmg(attacker.weapon.damage) * 2;
+                defender.hp = defender.hp - damageDeal;
+                playerhp.innerHTML = "Health: " + player.hp;
+                enemyhp.innerHTML = "Health: " + enemy.hp;
+                alert(`Critical!,the ${attacker.classType} made ${damageDeal} to ${defender.classType}`)
+                return getAttackResults;
+            } else if (attackResult >= defender.armor) {
+                damageDeal = weaponDmg(attacker.weapon.damage);
+                defender.hp = defender.hp - damageDeal
+                playerhp.innerHTML = "Health: " + player.hp;
+                enemyhp.innerHTML = "Health: " + enemy.hp;
+                alert(`The ${attacker.classType} hit with ${attackResult} damage ${damageDeal}`)
+            } else if (attacker.hp <= 0 && attacker == player) {
+                alert("You lose! Refresh to play again")
+                return getAttackResults
+            } else if (attacker.hp <= 0 && attacker == enemy) {
+                alert("You win! Refresh to play again")
+                return getAttackResults
+            } else {
+                alert(`The ${attacker.classType} miss their attack ${attackResult}`);
+                return getAttackResults;
+            }
         }
         //iniciativa
         playerIni = getIni(player.dexterity);
@@ -30,50 +63,19 @@ let PlayerMoves = {
         //hps
         let playerhp = document.getElementById("player-health");
         let enemyhp = document.getElementById("enemy-health");
-
         if (playerIni >= enemyIni) {
-            console.log("player first")
-            let playerAttackScore = getAttackScore(player.strength)
-            if (playerAttackScore >= enemy.armor) {
-                let damageDeal = weaponDmg(player.weapon.damage)
-                enemy.hp = enemy.hp - damageDeal;
-                alert("You hit first with " + playerIni + " On your initiative vs " + enemyIni + " and hit him with " + playerAttackScore + " Dealing " + damageDeal + " damage!")
-                console.log("impacto con " + playerAttackScore + " daño causado " + damageDeal)
-                playerhp.innerHTML = "Health : " + player.hp;
-                enemyhp.innerHTML = "Health : " + enemy.hp;
-                if (enemy.hp <= 0) {
-                    alert("You won!")
-                    console.log("You won!")
-                    playerhp.innerHTML = "Health : " + player.hp;
-                    enemyhp.innerHTML = "Health : 0";
-                }
-            } else {
-                console.log("miss con " + playerAttackScore)
-                alert("You attack first but miss with " + playerAttackScore)
-            }
+            alert("Player attacks first " + playerIni)
+            getAttackResults(player, enemy);
+            alert("Enemy counterattack")
+            getAttackResults(enemy, player)
 
         } else {
-            console.log("enemy attacks first")
-            let enemyAttackScore = getAttackScore(enemy.strength);
-            if (enemyAttackScore > player.armor) {
-                let enemyDamageDeal = weaponDmg(enemy.weapon.damage)
-                player.hp = player.hp - enemyDamageDeal
-                alert("Enemy hits you first with " + enemyIni + " On they initiative vs yours " + playerIni + " and hit you with  " + enemyAttackScore + " Dealing " + enemyDamageDeal + " damage!")
-                console.log("enemigo impacto con " + enemyAttackScore + " daño recibido " + weaponDmg)
-                playerhp.innerHTML = "Health : " + player.hp;
-                enemyhp.innerHTML = "Health : " + enemy.hp;
-            } else {
-                console.log("enemy miss con " + enemyAttackScore)
-                alert("Enemy attacks you first but miss with " + enemyAttackScore)
-            }
-            if (player.hp <= 0) {
-                console.log("You lose!")
-                playerhp.innerHTML = "Health : " + enemy.hp;
-                enemyhp.innerHTML = "Health : 0";
-            }
-
+            alert("Enemy attacks first " + enemyIni)
+            getAttackResults(enemy, player)
+            alert("Player counterattack")
+            getAttackResults(player, enemy)
         }
-    }
 
+    }
 
 }

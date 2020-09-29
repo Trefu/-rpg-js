@@ -54,7 +54,7 @@ let Manager = {
                 player = new Player(classType, 8, 11, -1, 1, 3, staff)
                 break;
             case "rogue":
-                player = new Player(classType, 10, 14, -1, 3, 1, dagger)
+                player = new Player(classType, 16, 14, 0, 6, 3, dagger)
                 break;
         }
         let getHeader = document.getElementById("header");
@@ -93,7 +93,6 @@ let Manager = {
         let enemy04 = new Enemy("Gnoll", 22, 15, +2, +1, -2, shortSword);
         let enemy05 = new Enemy("Ghoul", 22, 12, +1, +2, -2, claws);
         let pickEnemy = Math.floor(Math.random() * 5 + 1);
-        console.log(pickEnemy);
         switch (pickEnemy) {
             case 1:
                 enemy = enemy01
