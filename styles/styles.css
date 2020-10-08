@@ -6,107 +6,93 @@
     --quinteario: #f9edcc;
 }
 
-a {
-    text-decoration: none;
-}
-
 * {
     margin: 0;
     padding: 0;
-
     box-sizing: border-box;
 }
 
 body {
-    display: flex;
-    flex-direction: column;
     font-family: Georgia, 'Times New Roman', Times, serif;
-
 }
 
 .header {
     display: flex;
     justify-content: center;
     background-color: var(--cuarteario);
-
-}
-
-.header h1 {
-    font-size: 3em;
-    margin: 5px;
-    padding: 5px;
-    color: var(--primario);
-
 }
 
 .main-container {
     display: flex;
     flex-direction: column;
+    justify-content: center;
+    align-items: center;
     background-color: var(--cuarteario);
     width: 100%;
     height: 100%;
 }
 
-.classpick-interface {
-    display: flex;
-    flex-direction: column;
-    background: var(--primario);
-    height: auto;
-    width: auto;
+.header h1 {
+    font-size: 2em;
+    color: var(--primario);
 
 }
 
 .avatars {
-    display: flex;
-    height: 300px;
+    height: 250px;
     width: 200px;
-    padding: 10px;
-    margin: 10px;
 }
 
 .class {
     display: flex;
-    background: var(--terciario);
-    flex-direction: column;
-    justify-content: center;
+    flex-direction: row;
     align-items: center;
+    background: var(--terciario);
     border-style: solid;
     border-color: var(--secundario) 20px;
+    margin: 10px;
+}
+
+.class li {
+    list-style: none;
+    margin: 5px;
+}
+
+.description {
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    margin: 5px;
+}
+
+.battle {
+
+    background-color: var(--cuarteario);
 
 }
 
-.class p {
-    padding: 5px 10px 5px 10px;
-    margin: 20px 50px 40px 50px;
+.arena {
+    display: flex;
+    margin: auto;
+    width: 100%;
+    height: 40vh;
 }
 
-a {
-    color: var(--primario);
-}
-
-.class2 h3 {
+.battleCharacterInterface h3 {
     font-size: 1.5em;
-    margin-right: 0;
     padding: 5px;
     color: var(--primario);
-
-
-
 }
 
-.class2 {
+.battleCharacterInterface {
     display: flex;
-    background: var(--terciario);
-    flex-direction: row;
     justify-content: center;
     align-items: center;
-    border-style: solid;
+    background: var(--terciario);
     border-color: wheat;
 }
 
-.class2 p {
-    padding: 5px;
-    margin: 10px;
+.battleCharacterInterface p {
     color: var(--primario)
 }
 
@@ -137,23 +123,7 @@ a {
     top: 1px;
 }
 
-.arena {
-    display: flex;
-    margin: auto;
-    width: 100%;
-    height: 40vh;
-
-
-}
-
-.avatarFight {
-    margin: auto;
-    width: 30vh;
-    height: 50vh;
-}
-
-.enemy {
-    display: flex;
-    flex-direction: column;
-
+a {
+    color: var(--primario);
+    text-decoration: none;
 }

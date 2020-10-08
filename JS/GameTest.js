@@ -1,91 +1,61 @@
-let shortSword = {
-    "name": "shortSword",
-    "damage": 6,
-    "crit": 20
-};
+var player = null;
+var enemy = null;
 
-let bite = {
-    "name": "Bite",
-    "damage": 4,
-    "crit": 20
-};
-
-let spores = {
-    "name": "Spores",
-    "damage": 8,
-    "crit": 20
-};
-
-
-let claws = {
-    "name": "Claws",
-    "damage": 8,
-    "crit": 20
-};
-
-
-let staff = {
-    "name": "Staff",
-    "damage": 4,
-    "crit": 20
-};
-let dagger = {
-    "name": "Dagger",
-    "damage": 4,
-    "crit": [18, 19, 20]
-};
-let greatsword = {
-    "name": "Greatsword",
-    "damage": 12,
-    "crit": 20
-};
 let Manager = {
-    setGameStart: function (classType) {
-        this.resetPlayer(classType);
+
+    setGameStart: function (name) {
+        this.resetPlayer(name);
         this.setPrefight();
     },
-    resetPlayer: function (classType) {
-        switch (classType) {
-            //(classType, hp, armor, strength, dexterity, intelligence, weapon) 
-            case "fighter":
-                player = new Player(classType, 12, 17, 3, -1, -1, greatsword)
+    resetPlayer: function (name) {
+        switch (name) {
+            case "Fighter":
+                player = new Fighter('Fighter', 12, 17, greatsword);
                 break;
-            case "mage":
-                player = new Player(classType, 8, 11, -1, 1, 3, staff)
+            case "Mage":
+                player = new Mage('Mage', 8, 10, staff)
                 break;
-            case "rogue":
-                player = new Player(classType, 16, 14, 0, 6, 3, dagger)
+            case "Rogue":
+                player = new Rogue('Rogue', 10, 14, dagger)
                 break;
         }
-        let getHeader = document.getElementById("header");
-        getHeader.innerHTML = "<h1>Fight!</h1>";
-        let getInterface = document.getElementById("interface");
-        getInterface.innerHTML = `<img class="avatarFight" src="imgs/avatars/${classType}.png">
-        <div class="class2">
-        <h3>${classType.toUpperCase()}</h3>
-        <p id="player-health">Health: ${player.hp}</p>
-        <p>Armor: ${player.armor}</p>
-        <p>Strength: ${player.strength}</p>
-        <p>Dexterity: ${player.dexterity}</p>
-        <p>Intelligence: ${player.intelligence}</p>
-        <p>Weapon: ${player.weapon.name} </p>
-        <p>Damage : 1d${player.weapon.damage}</p>
-        </div>
-        <div id="actions"></div>
-        <div id="arena"> <img src="imgs/arena.jpg" alt="arena" class="arena"> </div>
-        <div id="enemy" class="enemy"></div>
-        `;
+
+
 
     },
     setPrefight: function () {
-        getActions = document.getElementById("actions");
-        getArena = document.getElementById("arena");
+        //Cambia  el escenario/interface y muestra al personaje jugador
+        let getActions = document.getElementById("actions");
+        let getHeader = document.getElementById("header");
+        let getInterface = document.getElementById("pickinterface");
+        let getPlayerBattleInterface = document.getElementById("playerBattleInterface");
+        getHeader.innerHTML = "<h1>Fight!</h1>";
+        getInterface.remove();
+        document.getElementById("battle").style.display = "inline";
+        getPlayerBattleInterface.innerHTML = `                
+                <img src="imgs/avatars/${player.name}.png" class="avatars">
+                <div class="description">
+                <h3>${player.name}</h3>
+                <p id="player-health">Health: ${player.hp}</p>
+                <p>Armor: ${player.armor}</p>
+                <p>Strength: ${player.strength}(${player.modifiers.str})</p>
+                <p>Dexterity: ${player.dexterity}(${player.modifiers.dex})</p>
+                <p>Constitution: ${player.constitution}(${player.modifiers.const})</p>
+                <p>Intelligence: ${player.intelligence}(${player.modifiers.int})</p>
+                <p>Wisdom: ${player.wisdom}(${player.modifiers.wis})</p>
+                <p>Charisma: ${player.charisma}(${player.modifiers.cha})</p>
+                <p>Weapon: ${player.weapon.name}(${player.modifiers.str}) </p>
+                <p>Damage : 1d${player.weapon.damage}(${player.modifiers.str})</p>
+                </div>
+                `
+
+
         getActions.innerHTML = `
         <a href="#" class="btn" onclick="Manager.setFight()">Search an enemy!</a>
         `;
     },
 
-    //crear enemigo aleatorio
+    //Crear enemigo aleatorio
     setFight: function () {
         let enemy01 = new Enemy("Goblin", 7, 15, -1, 2, 0, shortSword);
         let enemy02 = new Enemy("Violet Fungus", 18, 5, -4, -4, -5, spores);
@@ -111,21 +81,68 @@ let Manager = {
                 break;
 
         }
-        alert("One " + enemy.classType + " appears to fight you!")
-        let getEnemyInterface = document.getElementById("enemy");
-        getEnemyInterface.innerHTML = `
-        <div class="class2">
-        <h3>${enemy.classType}</h3>
-        <p id="enemy-health">Health: ${enemy.hp}</p>
-        <p>Armor: ${enemy.armor}</p>
-        <p>Strength: ${enemy.strength}</p>
-        <p>Dexterity: ${enemy.dexterity}</p>
-        <p>Intelligence: ${enemy.intelligence}</p>
-        <p>Weapon: ${enemy.weapon.name}</p>
-        <p> Damage: 1d${enemy.weapon.damage}</p>
-        </div>
-        <img class="avatarFight" src="imgs/enemy/${enemy.classType}.png">
-        `;
-        getActions.innerHTML = `<a href="#" class="btn" onclick="PlayerMoves.meeleAttack()">Attack!</a>  `
+        alert("One " + enemy.name + " appears to fight you!");
+        document.getElementById("arena").style.display = "inline"
+        document.getElementById("enemyBattleInterface").innerHTML = `                
+                <img src="imgs/enemy/${enemy.name}.png" class="avatars">
+                <div class="description">
+                <h3>${enemy.name}</h3>
+                <p id="enemy-health">Health: ${enemy.hp}</p>
+                <p>Armor: ${enemy.armor}</p>
+                <p>Strength: ${enemy.strength}(${enemy.modifiers.str})</p>
+                <p>Dexterity: ${enemy.dexterity}(${enemy.modifiers.dex})</p>
+                <p>Constitution: ${enemy.constitution}(${enemy.modifiers.const})</p>
+                <p>Intelligence: ${enemy.intelligence}(${enemy.modifiers.int})</p>
+                <p>Wisdom: ${enemy.wisdom}(${enemy.modifiers.wis})</p>
+                <p>Charisma: ${enemy.charisma}(${enemy.modifiers.cha})</p>
+                <p>Weapon: ${enemy.weapon.name}(${enemy.modifiers.str}) </p>
+                <p>Damage : 1d${enemy.weapon.damage}(${enemy.modifiers.str})</p>
+                </div>
+                `
+        // Botones de acciones
+        document.getElementById("actions").innerHTML = `<a href="#" class="btn" onclick="attack()">Attack!</a>`;
     }
 };
+
+function attack() {
+    /**
+     * gives a number between 1 and 20 simulating a dice roll and sums
+     * @param {number} dex of the character passed in the argument.
+     */
+    let getIni = function (character) {
+        return ini = Math.floor(Math.random() * 20 + parseInt(character.modifiers.dex) + 1);
+    }
+    let playerIni = getIni(player);
+    let enemyIni = getIni(enemy);
+
+    if (playerIni >= enemyIni) {
+        console.log("player first")
+        let attackValues = player.getAttackValues();
+        if (attackValues.attackRoll <= 0) {
+            console("1 no nat")
+        } else if (attackValues.attackRoll == 1) {
+            console.log("nat 1")
+        } else if (attackValues.attackRoll == 20) {
+            console.log("nat 20")
+        } else if (attackValues.attackRoll >= enemy.armor) {
+            console.log("impact")
+            enemy.hp -= attackValues.dmg;
+            console.log("damage " + attackValues.dmg + " left hp " + enemy.hp)
+        } else {
+            console.log("miss")
+        }
+
+    }
+
+
+}
+
+function currentHp() {
+    let playerhp = document.getElementById("player-health");
+    let enemyhp = document.getElementById("enemy-health");
+    playerhp.innerHTML = "Health: " + player.hp;
+    enemyhp.innerHTML = "Health: " + enemy.hp;
+}
+
+
+// define quien ataca primero

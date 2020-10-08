@@ -6,55 +6,105 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rpg</title>
     <link rel="stylesheet" href="styles/styles.css">
-    <script src="JS/GameTest.js"></script>
-    <script src="JS/Jugador.js"></script>
-    <script src="JS/Enemigo.js"></script>
+
 
 </head>
 
 <body>
-
-    <div id="header" class="header">
-        <h1>Pick a class</h1>
-    </div>
     <div id="interface" class="main-container">
-        <div class="classpick-interface">
-            <a href="#" onclick="Manager.setGameStart('fighter')">
-                <div class="class">
-                    <img src="imgs/avatars/fighter.png" alt="Fighter image" class="avatars">
+        <div id="header" class="header">
+            <h1>Pick a class</h1>
+        </div>
+        <div id="pickinterface" style="visibility: visible;">
+            <a href="#" onclick="Manager.setGameStart('Fighter')" class="class">
+                <img src="imgs/avatars/fighter.png" alt="Fighter image" class="avatars">
+                <div class="description">
                     <h2>Fighter</h2>
-                    <p>Fighter share an unparalleled mastery with weapons and armor, and a thorough knowledge of the
-                        skills of combat. They are well acquainted with death, both meting it out and staring it
-                        defiantly in the face.</p>
+                    <p>Fighters share an unparalleled mastery with weapons and armor, and a thorough knowledge of the
+                        skills
+                        of
+                        combat. They are well acquainted with death, both meting it out and staring it defiantly in the
+                        face.
+                    </p>
+                    <h2>Stats</h3>
+                        <li>Health: 12</li>
+                        <li>Armor: 17</li>
+                        <li>Strength: 16</li>
+                        <li>Dexterity: 14</li>
+                        <li>Constitution: 15</li>
+                        <li>Inteligence: 9</li>
+                        <li>Wisdom: 13</li>
+                        <li>Charisma: 11</li>
+
                 </div>
             </a>
 
-            <a href="#" onclick="Manager.setGameStart('mage')">
-                <div class="class">
-                    <img src="imgs/avatars/mage.png" alt="Mage image" class="avatars">
+
+            <a href="#" onclick="Manager.setGameStart('Mage')" class="class">
+                <img src="imgs/avatars/mage.png" alt="Mage image" class="avatars">
+                <div class="description">
                     <h2>Mage</h2>
                     <p>Mages spend their lives in the study and practice of magic. Good-aligned mages offer counsel to
                         nobles and others in power, while evil mages dwell in isolated sites to perform unspeakable
                         experiments without interference.</p>
+                    <h2>Stats</h3>
+                        <li>Health: 8</li>
+                        <li>Armor: 10</li>
+                        <li>Strength: 10</li>
+                        <li>Dexterity: 14</li>
+                        <li>Constitution: 15</li>
+                        <li>Inteligence: 9</li>
+                        <li>Wisdom: 13</li>
+                        <li>Charisma: 11</li>
                 </div>
             </a>
 
-            <a href="#" onclick="Manager.setGameStart('rogue')">
-                <div class="class">
-                    <img src="imgs/avatars/rogue.png" alt="Rogue image" class="avatars">
+            <a href="#" onclick="Manager.setGameStart('Rogue')" class="class">
+                <img src="imgs/avatars/rogue.png" alt="Rogue image" class="avatars">
+                <div class="description">
                     <h2>Rogue</h2>
-                    <p>The rogue or thief is one of the standard playable character classes in most editions of the
-                        Dungeons & Dragons fantasy role-playing game.[1] A rogue is a versatile character, capable of
-                        sneaky combat and nimble tricks. The rogue is stealthy and dexterous, and in early editions was
-                        the only official base class from the Player's Handbook capable of finding and disarming traps
-                        and picking locks. The rogue also has the ability to "sneak attack" ("backstab" in previous
-                        editions) enemies who are caught off-guard or taken by surprise, inflicting extra damage.</p>
+                    <p>A rogue is a versatile character, capable of sneaky combat and nimble tricks. The rogue is
+                        stealthy
+                        and dexterous, and in early editions was the only official base class from the Player's Handbook
+                        capable of finding and disarming traps and picking locks.</p>
+                    <h2>Stats</h3>
+                        <li>Health: 10</li>
+                        <li>Armor: 14</li>
+                        <li>Strength: 10</li>
+                        <li>Dexterity: 16</li>
+                        <li>Constitution: 14</li>
+                        <li>Inteligence: 13</li>
+                        <li>Wisdom: 9</li>
+                        <li>Charisma: 15</li>
                 </div>
-
             </a>
         </div>
+        <div id="battle" class="battle" style="display: none">
+            <div id="playerBattleInterface" class="battleCharacterInterface">
 
+            </div>
+
+            <div id="actions"></div>
+
+            <div id="arena" style="display: none;"> <img src="imgs/arena.jpg" alt="arena" class="arena"> </div>
+
+            <div id="enemy" class="enemy"></div>
+
+            <div id="enemyBattleInterface" class="battleCharacterInterface">
+
+
+            </div>
+
+
+        </div>
     </div>
+    <script type="text/javascript" src="JS/GameTest.js"></script>
+    <script type="text/javascript" src="JS/models/Jugador.js"></script>
+    <script type="text/javascript" src="JS/models/Enemigo.js"></script>
+    <script type="text/javascript" src="JS/models/Fighter.js"></script>
+    <script type="text/javascript" src="JS/models/Rogue.js"></script>
+    <script type="text/javascript" src="JS/models/Mage.js"></script>
+    <script type="text/javascript" src="JS/Weapons.js"></script>
 
 </body>
 
