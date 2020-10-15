@@ -66,9 +66,15 @@ body {
 }
 
 .battle {
-
+    display: flex;
+    justify-content: center;
+    align-items: center;
     background-color: var(--cuarteario);
 
+}
+
+.messagesStyle {
+    background-color: var(--terciario);
 }
 
 .arena {

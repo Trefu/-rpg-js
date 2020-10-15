@@ -57,11 +57,11 @@ let Manager = {
 
     //Crear enemigo aleatorio
     setFight: function () {
-        let enemy01 = new Enemy("Goblin", 7, 15, -1, 2, 0, shortSword);
-        let enemy02 = new Enemy("Violet Fungus", 18, 5, -4, -4, -5, spores);
-        let enemy03 = new Enemy("Wolf", 11, 13, +1, +2, -4, bite);
-        let enemy04 = new Enemy("Gnoll", 22, 15, +2, +1, -2, shortSword);
-        let enemy05 = new Enemy("Ghoul", 22, 12, +1, +2, -2, claws);
+        let enemy01 = new Enemy("Goblin", 7, 15, -1, 2, 0,0,0,0, shortSword);
+        let enemy02 = new Enemy("Violet Fungus", 18, 5, -4, -4, -5,0,0,0, spores);
+        let enemy03 = new Enemy("Wolf", 11, 13, +1, +2, -4,0,0,0, bite);
+        let enemy04 = new Enemy("Gnoll", 22, 15, +2, +1, -2,0,0,0, shortSword);
+        let enemy05 = new Enemy("Ghoul", 22, 12, +1, +2, -2,0,0,0, claws);
         let pickEnemy = Math.floor(Math.random() * 5 + 1);
         switch (pickEnemy) {
             case 1:
@@ -89,14 +89,14 @@ let Manager = {
                 <h3>${enemy.name}</h3>
                 <p id="enemy-health">Health: ${enemy.hp}</p>
                 <p>Armor: ${enemy.armor}</p>
-                <p>Strength: ${enemy.strength}(${enemy.modifiers.str})</p>
-                <p>Dexterity: ${enemy.dexterity}(${enemy.modifiers.dex})</p>
-                <p>Constitution: ${enemy.constitution}(${enemy.modifiers.const})</p>
-                <p>Intelligence: ${enemy.intelligence}(${enemy.modifiers.int})</p>
-                <p>Wisdom: ${enemy.wisdom}(${enemy.modifiers.wis})</p>
-                <p>Charisma: ${enemy.charisma}(${enemy.modifiers.cha})</p>
-                <p>Weapon: ${enemy.weapon.name}(${enemy.modifiers.str}) </p>
-                <p>Damage : 1d${enemy.weapon.damage}(${enemy.modifiers.str})</p>
+                <p>Strength: ${enemy.strength}</p>
+                <p>Dexterity: ${enemy.dexterity}</p>
+                <p>Constitution: ${enemy.constitution}</p>
+                <p>Intelligence: ${enemy.intelligence}</p>
+                <p>Wisdom: ${enemy.wisdom}</p>
+                <p>Charisma: ${enemy.charisma}</p>
+                <p>Weapon: ${enemy.weapon.name}</p>
+                <p>Damage : 1d${enemy.weapon.damage} + ${enemy.strength}</p>
                 </div>
                 `
         // Botones de acciones
@@ -105,18 +105,19 @@ let Manager = {
 };
 
 function attack() {
+    let getSpan = document.getElementById("messages");
     /**
      * gives a number between 1 and 20 simulating a dice roll and sums
      * @param {number} dex of the character passed in the argument.
      */
-    let getIni = function (character) {
-        return ini = Math.floor(Math.random() * 20 + parseInt(character.modifiers.dex) + 1);
+    let getIni = function (dex) {
+        return ini = Math.floor(Math.random() * 20 + parseInt(dex) + 1);
     }
-    let playerIni = getIni(player);
-    let enemyIni = getIni(enemy);
+    let playerIni = 100;
+    let enemyIni = getIni(enemy.dexterity);
 
     if (playerIni >= enemyIni) {
-        console.log("player first")
+        getSpan.innerHTML = "Player go first"
         let attackValues = player.getAttackValues();
         if (attackValues.attackRoll <= 0) {
             console("1 no nat")
