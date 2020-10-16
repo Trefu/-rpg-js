@@ -57,11 +57,11 @@ let Manager = {
 
     //Crear enemigo aleatorio
     setFight: function () {
-        let enemy01 = new Enemy("Goblin", 7, 15, -1, 2, 0,0,0,0, shortSword);
-        let enemy02 = new Enemy("Violet Fungus", 18, 5, -4, -4, -5,0,0,0, spores);
-        let enemy03 = new Enemy("Wolf", 11, 13, +1, +2, -4,0,0,0, bite);
-        let enemy04 = new Enemy("Gnoll", 22, 15, +2, +1, -2,0,0,0, shortSword);
-        let enemy05 = new Enemy("Ghoul", 22, 12, +1, +2, -2,0,0,0, claws);
+        let enemy01 = new Enemy("Goblin", 7, 15, -1, 2, 0, 0, 0, 0, shortSword);
+        let enemy02 = new Enemy("Violet Fungus", 18, 5, -4, -4, -5, 0, 0, 0, spores);
+        let enemy03 = new Enemy("Wolf", 11, 13, +1, +2, -4, 0, 0, 0, bite);
+        let enemy04 = new Enemy("Gnoll", 22, 15, +2, +1, -2, 0, 0, 0, shortSword);
+        let enemy05 = new Enemy("Ghoul", 22, 12, +1, +2, -2, 0, 0, 0, claws);
         let pickEnemy = Math.floor(Math.random() * 5 + 1);
         switch (pickEnemy) {
             case 1:
@@ -106,36 +106,47 @@ let Manager = {
 
 function attack() {
     let getSpan = document.getElementById("messages");
-    /**
-     * gives a number between 1 and 20 simulating a dice roll and sums
-     * @param {number} dex of the character passed in the argument.
-     */
-    let getIni = function (dex) {
-        return ini = Math.floor(Math.random() * 20 + parseInt(dex) + 1);
-    }
-    let playerIni = 100;
+    let playerIni = getIni(parseInt(player.modifiers.dex));
     let enemyIni = getIni(enemy.dexterity);
+    let attackValues;
 
+    console.log(`player ini ${playerIni} enemy ${enemyIni}`)
     if (playerIni >= enemyIni) {
-        getSpan.innerHTML = "Player go first"
-        let attackValues = player.getAttackValues();
+        attackValues = player.getAttackValues();
         if (attackValues.attackRoll <= 0) {
-            console("1 no nat")
+            getSpan.innerHTML = `${player.name} miss with 1 (not Nat 1)`;
         } else if (attackValues.attackRoll == 1) {
-            console.log("nat 1")
+            getSpan.innerHTML = `${player.name} rolls nat 1, he miss and take ${enemy.weapon.damage / 2} damage`;
         } else if (attackValues.attackRoll == 20) {
-            console.log("nat 20")
+            getSpan.innerHTML = `${player.name} hits a crit! ${enemy.name} takes ${attackValues.dmg *2} damage`;
         } else if (attackValues.attackRoll >= enemy.armor) {
-            console.log("impact")
+            getSpan.innerHTML = `The ${player.name} strikes on ${enemy.name} and deals ${attackValues.dmg} damage`;
             enemy.hp -= attackValues.dmg;
-            console.log("damage " + attackValues.dmg + " left hp " + enemy.hp)
         } else {
-            console.log("miss")
+            getSpan.innerHTML = `The ${player.name} has missed`;
         }
+        deathCheck(enemy.hp) ? (alert("win"), enemy.hp = 0, currentHp()) : (enemy.hp = enemy.hp, currentHp());
 
+        //enemy attack
+    } else {
+        attackValues = enemy.getAttackValues();
+        console.log(attackValues)
+
+        if (attackValues.attackRoll <= 0) {
+            getSpan.innerHTML = `${enemy.name} miss with 1 (not Nat 1)`;
+        } else if (attackValues.attackRoll == 1) {
+            getSpan.innerHTML = `${enemy.name} rolls nat 1, he miss and takes ${player.weapon.damage / 2} damage`;
+        } else if (attackValues.attackRoll == 20) {
+            player.hp -= attackValues.dmg * 2;
+            getSpan.innerHTML = `${enemy.name} hits a crit! ${player.name} takes ${attackValues.dmg *2} damage`;
+        } else if (attackValues.attackRoll >= player.armor) {
+            getSpan.innerHTML = `The ${enemy.name} strikes on ${player.name} and deals ${attackValues.dmg} damage`;
+            player.hp -= attackValues.dmg;
+        } else {
+            getSpan.innerHTML = `The ${enemy.name} has missed`;
+        }
+        deathCheck(player.hp) ? (alert("win"), player.hp = 0, currentHp()) : (player.hp = player.hp, currentHp());
     }
-
-
 }
 
 function currentHp() {
@@ -145,5 +156,10 @@ function currentHp() {
     enemyhp.innerHTML = "Health: " + enemy.hp;
 }
 
+function deathCheck(hp) {
+    return hp <= 0;
 
-// define quien ataca primero
+}
+let getIni = function (dex) {
+    return ini = Math.floor(Math.random() * 20 + dex + 1);
+}
