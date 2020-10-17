@@ -1,6 +1,6 @@
 var player = null;
 var enemy = null;
-
+var turn = 0;
 let Manager = {
 
     setGameStart: function (name) {
@@ -37,7 +37,7 @@ let Manager = {
                 <div class="description">
                 <h3>${player.name}</h3>
                 <p id="player-health">Health: ${player.hp}</p>
-                <p>Armor: ${player.armor}</p>
+                <p id="playerArmor">Armor : ${player.armor}</p>
                 <p>Strength: ${player.strength}(${player.modifiers.str})</p>
                 <p>Dexterity: ${player.dexterity}(${player.modifiers.dex})</p>
                 <p>Constitution: ${player.constitution}(${player.modifiers.const})</p>
@@ -100,60 +100,72 @@ let Manager = {
                 </div>
                 `
         // Botones de acciones
-        document.getElementById("actions").innerHTML = `<a href="#" class="btn" onclick="attack()">Attack!</a>`;
+        player.name == "Fighter" ? document.getElementById("actions").innerHTML = `<a href="#" class="btn" onclick="attack()">Attack!</a>
+        <a href="#" class="btn" onclick="guard()">Guard</a>` :
+            document.getElementById("actions").innerHTML = `<a href="#" class="btn" onclick="attack()">Attack!</a>`;
+
+
     }
 };
+let getSpan = document.getElementById("messages");
 
 function attack() {
-    let getSpan = document.getElementById("messages");
+
     let playerIni = getIni(parseInt(player.modifiers.dex));
     let enemyIni = getIni(enemy.dexterity);
     let attackValues;
 
-    console.log(`player ini ${playerIni} enemy ${enemyIni}`)
     if (playerIni >= enemyIni) {
         attackValues = player.getAttackValues();
         if (attackValues.attackRoll <= 0) {
-            getSpan.innerHTML = `${player.name} miss with 1 (not Nat 1)`;
+            getSpan.innerHTML = `${player.name} go first and miss with 1 (not Nat 1)`;
         } else if (attackValues.attackRoll == 1) {
-            getSpan.innerHTML = `${player.name} rolls nat 1, he miss and take ${enemy.weapon.damage / 2} damage`;
+            getSpan.innerHTML = `${player.name} attack first and rolls nat 1, he miss and take ${enemy.weapon.damage / 2} damage`;
         } else if (attackValues.attackRoll == 20) {
             getSpan.innerHTML = `${player.name} hits a crit! ${enemy.name} takes ${attackValues.dmg *2} damage`;
         } else if (attackValues.attackRoll >= enemy.armor) {
-            getSpan.innerHTML = `The ${player.name} strikes on ${enemy.name} and deals ${attackValues.dmg} damage`;
+            getSpan.innerHTML = `The ${player.name} go first strikes on ${enemy.name} and deals ${attackValues.dmg} damage`;
             enemy.hp -= attackValues.dmg;
         } else {
-            getSpan.innerHTML = `The ${player.name} has missed`;
+            getSpan.innerHTML = `The ${player.name} attacks first and missed!`;
         }
-        deathCheck(enemy.hp) ? (alert("win"), enemy.hp = 0, currentHp()) : (enemy.hp = enemy.hp, currentHp());
+        deathCheck(enemy.hp) ? (alert("win"), enemy.hp = 0, printStats(), turn = 0) : (enemy.hp = enemy.hp, printStats(), turn++);
 
         //enemy attack
     } else {
         attackValues = enemy.getAttackValues();
-        console.log(attackValues)
-
         if (attackValues.attackRoll <= 0) {
-            getSpan.innerHTML = `${enemy.name} miss with 1 (not Nat 1)`;
+            getSpan.innerHTML = `${enemy.name}attack miss with 1 (not Nat 1)`;
         } else if (attackValues.attackRoll == 1) {
-            getSpan.innerHTML = `${enemy.name} rolls nat 1, he miss and takes ${player.weapon.damage / 2} damage`;
+            getSpan.innerHTML = `${enemy.name} go first but rolls nat 1, he miss and takes ${player.weapon.damage / 2} damage`;
         } else if (attackValues.attackRoll == 20) {
             player.hp -= attackValues.dmg * 2;
-            getSpan.innerHTML = `${enemy.name} hits a crit! ${player.name} takes ${attackValues.dmg *2} damage`;
+            getSpan.innerHTML = `${enemy.name} hits a crit!, ${player.name} takes ${attackValues.dmg *2} damage`;
         } else if (attackValues.attackRoll >= player.armor) {
-            getSpan.innerHTML = `The ${enemy.name} strikes on ${player.name} and deals ${attackValues.dmg} damage`;
+            getSpan.innerHTML = `The ${enemy.name} strikes first,and deals ${attackValues.dmg} damage to ${player.name}`;
             player.hp -= attackValues.dmg;
         } else {
-            getSpan.innerHTML = `The ${enemy.name} has missed`;
+            getSpan.innerHTML = `The ${enemy.name} attacks frist and missed`;
         }
-        deathCheck(player.hp) ? (alert("win"), player.hp = 0, currentHp()) : (player.hp = player.hp, currentHp());
+        deathCheck(player.hp) ? (alert("YOU LOSE"), player.hp = 0, printStats()) : (player.hp = player.hp, printStats());
     }
 }
 
-function currentHp() {
+function guard() {
+    player.block();
+    getSpan.innerHTML = `${player.name} is on guard! his armor gains a bonus`;
+    printStats();
+
+
+}
+
+function printStats() {
     let playerhp = document.getElementById("player-health");
     let enemyhp = document.getElementById("enemy-health");
+    let playerArmor = document.getElementById("playerArmor");
     playerhp.innerHTML = "Health: " + player.hp;
     enemyhp.innerHTML = "Health: " + enemy.hp;
+    playerArmor.innerHTML = "Armor: " + player.armor;
 }
 
 function deathCheck(hp) {

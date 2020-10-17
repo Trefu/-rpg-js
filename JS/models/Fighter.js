@@ -7,7 +7,6 @@ class Fighter extends Player {
         this.intelligence = 9;
         this.wisdom = 13;
         this.charisma = 11;
-
         this.modifiers = {
             'str': "+3",
             'dex': '+2',
@@ -17,6 +16,12 @@ class Fighter extends Player {
             'cha': '0'
         }
 
+    }
+    block() {
+        this.armor += 2
+        var bonusTime = turn + 2;
+        console.log("tiempo del bonus = " + bonusTime)
+        console.log("CHI")
     }
 
 
