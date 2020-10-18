@@ -134,7 +134,7 @@ function attack() {
         } else {
             getSpan.innerHTML = `The ${player.name} attacks first and missed!`;
         }
-        deathCheck(enemy.hp) ? (alert("win"), enemy.hp = 0, printStats()) : (enemy.hp = enemy.hp, printStats());
+        deathCheck(enemy.hp) ? (alert("win"), enemy.hp = 0) : (enemy.hp = enemy.hp);
 
         //enemy attack
     } else {
@@ -152,11 +152,11 @@ function attack() {
         } else {
             getSpan.innerHTML = `The ${enemy.name} attacks first and missed`;
         }
-        deathCheck(player.hp) ? (alert("YOU LOSE"), player.hp = 0, printStats()) : (player.hp = player.hp, printStats());
+        deathCheck(player.hp) ? (alert("YOU LOSE"), player.hp = 0) : (player.hp = player.hp);
     }
     turn++;
-    bonusTime > turn ? cooldowns(guardBtn) : (player.block(false), guardBtn.setAttribute('onclick', 'guard()'), bonusTime = 0, guardBtn.textContent = "Guard");
-
+    player.name == "Fighter" ? (bonusTime > turn ? (cooldowns(guardBtn), printStats()) : ((player.block(false), guardBtn.setAttribute('onclick', 'guard()'), bonusTime = 0, guardBtn.textContent = "Guard")), printStats()) :
+        printStats()
 }
 
 function guard() {

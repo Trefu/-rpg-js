@@ -17,9 +17,12 @@ class Player {
         let dmg = Math.floor(Math.random() * this.weapon.damage + 1);
         let attackRoll = Math.floor(Math.random() * 20 + 1 + parseInt(this.modifiers.str));
         let attackValues = {
-            dmg: dmg,
-            attackRoll: attackRoll
+            dmg,
+            attackRoll
         }
+
+
+
         return attackValues
     }
 
