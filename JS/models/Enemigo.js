@@ -7,6 +7,7 @@ class Enemy {
         let attackRoll = Math.floor(Math.random() * 20 + 1 + enemy.strength + enemy.weapon.attackBonusWeapon);
         let messageReturn;
         dmg <= 0 ? dmg = 1 : dmg;
+        attackRoll <= 0 ? attackRoll = 1 : attackRoll;
         if (attackRoll >= player.armor) {
             messageReturn = `${enemy.name} strikes on ${player.name} and deals ${dmg} damage!`
             player.hp -= dmg;

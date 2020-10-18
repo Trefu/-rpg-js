@@ -22,7 +22,7 @@ class Fighter extends Player {
     }
     block(boolean) {
         var buffedArmor = boolean;
-        buffedArmor ? (this.armor += 2, console.log("activado")) : (this.armor = 17, console.log("desactivado", this.armor));
+        buffedArmor ? (this.armor += 2, console.log("activado")) : (this.armor -= 2, console.log("desactivado", this.armor));
 
     }
 

@@ -1,7 +1,7 @@
 var player = null;
 var enemy = null;
 var gameOver = false;
-
+let firstturn = false;
 
 
 let Manager = {
@@ -106,15 +106,17 @@ let Manager = {
         player.name == "Fighter" ? document.getElementById("actions").innerHTML = `<a id="attackBtn" href="#" class="btn" onclick="playerTurn('attack')">Attack!</a>
         <a id="guardBtn" href="#" class="btn" onclick="playerTurn('guard')">Guard</a>` :
             document.getElementById("actions").innerHTML = `<a id="attackBtn" href="#" class="btn" onclick="playerTurn('attack')">Attack!</a>`;
-
+        let attackBtn = document.getElementById("attackBtn");
+        let guardBtn = document.getElementById("guardBtn");
 
     }
 };
 //controla los turnos y los turnos de bonus
 var turn = 1;
-let bonusTime = -1;
+let bonusTime = 0;
 let getSpan = document.getElementById("messages");
 let enemyTimer;
+
 
 function playerTurn(choise) {
     switch (choise) {
@@ -125,19 +127,18 @@ function playerTurn(choise) {
             guard();
             break;
     }
-    let attackBtn = document.getElementById("attackBtn");
-    let guardBtn = document.getElementById("guardBtn");
+    //Anti spam
     attackBtn.setAttribute('onclick', '')
-    guardBtn.setAttribute('onclick', '')
-    guardBtn.innerText = ("")
-    attackBtn.innerText = ("")
+    guardBtn.setAttribute("onclick", '')
+    attackBtn.innerText = ("Enemy turn")
+    guardBtn.innerText = ("Enemy turn")
     deathCheck(enemy.hp) ? (alert("you win"), enemy.hp = 0, clearTimeout(enemyTurn)) : enemy.hp;
     printStats();
     setTimeout(() => {
         getSpan.innerHTML = `${enemy.name} is about to attack!`
         enemyTimer = setTimeout(() => {
             enemyTurn();
-        }, 2000);
+        }, 1500);
     }, 3000);
 
 }
@@ -160,13 +161,10 @@ function attack() {
 }
 
 function guard() {
-    if (bonusTime === -1) {
+    if (bonusTime === 0) {
         player.block(true), bonusTime = turn + 2;
         getSpan.innerHTML = `${player.name} is on guard! his armor gains a bonus of +2`;
-    } else if (bonusTime > turn) {
-        getSpan.innerHTML = `${player.name} is already buffed, Guard avaible in (${bonusTime - turn}) turns.`;
     }
-
 }
 
 function printStats() {
@@ -186,12 +184,22 @@ function deathCheck(hp) {
 
 function enemyTurn() {
     let enemyReturns;
+    firstturn ? firstturn : firstturn = true;
+    console.log(firstturn)
     deathCheck(enemy.hp);
+    // Fighter guard
     if (player.name === "Fighter" && bonusTime === turn) {
         player.block(false);
-        guardBtn.setAttribute('onclick', 'playerTurn("guard")');
+        guardBtn.setAttribute("onclick", "playerTurn('guard')")
         guardBtn.textContent = "Guard";
-        bonusTime = -1;
+        bonusTime = 0;
+    } else if (bonusTime != 0 && bonusTime != turn || firstturn === true) {
+        guardBtn.setAttribute('onclick', "");
+        firstturn = false;
+        if (bonusTime <= 0 && player.name == "Fighter") {
+            guardBtn.textContent = `Guard`;
+        } else
+            guardBtn.textContent = `Guard cooldown (${bonusTime - turn})`;
     }
     enemyReturns = enemy.attack();
     getSpan.innerHTML = enemyReturns.messageReturn;
@@ -199,7 +207,5 @@ function enemyTurn() {
     attackBtn.innerText = ("Attack")
     printStats();
     deathCheck(player.hp) ? alert("acasa pete") : player.hp;
-
     turn++;
-
 }
