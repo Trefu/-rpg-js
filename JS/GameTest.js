@@ -1,6 +1,6 @@
 var player = null;
 var enemy = null;
-var turn = 0;
+
 let Manager = {
 
     setGameStart: function (name) {
@@ -29,7 +29,7 @@ let Manager = {
         let getHeader = document.getElementById("header");
         let getInterface = document.getElementById("pickinterface");
         let getPlayerBattleInterface = document.getElementById("playerBattleInterface");
-        getHeader.innerHTML = "<h1>Fight!</h1>";
+        getHeader.innerHTML = "<h1>Fight</h1>";
         getInterface.remove();
         document.getElementById("battle").style.display = "inline";
         getPlayerBattleInterface.innerHTML = `                
@@ -37,7 +37,7 @@ let Manager = {
                 <div class="description">
                 <h3>${player.name}</h3>
                 <p id="player-health">Health: ${player.hp}</p>
-                <p id="playerArmor">Armor : ${player.armor}</p>
+                <p id="playerArmor">Armor: ${player.armor}</p>
                 <p>Strength: ${player.strength}(${player.modifiers.str})</p>
                 <p>Dexterity: ${player.dexterity}(${player.modifiers.dex})</p>
                 <p>Constitution: ${player.constitution}(${player.modifiers.const})</p>
@@ -100,14 +100,19 @@ let Manager = {
                 </div>
                 `
         // Botones de acciones
-        player.name == "Fighter" ? document.getElementById("actions").innerHTML = `<a href="#" class="btn" onclick="attack()">Attack!</a>
-        <a href="#" class="btn" onclick="guard()">Guard</a>` :
+        player.name == "Fighter" ? document.getElementById("actions").innerHTML = `<a id="atackBtn" href="#" class="btn" onclick="attack()">Attack!</a>
+        <a id="guardBtn" href="#" class="btn" onclick="guard()">Guard</a>` :
             document.getElementById("actions").innerHTML = `<a href="#" class="btn" onclick="attack()">Attack!</a>`;
 
 
     }
 };
+//controla los turnos y los turnos de bonus
+var turn = 1;
+let bonusTime = 0;
 let getSpan = document.getElementById("messages");
+let attackBtn = document.getElementById("atackBtn")
+
 
 function attack() {
 
@@ -124,12 +129,12 @@ function attack() {
         } else if (attackValues.attackRoll == 20) {
             getSpan.innerHTML = `${player.name} hits a crit! ${enemy.name} takes ${attackValues.dmg *2} damage`;
         } else if (attackValues.attackRoll >= enemy.armor) {
-            getSpan.innerHTML = `The ${player.name} go first strikes on ${enemy.name} and deals ${attackValues.dmg} damage`;
+            getSpan.innerHTML = `The ${player.name} strikes first on ${enemy.name} and deals ${attackValues.dmg} damage`;
             enemy.hp -= attackValues.dmg;
         } else {
             getSpan.innerHTML = `The ${player.name} attacks first and missed!`;
         }
-        deathCheck(enemy.hp) ? (alert("win"), enemy.hp = 0, printStats(), turn = 0) : (enemy.hp = enemy.hp, printStats(), turn++);
+        deathCheck(enemy.hp) ? (alert("win"), enemy.hp = 0, printStats()) : (enemy.hp = enemy.hp, printStats());
 
         //enemy attack
     } else {
@@ -145,16 +150,21 @@ function attack() {
             getSpan.innerHTML = `The ${enemy.name} strikes first,and deals ${attackValues.dmg} damage to ${player.name}`;
             player.hp -= attackValues.dmg;
         } else {
-            getSpan.innerHTML = `The ${enemy.name} attacks frist and missed`;
+            getSpan.innerHTML = `The ${enemy.name} attacks first and missed`;
         }
         deathCheck(player.hp) ? (alert("YOU LOSE"), player.hp = 0, printStats()) : (player.hp = player.hp, printStats());
     }
+    turn++;
+    bonusTime > turn ? cooldowns(guardBtn) : (player.block(false), guardBtn.setAttribute('onclick', 'guard()'), bonusTime = 0, guardBtn.textContent = "Guard");
+
 }
 
 function guard() {
-    player.block();
+    let guardBtn = document.getElementById("guardBtn");
+    player.block(true), guardBtn.setAttribute('onclick', 'buffed(guardBtn)'), bonusTime = turn + 4;
     getSpan.innerHTML = `${player.name} is on guard! his armor gains a bonus`;
-    printStats();
+    turn++;
+    printStats()
 
 
 }
@@ -174,4 +184,13 @@ function deathCheck(hp) {
 }
 let getIni = function (dex) {
     return ini = Math.floor(Math.random() * 20 + dex + 1);
+}
+
+function buffed(el) {
+    getSpan.innerHTML = `${player.name} is already buffed`;
+    turn == bonusTime
+}
+
+function cooldowns(el) {
+    el.textContent = `Cooldown(${bonusTime - turn})`
 }

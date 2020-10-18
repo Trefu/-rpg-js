@@ -17,11 +17,10 @@ class Fighter extends Player {
         }
 
     }
-    block() {
-        this.armor += 2
-        var bonusTime = turn + 2;
-        console.log("tiempo del bonus = " + bonusTime)
-        console.log("CHI")
+    block(boolean) {
+        var buffedArmor = boolean;
+        buffedArmor ? (this.armor += 2, console.log("activado")) : (this.armor = this.armor, console.log("desactivado", this.armor));
+
     }
 
 
