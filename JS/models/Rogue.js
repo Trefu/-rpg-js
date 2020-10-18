@@ -1,12 +1,15 @@
 class Rogue extends Player {
     constructor(name, hp, armor, weapon) {
         super(name, hp, armor, weapon)
+        this.hp = 10;
+        this.armor = 14;
         this.strength = 11;
         this.dexterity = 16;
         this.constitution = 14;
         this.intelligence = 13;
         this.wisdom = 9;
         this.charisma = 15;
+        this.weapon = dagger;
         this.modifiers = {
             'str': "0",
             'dex': '+3',
@@ -24,8 +27,8 @@ class Rogue extends Player {
             attackRoll = 20;
         }
         let attackValues = {
-            dmg: dmg,
-            attackRoll: attackRoll
+            dmg,
+            attackRoll,
         }
         return attackValues
     }

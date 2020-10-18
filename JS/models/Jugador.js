@@ -1,28 +1,14 @@
 class Player {
-    constructor(name, hp, armor, weapon) {
+    constructor(name) {
         this.name = name
-        this.hp = hp;
-        this.armor = armor;
-        this.weapon = weapon;
-        this.modifiers = {
-            'str': "",
-            'dex': '',
-            'const': '',
-            'int': '',
-            'wis': '',
-            'cha': ''
-        }
     }
     getAttackValues() {
         let dmg = Math.floor(Math.random() * this.weapon.damage + 1);
-        let attackRoll = Math.floor(Math.random() * 20 + 1 + parseInt(this.modifiers.str));
+        let attackRoll = Math.floor(Math.random() * 20 + 3 + parseInt(this.modifiers.str));
         let attackValues = {
             dmg,
             attackRoll
         }
-
-
-
         return attackValues
     }
 

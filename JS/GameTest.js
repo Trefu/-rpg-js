@@ -1,5 +1,8 @@
 var player = null;
 var enemy = null;
+var gameOver = false;
+
+
 
 let Manager = {
 
@@ -10,13 +13,13 @@ let Manager = {
     resetPlayer: function (name) {
         switch (name) {
             case "Fighter":
-                player = new Fighter('Fighter', 12, 17, greatsword);
+                player = new Fighter('Fighter');
                 break;
             case "Mage":
-                player = new Mage('Mage', 8, 10, staff)
+                player = new Mage('Mage')
                 break;
             case "Rogue":
-                player = new Rogue('Rogue', 10, 14, dagger)
+                player = new Rogue('Rogue')
                 break;
         }
 
@@ -45,7 +48,7 @@ let Manager = {
                 <p>Wisdom: ${player.wisdom}(${player.modifiers.wis})</p>
                 <p>Charisma: ${player.charisma}(${player.modifiers.cha})</p>
                 <p>Weapon: ${player.weapon.name}(${player.modifiers.str}) </p>
-                <p>Damage : 1d${player.weapon.damage}(${player.modifiers.str})</p>
+                <p>Damage : 1d${player.weapon.damage} (${player.modifiers.str})</p>
                 </div>
                 `
 
@@ -57,11 +60,12 @@ let Manager = {
 
     //Crear enemigo aleatorio
     setFight: function () {
-        let enemy01 = new Enemy("Goblin", 7, 15, -1, 2, 0, 0, 0, 0, shortSword);
-        let enemy02 = new Enemy("Violet Fungus", 18, 5, -4, -4, -5, 0, 0, 0, spores);
-        let enemy03 = new Enemy("Wolf", 11, 13, +1, +2, -4, 0, 0, 0, bite);
-        let enemy04 = new Enemy("Gnoll", 22, 15, +2, +1, -2, 0, 0, 0, shortSword);
-        let enemy05 = new Enemy("Ghoul", 22, 12, +1, +2, -2, 0, 0, 0, claws);
+
+        let enemy01 = new Goblin("Goblin");
+        let enemy02 = new Violet_Fungus("Violet Fungus");
+        let enemy03 = new Wolf("Wolf");
+        let enemy04 = new Gnoll("Gnoll");
+        let enemy05 = new Ghoul("Ghoul");
         let pickEnemy = Math.floor(Math.random() * 5 + 1);
         switch (pickEnemy) {
             case 1:
@@ -81,6 +85,7 @@ let Manager = {
                 break;
 
         }
+
         alert("One " + enemy.name + " appears to fight you!");
         document.getElementById("arena").style.display = "inline"
         document.getElementById("enemyBattleInterface").innerHTML = `                
@@ -91,81 +96,76 @@ let Manager = {
                 <p>Armor: ${enemy.armor}</p>
                 <p>Strength: ${enemy.strength}</p>
                 <p>Dexterity: ${enemy.dexterity}</p>
-                <p>Constitution: ${enemy.constitution}</p>
                 <p>Intelligence: ${enemy.intelligence}</p>
-                <p>Wisdom: ${enemy.wisdom}</p>
-                <p>Charisma: ${enemy.charisma}</p>
-                <p>Weapon: ${enemy.weapon.name}</p>
-                <p>Damage : 1d${enemy.weapon.damage} + ${enemy.strength}</p>
+                <p>Weapon: ${enemy.weapon.name}
+                Attack Bonus: ${enemy.weapon.attackBonusWeapon}</p>
+                <p>Damage : 1d${enemy.weapon.damage} (${enemy.strength})</p>
                 </div>
                 `
         // Botones de acciones
-        player.name == "Fighter" ? document.getElementById("actions").innerHTML = `<a id="atackBtn" href="#" class="btn" onclick="attack()">Attack!</a>
-        <a id="guardBtn" href="#" class="btn" onclick="guard()">Guard</a>` :
-            document.getElementById("actions").innerHTML = `<a href="#" class="btn" onclick="attack()">Attack!</a>`;
+        player.name == "Fighter" ? document.getElementById("actions").innerHTML = `<a id="attackBtn" href="#" class="btn" onclick="playerTurn('attack')">Attack!</a>
+        <a id="guardBtn" href="#" class="btn" onclick="playerTurn('guard')">Guard</a>` :
+            document.getElementById("actions").innerHTML = `<a id="attackBtn" href="#" class="btn" onclick="playerTurn('attack')">Attack!</a>`;
 
 
     }
 };
 //controla los turnos y los turnos de bonus
 var turn = 1;
-let bonusTime = 0;
+let bonusTime = -1;
 let getSpan = document.getElementById("messages");
-let attackBtn = document.getElementById("atackBtn")
+let enemyTimer;
 
+function playerTurn(choise) {
+    switch (choise) {
+        case "attack":
+            attack();
+            break;
+        case "guard":
+            guard();
+            break;
+    }
+    let attackBtn = document.getElementById("attackBtn");
+    let guardBtn = document.getElementById("guardBtn");
+    attackBtn.setAttribute('onclick', '')
+    guardBtn.setAttribute('onclick', '')
+    guardBtn.innerText = ("")
+    attackBtn.innerText = ("")
+    deathCheck(enemy.hp) ? (alert("you win"), enemy.hp = 0, clearTimeout(enemyTurn)) : enemy.hp;
+    printStats();
+    setTimeout(() => {
+        getSpan.innerHTML = `${enemy.name} is about to attack!`
+        enemyTimer = setTimeout(() => {
+            enemyTurn();
+        }, 2000);
+    }, 3000);
+
+}
 
 function attack() {
-
-    let playerIni = getIni(parseInt(player.modifiers.dex));
-    let enemyIni = getIni(enemy.dexterity);
     let attackValues;
-
-    if (playerIni >= enemyIni) {
-        attackValues = player.getAttackValues();
-        if (attackValues.attackRoll <= 0) {
-            getSpan.innerHTML = `${player.name} go first and miss with 1 (not Nat 1)`;
-        } else if (attackValues.attackRoll == 1) {
-            getSpan.innerHTML = `${player.name} attack first and rolls nat 1, he miss and take ${enemy.weapon.damage / 2} damage`;
-        } else if (attackValues.attackRoll == 20) {
-            getSpan.innerHTML = `${player.name} hits a crit! ${enemy.name} takes ${attackValues.dmg *2} damage`;
-        } else if (attackValues.attackRoll >= enemy.armor) {
-            getSpan.innerHTML = `The ${player.name} strikes first on ${enemy.name} and deals ${attackValues.dmg} damage`;
-            enemy.hp -= attackValues.dmg;
-        } else {
-            getSpan.innerHTML = `The ${player.name} attacks first and missed!`;
-        }
-        deathCheck(enemy.hp) ? (alert("win"), enemy.hp = 0) : (enemy.hp = enemy.hp);
-
-        //enemy attack
+    attackValues = player.getAttackValues();
+    if (attackValues.attackRoll <= 0) {
+        getSpan.innerHTML = `${player.name} go first and miss with 1 (not Nat 1)`;
+    } else if (attackValues.attackRoll == 1) {
+        getSpan.innerHTML = `${player.name} attack first and rolls nat 1, he miss and take ${enemy.weapon.damage / 2} damage`;
+    } else if (attackValues.attackRoll == 20) {
+        getSpan.innerHTML = `${player.name} hits a crit! ${enemy.name} takes ${attackValues.dmg *2} damage`;
+    } else if (attackValues.attackRoll >= enemy.armor) {
+        getSpan.innerHTML = `The ${player.name} strikes first on ${enemy.name} and deals ${attackValues.dmg} damage`;
+        enemy.hp -= attackValues.dmg;
     } else {
-        attackValues = enemy.getAttackValues();
-        if (attackValues.attackRoll <= 0) {
-            getSpan.innerHTML = `${enemy.name}attack miss with 1 (not Nat 1)`;
-        } else if (attackValues.attackRoll == 1) {
-            getSpan.innerHTML = `${enemy.name} go first but rolls nat 1, he miss and takes ${player.weapon.damage / 2} damage`;
-        } else if (attackValues.attackRoll == 20) {
-            player.hp -= attackValues.dmg * 2;
-            getSpan.innerHTML = `${enemy.name} hits a crit!, ${player.name} takes ${attackValues.dmg *2} damage`;
-        } else if (attackValues.attackRoll >= player.armor) {
-            getSpan.innerHTML = `The ${enemy.name} strikes first,and deals ${attackValues.dmg} damage to ${player.name}`;
-            player.hp -= attackValues.dmg;
-        } else {
-            getSpan.innerHTML = `The ${enemy.name} attacks first and missed`;
-        }
-        deathCheck(player.hp) ? (alert("YOU LOSE"), player.hp = 0) : (player.hp = player.hp);
+        getSpan.innerHTML = `The ${player.name} attacks first and missed!`;
     }
-    turn++;
-    player.name == "Fighter" ? (bonusTime > turn ? (cooldowns(guardBtn), printStats()) : ((player.block(false), guardBtn.setAttribute('onclick', 'guard()'), bonusTime = 0, guardBtn.textContent = "Guard")), printStats()) :
-        printStats()
 }
 
 function guard() {
-    let guardBtn = document.getElementById("guardBtn");
-    player.block(true), guardBtn.setAttribute('onclick', 'buffed(guardBtn)'), bonusTime = turn + 4;
-    getSpan.innerHTML = `${player.name} is on guard! his armor gains a bonus`;
-    turn++;
-    printStats()
-
+    if (bonusTime === -1) {
+        player.block(true), bonusTime = turn + 2;
+        getSpan.innerHTML = `${player.name} is on guard! his armor gains a bonus of +2`;
+    } else if (bonusTime > turn) {
+        getSpan.innerHTML = `${player.name} is already buffed, Guard avaible in (${bonusTime - turn}) turns.`;
+    }
 
 }
 
@@ -182,15 +182,24 @@ function deathCheck(hp) {
     return hp <= 0;
 
 }
-let getIni = function (dex) {
-    return ini = Math.floor(Math.random() * 20 + dex + 1);
-}
 
-function buffed(el) {
-    getSpan.innerHTML = `${player.name} is already buffed`;
-    turn == bonusTime
-}
 
-function cooldowns(el) {
-    el.textContent = `Cooldown(${bonusTime - turn})`
+function enemyTurn() {
+    let enemyReturns;
+    deathCheck(enemy.hp);
+    if (player.name === "Fighter" && bonusTime === turn) {
+        player.block(false);
+        guardBtn.setAttribute('onclick', 'playerTurn("guard")');
+        guardBtn.textContent = "Guard";
+        bonusTime = -1;
+    }
+    enemyReturns = enemy.attack();
+    getSpan.innerHTML = enemyReturns.messageReturn;
+    attackBtn.setAttribute('onclick', 'playerTurn("attack")')
+    attackBtn.innerText = ("Attack")
+    printStats();
+    deathCheck(player.hp) ? alert("acasa pete") : player.hp;
+
+    turn++;
+
 }
