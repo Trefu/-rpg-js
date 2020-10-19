@@ -2,10 +2,7 @@ var player = null;
 var enemy = null;
 var gameOver = false;
 let firstturn = false;
-
-
 let Manager = {
-
     setGameStart: function (name) {
         this.resetPlayer(name);
         this.setPrefight();
@@ -22,9 +19,6 @@ let Manager = {
                 player = new Rogue('Rogue')
                 break;
         }
-
-
-
     },
     setPrefight: function () {
         //Cambia  el escenario/interface y muestra al personaje jugador
@@ -41,7 +35,7 @@ let Manager = {
                 <h3>${player.name}</h3>
                 <p id="player-health">Health: ${player.hp}</p>
                 <p id="playerArmor">Armor: ${player.armor}</p>
-                <p>Strength: ${player.strength}(${player.modifiers.str})</p>
+                <p id="playerStr">Strength: ${player.strength}(${player.modifiers.str})</p>
                 <p>Dexterity: ${player.dexterity}(${player.modifiers.dex})</p>
                 <p>Constitution: ${player.constitution}(${player.modifiers.const})</p>
                 <p>Intelligence: ${player.intelligence}(${player.modifiers.int})</p>
@@ -60,7 +54,6 @@ let Manager = {
 
     //Crear enemigo aleatorio
     setFight: function () {
-
         let enemy01 = new Goblin("Goblin");
         let enemy02 = new Violet_Fungus("Violet Fungus");
         let enemy03 = new Wolf("Wolf");
@@ -85,7 +78,6 @@ let Manager = {
                 break;
 
         }
-
         alert("One " + enemy.name + " appears to fight you!");
         document.getElementById("arena").style.display = "inline"
         document.getElementById("enemyBattleInterface").innerHTML = `                
@@ -102,21 +94,28 @@ let Manager = {
                 <p>Damage : 1d${enemy.weapon.damage} (${enemy.strength})</p>
                 </div>
                 `
-        // Botones de acciones
-        player.name == "Fighter" ? document.getElementById("actions").innerHTML = `<a id="attackBtn" href="#" class="btn" onclick="playerTurn('attack')">Attack!</a>
-        <a id="guardBtn" href="#" class="btn" onclick="playerTurn('guard')">Guard</a>` :
+        // Botones de acciones del fighter
+        if (player.name == "Fighter") {
+            document.getElementById("actions").innerHTML = `<a id="attackBtn" href="#" class="btn" onclick="playerTurn('attack')">Attack!</a>
+        <a id="guardBtn" href="#" class="btn" onclick="playerTurn('guard')">Defensive stance (enemy)</a>
+        <a id="agresiveBtn" href="#" class="btn" onclick="playerTurn('agresive')">Agresive stance</a>
+        <a id="reckless" href="#" class="btn" onclick="playerTurn('reckless')">Reckless stance</a>`
+            let guardBtn = document.getElementById("guardBtn");
+            let agresiveBtn = document.getElementById("agresiveBtn");
+            let reckleesBtn = document.getElementById("reckleesBtn");
+        } else {
             document.getElementById("actions").innerHTML = `<a id="attackBtn" href="#" class="btn" onclick="playerTurn('attack')">Attack!</a>`;
-        let attackBtn = document.getElementById("attackBtn");
-        let guardBtn = document.getElementById("guardBtn");
-
+            let attackBtn = document.getElementById("attackBtn");
+        }
     }
 };
 //controla los turnos y los turnos de bonus
+
 var turn = 1;
 let bonusTime = 0;
 let getSpan = document.getElementById("messages");
 let enemyTimer;
-
+let stanceActivated = false;
 
 function playerTurn(choise) {
     switch (choise) {
@@ -124,14 +123,19 @@ function playerTurn(choise) {
             attack();
             break;
         case "guard":
-            guard();
+            fighterStances('guard');
+            break;
+        case "agresive":
+            fighterStances('agresive');
+            break;
+        case "reckless":
+            fighterStances('reckless');
             break;
     }
     //Anti spam
     attackBtn.setAttribute('onclick', '')
-    guardBtn.setAttribute("onclick", '')
     attackBtn.innerText = ("Enemy turn")
-    guardBtn.innerText = ("Enemy turn")
+    player.name === "Fighter" ? (guardBtn.setAttribute("onclick", ''), guardBtn.innerText = ("Enemy turn")) : player.name;
     deathCheck(enemy.hp) ? (alert("you win"), enemy.hp = 0, clearTimeout(enemyTurn)) : enemy.hp;
     printStats();
     setTimeout(() => {
@@ -160,20 +164,43 @@ function attack() {
     }
 }
 
-function guard() {
-    if (bonusTime === 0) {
-        player.block(true), bonusTime = turn + 2;
-        getSpan.innerHTML = `${player.name} is on guard! his armor gains a bonus of +2`;
+function fighterStances(stance) {
+    let usesStances = 0;
+    stanceActivated = true;
+    if (bonusTime === 0 && usesStances != 3) {
+        switch (stance) {
+            case "guard":
+                player.block(true);
+                getSpan.innerHTML = `${player.name} is on defensive stance!, uses left: ${3 - usesStances}`;
+                break;
+            case "agresive":
+                player.agresive(true);
+                getSpan.innerHTML = `${player.name} is on agresive stance!, uses left: ${3 - usesStances}`;
+                printStats()
+                break;
+            case "'reckless'":
+                player.reckless(true);
+                getSpan.innerHTML = `${player.name} is on reckless stance!, uses left: ${3 - usesStances}`;
+                printStats()
+                break;
+        }
+        bonusTime = turn + 3;
+        usesStances++;
     }
+
 }
+
+
 
 function printStats() {
     let playerhp = document.getElementById("player-health");
     let enemyhp = document.getElementById("enemy-health");
     let playerArmor = document.getElementById("playerArmor");
-    playerhp.innerHTML = "Health: " + player.hp;
-    enemyhp.innerHTML = "Health: " + enemy.hp;
-    playerArmor.innerHTML = "Armor: " + player.armor;
+    let playerStr = document.getElementById("playerStr");
+    playerhp.innerText = "Health: " + player.hp;
+    enemyhp.innerText = "Health: " + enemy.hp;
+    playerArmor.innerText = "Armor: " + player.armor;
+    playerStr.innerText = `Strength: ${player.strength}(${player.modifiers.str})`
 }
 
 function deathCheck(hp) {
@@ -181,13 +208,12 @@ function deathCheck(hp) {
 
 }
 
-
 function enemyTurn() {
     let enemyReturns;
     firstturn ? firstturn : firstturn = true;
-    console.log(firstturn)
     deathCheck(enemy.hp);
-    // Fighter guard
+    // Fighter stances
+
     if (player.name === "Fighter" && bonusTime === turn) {
         player.block(false);
         guardBtn.setAttribute("onclick", "playerTurn('guard')")
