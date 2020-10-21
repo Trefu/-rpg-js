@@ -30,7 +30,7 @@ class Enemy {
 class Goblin extends Enemy {
     constructor(name) {
         super(name)
-        this.hp = 6;
+        this.hp = 60;
         this.armor = 14;
         this.strength = -1;
         this.dexterity = 0;
@@ -48,7 +48,7 @@ class Goblin extends Enemy {
 class Violet_Fungus extends Enemy {
     constructor(name) {
         super(name)
-        this.hp = 30;
+        this.hp = 300;
         this.armor = 5;
         this.strength = -4;
         this.dexterity = -4;
@@ -56,7 +56,7 @@ class Violet_Fungus extends Enemy {
         this.weapon = {
             name: "Spores",
             damage: 4,
-            attackBonusWeapon: 8
+            attackBonusWeapon: 6
         }
     }
 
@@ -65,7 +65,7 @@ class Violet_Fungus extends Enemy {
 class Wolf extends Enemy {
     constructor(name) {
         super(name)
-        this.hp = 11;
+        this.hp = 110;
         this.armor = 13;
         this.strength = +1;
         this.dexterity = +2;
@@ -84,7 +84,7 @@ class Wolf extends Enemy {
 class Gnoll extends Enemy {
     constructor(name) {
         super(name)
-        this.hp = 22;
+        this.hp = 220;
         this.armor = 15;
         this.strength = +2;
         this.dexterity = +1;
@@ -100,7 +100,7 @@ class Gnoll extends Enemy {
 class Ghoul extends Enemy {
     constructor(name) {
         super(name)
-        this.hp = 28;
+        this.hp = 280;
         this.armor = 14;
         this.strength = +1;
         this.dexterity = +1;
@@ -108,7 +108,7 @@ class Ghoul extends Enemy {
         this.weapon = {
             name: "Claws",
             damage: 6,
-            attackBonusWeapon: 6
+            attackBonusWeapon: 4
         }
     }
 }

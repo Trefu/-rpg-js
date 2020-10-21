@@ -1,7 +1,7 @@
 class Fighter extends Player {
     constructor(name) {
         super(name)
-        this.hp = 12;
+        this.hp = 100;
         this.armor = 16;
         this.strength = 16;
         this.dexterity = 14;
