@@ -26,14 +26,14 @@ class Fighter extends Player {
     }
     agresive(boolean) {
         let agresiveStance = boolean;
-        agresiveStance ? (this.strength += 4, console.log("agresive activado")) :
-            (this.strength -= 4, console.log("str " + this.strength));
+        agresiveStance ? this.strength += 4 : this.strength -= 4;
         this.modifiers.str = this.adjustStats(this.strength)
     }
     reckless(boolean) {
         let recklessStance = boolean;
-        recklessStance ? (this.weapon.damage += 6, this.armor -= 2, console.log(weapon.damage + "reckless activado " + this.armor)) :
-            (this.weapon.damage -= 3, this.armor += 2, console.log("re desact " + this.weapon.damage + this.armor));
+        recklessStance ? (this.weapon.damage += 6, this.armor -= 2) :
+            (this.weapon.damage -= 6, this.armor += 2);
+        this.modifiers.str = this.adjustStats(this.strength);
     }
     adjustStats(stat) {
         let newMod;

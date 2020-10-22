@@ -11,5 +11,5 @@ let dagger = {
 let greatsword = {
     "name": "Greatsword",
     "damage": 12,
-    "crit": 20
+    "attackBonus": 20
 };

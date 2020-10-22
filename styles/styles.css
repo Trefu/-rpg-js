@@ -66,6 +66,10 @@ body {
     margin: 5px;
 }
 
+.description p {
+    padding: 5px;
+}
+
 .battle {
     display: flex;
     justify-content: center;
@@ -114,7 +118,7 @@ body {
 }
 
 .btn {
-    box-shadow: 3px 4px 0px 0px #3b0d00;
+
     background: linear-gradient(to bottom, #591a09 5%, #c24b2b 100%);
     background-color: #591a09;
     border: 1px solid #611604;
