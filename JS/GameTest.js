@@ -1,7 +1,6 @@
 var player = null;
 var enemy = null;
 var gameOver = false;
-let firstturn = false;
 let Manager = {
     setGameStart: function (name) {
         this.resetPlayer(name);
@@ -41,8 +40,8 @@ let Manager = {
                 <p>Intelligence: ${player.intelligence}(${player.modifiers.int})</p>
                 <p>Wisdom: ${player.wisdom}(${player.modifiers.wis})</p>
                 <p>Charisma: ${player.charisma}(${player.modifiers.cha})</p>
-                <p>Weapon: ${player.weapon.name}(${player.modifiers.str}) </p>
-                <p>Damage : 1d${player.weapon.damage} (${player.modifiers.str})</p>
+                <p id="playerWeapon">Weapon: ${player.weapon.name}(${player.modifiers.str}) </p>
+                <p id ="playerDamage">Damage : 1d${player.weapon.damage} (${player.modifiers.str})</p>
                 </div>
                 `
 
@@ -97,9 +96,9 @@ let Manager = {
         // Botones de acciones del fighter
         if (player.name == "Fighter") {
             document.getElementById("actions").innerHTML = `<a id="attackBtn" href="#" class="btn" onclick="playerTurn('attack')">Attack!</a>
-        <a id="guardBtn" href="#" class="btn" onclick="playerTurn('guard')">Defensive stance (enemy)</a>
+        <a id="guardBtn" href="#" class="btn" onclick="playerTurn('guard')">Defensive stance</a>
         <a id="agresiveBtn" href="#" class="btn" onclick="playerTurn('agresive')">Agresive stance</a>
-        <a id="reckless" href="#" class="btn" onclick="playerTurn('reckless')">Reckless stance</a>`
+        <a id="recklessBtn" href="#" class="btn" onclick="playerTurn('reckless')">Reckless stance</a>`
             let guardBtn = document.getElementById("guardBtn");
             let agresiveBtn = document.getElementById("agresiveBtn");
             let reckleesBtn = document.getElementById("reckleesBtn");
@@ -112,10 +111,16 @@ let Manager = {
 //controla los turnos y los turnos de bonus
 
 var turn = 1;
-let bonusTime = 0;
 let getSpan = document.getElementById("messages");
 let enemyTimer;
-let stanceActivated = false;
+let firstturn = false;
+let defensiveActivated = false;
+let agresiveActivated = false;
+let recklessActivated = false;
+let stancesActivated = false;
+let usesStances = 0;
+let bonusTime = 0;
+let timerEnemy;
 
 function playerTurn(choise) {
     switch (choise) {
@@ -134,98 +139,143 @@ function playerTurn(choise) {
     }
     //Anti spam
     attackBtn.setAttribute('onclick', '')
-    attackBtn.innerText = ("Enemy turn")
-    player.name === "Fighter" ? (guardBtn.setAttribute("onclick", ''), guardBtn.innerText = ("Enemy turn")) : player.name;
-    deathCheck(enemy.hp) ? (alert("you win"), enemy.hp = 0, clearTimeout(enemyTurn)) : enemy.hp;
-    printStats();
-    setTimeout(() => {
-        getSpan.innerHTML = `${enemy.name} is about to attack!`
-        enemyTimer = setTimeout(() => {
+    if (deathCheck(enemy.hp)) {
+        alert("win");
+        enemy.hp = 0;
+        printStats();
+    } else {
+        setTimeout(() => {
+            getSpan.innerHTML = `${enemy.name} is about to attack!`
+        }, 1000);
+
+        setTimeout(() => {
             enemyTurn();
-        }, 1500);
-    }, 3000);
+        }, 2500);
+    }
 
 }
 
-function attack() {
-    let attackValues;
-    attackValues = player.getAttackValues();
-    if (attackValues.attackRoll <= 0) {
-        getSpan.innerHTML = `${player.name} go first and miss with 1 (not Nat 1)`;
-    } else if (attackValues.attackRoll == 1) {
-        getSpan.innerHTML = `${player.name} attack first and rolls nat 1, he miss and take ${enemy.weapon.damage / 2} damage`;
-    } else if (attackValues.attackRoll == 20) {
-        getSpan.innerHTML = `${player.name} hits a crit! ${enemy.name} takes ${attackValues.dmg *2} damage`;
-    } else if (attackValues.attackRoll >= enemy.armor) {
-        getSpan.innerHTML = `The ${player.name} strikes first on ${enemy.name} and deals ${attackValues.dmg} damage`;
-        enemy.hp -= attackValues.dmg;
-    } else {
-        getSpan.innerHTML = `The ${player.name} attacks first and missed!`;
-    }
+let stancesBtnsDeactive = function () {
+    guardBtn.setAttribute("onclick", "")
+    agresiveBtn.setAttribute("onclick", "")
+    recklessBtn.setAttribute("onclick", "")
+}
+let stancesBtnsActive = function () {
+    guardBtn.setAttribute("onclick", "playerTurn('guard')")
+    agresiveBtn.setAttribute("onclick", "playerTurn('agresive')")
+    recklessBtn.setAttribute("onclick", "playerTurn('reckless')")
+}
+stancesBtnsText = function (text) {
+    agresiveBtn.innerText = "Defensive stance" + text;
+    guardBtn.innerText = "Agresive stance " + text;
+    recklessBtn.innerText = "Reckless stance " + text;
 }
 
 function fighterStances(stance) {
-    let usesStances = 0;
-    stanceActivated = true;
-    if (bonusTime === 0 && usesStances != 3) {
-        switch (stance) {
-            case "guard":
+
+    switch (stance) {
+        case "guard":
+            if (!stancesActivated && usesStances != 3) {
+                stancesActivated = true;
+                defensiveActivated = true;
                 player.block(true);
-                getSpan.innerHTML = `${player.name} is on defensive stance!, uses left: ${3 - usesStances}`;
-                break;
-            case "agresive":
+                stancesBtnsDeactive();
+                getSpan.innerHTML = `${player.name} is on defensive stance!`;
+                bonusTime = turn + 3;
+                usesStances++;
+            } else if (defensiveActivated && bonusTime === turn) {
+                stancesActivated = false;
+                defensiveActivated = false;
+                player.block(false);
+                usesStances === 3 ? (
+                    stancesBtnsDeactive(),
+                    getSpan.innerHTML = `${player.name} Can't use more stances`,
+                    stancesBtnsText("(No more stances uses)")
+                ) : (
+                    stancesBtnsActive(),
+                    setTimeout(() => {
+                        getSpan.innerHTML = `${player.name} is no more on defensive stance`
+                    }, 2500),
+                    stancesBtnsText("")
+                );
+                bonusTime = 0;
+            } else if (bonusTime != turn) {
+                stancesBtnsText("(On cooldown)")
+            }
+            break;
+
+        case "agresive":
+            if (!stancesActivated && usesStances != 3) {
+                stancesActivated = true;
+                agresiveActivated = true;
                 player.agresive(true);
-                getSpan.innerHTML = `${player.name} is on agresive stance!, uses left: ${3 - usesStances}`;
-                printStats()
-                break;
-            case "'reckless'":
+                stancesBtnsDeactive();
+                getSpan.innerHTML = `${player.name} is on agresive stance!`;
+                bonusTime = turn + 3;
+                usesStances++;
+            } else if (agresiveActivated && bonusTime === turn) {
+                stancesActivated = false;
+                agresiveActivated = false;
+                player.agresive(false);
+                usesStances === 3 ? (
+                    stancesBtnsDeactive(),
+                    getSpan.innerHTML = `${player.name} Can't use more stances`,
+                    stancesBtnsText("(No more stances uses)")
+                ) : (
+                    stancesBtnsActive(),
+                    setTimeout(() => {
+                        getSpan.innerHTML = `${player.name} is no more on agresive stance`
+                    }, 2500),
+                    stancesBtnsText("")
+                );
+                bonusTime = 0;
+            } else if (bonusTime != turn) {
+                stancesBtnsText("(On cooldown)")
+            }
+            break;
+
+        case "reckless":
+            if (!stancesActivated && usesStances != 3) {
+                stancesActivated = true;
+                recklessActivated = true;
                 player.reckless(true);
-                getSpan.innerHTML = `${player.name} is on reckless stance!, uses left: ${3 - usesStances}`;
-                printStats()
-                break;
-        }
-        bonusTime = turn + 3;
-        usesStances++;
+                stancesBtnsDeactive();
+                getSpan.innerHTML = `${player.name} is on reckless stance!`;
+                bonusTime = turn + 3;
+                usesStances++;
+            } else if (recklessActivated && bonusTime === turn) {
+                stancesActivated = false;
+                recklessActivated = false;
+                player.reckless(false);
+                usesStances === 3 ? (
+                    stancesBtnsDeactive(),
+                    getSpan.innerHTML = `${player.name} Can't use more stances`,
+                    stancesBtnsText("(No more stances uses)")
+                ) : (
+                    stancesBtnsActive(),
+                    setTimeout(() => {
+                        getSpan.innerHTML = `${player.name} is no more on reckless stance`
+                    }, 2500),
+                    stancesBtnsText("")
+                );
+                bonusTime = 0;
+            } else if (bonusTime != turn) {
+                stancesBtnsText("(On cooldown)")
+            }
+            break;
     }
-
-}
-
-
-
-function printStats() {
-    let playerhp = document.getElementById("player-health");
-    let enemyhp = document.getElementById("enemy-health");
-    let playerArmor = document.getElementById("playerArmor");
-    let playerStr = document.getElementById("playerStr");
-    playerhp.innerText = "Health: " + player.hp;
-    enemyhp.innerText = "Health: " + enemy.hp;
-    playerArmor.innerText = "Armor: " + player.armor;
-    playerStr.innerText = `Strength: ${player.strength}(${player.modifiers.str})`
-}
-
-function deathCheck(hp) {
-    return hp <= 0;
-
+    printStats()
 }
 
 function enemyTurn() {
     let enemyReturns;
-    firstturn ? firstturn : firstturn = true;
-    deathCheck(enemy.hp);
     // Fighter stances
-
-    if (player.name === "Fighter" && bonusTime === turn) {
-        player.block(false);
-        guardBtn.setAttribute("onclick", "playerTurn('guard')")
-        guardBtn.textContent = "Guard";
-        bonusTime = 0;
-    } else if (bonusTime != 0 && bonusTime != turn || firstturn === true) {
-        guardBtn.setAttribute('onclick', "");
-        firstturn = false;
-        if (bonusTime <= 0 && player.name == "Fighter") {
-            guardBtn.textContent = `Guard`;
-        } else
-            guardBtn.textContent = `Guard cooldown (${bonusTime - turn})`;
+    if (player.name == "Fighter" && stancesActivated && defensiveActivated) {
+        fighterStances('guard');
+    } else if (agresiveActivated) {
+        fighterStances('agresive');
+    } else if (recklessActivated) {
+        fighterStances('reckless');
     }
     enemyReturns = enemy.attack();
     getSpan.innerHTML = enemyReturns.messageReturn;
@@ -234,4 +284,41 @@ function enemyTurn() {
     printStats();
     deathCheck(player.hp) ? alert("acasa pete") : player.hp;
     turn++;
+}
+
+function printStats() {
+    let playerhp = document.getElementById("player-health");
+    let enemyhp = document.getElementById("enemy-health");
+    let playerArmor = document.getElementById("playerArmor");
+    let playerStr = document.getElementById("playerStr");
+    let playerWeapon = document.getElementById("playerWeapon");
+    let playerDamage = document.getElementById("playerDamage");
+
+    playerDamage = `Damage : 1d${player.weapon.damage} (${player.modifiers.str})`
+    playerWeapon.innerHTML = `Weapon: ${player.weapon.name}(${player.modifiers.str})`
+    playerhp.innerText = "Health: " + player.hp;
+    enemyhp.innerText = "Health: " + enemy.hp;
+    playerArmor.innerText = "Armor: " + player.armor;
+    playerStr.innerText = `Strength: ${player.strength}(${player.modifiers.str})`
+}
+
+function deathCheck(hp) {
+    return hp <= 0;
+}
+
+function attack() {
+    let attackValues;
+    attackValues = player.getAttackValues();
+    if (attackValues.attackRoll <= 0) {
+        getSpan.innerHTML = `${player.name} miss with 1 (not Nat 1)`;
+    } else if (attackValues.attackRoll == 1) {
+        getSpan.innerHTML = `${player.name} attack first and rolls nat 1, he miss and take ${enemy.weapon.damage / 2} damage`;
+    } else if (attackValues.attackRoll == 20) {
+        getSpan.innerHTML = `${player.name} hits a crit!, ${enemy.name} takes ${attackValues.dmg *2} damage`;
+    } else if (attackValues.attackRoll >= enemy.armor) {
+        getSpan.innerHTML = `The ${player.name} strikes on ${enemy.name} and deals ${attackValues.dmg} damage`;
+        enemy.hp -= attackValues.dmg;
+    } else {
+        getSpan.innerHTML = `The ${player.name} has missed!`;
+    }
 }
