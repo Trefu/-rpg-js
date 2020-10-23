@@ -36,12 +36,9 @@ let Manager = {
                 <p id="playerArmor">Armor: ${player.armor}</p>
                 <p id="playerStr">Strength: ${player.strength}(${player.modifiers.str})</p>
                 <p>Dexterity: ${player.dexterity}(${player.modifiers.dex})</p>
-                <p>Constitution: ${player.constitution}(${player.modifiers.const})</p>
                 <p>Intelligence: ${player.intelligence}(${player.modifiers.int})</p>
-                <p>Wisdom: ${player.wisdom}(${player.modifiers.wis})</p>
-                <p>Charisma: ${player.charisma}(${player.modifiers.cha})</p>
-                <p id="playerWeapon">Weapon: ${player.weapon.name}(${player.modifiers.str}) </p>
-                <p id ="playerDamage">Damage : 1d${player.weapon.damage} (${player.modifiers.str})</p>
+                <p id="playerWeapon">Weapon: ${player.weapon.name} Attack bonus:(+${parseInt(player.modifiers.str) + player.weapon.attackBonusWeapon})</p>
+                <p id="playerDamage">Damage : 1d${player.weapon.damage} (+${parseInt(player.modifiers.str) + player.weapon.damageBonusWeapon})</p>
                 </div>
                 `
 
@@ -120,7 +117,7 @@ let recklessActivated = false;
 let stancesActivated = false;
 let usesStances = 0;
 let bonusTime = 0;
-let timerEnemy;
+
 
 function playerTurn(choise) {
     switch (choise) {
@@ -146,11 +143,11 @@ function playerTurn(choise) {
     } else {
         setTimeout(() => {
             getSpan.innerHTML = `${enemy.name} is about to attack!`
-        }, 1000);
+        }, 1500);
 
         setTimeout(() => {
             enemyTurn();
-        }, 2500);
+        }, 4500);
     }
 
 }
@@ -166,8 +163,8 @@ let stancesBtnsActive = function () {
     recklessBtn.setAttribute("onclick", "playerTurn('reckless')")
 }
 stancesBtnsText = function (text) {
-    agresiveBtn.innerText = "Defensive stance" + text;
-    guardBtn.innerText = "Agresive stance " + text;
+    guardBtn.innerText = "Defensive stance" + text;
+    agresiveBtn.innerText = "Agresive stance " + text;
     recklessBtn.innerText = "Reckless stance " + text;
 }
 
@@ -293,9 +290,8 @@ function printStats() {
     let playerStr = document.getElementById("playerStr");
     let playerWeapon = document.getElementById("playerWeapon");
     let playerDamage = document.getElementById("playerDamage");
-
-    playerDamage = `Damage : 1d${player.weapon.damage} (${player.modifiers.str})`
-    playerWeapon.innerHTML = `Weapon: ${player.weapon.name}(${player.modifiers.str})`
+    playerDamage.innerHTML = `Damage : 1d${player.weapon.damage} (+${parseInt(player.modifiers.str) + player.weapon.damageBonusWeapon})`
+    playerWeapon.innerHTML = `Weapon: ${player.weapon.name} Attack bonus:(+${parseInt(player.modifiers.str) + player.weapon.attackBonusWeapon})`
     playerhp.innerText = "Health: " + player.hp;
     enemyhp.innerText = "Health: " + enemy.hp;
     playerArmor.innerText = "Armor: " + player.armor;
