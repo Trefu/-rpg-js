@@ -29,7 +29,7 @@ let Manager = {
         getInterface.remove();
         document.getElementById("battle").style.display = "inline";
         getPlayerBattleInterface.innerHTML = `                
-                <img src="imgs/avatars/${player.name}.png" class="avatars">
+                <img src="imgs/avatars/${player.name.toLowerCase()}.png" class="avatars">
                 <div class="description">
                 <h3>${player.name}</h3>
                 <p id="player-health">Health: ${player.hp}</p>
