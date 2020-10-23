@@ -1,14 +1,11 @@
 class Fighter extends Player {
     constructor(name) {
         super(name)
-        this.hp = 100;
+        this.hp = 38;
         this.armor = 16;
         this.strength = 16;
         this.dexterity = 14;
-        this.constitution = 15;
         this.intelligence = 9;
-        this.wisdom = 13;
-        this.charisma = 11;
         this.weapon = greatsword;
         this.modifiers = {
             'str': "+3",
@@ -26,13 +23,14 @@ class Fighter extends Player {
     }
     agresive(boolean) {
         let agresiveStance = boolean;
-        agresiveStance ? this.strength += 4 : this.strength -= 4;
+        agresiveStance ? this.weapon.attackBonusWeapon += 4 : this.weapon.attackBonusWeapon -= 4;
         this.modifiers.str = this.adjustStats(this.strength)
     }
     reckless(boolean) {
         let recklessStance = boolean;
-        recklessStance ? (this.weapon.damage += 6, this.armor -= 2) :
-            (this.weapon.damage -= 6, this.armor += 2);
+        recklessStance ? (
+                this.weapon.damageBonusWeapon += 6, this.armor -= 2) :
+            (this.weapon.damageBonusWeapon -= 6, this.armor += 2);
         this.modifiers.str = this.adjustStats(this.strength);
     }
     adjustStats(stat) {

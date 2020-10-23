@@ -1,7 +1,7 @@
 class Rogue extends Player {
     constructor(name, hp, armor, weapon) {
         super(name, hp, armor, weapon)
-        this.hp = 10;
+        this.hp = 16;
         this.armor = 14;
         this.strength = 11;
         this.dexterity = 16;

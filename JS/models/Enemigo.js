@@ -8,11 +8,14 @@ class Enemy {
         let messageReturn;
         dmg <= 0 ? dmg = 1 : dmg;
         attackRoll <= 0 ? attackRoll = 1 : attackRoll;
-        if (attackRoll >= player.armor) {
+        if (attackRoll === 20) {
+            messageReturn = `${enemy.name} hits a critical strike! ${player.name} takes ${dmg * 2} damage!`
+            player.hp -= dmg * 2;
+        } else if (attackRoll >= player.armor) {
             messageReturn = `${enemy.name} strikes on ${player.name} and deals ${dmg} damage!`
             player.hp -= dmg;
         } else {
-            messageReturn = `${enemy.name} attacks first but miss`
+            messageReturn = `${enemy.name} attack can't impact ${player.name}!`
 
         }
         let enemyAttackResult = {
@@ -30,7 +33,7 @@ class Enemy {
 class Goblin extends Enemy {
     constructor(name) {
         super(name)
-        this.hp = 60;
+        this.hp = 12;
         this.armor = 14;
         this.strength = -1;
         this.dexterity = 0;
@@ -38,7 +41,7 @@ class Goblin extends Enemy {
         this.weapon = {
             name: "Goblin Sword",
             damage: 4,
-            attackBonusWeapon: 4
+            attackBonusWeapon: 2
         }
     }
 
@@ -48,7 +51,7 @@ class Goblin extends Enemy {
 class Violet_Fungus extends Enemy {
     constructor(name) {
         super(name)
-        this.hp = 300;
+        this.hp = 35;
         this.armor = 5;
         this.strength = -4;
         this.dexterity = -4;
@@ -56,7 +59,7 @@ class Violet_Fungus extends Enemy {
         this.weapon = {
             name: "Spores",
             damage: 4,
-            attackBonusWeapon: 6
+            attackBonusWeapon: 4
         }
     }
 
@@ -65,7 +68,7 @@ class Violet_Fungus extends Enemy {
 class Wolf extends Enemy {
     constructor(name) {
         super(name)
-        this.hp = 110;
+        this.hp = 18;
         this.armor = 13;
         this.strength = +1;
         this.dexterity = +2;
@@ -73,7 +76,7 @@ class Wolf extends Enemy {
         this.weapon = {
             name: "Bite",
             damage: 4,
-            attackBonusWeapon: 4
+            attackBonusWeapon: 3
         }
     }
 
@@ -84,7 +87,7 @@ class Wolf extends Enemy {
 class Gnoll extends Enemy {
     constructor(name) {
         super(name)
-        this.hp = 220;
+        this.hp = 26;
         this.armor = 15;
         this.strength = +2;
         this.dexterity = +1;
@@ -92,7 +95,7 @@ class Gnoll extends Enemy {
         this.weapon = {
             name: "Sword",
             damage: 8,
-            attackBonusWeapon: 4
+            attackBonusWeapon: 3
         }
     }
 }
@@ -100,7 +103,7 @@ class Gnoll extends Enemy {
 class Ghoul extends Enemy {
     constructor(name) {
         super(name)
-        this.hp = 280;
+        this.hp = 34;
         this.armor = 14;
         this.strength = +1;
         this.dexterity = +1;

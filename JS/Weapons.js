@@ -9,7 +9,8 @@ let dagger = {
     "crit": [18, 19, 20]
 };
 let greatsword = {
-    "name": "Greatsword",
-    "damage": 12,
-    "attackBonus": 20
+    name: "Greatsword",
+    damage: 12,
+    attackBonusWeapon: 2,
+    damageBonusWeapon: 0
 };
