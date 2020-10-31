@@ -44,8 +44,11 @@ body {
 }
 
 .avatars {
-    height: 250px;
-    width: 200px;
+    min-height: 250px;
+    max-height: 250px;
+    max-width: 200px;
+    min-width: 200px;
+
     margin: 10px;
 }
 
@@ -92,7 +95,7 @@ body {
     justify-items: center;
     align-items: center;
     background-color: var(--terciario);
-    background: linear-gradient(to bottom, #f9df74 5%, #c24b2b 120%);
+    background: linear-gradient(to bottom, #c24b2b 5%, #f9df74 120%);
     padding: 20px;
     font-size: 20px;
 }
@@ -118,7 +121,7 @@ body {
     background: var(--terciario);
     font-size: 18;
     height: 80%;
-    background: linear-gradient(to bottom, #f9df74 5%, #c24b2b 120%);
+    background: linear-gradient(to bottom, #f9df74 5%, #c24b2b 100%);
 }
 
 .battleCharacterInterface p {

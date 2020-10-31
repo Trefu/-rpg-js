@@ -1,7 +1,7 @@
 var player = null;
 var enemy = null;
 var gameOver = false;
-let Manager = {
+const Manager = {
     setGameStart: function (name) {
         this.resetPlayer(name);
         this.setPrefight();
@@ -90,7 +90,7 @@ let Manager = {
                 <p>Damage : 1d${enemy.weapon.damage} (${enemy.strength})</p>
                 </div>
                 `
-        // Botones de acciones del fighter
+        // Creacion de botones
         if (player.name == "Fighter") {
             document.getElementById("actions").innerHTML = `<a id="attackBtn" href="#" class="btn" onclick="playerTurn('attack')">Attack!</a>
         <a id="guardBtn" href="#" class="btn" onclick="playerTurn('guard')">Defensive stance</a>
@@ -99,6 +99,14 @@ let Manager = {
             let guardBtn = document.getElementById("guardBtn");
             let agresiveBtn = document.getElementById("agresiveBtn");
             let reckleesBtn = document.getElementById("reckleesBtn");
+        } else if (player.name == "Mage") {
+            document.getElementById("actions").innerHTML = `<a id="attackBtn" href="#" class="btn" onclick="playerTurn('attack')">Attack!</a>
+        <a id="healBtn" href="#" class="btn" onclick="playerTurn('heal')">Heal spell (2d6+INT)</a>
+        <a id="poisonBtn" href="#" class="btn" onclick="playerTurn('poison')">Poison Spray</a>
+        <a id="lightningBtn" href="#" class="btn" onclick="playerTurn('lightning')">Lightning bolts</a>`
+            let healBtn = document.getElementById("healBtn");
+            let poisonBtn = document.getElementById("poisonBtn");
+            let lightningBtn = document.getElementById("lightningBtn");
         } else {
             document.getElementById("actions").innerHTML = `<a id="attackBtn" href="#" class="btn" onclick="playerTurn('attack')">Attack!</a>`;
             let attackBtn = document.getElementById("attackBtn");
@@ -133,6 +141,10 @@ function playerTurn(choise) {
         case "reckless":
             fighterStances('reckless');
             break;
+        case "heal":
+            heal();
+            printStats();
+            break;
     }
     //Anti spam
     attackBtn.setAttribute('onclick', '')
@@ -143,11 +155,11 @@ function playerTurn(choise) {
     } else {
         setTimeout(() => {
             getSpan.innerHTML = `${enemy.name} is about to attack!`
-        }, 1500);
+        }, 3000);
 
         setTimeout(() => {
             enemyTurn();
-        }, 4500);
+        }, 5000);
     }
 
 }
@@ -311,10 +323,18 @@ function attack() {
         getSpan.innerHTML = `${player.name} attack first and rolls nat 1, he miss and take ${enemy.weapon.damage / 2} damage`;
     } else if (attackValues.attackRoll == 20) {
         getSpan.innerHTML = `${player.name} hits a crit!, ${enemy.name} takes ${attackValues.dmg *2} damage`;
+        enemy.hp -= attackValues.dmg * 2;
     } else if (attackValues.attackRoll >= enemy.armor) {
         getSpan.innerHTML = `The ${player.name} strikes on ${enemy.name} and deals ${attackValues.dmg} damage`;
         enemy.hp -= attackValues.dmg;
     } else {
         getSpan.innerHTML = `The ${player.name} has missed!`;
     }
+}
+
+function heal() {
+    let healValues = player.healSpell();
+    getSpan.innerHTML = `${healValues.msg}`
+    console.log(healValues)
+
 }
