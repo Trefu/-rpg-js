@@ -1,6 +1,7 @@
 class Enemy {
     constructor(name) {
-        this.name = name
+        this.name = name;
+        this.poisoned = false;
     }
     attack() {
         let dmg = Math.floor(Math.random() * enemy.weapon.damage + 1 + enemy.strength);

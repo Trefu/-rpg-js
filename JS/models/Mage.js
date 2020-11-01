@@ -11,10 +11,7 @@ class Mage extends Player {
         this.modifiers = {
             'str': "0",
             'dex': '+2',
-            'const': '+2',
             'int': '+3',
-            'wis': '+1',
-            'cha': '-1'
         }
     }
     healSpell() {
@@ -25,6 +22,16 @@ class Mage extends Player {
         return {
             heal,
             msg
+        }
+    }
+
+    poisonSpray() {
+        let poisonDuration = parseInt(this.modifiers.int);
+        let dmg = Math.floor(Math.random() * 4 + 1 + parseInt(this.modifiers.int))
+
+        return {
+            poisonDuration,
+            dmg
         }
     }
 

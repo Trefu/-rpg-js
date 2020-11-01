@@ -32,6 +32,7 @@ const Manager = {
                 <img src="imgs/avatars/${player.name.toLowerCase()}.png" class="avatars">
                 <div class="description">
                 <h3>${player.name}</h3>
+                <progress id="healthBar" value=${player.hp} max=${player.maxHp}></progress>
                 <p id="player-health">Health: ${player.hp}</p>
                 <p id="playerArmor">Armor: ${player.armor}</p>
                 <p id="playerStr">Strength: ${player.strength}(${player.modifiers.str})</p>
@@ -123,6 +124,7 @@ let defensiveActivated = false;
 let agresiveActivated = false;
 let recklessActivated = false;
 let stancesActivated = false;
+SpellEffect = false;
 let usesStances = 0;
 let bonusTime = 0;
 
@@ -131,6 +133,7 @@ function playerTurn(choise) {
     switch (choise) {
         case "attack":
             attack();
+            player.name === "Fighter" ? stancesBtnsDeactive() : player.name;
             break;
         case "guard":
             fighterStances('guard');
@@ -144,6 +147,9 @@ function playerTurn(choise) {
         case "heal":
             heal();
             printStats();
+            break;
+        case "poison":
+            poison();
             break;
     }
     //Anti spam
@@ -286,13 +292,25 @@ function enemyTurn() {
     } else if (recklessActivated) {
         fighterStances('reckless');
     }
+    // Mage Spells
+    if (player.name === "Mage" && SpellEffect) {
+        enemy.poisoned ? enemy.hp -= poisonValues.dmg : enemy.hp;
+        getSpan.innerHTML = `${enemy.name} takes ${poisonValues.dmg} damages for being poisoned`;
+    }
     enemyReturns = enemy.attack();
     getSpan.innerHTML = enemyReturns.messageReturn;
-    attackBtn.setAttribute('onclick', 'playerTurn("attack")')
-    attackBtn.innerText = ("Attack")
+
     printStats();
-    deathCheck(player.hp) ? alert("acasa pete") : player.hp;
+    deathCheck(player.hp) ? alert("acasa pete") : setTimeout(() => {
+        attackBtn.setAttribute('onclick', 'playerTurn("attack")')
+        attackBtn.innerText = ("Attack")
+        player.name === "Fighter" && usesStances != 3 && stancesActivated === false ? stancesBtnsActive() : player.name;
+        getSpan.innerHTML = `Players turn`;
+    }, 2000);
+
     turn++;
+
+
 }
 
 function printStats() {
@@ -302,6 +320,8 @@ function printStats() {
     let playerStr = document.getElementById("playerStr");
     let playerWeapon = document.getElementById("playerWeapon");
     let playerDamage = document.getElementById("playerDamage");
+    let healthBar = document.getElementById("healthBar");
+    healthBar.value = player.hp;
     playerDamage.innerHTML = `Damage : 1d${player.weapon.damage} (+${parseInt(player.modifiers.str) + player.weapon.damageBonusWeapon})`
     playerWeapon.innerHTML = `Weapon: ${player.weapon.name} Attack bonus:(+${parseInt(player.modifiers.str) + player.weapon.attackBonusWeapon})`
     playerhp.innerText = "Health: " + player.hp;
@@ -335,6 +355,12 @@ function attack() {
 function heal() {
     let healValues = player.healSpell();
     getSpan.innerHTML = `${healValues.msg}`
-    console.log(healValues)
+}
 
+function poison() {
+    poisonValues = player.poisonSpray();
+    SpellEffect = true;
+    enemy.poisoned = true;
+    poisonDuration = poisonValues.poisonDuration
+    getSpan.innerHTML = `${enemy.name} is poisoned for ${poisonDuration} turns!`;
 }
