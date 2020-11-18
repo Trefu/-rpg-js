@@ -1,14 +1,16 @@
-let staff = {
-    "name": "Staff",
-    "damage": 4,
-    "crit": 20
+const staff = {
+    name: "Staff",
+    damage: 4,
+    attackBonusWeapon: 2,
+    damageBonusWeapon: 0
 };
-let dagger = {
-    "name": "Dagger",
-    "damage": 4,
-    "crit": [18, 19, 20]
+const dagger = {
+    name: "dagger",
+    damage: 12,
+    attackBonusWeapon: 2,
+    damageBonusWeapon: 0
 };
-let greatsword = {
+const greatsword = {
     name: "Greatsword",
     damage: 12,
     attackBonusWeapon: 2,
