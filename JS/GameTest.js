@@ -1,6 +1,8 @@
 var player = null;
 var enemy = null;
 var gameOver = false;
+
+
 const Manager = {
     setGameStart: function (name) {
         this.resetPlayer(name);
@@ -32,7 +34,7 @@ const Manager = {
                 <img src="imgs/avatars/${player.name.toLowerCase()}.png" class="avatars">
                 <div class="description">
                 <h3>${player.name}</h3>
-                <progress id="healthBar" value=${player.hp} max=${player.maxHp}></progress>
+                <progress id="healthBarPlayer" value=${player.hp} max=${player.maxHp}></progress>
                 <p id="player-health">Health: ${player.hp}</p>
                 <p id="playerArmor">Armor: ${player.armor}</p>
                 <p id="playerStr">Strength: ${player.strength}(${player.modifiers.str})</p>
@@ -75,11 +77,13 @@ const Manager = {
                 break;
 
         }
+        //Estadisticas del enemigo
         alert("One " + enemy.name + " appears to fight you!");
         document.getElementById("arena").style.display = "inline"
         document.getElementById("enemyBattleInterface").innerHTML = `                
                 <img src="imgs/enemy/${enemy.name}.png" class="avatars">
                 <div class="description">
+                <progress id="healthBarEnemy" value=${enemy.hp} max=${enemy.maxHp}></progress>
                 <h3>${enemy.name}</h3>
                 <p id="enemy-health">Health: ${enemy.hp}</p>
                 <p>Armor: ${enemy.armor}</p>
@@ -114,7 +118,7 @@ const Manager = {
         }
     }
 };
-//controla los turnos y los turnos de bonus
+
 
 var turn = 1;
 let getSpan = document.getElementById("messages");
@@ -124,7 +128,6 @@ let defensiveActivated = false;
 let agresiveActivated = false;
 let recklessActivated = false;
 let stancesActivated = false;
-SpellEffect = false;
 let usesStances = 0;
 let bonusTime = 0;
 
@@ -146,10 +149,12 @@ function playerTurn(choise) {
             break;
         case "heal":
             heal();
+            mageButtonsActive(false);
             printStats();
             break;
         case "poison":
             poison();
+            mageButtonsActive(false);
             break;
     }
     //Anti spam
@@ -161,13 +166,25 @@ function playerTurn(choise) {
     } else {
         setTimeout(() => {
             getSpan.innerHTML = `${enemy.name} is about to attack!`
-        }, 3000);
+        }, 2000);
 
         setTimeout(() => {
             enemyTurn();
-        }, 5000);
+        }, 4000);
     }
 
+}
+
+let mageButtonsActive = function (boolean) {
+    if (boolean) {
+        healBtn.setAttribute("onclick", "playerTurn('heal')")
+        poisonBtn.setAttribute("onclick", "playerTurn('poison')")
+        lightningBtn.setAttribute("onclick", "playerTurn('lightning')")
+    } else {
+        healBtn.setAttribute("onclick", "")
+        poisonBtn.setAttribute("onclick", "")
+        lightningBtn.setAttribute("onclick", "")
+    }
 }
 
 let stancesBtnsDeactive = function () {
@@ -181,7 +198,7 @@ let stancesBtnsActive = function () {
     recklessBtn.setAttribute("onclick", "playerTurn('reckless')")
 }
 stancesBtnsText = function (text) {
-    guardBtn.innerText = "Defensive stance" + text;
+    guardBtn.innerText = "Defensive stance " + text;
     agresiveBtn.innerText = "Agresive stance " + text;
     recklessBtn.innerText = "Reckless stance " + text;
 }
@@ -283,6 +300,7 @@ function fighterStances(stance) {
 }
 
 function enemyTurn() {
+
     let enemyReturns;
     // Fighter stances
     if (player.name == "Fighter" && stancesActivated && defensiveActivated) {
@@ -292,36 +310,51 @@ function enemyTurn() {
     } else if (recklessActivated) {
         fighterStances('reckless');
     }
-    // Mage Spells
-    if (player.name === "Mage" && SpellEffect) {
-        enemy.poisoned ? enemy.hp -= poisonValues.dmg : enemy.hp;
-        getSpan.innerHTML = `${enemy.name} takes ${poisonValues.dmg} damages for being poisoned`;
+    if (player.name === "Mage" && enemy.poisoned && poisonValues.poisonDuration !== 0) {
+        enemy.hp -= poisonValues.dmg;
+        poisonDuration--;
+        poisonBtn.setAttribute = ("onclick", "");
     }
     enemyReturns = enemy.attack();
     getSpan.innerHTML = enemyReturns.messageReturn;
-
     printStats();
     deathCheck(player.hp) ? alert("acasa pete") : setTimeout(() => {
         attackBtn.setAttribute('onclick', 'playerTurn("attack")')
         attackBtn.innerText = ("Attack")
         player.name === "Fighter" && usesStances != 3 && stancesActivated === false ? stancesBtnsActive() : player.name;
         getSpan.innerHTML = `Players turn`;
+        player.name === "Mage" && poison.Values.poisonDuration === 0 ? mageButtonsActive(true) : player.name;
+        enemy.poisoned ? getSpan.innerHTML += `<hr>${enemy.name} takes ${poisonValues.dmg} damages for being poisoned` : enemy.poisoned;
+
     }, 2000);
-
     turn++;
-
-
 }
 
+function poison() {
+
+    poisonValues = player.poisonSpray();
+    if (!enemy.poisoned) {
+        enemy.poisoned = true;
+        poisonDuration = poisonValues.poisonDuration
+        getSpan.innerHTML = `${enemy.name} is poisoned for ${poisonDuration} turns!`;
+    } else {
+        getSpan.innerHTML = "The enemy is already poisoned.";
+    }
+}
+
+
 function printStats() {
+    //Jugador stats
+    let healthBarPlayer = document.getElementById("healthBarPlayer");
+    let healthBarEnemy = document.getElementById("healthBarEnemy")
     let playerhp = document.getElementById("player-health");
-    let enemyhp = document.getElementById("enemy-health");
     let playerArmor = document.getElementById("playerArmor");
     let playerStr = document.getElementById("playerStr");
     let playerWeapon = document.getElementById("playerWeapon");
     let playerDamage = document.getElementById("playerDamage");
-    let healthBar = document.getElementById("healthBar");
-    healthBar.value = player.hp;
+    let enemyhp = document.getElementById("enemy-health");
+    healthBarPlayer.value = player.hp;
+    healthBarEnemy.value = enemy.hp;
     playerDamage.innerHTML = `Damage : 1d${player.weapon.damage} (+${parseInt(player.modifiers.str) + player.weapon.damageBonusWeapon})`
     playerWeapon.innerHTML = `Weapon: ${player.weapon.name} Attack bonus:(+${parseInt(player.modifiers.str) + player.weapon.attackBonusWeapon})`
     playerhp.innerText = "Health: " + player.hp;
@@ -355,12 +388,4 @@ function attack() {
 function heal() {
     let healValues = player.healSpell();
     getSpan.innerHTML = `${healValues.msg}`
-}
-
-function poison() {
-    poisonValues = player.poisonSpray();
-    SpellEffect = true;
-    enemy.poisoned = true;
-    poisonDuration = poisonValues.poisonDuration
-    getSpan.innerHTML = `${enemy.name} is poisoned for ${poisonDuration} turns!`;
 }
