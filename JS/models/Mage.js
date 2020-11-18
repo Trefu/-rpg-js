@@ -35,6 +35,21 @@ class Mage extends Player {
         }
     }
 
+    lightningSpell() {
+        let lightningHits = Math.floor(Math.random() * parseInt(this.modifiers.int) + 1);
+        let lightningDamage = Math.floor(Math.random() * 6 + 1 + Math.floor(Math.random() * 6 + 1)) * lightningHits;
+        let lightningMessages = `Lightning impact ${lightningHits} times and deals ${lightningDamage}`;
+
+        return {
+            lightningHits,
+            lightningDamage,
+            lightningMessages
+        }
+
+
+    }
+
+
     adjustStats(stat) {
         let newMod;
         switch (stat) {
