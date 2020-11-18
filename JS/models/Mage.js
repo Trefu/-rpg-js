@@ -11,10 +11,7 @@ class Mage extends Player {
         this.modifiers = {
             'str': "0",
             'dex': '+2',
-            'const': '+2',
             'int': '+3',
-            'wis': '+1',
-            'cha': '-1'
         }
     }
     healSpell() {
@@ -27,6 +24,31 @@ class Mage extends Player {
             msg
         }
     }
+
+    poisonSpray() {
+        let poisonDuration = parseInt(this.modifiers.int);
+        let dmg = Math.floor(Math.random() * 4 + 1 + parseInt(this.modifiers.int))
+
+        return {
+            poisonDuration,
+            dmg
+        }
+    }
+
+    lightningSpell() {
+        let lightningHits = Math.floor(Math.random() * parseInt(this.modifiers.int) + 1);
+        let lightningDamage = Math.floor(Math.random() * 6 + 1 + Math.floor(Math.random() * 6 + 1)) * lightningHits;
+        let lightningMessages = `Lightning impact ${lightningHits} times and deals ${lightningDamage}`;
+
+        return {
+            lightningHits,
+            lightningDamage,
+            lightningMessages
+        }
+
+
+    }
+
 
     adjustStats(stat) {
         let newMod;

@@ -1,6 +1,8 @@
 var player = null;
 var enemy = null;
 var gameOver = false;
+
+
 const Manager = {
     setGameStart: function (name) {
         this.resetPlayer(name);
@@ -32,6 +34,7 @@ const Manager = {
                 <img src="imgs/avatars/${player.name.toLowerCase()}.png" class="avatars">
                 <div class="description">
                 <h3>${player.name}</h3>
+                <progress id="healthBarPlayer" value=${player.hp} max=${player.maxHp}></progress>
                 <p id="player-health">Health: ${player.hp}</p>
                 <p id="playerArmor">Armor: ${player.armor}</p>
                 <p id="playerStr">Strength: ${player.strength}(${player.modifiers.str})</p>
@@ -44,7 +47,7 @@ const Manager = {
 
 
         getActions.innerHTML = `
-        <a href="#" class="btn" onclick="Manager.setFight()">Search an enemy!</a>
+        <a href="#/" class="btn" onclick="Manager.setFight()">Search an enemy!</a>
         `;
     },
 
@@ -74,11 +77,13 @@ const Manager = {
                 break;
 
         }
+        //Estadisticas del enemigo
         alert("One " + enemy.name + " appears to fight you!");
         document.getElementById("arena").style.display = "inline"
         document.getElementById("enemyBattleInterface").innerHTML = `                
                 <img src="imgs/enemy/${enemy.name}.png" class="avatars">
                 <div class="description">
+                <progress id="healthBarEnemy" value=${enemy.hp} max=${enemy.maxHp}></progress>
                 <h3>${enemy.name}</h3>
                 <p id="enemy-health">Health: ${enemy.hp}</p>
                 <p>Armor: ${enemy.armor}</p>
@@ -92,28 +97,28 @@ const Manager = {
                 `
         // Creacion de botones
         if (player.name == "Fighter") {
-            document.getElementById("actions").innerHTML = `<a id="attackBtn" href="#" class="btn" onclick="playerTurn('attack')">Attack!</a>
-        <a id="guardBtn" href="#" class="btn" onclick="playerTurn('guard')">Defensive stance</a>
-        <a id="agresiveBtn" href="#" class="btn" onclick="playerTurn('agresive')">Agresive stance</a>
-        <a id="recklessBtn" href="#" class="btn" onclick="playerTurn('reckless')">Reckless stance</a>`
+            document.getElementById("actions").innerHTML = `<a id="attackBtn" href="#/" class="btn" onclick="playerTurn('attack')">Attack!</a>
+        <a id="guardBtn" href="#/" class="btn" onclick="playerTurn('guard')">Defensive stance</a>
+        <a id="agresiveBtn" href="#/" class="btn" onclick="playerTurn('agresive')">Agresive stance</a>
+        <a id="recklessBtn" href="#/" class="btn" onclick="playerTurn('reckless')">Reckless stance</a>`
             let guardBtn = document.getElementById("guardBtn");
             let agresiveBtn = document.getElementById("agresiveBtn");
             let reckleesBtn = document.getElementById("reckleesBtn");
         } else if (player.name == "Mage") {
-            document.getElementById("actions").innerHTML = `<a id="attackBtn" href="#" class="btn" onclick="playerTurn('attack')">Attack!</a>
-        <a id="healBtn" href="#" class="btn" onclick="playerTurn('heal')">Heal spell (2d6+INT)</a>
-        <a id="poisonBtn" href="#" class="btn" onclick="playerTurn('poison')">Poison Spray</a>
-        <a id="lightningBtn" href="#" class="btn" onclick="playerTurn('lightning')">Lightning bolts</a>`
+            document.getElementById("actions").innerHTML = `<a id="attackBtn" href="#/" class="btn" onclick="playerTurn('attack')">Attack!</a>
+        <a id="healBtn" href="#/" class="btn" onclick="playerTurn('heal')">Heal spell (2d6+INT)</a>
+        <a id="poisonBtn" href="#/" class="btn" onclick="playerTurn('poison')">Poison Spray</a>
+        <a id="lightningBtn" href="#/" class="btn" onclick="playerTurn('lightning')">Lightning bolts</a>`
             let healBtn = document.getElementById("healBtn");
             let poisonBtn = document.getElementById("poisonBtn");
             let lightningBtn = document.getElementById("lightningBtn");
         } else {
-            document.getElementById("actions").innerHTML = `<a id="attackBtn" href="#" class="btn" onclick="playerTurn('attack')">Attack!</a>`;
+            document.getElementById("actions").innerHTML = `<a id="attackBtn" href="#/" class="btn" onclick="playerTurn('attack')">Attack!</a>`;
             let attackBtn = document.getElementById("attackBtn");
         }
     }
 };
-//controla los turnos y los turnos de bonus
+
 
 var turn = 1;
 let getSpan = document.getElementById("messages");
@@ -131,6 +136,8 @@ function playerTurn(choise) {
     switch (choise) {
         case "attack":
             attack();
+            player.name === "Fighter" ? stancesBtnsDeactive() : player.name;
+            player.name === "Mage" ? mageButtonsActive(false) : player.name;
             break;
         case "guard":
             fighterStances('guard');
@@ -143,8 +150,21 @@ function playerTurn(choise) {
             break;
         case "heal":
             heal();
-            printStats();
+            mageButtonsActive(false);
             break;
+        case "poison":
+            if (!enemy.poisoned) {
+                poison();
+                mageButtonsActive(false);
+            } else {
+                getSpan.innerHTML = "The enemy is already poisoned.";
+            }
+            break;
+        case "lightning":
+            lightning();
+            mageButtonsActive(false);
+            break;
+
     }
     //Anti spam
     attackBtn.setAttribute('onclick', '')
@@ -154,14 +174,26 @@ function playerTurn(choise) {
         printStats();
     } else {
         setTimeout(() => {
-            getSpan.innerHTML = `${enemy.name} is about to attack!`
-        }, 3000);
+            getSpan.innerHTML += `<hr>${enemy.name} is about to attack!`
+        }, 2000);
 
         setTimeout(() => {
             enemyTurn();
-        }, 5000);
+        }, 4000);
     }
 
+}
+
+let mageButtonsActive = function (boolean) {
+    if (boolean) {
+        healBtn.setAttribute("onclick", "playerTurn('heal')")
+        poisonBtn.setAttribute("onclick", "playerTurn('poison')")
+        lightningBtn.setAttribute("onclick", "playerTurn('lightning')")
+    } else {
+        healBtn.setAttribute("onclick", "")
+        poisonBtn.setAttribute("onclick", "")
+        lightningBtn.setAttribute("onclick", "")
+    }
 }
 
 let stancesBtnsDeactive = function () {
@@ -175,7 +207,7 @@ let stancesBtnsActive = function () {
     recklessBtn.setAttribute("onclick", "playerTurn('reckless')")
 }
 stancesBtnsText = function (text) {
-    guardBtn.innerText = "Defensive stance" + text;
+    guardBtn.innerText = "Defensive stance " + text;
     agresiveBtn.innerText = "Agresive stance " + text;
     recklessBtn.innerText = "Reckless stance " + text;
 }
@@ -277,6 +309,7 @@ function fighterStances(stance) {
 }
 
 function enemyTurn() {
+
     let enemyReturns;
     // Fighter stances
     if (player.name == "Fighter" && stancesActivated && defensiveActivated) {
@@ -286,22 +319,48 @@ function enemyTurn() {
     } else if (recklessActivated) {
         fighterStances('reckless');
     }
+    if (player.name === "Mage" && enemy.poisoned && poisonValues.poisonDuration !== 0) {
+        enemy.hp -= poisonValues.dmg;
+        poisonDuration--;
+    }
     enemyReturns = enemy.attack();
-    getSpan.innerHTML = enemyReturns.messageReturn;
-    attackBtn.setAttribute('onclick', 'playerTurn("attack")')
-    attackBtn.innerText = ("Attack")
+    getSpan.innerHTML += "<hr>" + enemyReturns.messageReturn;
     printStats();
-    deathCheck(player.hp) ? alert("acasa pete") : player.hp;
+    deathCheck(player.hp) ? alert("acasa pete") : setTimeout(() => {
+        attackBtn.setAttribute('onclick', 'playerTurn("attack")')
+        attackBtn.innerText = ("Attack")
+        player.name === "Fighter" && usesStances != 3 && stancesActivated === false ? stancesBtnsActive() : player.name;
+        getSpan.innerHTML = `Players turn`;
+        player.name === "Mage" ? mageButtonsActive(true) : player.name;
+        enemy.poisoned ? getSpan.innerHTML += `<hr>${enemy.name} takes ${poisonValues.dmg} damages for being poisoned` : enemy.poisoned;
+
+    }, 2500);
     turn++;
 }
 
+function poison() {
+
+    poisonValues = player.poisonSpray();
+    if (!enemy.poisoned) {
+        enemy.poisoned = true;
+        poisonDuration = poisonValues.poisonDuration
+        getSpan.innerHTML = `${enemy.name} is poisoned for ${poisonDuration} turns!`;
+    }
+}
+
+
 function printStats() {
+    //Jugador stats
+    let healthBarPlayer = document.getElementById("healthBarPlayer");
+    let healthBarEnemy = document.getElementById("healthBarEnemy")
     let playerhp = document.getElementById("player-health");
-    let enemyhp = document.getElementById("enemy-health");
     let playerArmor = document.getElementById("playerArmor");
     let playerStr = document.getElementById("playerStr");
     let playerWeapon = document.getElementById("playerWeapon");
     let playerDamage = document.getElementById("playerDamage");
+    let enemyhp = document.getElementById("enemy-health");
+    healthBarPlayer.value = player.hp;
+    healthBarEnemy.value = enemy.hp;
     playerDamage.innerHTML = `Damage : 1d${player.weapon.damage} (+${parseInt(player.modifiers.str) + player.weapon.damageBonusWeapon})`
     playerWeapon.innerHTML = `Weapon: ${player.weapon.name} Attack bonus:(+${parseInt(player.modifiers.str) + player.weapon.attackBonusWeapon})`
     playerhp.innerText = "Health: " + player.hp;
@@ -330,11 +389,17 @@ function attack() {
     } else {
         getSpan.innerHTML = `The ${player.name} has missed!`;
     }
+    printStats();
 }
 
 function heal() {
     let healValues = player.healSpell();
     getSpan.innerHTML = `${healValues.msg}`
-    console.log(healValues)
+}
 
+function lightning() {
+    let lightningValues = player.lightningSpell();
+    getSpan.innerHTML = lightningValues.lightningMessages;
+    enemy.hp -= lightningValues.lightningDamage;
+    printStats();
 }

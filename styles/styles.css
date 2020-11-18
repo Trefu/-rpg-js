@@ -43,6 +43,18 @@ body {
 
 }
 
+progress {
+    background-color: #ff0808;
+    border: 0;
+    height: 18px;
+    border-radius: 9px;
+    margin: 1em;
+
+}
+
+
+
+
 .avatars {
     min-height: 250px;
     max-height: 250px;

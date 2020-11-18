@@ -1,6 +1,7 @@
 class Fighter extends Player {
     constructor(name) {
         super(name)
+        this.maxHp = 38;
         this.hp = 38;
         this.armor = 16;
         this.strength = 16;
@@ -10,10 +11,7 @@ class Fighter extends Player {
         this.modifiers = {
             'str': "+3",
             'dex': '+2',
-            'const': '+2',
             'int': '-2',
-            'wis': '-1',
-            'cha': '0'
         }
 
     }
