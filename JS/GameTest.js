@@ -1,9 +1,7 @@
-var player = null;
-var enemy = null;
-var gameOver = false;
-
-
 const Manager = {
+    player: null,
+    enemy: null,
+    gameOver: false,
     setGameStart: function (name) {
         this.resetPlayer(name);
         this.setPrefight();
