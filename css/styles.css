@@ -1,0 +1,9 @@
+@font-face {
+    font-family: 'MedievalSharp';
+    src: url('/font/MedievalSharp-Regular.ttf');
+}
+
+body {
+    font-family: 'MedievalSharp', cursive;
+
+}

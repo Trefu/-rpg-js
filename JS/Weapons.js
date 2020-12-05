@@ -6,7 +6,7 @@ const staff = {
 };
 const dagger = {
     name: "dagger",
-    damage: 12,
+    damage: 6,
     attackBonusWeapon: 2,
     damageBonusWeapon: 0
 };
