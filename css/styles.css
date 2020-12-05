@@ -1,9 +1,29 @@
-@font-face {
-    font-family: 'MedievalSharp';
-    src: url('/font/MedievalSharp-Regular.ttf');
+body {
+    background-image: url(/imgs/bg.jpg);
+    font-family: 'MedievalSharp', cursive;
 }
 
-body {
-    font-family: 'MedievalSharp', cursive;
+#characterselection {
+    background-color: rgba(192, 187, 46, 0.549);
+}
 
+#playerInterface {
+    background-color: rgba(192, 187, 46, 0.549);
+}
+
+.list-group-item {
+    background-color: rgba(192, 187, 46, 0.167);
+
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+a:hover {
+    color: rgba(182, 33, 196, 0.701);
+    ;
+    text-decoration: none;
+    cursor: pointer;
 }
