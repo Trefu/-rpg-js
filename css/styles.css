@@ -37,3 +37,13 @@ a:hover {
 .dropdown {
     text-align: center;
 }
+
+.textRecordSec {
+    background-color: rgba(46, 43, 9, 0.605);
+}
+
+#battleText {
+    color: rgba(247, 245, 247, 0.893);
+    width: 100%;
+    height: 100%;
+}

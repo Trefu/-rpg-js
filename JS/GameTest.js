@@ -1,4 +1,5 @@
 var player = null;
+var LocationBattle = null;
 const Manager = {
     start(pickedClass) {
         this.playerClassSelect(pickedClass);
@@ -17,16 +18,24 @@ const Manager = {
         let playerInterface = document.getElementById("playerInterface");
         let className = document.getElementById("classname");
         let playerStatus = document.getElementById("playerStatus");
-        let locationsImgs = document.getElementById("locationsImgs");
         let midSec = document.getElementById("midSec");
-
         className.innerText = `${player.name}`
         playerStatus.innerText = `${player.status}`;
         interfaceSelection.remove();
-        playerInterface.className = "card p-5 mx-sm-auto mx-md-5"
+        playerInterface.classList.remove("d-none")
         midSec.classList.remove("d-none")
-    }
+    },
+    locationSelect(loc) {
+        switch (loc) {
+            case "winter":
+                LocationBattle = new Location("Claws of winter", winterDangers, winterMonsters, winterImgs);
+                LocationBattle.eventRandom();
+                midSec.style = "";
+                break;
 
+
+        }
+    }
 }
 
 

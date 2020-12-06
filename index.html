@@ -14,8 +14,8 @@
     <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&display=swap" rel="stylesheet">
 </head>
 
-<body>
-    <div class="container-fluid-sm">
+<body id="body">
+    <div class="container-fluid">
         <div id="principal" class="container mt-5">
             <!--Pick class interface-->
             <div id="characterselection" class="row  my-5 p-5 text-center text-md-left rounded">
@@ -40,7 +40,7 @@
             <!--Player interface-->
             <div class="row">
                 <div class="col-md">
-                    <div id="playerInterface" class="d-none" style="width: 18rem;">
+                    <div id="playerInterface" class="card p-5 d-none w-auto" style="width: 18rem;">
                         <img class="card-img-top" src="/imgs/avatars/weaponmaster.png" alt="Avatar">
                         <div class="card-body">
 
@@ -95,44 +95,50 @@
                 <!---->
 
                 <!--Location select-->
-                <div id="midSec" class="col-md text-center d-none">
-                    <div id="locationsImgs">
-                        <h3 class="mx-5 mt-sm-5 mt-md-0">choose your destiny</h1>
-                            <div class="row my-5">
-                                <div class="col">
-                                    <h4>Claws of winter</h4>
-                                    <a href="\#">
-                                        <img src="/imgs/locations/winter.png" alt="" style="max-width: 10em;">
-                                    </a>
-                                </div>
-                                <div class="col">
-                                    <h4>Dunia</h4>
-                                    <a href="\#">
-                                        <img src="/imgs/locations/desert.png" alt="" style="max-width: 10em;">
-                                    </a>
-                                </div>
+                <div id="midSec" class="col-md text-center d-none textRecordSec my-5 my-md-0">
+                    <p id="battleText" class="d-none py-3">Lorem, ipsum dolor sit amet consectetur
+                        adipisicing elit.
+                        Deserunt, eos.
+
+                    </p>
+                    <div id="locationsImgs" class="my-5">
+                        <h3 class="py-5 pb-md-5 pt-md-0">Choose your destiny</h1>
+
+                            <div class="col">
+                                <h4>Claws of winter</h4>
+                                <a href="\#">
+                                    <img src="/imgs/locations/winter.png" alt="" style="max-width: 10em;"
+                                        onclick="Manager.locationSelect('winter')">
+                                </a>
                             </div>
-                            <div class="row">
-                                <div class="col">
-                                    <h4>The Deep</h4>
-                                    <a href="\#">
-                                        <img src="/imgs/locations/caves.png" alt="" style="max-width: 10em;">
-                                    </a>
-                                </div>
-                                <div class="col">
-                                    <h4>Trolls Claw</h4>
-                                    <a href="\#">
-                                        <img src="/imgs/locations/forest.png" alt="" style="max-width: 10em;">
-                                    </a>
-                                </div>
+                            <div class="col">
+                                <h4>Dunia</h4>
+                                <a href="\#">
+                                    <img src="/imgs/locations/desert.png" alt="" style="max-width: 10em;">
+                                </a>
                             </div>
+
+
+                            <div class="col">
+                                <h4>The Deep</h4>
+                                <a href="\#">
+                                    <img src="/imgs/locations/caves.png" alt="" style="max-width: 10em;">
+                                </a>
+                            </div>
+                            <div class="col">
+                                <h4>Trolls Claw</h4>
+                                <a href="\#">
+                                    <img src="/imgs/locations/forest.png" alt="" style="max-width: 10em;">
+                                </a>
+                            </div>
+
                     </div>
                 </div>
                 <!---->
 
                 <!--Enemy-->
-                <div class="d-none">
-                    <div id="enemyInterface" class="card p-5" style="width: 18rem;">
+                <div class="col-md">
+                    <div id="enemyInterface" class="card p-5 w-auto d-none" style="width: 18rem;">
                         <img class="card-img-top" src="/imgs/avatars/weaponmaster.png" alt="Avatar">
                         <div class="card-body">
                             <div class="card-title text-center">
@@ -164,6 +170,7 @@
     <script type="text/javascript" src="JS/models/battlemaster.js"></script>
     <script type="text/javascript" src="JS/models/Rogue.js"></script>
     <script type="text/javascript" src="JS/models/Mage.js"></script>
+    <script type="text/javascript" src="JS/models/locations.js"></script>
     <script type="text/javascript" src="JS/Weapons.js"></script>
     <!--Jquery and boostrap CDNS-->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
