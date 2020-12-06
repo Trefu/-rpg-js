@@ -2,10 +2,11 @@ class Battlemaster {
     constructor(name, classCharacter) {
         this.classCharacter = classCharacter;
         this.name = name;
-        this.vida = 120;
-        this.velocidad = 20;
-        this.ataque = 10;
-        this.defensa = 20;
+        this.maxHealth = 120;
+        this.health = 120;
+        this.speed = 20;
+        this.attack = 10;
+        this.defense = 20;
         this.status = "Fine"
 
     }

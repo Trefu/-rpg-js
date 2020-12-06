@@ -7,13 +7,18 @@ body {
     background-color: rgba(192, 187, 46, 0.549);
 }
 
-#playerInterface {
+#playerInterface,
+#enemyInterface {
     background-color: rgba(192, 187, 46, 0.549);
 }
 
 .list-group-item {
     background-color: rgba(192, 187, 46, 0.167);
 
+}
+
+.btn-secondary {
+    background-color: rgba(46, 192, 51, 0.612);
 }
 
 a {
@@ -26,4 +31,9 @@ a:hover {
     ;
     text-decoration: none;
     cursor: pointer;
+}
+
+
+.dropdown {
+    text-align: center;
 }
