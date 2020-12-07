@@ -1,5 +1,11 @@
 var player = null;
 var LocationBattle = null;
+let playerNameStatus = document.getElementById("playerNameStatus");
+let interfaceSelection = document.getElementById("characterselection");
+let playerInterface = document.getElementById("playerInterface");
+let className = document.getElementById("classname");
+let midSec = document.getElementById("midSec");
+
 const Manager = {
     start(pickedClass) {
         this.playerClassSelect(pickedClass);
@@ -14,32 +20,31 @@ const Manager = {
         return this.player;
     },
     preFight() {
-        let interfaceSelection = document.getElementById("characterselection");
-        let playerInterface = document.getElementById("playerInterface");
-        let className = document.getElementById("classname");
-        let playerStatus = document.getElementById("playerStatus");
-        let midSec = document.getElementById("midSec");
         className.innerText = `${player.name}`
-        playerStatus.innerText = `${player.status}`;
         interfaceSelection.remove();
         playerInterface.classList.remove("d-none")
         midSec.classList.remove("d-none")
+
     },
     locationSelect(loc) {
         switch (loc) {
             case "winter":
                 LocationBattle = new Location("Claws of winter", winterDangers, winterMonsters, winterImgs);
                 LocationBattle.eventRandom();
-                midSec.style = "";
                 break;
         }
     }
 }
 
 
-
-
-let actPlayerHealth = function () {
-    let playerHealthBar = document.getElementById("playerHealth");
-    playerHealthBar.style.width = `${player.health * 100 / player.maxHealth}%`;
+let actStatus = function (obj) {
+    for (let pro in obj) {
+        if (obj[pro]) {
+            let status = document.getElementById(`${pro}`)
+            status.className = "";
+        } else {
+            let status = document.getElementById(`${pro}`)
+            status.className = "d-none";
+        }
+    }
 }

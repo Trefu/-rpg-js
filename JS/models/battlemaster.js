@@ -9,7 +9,14 @@ class Battlemaster {
         this.defense = 20;
         this.fumbleChance = 12;
         this.counterAttackChance = 22;
-        this.status = "Fine"
+        this.status = {
+            inspired: true,
+            cold: false,
+            bleeding: false,
+            poisoned: false,
+            bleeding: false,
+            scared: false
+        }
 
     }
 

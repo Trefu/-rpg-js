@@ -43,17 +43,22 @@ let winterDangers = {
         if (pick === "advance") {
             let probAdvance = Math.floor(Math.random() * 100 + 1);
             probAdvance -= player.strength * 2;
-            if (probAdvance >= 45) {
+            if (probAdvance >= 80) {
                 span.innerText += `
                 ${player.name} manages to go trought the storm without problems and gets inspired`
-                player.status = "Inspired"
-            } else {
+                player.status.inspired = true;
+            } else if (probAdvance >= 40) {
                 span.innerText += `
                 ${player.name} barely escapes the storm and feels icy`
-                player.status = "Icy"
+                player.status.icy = true;
                 player.health -= 15;
                 actPlayerHealth();
-
+            } else {
+                span.innerText += `
+                ${player.name} almost get frozen in the storm`
+                player.status.icy = true;
+                player.health -= 35;
+                actPlayerHealth();
             }
         }
 
