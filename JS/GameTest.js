@@ -32,8 +32,6 @@ const Manager = {
                 LocationBattle.eventRandom();
                 midSec.style = "";
                 break;
-
-
         }
     }
 }

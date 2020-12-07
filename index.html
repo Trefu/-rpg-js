@@ -20,10 +20,10 @@
             <!--Pick class interface-->
             <div id="characterselection" class="row  my-5 p-5 text-center text-md-left rounded">
                 <div class="col-md-6">
-                    <img class="img-fluid my-5" src="/imgs/avatars/weaponmaster.png" alt="Avatar">
+                    <img class="img-fluid " src="/imgs/avatars/weaponmaster.png" alt="Avatar">
                 </div>
-                <div class="col-md-6 my-5">
-                    <h1>nombre de clase</h1>
+                <div class="col-md-6 mt-5 mt-md-0">
+                    <h1 class="mb-2 mb-md-2">nombre de clase</h1>
                     <p>descripcion
                         Lorem ipsum dolor sit amet consectetur adipisicing elit. Corrupti vitae illum velit
                         necessitatibus vero expedita explicabo reiciendis provident est praesentium labore, laboriosam
@@ -32,7 +32,7 @@
                         voluptatibus.
                     </p>
 
-                    <a href="#" class="btn btn-dark btn-outline-success  w-50"
+                    <a href="#\" class="btn btn-dark btn-outline-success  w-50 mt-5 mt-md-0"
                         onclick="Manager.start('battlemaster')">Select</a>
                 </div>
             </div>
@@ -94,44 +94,45 @@
                 </div>
                 <!---->
 
-                <!--Location select-->
-                <div id="midSec" class="col-md text-center d-none textRecordSec my-5 my-md-0">
-                    <p id="battleText" class="d-none py-3">Lorem, ipsum dolor sit amet consectetur
-                        adipisicing elit.
-                        Deserunt, eos.
+                <!--Location select and combat text area-->
+                <div id="midSec" class="col-md text-center d-none textRecordSec">
+                    <p id="battleText" class="d-none py-3">Lorem300
 
                     </p>
+                    <a href="#\" id="ElectionEvent1"
+                        class="btn btn-dark btn-outline-success my-2 w-100 d-none">Election</a>
+                    <a href="#\" id="ElectionEvent2"
+                        class="btn btn-dark btn-outline-success my-2 w-100 d-none">Election</a>
+                    <a href="#\" id="ElectionEvent3"
+                        class="btn btn-dark btn-outline-success my-2 w-100 d-none">Election</a>
                     <div id="locationsImgs" class="my-5">
-                        <h3 class="py-5 pb-md-5 pt-md-0">Choose your destiny</h1>
+                        <h2 class="py-5 pb-md-5 pt-md-0">Choose your destiny</h2>
 
-                            <div class="col">
-                                <h4>Claws of winter</h4>
-                                <a href="\#">
-                                    <img src="/imgs/locations/winter.png" alt="" style="max-width: 10em;"
-                                        onclick="Manager.locationSelect('winter')">
-                                </a>
-                            </div>
-                            <div class="col">
-                                <h4>Dunia</h4>
-                                <a href="\#">
-                                    <img src="/imgs/locations/desert.png" alt="" style="max-width: 10em;">
-                                </a>
-                            </div>
-
-
-                            <div class="col">
-                                <h4>The Deep</h4>
-                                <a href="\#">
-                                    <img src="/imgs/locations/caves.png" alt="" style="max-width: 10em;">
-                                </a>
-                            </div>
-                            <div class="col">
-                                <h4>Trolls Claw</h4>
-                                <a href="\#">
-                                    <img src="/imgs/locations/forest.png" alt="" style="max-width: 10em;">
-                                </a>
-                            </div>
-
+                        <div class="col">
+                            <h4>Claws of winter</h4>
+                            <a href="\#">
+                                <img src="/imgs/locations/winter.png" alt="" style="max-width: 10em;"
+                                    onclick="Manager.locationSelect('winter')">
+                            </a>
+                        </div>
+                        <div class="col">
+                            <h4>Dunia</h4>
+                            <a href="\#">
+                                <img src="/imgs/locations/desert.png" alt="" style="max-width: 10em;">
+                            </a>
+                        </div>
+                        <div class="col">
+                            <h4>The Deep</h4>
+                            <a href="\#">
+                                <img src="/imgs/locations/caves.png" alt="" style="max-width: 10em;">
+                            </a>
+                        </div>
+                        <div class="col">
+                            <h4>Trolls Claw</h4>
+                            <a href="\#">
+                                <img src="/imgs/locations/forest.png" alt="" style="max-width: 10em;">
+                            </a>
+                        </div>
                     </div>
                 </div>
                 <!---->

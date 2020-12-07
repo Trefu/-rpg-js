@@ -5,8 +5,10 @@ class Battlemaster {
         this.maxHealth = 120;
         this.health = 120;
         this.speed = 20;
-        this.attack = 10;
+        this.strength = 10;
         this.defense = 20;
+        this.fumbleChance = 12;
+        this.counterAttackChance = 22;
         this.status = "Fine"
 
     }
