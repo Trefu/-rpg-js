@@ -1,9 +1,12 @@
 var player = null;
-var LocationBattle = null;
+var locationBattle = null;
+var enemy = null;
 let playerNameStatus = document.getElementById("playerNameStatus");
 let interfaceSelection = document.getElementById("characterselection");
 let playerInterface = document.getElementById("playerInterface");
 let className = document.getElementById("classname");
+let playerHealthBar = document.getElementById("playerHealth");
+let playerEnergyBar = document.getElementById("energyBar")
 let midSec = document.getElementById("midSec");
 
 const Manager = {
@@ -29,15 +32,17 @@ const Manager = {
     locationSelect(loc) {
         switch (loc) {
             case "winter":
-                LocationBattle = new Location("Claws of winter", winterDangers, winterMonsters, winterImgs);
-                LocationBattle.eventRandom();
+                locationsBattle = new locationMap("Claws of winter", winterDangers, winterMonsters, winterImgs);
+                locationsBattle.eventRandom();
                 break;
         }
     }
 }
 
 
-let actStatus = function (obj) {
+let actStats = function (obj) {
+    playerHealthBar.style.width = `${player.health * 100 / player.maxHealth}%`;
+
     for (let pro in obj) {
         if (obj[pro]) {
             let status = document.getElementById(`${pro}`)

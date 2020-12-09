@@ -1,5 +1,5 @@
 let body = document.getElementById("body");
-let span = document.getElementById("battleText");
+let battleText = document.getElementById("battleText");
 let textRecordSec = document.getElementById("textRecordSec");
 let btnEvent1 = document.getElementById("ElectionEvent1");
 let btnEvent2 = document.getElementById("ElectionEvent2");
@@ -20,17 +20,15 @@ let winterMonsters = {
 
 //locations dangers
 let winterDangers = {
+    eventsPassed: 0,
     storm() {
-        span.innerText = `seems to be that a storm is aproaching from the north`
+        battleText.innerText = `seems to be that a storm is aproaching from the north`
         if ((player.health * 100 / player.maxHealth) >= 30) {
             showButtons(btnEvent1);
             showButtons(btnEvent2);
-            showButtons(btnEvent3);
             btnEvent1.innerText = "Keep foward and try to pass the storm"
             btnEvent1.setAttribute("onClick", 'winterDangers.resultStorm("advance")')
-            btnEvent2.innerText = "Search for a refuge"
-            btnEvent3.innerText = "Keep foward and try to pass the storm"
-
+            btnEvent2.innerText = "Try to search for refuge"
         } else {
             btnEvent1.innerText = "Keep foward and try to pass the storm (Health to low)"
             btnEvent1.className = "btn btn-dark btn-outline-danger my-2 w-100"
@@ -44,31 +42,29 @@ let winterDangers = {
             let probAdvance = Math.floor(Math.random() * 100 + 1);
             probAdvance -= player.strength * 2;
             if (probAdvance >= 80) {
-                span.innerText += `
+                battleText.innerText += `
                 ${player.name} manages to go trought the storm without problems and gets inspired`
                 player.status.inspired = true;
             } else if (probAdvance >= 40) {
-                span.innerText += `
+                battleText.innerText += `
                 ${player.name} barely escapes the storm and feels icy`
-                player.status.icy = true;
+                player.status.cold = true;
                 player.health -= 15;
-                actPlayerHealth();
             } else {
-                span.innerText += `
+                battleText.innerText += `
                 ${player.name} almost get frozen in the storm`
-                player.status.icy = true;
+                player.status.cold = true;
                 player.health -= 35;
-                actPlayerHealth();
             }
         }
-
-
+        actStats(player.status);
     },
+
     cold() {
         console.log("cold")
     },
     cave() {
-        span.innerText = "Deep footprints of a booted, humanoid are visible in the fresh snow. The footsteps lead deep into a cave; they do not return."
+        battleText.innerText = "Deep footprints of a booted, humanoid are visible in the fresh snow. The footsteps lead deep into a cave; they do not return."
 
     },
     monsters() {
@@ -94,7 +90,7 @@ let winterImgs = {
 }
 
 
-class Location {
+class locationMap {
     constructor(name, dangers, monsters, imgs) {
         this.name = name;
         this.dangers = dangers;
@@ -103,8 +99,8 @@ class Location {
     }
     eventRandom() {
         locationsImgs.remove();
-        body.style.backgroundImage = LocationBattle.imgs.bg;
-        span.classList.remove("d-none");
+        body.style.backgroundImage = this.imgs.bg;
+        battleText.classList.remove("d-none");
         this.dangers.randomEvent();
 
     }
