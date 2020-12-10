@@ -1,11 +1,3 @@
-let body = document.getElementById("body");
-let battleText = document.getElementById("battleText");
-let textRecordSec = document.getElementById("textRecordSec");
-let btnEvent1 = document.getElementById("ElectionEvent1");
-let btnEvent2 = document.getElementById("ElectionEvent2");
-let btnEvent3 = document.getElementById("ElectionEvent3");
-
-
 //Monsters
 let wolf = "Asd";
 let winterTroll = "asdasd";
@@ -40,7 +32,8 @@ let winterDangers = {
     resultStorm(pick) {
         if (pick === "advance") {
             let probAdvance = Math.floor(Math.random() * 100 + 1);
-            probAdvance -= player.strength * 2;
+            probAdvance += player.luck;
+            console.log(probAdvance)
             if (probAdvance >= 80) {
                 battleText.innerText += `
                 ${player.name} manages to go trought the storm without problems and gets inspired`
@@ -54,10 +47,27 @@ let winterDangers = {
                 battleText.innerText += `
                 ${player.name} almost get frozen in the storm`
                 player.status.cold = true;
-                player.health -= 35;
+                player.health -= 30;
+            }
+
+        } else if (pick === "refuge") {
+            let probRefuge = Math.floor(Math.random() * 100 + 1);
+            probRefuge += player.luck;
+            if (probRefuge >= 85) {
+                battleText.innerText += `
+                ${player.name} finds a great place to stay`
+            } else {
+                battleText.innerText += `
+                ${player.name} almost get frozen in the storm`
+                player.status.cold = true;
+                player.health -= 30;
             }
         }
         actStats(player.status);
+        setTimeout(() => {
+            locationBattle.eventRandom()
+        }, 5000);
+
     },
 
     cold() {
@@ -71,9 +81,11 @@ let winterDangers = {
         console.log(wolf)
     },
     randomEvent() {
+        //CAMBIAR ESTO CUANDO ESTEN LOS 4 EVENTOS
         let randomNum = 1
         if (randomNum === 1) {
             this.storm();
+
         } else if (randomNum === 2) {
             this.cold();
         } else if (randomNum === 3) {
@@ -97,10 +109,12 @@ class locationMap {
         this.monsters = monsters;
         this.imgs = imgs;
     }
-    eventRandom() {
+    locationStart() {
         locationsImgs.remove();
         body.style.backgroundImage = this.imgs.bg;
         battleText.classList.remove("d-none");
+    }
+    eventRandom() {
         this.dangers.randomEvent();
 
     }
