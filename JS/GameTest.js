@@ -2,18 +2,20 @@ var gameOver = false
 var player = null;
 var locationBattle = null;
 var enemy = null;
+//Interface Variables
 let playerNameStatus = document.getElementById("playerNameStatus");
 let interfaceSelection = document.getElementById("characterselection");
 let playerInterface = document.getElementById("playerInterface");
 let className = document.getElementById("classname");
 let midSec = document.getElementById("midSec");
 let body = document.getElementById("body");
+//Battle and events variables
 let battleText = document.getElementById("battleText");
 let textRecordSec = document.getElementById("textRecordSec");
 let btnEvent1 = document.getElementById("ElectionEvent1");
 let btnEvent2 = document.getElementById("ElectionEvent2");
 let btnEvent3 = document.getElementById("ElectionEvent3");
-// Status 
+// Status variables
 let statusInspired = document.getElementById(`inspired`);
 let statusCold = document.getElementById(`cold`);
 let statusFatigued = document.getElementById(`fatigued`);
@@ -41,7 +43,6 @@ const Manager = {
         interfaceSelection.remove();
         playerInterface.classList.remove("d-none")
         midSec.classList.remove("d-none")
-
     },
     locationSelect(loc) {
         switch (loc) {
@@ -56,25 +57,15 @@ const Manager = {
 
 
 let actStats = function (obj) {
-    playerHealthBar.style.width = `${obj.health * 100 / obj.maxHealth}%`;
-
+    player.healthBar.style.width = `${obj.health * 100 / obj.maxHealth}%`;
     for (let pro in obj.status) {
         if (obj.status[pro]) {
-            statusShow = document.getElementById(`${pro}`)
+            let statusShow = document.getElementById(`${pro}`)
             statusShow.className = "";
         } else {
-            statusShow = document.getElementById(`${pro}`)
+            let statusShow = document.getElementById(`${pro}`)
             statusShow.className = "d-none";
         }
-    }
-}
-
-actStatsObj = {
-    obj: null,
-    healthBar: null,
-    actStatsHtml(obj) {
-        this.obj = obj;
-        console.log(this.obj)
     }
 }
 
@@ -85,3 +76,9 @@ let heal = function (obj, num) {
     ${obj.name} heals for ${num}`;
     actStats(player);
 }
+
+let showButtons = function (boolean, btn) {
+    boolean ? btn.classList.remove("d-none") : btn.classList.add("d-none")
+}
+
+const d100 = () => Math.floor(Math.random() * 100 + 1);
