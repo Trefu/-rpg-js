@@ -3,7 +3,7 @@ class Enemy {
         this.name = name;
         this.maxHealth = 0;
         this.health = 0;
-        this.speed = 0;
+        this.agi = 0;
         this.defense = 0;
         this.dodgeChance = 0;
         this.fumbleChance = 0;
@@ -18,10 +18,9 @@ class Enemy {
             bleeding: false,
             scared: false
         }
-
+        this.healthBar = document.getElementById("enemyHealth");
+        this.energyBar = document.getElementById("enemyEnergyBar");
     }
-
-
 }
 
 class Ice_Troll extends Enemy {
@@ -29,7 +28,7 @@ class Ice_Troll extends Enemy {
         super(name)
         this.maxHealth = 200;
         this.health = 200;
-        this.speed = 5;
+        this.agi = 5;
         this.defense = 2;
         this.dodgeChance = 5;
         this.fumbleChance = 15;

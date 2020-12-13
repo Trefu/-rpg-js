@@ -60,6 +60,10 @@ let winterDangers = {
         showButtons(false, btnEvent2)
         showButtons(false, btnEvent3)
         let luckThrow = d100()
+        let nextEvent = setTimeout(() => {
+            locationBattle.eventRandom();
+        }, 5000);
+        console.log(`Luck trow ${luckThrow}`)
         luckThrow += player.luck;
         switch (pick) {
             case "advance":
@@ -93,22 +97,24 @@ let winterDangers = {
                     break;
                 }
                 case "examine":
-                    if (luckThrow >= 80) {
-                        battleText.innerText += `${player.name} Finds a little treasure`;
+                    //CAMBIAR ESTO DESPUES DE TESTEAR
+                    if (luckThrow >= 200) {
+                        battleText.innerText += `
+                        ${player.name} Finds a little treasure`;
                     } else {
                         locationBattle.randomFight();
+                        clearTimeout(nextEvent);
                     }
                     break;
 
                 case "ignore":
-                    battleText.innerText += `${player.name} decides to better past away`;
+                    battleText.innerText += `
+                    ${player.name} decides to better past away`;
                     break;
 
         }
         actStats(player);
-        setTimeout(() => {
-            locationBattle.eventRandom();
-        }, 5000);
+
 
     },
 
@@ -157,7 +163,9 @@ class locationMap {
     randomFight() {
         enemy = new Ice_Troll("Ice Troll")
         battleText.innerText = `${player.name} stands against ${enemy.name}`
-
+        setTimeout(() => {
+            Manager.fight();
+        }, 3000);
     }
 
 }

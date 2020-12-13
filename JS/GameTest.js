@@ -2,19 +2,26 @@ var gameOver = false
 var player = null;
 var locationBattle = null;
 var enemy = null;
-//Interface Variables
+//Interface Player Variables
 let playerNameStatus = document.getElementById("playerNameStatus");
 let interfaceSelection = document.getElementById("characterselection");
 let playerInterface = document.getElementById("playerInterface");
 let className = document.getElementById("classname");
 let midSec = document.getElementById("midSec");
 let body = document.getElementById("body");
+let playerCombatsBtns = document.getElementById("btnsHidder");
+//Enemy Interface
+let enemyInterface = document.getElementById("enemyInterface")
+
 //Battle and events variables
 let battleText = document.getElementById("battleText");
 let textRecordSec = document.getElementById("textRecordSec");
 let btnEvent1 = document.getElementById("ElectionEvent1");
 let btnEvent2 = document.getElementById("ElectionEvent2");
 let btnEvent3 = document.getElementById("ElectionEvent3");
+let actionBtn1 = document.getElementById("playerAction1");
+let actionBtn2 = document.getElementById("playerAction2");
+let actionBtn3 = document.getElementById("playerAction3");
 // Status variables
 let statusInspired = document.getElementById(`inspired`);
 let statusCold = document.getElementById(`cold`);
@@ -26,6 +33,7 @@ let statusScared = document.getElementById(`scared`);
 
 
 const Manager = {
+
     start(pickedClass) {
         this.playerClassSelect(pickedClass);
         this.preFight();
@@ -41,8 +49,8 @@ const Manager = {
     preFight() {
         className.innerText = `${player.name}`
         interfaceSelection.remove();
-        playerInterface.classList.remove("d-none")
-        midSec.classList.remove("d-none")
+        $(playerInterface).removeClass("d-none")
+        $(midSec).removeClass("d-none")
     },
     locationSelect(loc) {
         switch (loc) {
@@ -52,19 +60,36 @@ const Manager = {
                 locationBattle.eventRandom();
                 break;
         }
+    },
+    fight() {
+        $(enemyInterface).removeClass("d-none");
+        battleText.innerText = "";
+        $(playerCombatsBtns).removeClass("d-none")
+        if (player.classCharacter === "Battlemaster") {
+            actionBtn1.innerText = `Use ${player.weapon.name}`
+            actionBtn2.innerText = `Lethal blow`
+            actionBtn3.innerText = `Feint swing`
+            actionBtn1.setAttribute("onclick", "player.attack(enemy)");
+        }
     }
+
 }
 
 
+
+
+
 let actStats = function (obj) {
-    player.healthBar.style.width = `${obj.health * 100 / obj.maxHealth}%`;
-    for (let pro in obj.status) {
-        if (obj.status[pro]) {
-            let statusShow = document.getElementById(`${pro}`)
-            statusShow.className = "";
-        } else {
-            let statusShow = document.getElementById(`${pro}`)
-            statusShow.className = "d-none";
+    obj.healthBar.style.width = `${obj.health * 100 / obj.maxHealth}%`;
+    if (obj.name === player.name) {
+        for (let pro in obj.status) {
+            if (obj.status[pro]) {
+                let statusShow = document.getElementById(`${pro}`)
+                statusShow.className = "";
+            } else {
+                let statusShow = document.getElementById(`${pro}`)
+                statusShow.className = "d-none";
+            }
         }
     }
 }
@@ -80,5 +105,13 @@ let heal = function (obj, num) {
 let showButtons = function (boolean, btn) {
     boolean ? btn.classList.remove("d-none") : btn.classList.add("d-none")
 }
+
+const generateMediaDmgCris = function (weaponDMG) {
+    var min = 0.800,
+        max = 1.200,
+        media = Math.random() * (max - min) + min;
+    totalDmg = Math.round(weaponDMG * media);
+    return totalDmg
+};
 
 const d100 = () => Math.floor(Math.random() * 100 + 1);

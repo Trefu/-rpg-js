@@ -4,7 +4,7 @@ class Battlemaster {
         this.name = name;
         this.maxHealth = 120;
         this.health = 120;
-        this.speed = 20;
+        this.agi = 20;
         this.luck = 5;
         this.defense = 2;
         this.protection = 20;
@@ -24,20 +24,34 @@ class Battlemaster {
         }
         this.healthBar = document.getElementById("playerHealth");
         this.energyBar = document.getElementById("energyBar");
-
     }
 
     attack(objective) {
-        let attackImpact = d100();
-        let dmg = this.weapon.dmg;
-        let impactCheck = this.accuracyChance - objective.dodgeChance;
-        if (impactCheck >= attackImpact && impactCheck <= attackImpact) {
-            battleText.innerText += `${player.name} Impact a critical strike dealing ${dmg}`
+        let attackD100 = d100();
+        let dmg = generateMediaDmgCris(this.weapon.dmg);
+        let AccTotal = this.accuracyChance - objective.dodgeChance;
+        console.log(`tirada de D100, ${attackD100} precision del jugador ${AccTotal}`)
+        if (AccTotal >= attackD100 && this.critical >= attackD100) {
+            battleText.innerText += `
+            Critical`
+        } else if (AccTotal >= attackD100) {
+            battleText.innerText += `
+            Impact with ${dmg} damage`
+            enemy.health -= dmg;
+            actStats(enemy)
+
+        } else {
+            battleText += `
+            Miss`
         }
-        let dmg = this.weapon.dmg;
-        attackCheck <= accuracy ?
-            console.log(`impacta con ${attackCheck} `) :
-            console.log(`falla con ${attackCheck}, daño ${dmg} , punteria ${accuracy} `)
+
+
+    }
+    lethalblow() {
+        console.log("lethablow")
+    }
+    feintSwing() {
+        console.group("feintswing")
     }
 
 }
@@ -45,6 +59,6 @@ class Battlemaster {
 let sword = {
     name: "Sword",
     dmg: 22,
-    fumbleChance: 5
+    fumbleChance: 5,
 
 }
