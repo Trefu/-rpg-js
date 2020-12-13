@@ -110,8 +110,10 @@ const generateMediaDmgCris = function (weaponDMG) {
     var min = 0.800,
         max = 1.200,
         media = Math.random() * (max - min) + min;
-    totalDmg = Math.round(weaponDMG * media);
-    return totalDmg
+    return Math.round(weaponDMG * media);
 };
 
 const d100 = () => Math.floor(Math.random() * 100 + 1);
+/*
+
+*/
