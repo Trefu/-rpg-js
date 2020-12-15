@@ -62,7 +62,8 @@ let winterDangers = {
         let luckThrow = d100()
         let nextEvent = setTimeout(() => {
             locationBattle.eventRandom();
-        }, 5000);
+            console.log("asd")
+        }, 500);
         console.log(`Luck trow ${luckThrow}`)
         luckThrow += player.luck;
         switch (pick) {

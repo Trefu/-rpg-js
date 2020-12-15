@@ -81,6 +81,7 @@ const Manager = {
 
 let actStats = function (obj) {
     obj.healthBar.style.width = `${obj.health * 100 / obj.maxHealth}%`;
+    obj.energyBar.style.width = `${obj.energy * 100 / obj.maxEnergy}%`;
     if (obj.name === player.name) {
         for (let pro in obj.status) {
             if (obj.status[pro]) {
