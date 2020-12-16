@@ -164,9 +164,12 @@ class locationMap {
     randomFight() {
         enemy = new Ice_Troll("Ice Troll")
         battleText.innerText = `${player.name} stands against ${enemy.name}`
+        enemyName.innerText = `${enemy.name}`
+        enemyAvatar.src = "imgs/enemy/claws of winter/ice troll.png"
+
         setTimeout(() => {
             Manager.fight();
-        }, 3000);
+        }, 1000);
     }
 
 }

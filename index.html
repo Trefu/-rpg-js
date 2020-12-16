@@ -21,7 +21,7 @@
             <!--Pick class interface-->
             <div id="characterselection" class="row  my-5 p-5 text-center text-md-left rounded">
                 <div class="col-md-6">
-                    <img class="img-fluid " src="/imgs/avatars/weaponmaster.png" alt="Avatar">
+                    <img class="img-fluid d-md-flex" src="/imgs/avatars/weaponmaster.png" alt="Avatar">
                 </div>
                 <div class="col-md-6 mt-5 mt-md-0">
                     <h1 class="mb-2 mb-md-2">nombre de clase</h1>
@@ -33,7 +33,7 @@
                         voluptatibus.
                     </p>
 
-                    <a href="\#" class="btn btn-dark btn-outline-success  w-50 mt-5 mt-md-0"
+                    <a id="startBtn" href="\#" class="btn btn-dark btn-outline-success  w-50 mt-5 mt-md-0"
                         onclick="Manager.start('battlemaster')">Select</a>
                 </div>
             </div>
@@ -45,7 +45,7 @@
                         <img class="card-img-top" src="/imgs/avatars/weaponmaster.png" alt="Avatar">
                         <div class="card-body">
                             <div class="card-title text-center">
-                                <h2 class="my-2" id="classname"></h2 class="my-2">
+                                <h2 class="my-2" id="playerName"></h2>
                                 <h5>Conditions</h5>
                                 <div id="playerNameStatus" class="pt-3">
                                     <p id="inspired" class="d-none">Inspired</p>
@@ -74,10 +74,10 @@
                         </div>
                         <div id="btnsHidder" class="d-none mx-auto">
                             <div class="btn-group dropend">
-                                <a href="#\" class="btn btn-dark btn-outline-success" id="playerInventory">Inventory</a>
+                                <a href="\#" class="btn btn-dark btn-outline-success" id="playerInventory">Inventory</a>
                                 <button type="button" class="btn btn-dark btn-outline-success dropdown-toggle"
                                     data-bs-toggle="dropdown" aria-expanded="false">
-                                    Dropright
+                                    Actions
                                 </button>
                                 <ul class="dropdown-menu">
                                     <li><a class="dropdown-item btn btn-dark btn-outline-success" href="#\"
@@ -97,7 +97,7 @@
 
                 <!--Location select and combat text area-->
                 <div id="midSec" class="col-md text-center my-5 mt-md-0 d-none textRecordSec">
-                    <p id="battleText" class="d-none py-3"></p>
+                    <div id="battleText" class="container-fluid d-none py-3"></div>
                     <a href="#\" id="ElectionEvent1"
                         class="btn btn-dark btn-outline-success my-2 w-100 d-none">Election</a>
                     <a href="#\" id="ElectionEvent2"
@@ -109,26 +109,26 @@
 
                         <div class="col">
                             <h4>Claws of winter</h4>
-                            <a href="\#">
+                            <a href="\#" class="btn">
                                 <img src="/imgs/locations/winter.png" alt="" style="max-width: 10em;"
                                     onclick="Manager.locationSelect('winter')">
                             </a>
                         </div>
                         <div class="col">
                             <h4>Dunia</h4>
-                            <a href="\#">
+                            <a href="\#" class="btn">
                                 <img src="/imgs/locations/desert.png" alt="" style="max-width: 10em;">
                             </a>
                         </div>
                         <div class="col">
                             <h4>The Deep</h4>
-                            <a href="\#">
+                            <a href="\#" class="btn">
                                 <img src="/imgs/locations/caves.png" alt="" style="max-width: 10em;">
                             </a>
                         </div>
                         <div class="col">
                             <h4>Neverwinter Forest</h4>
-                            <a href="\#">
+                            <a href="\#" class="btn">
                                 <img src="/imgs/locations/forest.png" alt="" style="max-width: 10em;">
                             </a>
                         </div>
@@ -139,12 +139,12 @@
                 <!--Enemy-->
                 <div class="col-md">
                     <div id="enemyInterface" class="card p-5 w-auto d-none h-100" style="width: 18rem;">
-                        <img class="card-img-top" src="/imgs/avatars/weaponmaster.png" alt="Avatar">
+                        <img id="enemyAvatar" class="card-img-top" src="" alt="Avatar of the enemy">
                         <div class="card-body">
                             <div class="card-title text-center">
-                                <h2 class="my-2" id="enemyName">Enemy name</h2 class="my-2">
+                                <h2 class="my-2" id="enemyName"></h2>
                                 <h5>Conditions</h5>
-                                <div id="playerNameStatus" class="pt-3">
+                                <div id="enemyStatus" class="pt-3">
                                     <p id="inspiredE" class="d-none">Inspired</p>
                                     <p id="coldE" class="d-none">Cold</p>
                                     <p id="fatiguedE" class="d-none">Fatigued</p>
@@ -178,10 +178,14 @@
         </div>
         <!--Jquery and boostrap CDNS-->
         <script src="js/jquery-3.5.1.min.js"></script>
+        <script src="js/bootstrap.bundle.min.js">
+        </script>
+        <!--
+boostrap bundle cdn
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/js/bootstrap.bundle.min.js"
             integrity="sha384-ygbV9kiqUc6oa4msXn9868pTtWMgiQaeYH7/t7LECLbyPA2x65Kgf80OJFdroafW" crossorigin="anonymous">
         </script>
-
+-->
         <!--JS Files-->
         <script type="text/javascript" src="js/GameTest.js"></script>
         <script type="text/javascript" src="js/models/Jugador.js"></script>

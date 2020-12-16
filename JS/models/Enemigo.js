@@ -28,25 +28,54 @@ class Ice_Troll extends Enemy {
         super(name)
         this.maxHealth = 200;
         this.health = 200;
+        this.maxEnergy = 300;
+        this.energy = 300;
         this.agi = 5;
         this.defense = 2;
         this.dodgeChance = 5;
         this.fumbleChance = 15;
-        this.counterChance = 5;
+        this.counterChance = 50;
         this.accuracyChance = 80;
         this.protection = 5;
+        this.weapon = claws;
+        this.avatar = "imgs/enemy/claws of winter/ice troll.png";
     }
-    alo() {
-        console.log("asd")
+    attack(objective) {
+        let attackD100 = d100();
+        let dmg = Math.round(generateMediaDmgCris(this));
+        let AccTotal = this.accuracyChance - objective.dodgeChance;
+        let counterD100 = d100();
+
+        console.log(`tirada de D100, ${attackD100} precision del jugador ${AccTotal} chance de counter ${counterD100} counter del enemigo ${enemy.counterChance}`)
+        this.energy -= this.maxEnergy * 5 / 100;
+        if (this.critical >= attackD100) {
+            enemy.health -= dmg * 2;
+            battleText.innerText += "<br>" + `Critical, ${dmg * 2} ${this.weapon.type} damage`
+        } else if (AccTotal >= attackD100) {
+            battleText.innerText += "<br>" + `Impact with ${dmg} ${this.weapon.type} damage`
+            enemy.health -= dmg;
+        } else {
+            battleText.innerText += "<br>" + `${objective.name} has dodge the attack!`
+        }
+        if (objective.health <= 0) {
+            console.log("rip")
+            objective.health = 0
+
+        } else {
+            setTimeout(() => {
+                if (counterD100 < objective.counterChance) {
+                    let counterdmg = Math.round(generateMediaDmgCris(objective));
+                    this.health -= counterdmg;
+                    battleText.innerHTML += "<br>" + ` ${objective.name} counter the attack dealing ${objective.weapon.type}  ${counterdmg}`
+                }
+
+            }, 0);
+        }
+
+        setTimeout(() => {
+            actStats(enemy);
+            actStats(player);
+        }, 100);
+
     }
-
-}
-
-
-
-
-sword = {
-    name: "Sword",
-    dmg: 22,
-    fumbleChance: 5
 }

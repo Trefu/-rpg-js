@@ -1,18 +1,19 @@
-var gameOver = false
+var gameOver = false;
 var player = null;
 var locationBattle = null;
 var enemy = null;
 //Interface Player Variables
-let playerNameStatus = document.getElementById("playerNameStatus");
+let playerNameStatus = document.getElementById("playerNameStatus"); // ???
 let interfaceSelection = document.getElementById("characterselection");
 let playerInterface = document.getElementById("playerInterface");
-let className = document.getElementById("classname");
+let playerName = document.getElementById("playerName");
 let midSec = document.getElementById("midSec");
 let body = document.getElementById("body");
 let playerCombatsBtns = document.getElementById("btnsHidder");
 //Enemy Interface
 let enemyInterface = document.getElementById("enemyInterface")
-
+let enemyAvatar = document.getElementById("enemyAvatar");
+let enemyName = document.getElementById("enemyName");
 //Battle and events variables
 let battleText = document.getElementById("battleText");
 let textRecordSec = document.getElementById("textRecordSec");
@@ -47,10 +48,10 @@ const Manager = {
         return this.player;
     },
     preFight() {
-        className.innerText = `${player.name}`
         interfaceSelection.remove();
         $(playerInterface).removeClass("d-none")
         $(midSec).removeClass("d-none")
+        playerName.innerText = `${player.name}`
     },
     locationSelect(loc) {
         switch (loc) {
@@ -104,17 +105,41 @@ let heal = function (obj, num) {
 }
 
 let showButtons = function (boolean, btn) {
-    boolean ? btn.classList.remove("d-none") : btn.classList.add("d-none")
-}
-
-const generateMediaDmgCris = function (weaponDMG) {
-    var min = 0.800,
-        max = 1.200,
-        media = Math.random() * (max - min) + min;
-    return Math.round(weaponDMG * media);
+    boolean ? btn.classList.remove("d-none") : btn.classList.add("d-none");
 };
 
+const generateMediaDmgCris = function (obj) {
+    let min = 0.800;
+    let percent = Math.round((obj.energy * 100) / obj.maxEnergy);
+    let max = 1.200
+    let media = Math.random() * (max - min) + min;
+    if (player.status.inspired) {
+        media += 0.30
+    } else {
+        if (percent > 60) {
+            media += 0.15
+        } else if (percent <= 60) {
+            media += 0.80;
+        } else if (percent <= 40) {
+            media += 0.70;
+        } else if (percent <= 20) {
+            media += 0.60;
+        }
+    }
+    return Math.round(obj.weapon.dmg * media);
+};
+
+
 const d100 = () => Math.floor(Math.random() * 100 + 1);
+
+$(document).ready(function () {
+    //para evitar que al clickear la primera vez se devuelva al inicio
+    $(".btn").click(function (e) {
+        e.preventDefault();
+    });
+});
 /*
+
+
 
 */
