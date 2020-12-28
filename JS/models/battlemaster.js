@@ -1,15 +1,21 @@
-class Enemy {
-    constructor(name) {
+class BaseModel {
+    constructor(name, classCharacter) {
+        this.classCharacter = classCharacter;
         this.name = name;
         this.maxHealth = 0;
         this.health = 0;
+        this.maxEnergy = 0;
+        this.energy = 0;
         this.agi = 0;
+        this.luck = 0;
         this.defense = 0;
+        this.protection = 0;
         this.dodgeChance = 0;
         this.fumbleChance = 0;
         this.counterChance = 0;
         this.accuracyChance = 0;
-        this.protection = 0;
+        this.critical = 0;
+        this.weapon = null;
         this.status = {
             inspired: false,
             cold: false,
@@ -18,27 +24,6 @@ class Enemy {
             bleeding: false,
             scared: false
         }
-        this.healthBar = document.getElementById("enemyHealth");
-        this.energyBar = document.getElementById("enemyEnergyBar");
-    }
-}
-
-class Ice_Troll extends Enemy {
-    constructor(name) {
-        super(name)
-        this.maxHealth = 200;
-        this.health = 200;
-        this.maxEnergy = 300;
-        this.energy = 300;
-        this.agi = 5;
-        this.defense = 2;
-        this.dodgeChance = 5;
-        this.fumbleChance = 15;
-        this.counterChance = 50;
-        this.accuracyChance = 80;
-        this.protection = 5;
-        this.weapon = claws;
-        this.avatar = "imgs/enemy/claws of winter/ice troll.png";
     }
     attack(objective) {
         let attackD100 = d100();
@@ -50,12 +35,15 @@ class Ice_Troll extends Enemy {
         this.energy -= this.maxEnergy * 5 / 100;
         if (this.critical >= attackD100) {
             enemy.health -= dmg * 2;
-            battleText.innerText += "<br>" + `Critical, ${dmg * 2} ${this.weapon.type} damage`
+            battleText.innerText += `
+            Critical, ${dmg * 2} ${this.weapon.type} damage`
         } else if (AccTotal >= attackD100) {
-            battleText.innerText += "<br>" + `Impact with ${dmg} ${this.weapon.type} damage`
+            battleText.innerText += `
+            Impact with ${dmg} ${this.weapon.type} damage`
             enemy.health -= dmg;
         } else {
-            battleText.innerText += "<br>" + `${objective.name} has dodge the attack!`
+            battleText.innerText += `
+            ${objective.name} has dodge the attack!`
         }
         if (objective.health <= 0) {
             console.log("rip")
@@ -78,4 +66,44 @@ class Ice_Troll extends Enemy {
         }, 100);
 
     }
+}
+
+
+class Battlemaster extends BaseModel {
+    constructor(name, classCharacter, weapon) {
+        super()
+        this.classCharacter = classCharacter;
+        this.name = name;
+        this.maxHealth = 120;
+        this.health = 120;
+        this.maxEnergy = 200;
+        this.energy = 200;
+        this.agi = 20;
+        this.luck = 5;
+        this.defense = 2;
+        this.protection = 20;
+        this.dodgeChance = 10;
+        this.fumbleChance = 12;
+        this.counterChance = 22;
+        this.accuracyChance = 100;
+        this.critical = 10;
+        this.weapon = weapon;
+        this.status = {
+            inspired: false,
+            cold: false,
+            bleeding: false,
+            poisoned: false,
+            bleeding: false,
+            scared: false
+        }
+        this.healthBar = document.getElementById("playerHealth");
+        this.energyBar = document.getElementById("energyBar");
+    }
+    lethalblow() {
+        console.log("lethablow")
+    }
+    feintSwing() {
+        console.group("feintswing")
+    }
+
 }
