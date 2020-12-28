@@ -21,13 +21,29 @@ class Enemy {
         this.healthBar = document.getElementById("enemyHealth");
         this.energyBar = document.getElementById("enemyEnergyBar");
     }
+    turn() {
+        let ran = Math.floor(Math.random() * 3 + 1);
+        switch (ran) {
+            case 1:
+                this.act1();
+                break;
+            case 2:
+                this.act2();
+                break;
+            case 3:
+                this.act3()
+                break;
+
+        }
+    }
+
 }
 
 class Ice_Troll extends Enemy {
     constructor(name) {
         super(name)
-        this.maxHealth = 200;
-        this.health = 200;
+        this.maxHealth = 120;
+        this.health = 120;
         this.maxEnergy = 300;
         this.energy = 300;
         this.agi = 5;
@@ -40,42 +56,57 @@ class Ice_Troll extends Enemy {
         this.weapon = claws;
         this.avatar = "imgs/enemy/claws of winter/ice troll.png";
     }
-    attack(objective) {
-        let attackD100 = d100();
-        let dmg = Math.round(generateMediaDmgCris(this));
-        let AccTotal = this.accuracyChance - objective.dodgeChance;
-        let counterD100 = d100();
-
-        console.log(`tirada de D100, ${attackD100} precision del jugador ${AccTotal} chance de counter ${counterD100} counter del enemigo ${enemy.counterChance}`)
-        this.energy -= this.maxEnergy * 5 / 100;
-        if (this.critical >= attackD100) {
-            enemy.health -= dmg * 2;
-            battleText.innerText += "<br>" + `Critical, ${dmg * 2} ${this.weapon.type} damage`
-        } else if (AccTotal >= attackD100) {
-            battleText.innerText += "<br>" + `Impact with ${dmg} ${this.weapon.type} damage`
-            enemy.health -= dmg;
-        } else {
-            battleText.innerText += "<br>" + `${objective.name} has dodge the attack!`
-        }
-        if (objective.health <= 0) {
-            console.log("rip")
-            objective.health = 0
-
-        } else {
-            setTimeout(() => {
-                if (counterD100 < objective.counterChance) {
-                    let counterdmg = Math.round(generateMediaDmgCris(objective));
+    act1() {
+        let n = 0;
+        battleText.innerText += `
+        ${enemy.name} Mades three attacks with his claws!`
+        let claws = () => {
+            let attackD100 = d100();
+            let dmg = Math.round(generateMediaDmgCris(this));
+            let AccTotal = this.accuracyChance - player.dodgeChance;
+            let counterD100 = d100();
+            this.energy -= this.maxEnergy * 5 / 100;
+            if (this.critical >= attackD100) {
+                player.health -= dmg * 2;
+                battleText.innerText += `
+            Critical, ${dmg * 2} ${this.weapon.type} damage`;
+            } else if (AccTotal >= attackD100) {
+                battleText.innerText += `
+            The ${enemy.name} impact with ${dmg} ${this.weapon.type} damage`;
+                player.health -= dmg;
+            } else {
+                battleText.innerText += `
+            ${player.name} has dodge the attack!`;
+            }
+            if (player.health <= 0) {
+                console.log("rip");
+                player.health = 0;
+            } else {
+                if (counterD100 < player.counterChance) {
+                    let counterdmg = Math.round(generateMediaDmgCris(player));
                     this.health -= counterdmg;
-                    battleText.innerHTML += "<br>" + ` ${objective.name} counter the attack dealing ${objective.weapon.type}  ${counterdmg}`
+                    battleText.innerHTML += `
+                    ${player.name} counter the attack dealing ${player.weapon.type}  ${counterdmg}`;
                 }
-
-            }, 0);
-        }
-
-        setTimeout(() => {
+            }
             actStats(enemy);
             actStats(player);
-        }, 100);
+            n++;
+            if (n < 3) {
+                setTimeout(() => {
+                    claws()
+                }, 2000);
+            }
+        }
+        claws()
 
     }
+    act2() {
+        console.log("claws")
+    }
+    act3() {
+        console.log("bite")
+    }
+
+
 }

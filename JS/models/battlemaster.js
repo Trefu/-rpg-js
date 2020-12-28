@@ -45,6 +45,7 @@ class BaseModel {
             battleText.innerText += `
             ${objective.name} has dodge the attack!`
         }
+        //Chequea si murio, de ser cierto no hay contraataque 🦴
         if (objective.health <= 0) {
             console.log("rip")
             objective.health = 0
@@ -54,16 +55,17 @@ class BaseModel {
                 if (counterD100 < objective.counterChance) {
                     let counterdmg = Math.round(generateMediaDmgCris(objective));
                     this.health -= counterdmg;
-                    battleText.innerHTML += "<br>" + ` ${objective.name} counter the attack dealing ${objective.weapon.type}  ${counterdmg}`
+                    battleText.innerText += `
+                    ${objective.name} counter the attack dealing ${objective.weapon.type}  ${counterdmg}`
                 }
 
-            }, 0);
+            }, 1000);
         }
-
         setTimeout(() => {
             actStats(enemy);
             actStats(player);
-        }, 100);
+            battleText.innerText = `Enemy turn`
+        }, 5000);
 
     }
 }
@@ -74,10 +76,10 @@ class Battlemaster extends BaseModel {
         super()
         this.classCharacter = classCharacter;
         this.name = name;
-        this.maxHealth = 120;
-        this.health = 120;
-        this.maxEnergy = 200;
-        this.energy = 200;
+        this.maxHealth = 80;
+        this.health = 80;
+        this.maxEnergy = 100;
+        this.energy = 100;
         this.agi = 20;
         this.luck = 5;
         this.defense = 2;

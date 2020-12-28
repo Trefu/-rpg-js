@@ -19,14 +19,14 @@ const greatsword = {
 
 const sword = {
     name: "Sword",
-    dmg: 22,
+    dmg: 11,
     fumbleChance: 5,
     type: "Slashing",
 };
 
 const claws = {
     name: "Claws",
-    dmg: 11,
+    dmg: 6,
     fumbleChance: 3,
     type: "Slashing"
 }

@@ -117,12 +117,10 @@ let changeTextTooltip = function (e, txt) {
 let actStats = function (obj) {
     obj.healthBar.style.width = `${obj.health * 100 / obj.maxHealth}%`;
     obj.energyBar.style.width = `${obj.energy * 100 / obj.maxEnergy}%`;
-    if (player.className == "battlemaster") {
 
-    }
     changeTextTooltip(actionBtn1, `
-        Hit chance:${player.accuracyChance - enemy.dodgeChance}.
-        Damage media: ${player.weapon.dmg}.`)
+    Hit chance:${player.accuracyChance - enemy.dodgeChance}.
+    Damage media: ${player.weapon.dmg}.`)
 
     if (obj.name === player.name) {
         for (let pro in obj.status) {
