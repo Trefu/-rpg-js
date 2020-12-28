@@ -70,7 +70,7 @@ class BaseModel {
 
 
 class Battlemaster extends BaseModel {
-    constructor(name, classCharacter) {
+    constructor(name, classCharacter, weapon) {
         super()
         this.classCharacter = classCharacter;
         this.name = name;
@@ -87,7 +87,7 @@ class Battlemaster extends BaseModel {
         this.counterChance = 22;
         this.accuracyChance = 100;
         this.critical = 10;
-        this.weapon = sword;
+        this.weapon = weapon;
         this.status = {
             inspired: false,
             cold: false,

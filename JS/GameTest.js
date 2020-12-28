@@ -42,7 +42,7 @@ const Manager = {
     playerClassSelect(pickedClass) {
         switch (pickedClass) {
             case "battlemaster":
-                player = new Battlemaster("Darius", "Battlemaster");
+                player = new Battlemaster("Darius", "Battlemaster", sword);
                 break;
         }
         return this.player;
@@ -66,23 +66,50 @@ const Manager = {
         $(enemyInterface).removeClass("d-none");
         battleText.innerText = "";
         $(playerCombatsBtns).removeClass("d-none")
+
+        actionBtn1.innerText = `Use ${player.weapon.name}`
+        $(actionBtn1).tooltip({
+            title: `
+                Hit chance:${player.accuracyChance - enemy.dodgeChance}.
+                Damage media: ${player.weapon.dmg}.`,
+            container: "body",
+            placement: "right",
+            trigger: "hover"
+        })
+
         if (player.classCharacter === "Battlemaster") {
-            actionBtn1.innerText = `Use ${player.weapon.name}`
+
             actionBtn2.innerText = `Lethal blow`
             actionBtn3.innerText = `Feint swing`
             actionBtn1.setAttribute("onclick", "player.attack(enemy)");
 
-            $(actionBtn1).tooltip({
-                title: `
-                Hit chance:${player.accuracyChance - enemy.dodgeChance}.
-                Damage media: ${player.weapon.dmg}.`
+
+            $(actionBtn2).tooltip({
+                title: `atque amet, eos eveniet voluptatem culpa! Harum soluta, vitae sint illo dignissimos
+                voluptatibus.
+                Hit chance:${player.accuracyChance - enemy.dodgeChance}. \n
+                Damage media: ${player.weapon.dmg}.`,
+                container: "body",
+                placement: "right",
+                trigger: "hover"
             })
+            $(actionBtn3).tooltip({
+                title: `Hit chance:${player.accuracyChance - enemy.dodgeChance}. \n Damage media: ${player.weapon.dmg}.`,
+                container: "body",
+                placement: "right",
+                trigger: "hover"
+            })
+
         }
 
     }
 
+
 }
 
+let changeTextTooltip = function (e, txt) {
+    $(e).attr('data-bs-original-title', txt)
+}
 
 
 
@@ -90,6 +117,13 @@ const Manager = {
 let actStats = function (obj) {
     obj.healthBar.style.width = `${obj.health * 100 / obj.maxHealth}%`;
     obj.energyBar.style.width = `${obj.energy * 100 / obj.maxEnergy}%`;
+    if (player.className == "battlemaster") {
+
+    }
+    changeTextTooltip(actionBtn1, `
+        Hit chance:${player.accuracyChance - enemy.dodgeChance}.
+        Damage media: ${player.weapon.dmg}.`)
+
     if (obj.name === player.name) {
         for (let pro in obj.status) {
             if (obj.status[pro]) {
@@ -144,10 +178,8 @@ $(document).ready(function () {
     $(".btn").click(function (e) {
         e.preventDefault();
     });
-    $(function () {
-        $('[data-toggle="tooltip"]').tooltip({
-            placement: "right"
-        })
-    })
+    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+        $('.btn').popover('disable');
+    }
 
 });

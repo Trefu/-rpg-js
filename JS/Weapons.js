@@ -21,7 +21,7 @@ const sword = {
     name: "Sword",
     dmg: 22,
     fumbleChance: 5,
-    type: "Slashing"
+    type: "Slashing",
 };
 
 const claws = {
