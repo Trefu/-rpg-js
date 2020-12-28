@@ -31,7 +31,7 @@ class BaseModel {
         let dmg = Math.round(generateMediaDmgCris(this));
         let AccTotal = this.accuracyChance - objective.dodgeChance;
         let counterD100 = d100();
-        this.energy -= this.maxEnergy * 5 / 100;
+        this.energy -= this.maxEnergy * 10 / 100;
 
         if (this.critical >= attackD100) {
             enemy.health -= dmg * 2;
@@ -45,32 +45,29 @@ class BaseModel {
             battleText.innerText += `
             ${objective.name} has dodge the attack!`
         }
-        //Chequea si murio, de ser cierto no hay contraataque y actualiza las interfaces🦴
         actStats(enemy);
         actStats(player);
+        //Chequea si murio, de ser cierto no hay contraataque y actualiza las interfaces 🦴
         if (objective.health <= 0) {
-            console.log("rip")
+            console.log("rip enemigo")
             objective.health = 0
-
+            actStats(enemy);
+            actStats(player);
+            //solo se ejecuta si el enemigo sigue vivo 💅
         } else {
             setTimeout(() => {
                 if (counterD100 < objective.counterChance) {
-                    let counterdmg = Math.round(generateMediaDmgCris(objective));
-                    this.health -= counterdmg;
-                    battleText.innerText += `
-                    ${objective.name} counter the attack dealing ${counterdmg} ${objective.weapon.type} damage`
-                    actStats(enemy);
-                    actStats(player);
+                    counterAttack(objective, this)
                 }
 
             }, 1000);
-        }
-        setTimeout(() => {
-            battleText.innerText = `Enemy turn`
             setTimeout(() => {
-                enemy.turn()
-            }, 1000);
-        }, 5000);
+                battleText.innerText = `Enemy turn`
+                setTimeout(() => {
+                    enemy.turn()
+                }, 1000);
+            }, 5000);
+        }
 
     }
 }

@@ -97,11 +97,12 @@ let winterDangers = {
                     player.health -= 25;
                     break;
                 }
+
                 case "examine":
                     //CAMBIAR ESTO DESPUES DE TESTEAR
                     if (luckThrow >= 200) {
                         battleText.innerText += `
-                        ${player.name} Finds a little treasure`;
+                    ${player.name} Finds a little treasure`;
                     } else {
                         locationBattle.randomFight();
                         clearTimeout(nextEvent);
@@ -110,7 +111,7 @@ let winterDangers = {
 
                 case "ignore":
                     battleText.innerText += `
-                    ${player.name} decides to better past away`;
+                ${player.name} decides to better past away`;
                     break;
 
         }

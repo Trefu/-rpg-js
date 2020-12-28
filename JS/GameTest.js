@@ -115,9 +115,9 @@ let changeTextTooltip = function (e, txt) {
 
 
 let actStats = function (obj) {
+    obj.health <= 0 ? obj.health = 0 : obj.health;
     obj.healthBar.style.width = `${obj.health * 100 / obj.maxHealth}%`;
     obj.energyBar.style.width = `${obj.energy * 100 / obj.maxEnergy}%`;
-
     changeTextTooltip(actionBtn1, `
     Hit chance:${player.accuracyChance - enemy.dodgeChance}.
     Damage media: ${player.weapon.dmg}.`)
@@ -153,21 +153,29 @@ const generateMediaDmgCris = function (obj) {
     let max = 1.200
     let media = Math.random() * (max - min) + min;
     if (player.status.inspired) {
-        media += 0.30
+        media += media * 1.30
     } else {
         if (percent > 60) {
-            media += 0.15
+            media *= 1.20
         } else if (percent <= 60) {
-            media += 0.80;
+            media *= 0.80;
         } else if (percent <= 40) {
-            media += 0.70;
+            media *= 0.70;
         } else if (percent <= 20) {
-            media += 0.60;
+            media *= 0.60;
         }
     }
     return Math.round(obj.weapon.dmg * media);
 };
 
+const counterAttack = function (counter, objective) {
+    let counterdmg = Math.round(generateMediaDmgCris(counter));
+    objective.health -= counterdmg;
+    battleText.innerText += `
+    ${counter.name} counter the attack dealing ${counterdmg} ${counter.weapon.type} damage`
+    actStats(enemy);
+    actStats(player);
+}
 
 const d100 = () => Math.floor(Math.random() * 100 + 1);
 

@@ -44,8 +44,8 @@ class Ice_Troll extends Enemy {
         super(name)
         this.maxHealth = 120;
         this.health = 120;
-        this.maxEnergy = 300;
-        this.energy = 300;
+        this.maxEnergy = 150;
+        this.energy = 150;
         this.agi = 5;
         this.defense = 2;
         this.dodgeChance = 5;
@@ -67,9 +67,10 @@ class Ice_Troll extends Enemy {
             let counterD100 = d100();
             this.energy -= this.maxEnergy * 5 / 100;
             if (this.critical >= attackD100) {
-                player.health -= dmg * 2;
+                dmg *= 2
+                player.health -= dmg;
                 battleText.innerText += `
-            Critical, ${dmg * 2} ${this.weapon.type} damage`;
+            Critical strike!, ${dmg} ${this.weapon.type} damage`;
             } else if (AccTotal >= attackD100) {
                 battleText.innerText += `
             The ${enemy.name} impact with ${dmg} ${this.weapon.type} damage`;
@@ -83,16 +84,11 @@ class Ice_Troll extends Enemy {
                 player.health = 0;
             } else {
                 if (counterD100 < player.counterChance) {
-                    let counterdmg = Math.round(generateMediaDmgCris(player));
-                    this.health -= counterdmg;
-                    battleText.innerHTML += `
-                    ${player.name} counter the attack dealing ${counterdmg}  ${player.weapon.type} damage`;
+                    counterAttack(player, this)
                 }
             }
-            actStats(enemy);
-            actStats(player);
             n++;
-            if (n < 3) {
+            if (n < 3 && this.health > 0) {
                 setTimeout(() => {
                     claws()
                 }, 2000);
@@ -103,14 +99,27 @@ class Ice_Troll extends Enemy {
                 }, 4000);
             }
         }
-        claws()
+        setTimeout(() => {
+            claws()
+        }, 2000);
 
     }
     act2() {
         console.log("claws")
     }
     act3() {
-        console.log("bite")
+        let costHeal = this.maxEnergy * 20 / 100;
+        if (this.health === this.maxHealth || this.energy < costHeal) {
+            this.turn();
+            console.log("falta energia para helear")
+        } else {
+            let trollHeal = Math.round(this.health * 15 / this.maxHealth);
+            this.energy -= costHeal;
+            heal(this, this.trollHeal);
+            battleText.innerText += `
+            ${enemy.name} heals for ${trollHeal}`
+        }
+        actStats(enemy)
     }
 
 
