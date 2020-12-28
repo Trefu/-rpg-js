@@ -71,7 +71,14 @@ const Manager = {
             actionBtn2.innerText = `Lethal blow`
             actionBtn3.innerText = `Feint swing`
             actionBtn1.setAttribute("onclick", "player.attack(enemy)");
+
+            $(actionBtn1).tooltip({
+                title: `
+                Hit chance:${player.accuracyChance - enemy.dodgeChance}.
+                Damage media: ${player.weapon.dmg}.`
+            })
         }
+
     }
 
 }
@@ -137,9 +144,10 @@ $(document).ready(function () {
     $(".btn").click(function (e) {
         e.preventDefault();
     });
+    $(function () {
+        $('[data-toggle="tooltip"]').tooltip({
+            placement: "right"
+        })
+    })
+
 });
-/*
-
-
-
-*/
