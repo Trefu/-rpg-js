@@ -22,7 +22,7 @@ class Enemy {
         this.energyBar = document.getElementById("enemyEnergyBar");
     }
     turn() {
-        let ran = Math.floor(Math.random() * 3 + 1);
+        let ran = 1 //Math.floor(Math.random() * 3 + 1);
         switch (ran) {
             case 1:
                 this.act1();
@@ -49,9 +49,9 @@ class Ice_Troll extends Enemy {
         this.agi = 5;
         this.defense = 2;
         this.dodgeChance = 5;
-        this.fumbleChance = 15;
-        this.counterChance = 50;
-        this.accuracyChance = 80;
+        this.fumbleChance = 30;
+        this.counterChance = 10;
+        this.accuracyChance = 70;
         this.protection = 5;
         this.weapon = claws;
         this.avatar = "imgs/enemy/claws of winter/ice troll.png";
@@ -86,7 +86,7 @@ class Ice_Troll extends Enemy {
                     let counterdmg = Math.round(generateMediaDmgCris(player));
                     this.health -= counterdmg;
                     battleText.innerHTML += `
-                    ${player.name} counter the attack dealing ${player.weapon.type}  ${counterdmg}`;
+                    ${player.name} counter the attack dealing ${counterdmg}  ${player.weapon.type} damage`;
                 }
             }
             actStats(enemy);
@@ -96,6 +96,11 @@ class Ice_Troll extends Enemy {
                 setTimeout(() => {
                     claws()
                 }, 2000);
+            } else {
+                setTimeout(() => {
+                    battleText.innerText = `${player.classCharacter} Turn`
+                    $(playerCombatsBtns).show();
+                }, 4000);
             }
         }
         claws()

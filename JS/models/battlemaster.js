@@ -26,13 +26,13 @@ class BaseModel {
         }
     }
     attack(objective) {
+        $(playerCombatsBtns).hide();
         let attackD100 = d100();
         let dmg = Math.round(generateMediaDmgCris(this));
         let AccTotal = this.accuracyChance - objective.dodgeChance;
         let counterD100 = d100();
-
-        console.log(`tirada de D100, ${attackD100} precision del jugador ${AccTotal} chance de counter ${counterD100} counter del enemigo ${enemy.counterChance}`)
         this.energy -= this.maxEnergy * 5 / 100;
+
         if (this.critical >= attackD100) {
             enemy.health -= dmg * 2;
             battleText.innerText += `
@@ -45,7 +45,9 @@ class BaseModel {
             battleText.innerText += `
             ${objective.name} has dodge the attack!`
         }
-        //Chequea si murio, de ser cierto no hay contraataque 🦴
+        //Chequea si murio, de ser cierto no hay contraataque y actualiza las interfaces🦴
+        actStats(enemy);
+        actStats(player);
         if (objective.health <= 0) {
             console.log("rip")
             objective.health = 0
@@ -56,15 +58,18 @@ class BaseModel {
                     let counterdmg = Math.round(generateMediaDmgCris(objective));
                     this.health -= counterdmg;
                     battleText.innerText += `
-                    ${objective.name} counter the attack dealing ${objective.weapon.type}  ${counterdmg}`
+                    ${objective.name} counter the attack dealing ${counterdmg} ${objective.weapon.type} damage`
+                    actStats(enemy);
+                    actStats(player);
                 }
 
             }, 1000);
         }
         setTimeout(() => {
-            actStats(enemy);
-            actStats(player);
             battleText.innerText = `Enemy turn`
+            setTimeout(() => {
+                enemy.turn()
+            }, 1000);
         }, 5000);
 
     }
@@ -84,11 +89,11 @@ class Battlemaster extends BaseModel {
         this.luck = 5;
         this.defense = 2;
         this.protection = 20;
-        this.dodgeChance = 10;
-        this.fumbleChance = 12;
-        this.counterChance = 22;
-        this.accuracyChance = 100;
-        this.critical = 10;
+        this.dodgeChance = 20;
+        this.fumbleChance = 5;
+        this.counterChance = 15;
+        this.accuracyChance = 95;
+        this.critical = 15;
         this.weapon = weapon;
         this.status = {
             inspired: false,

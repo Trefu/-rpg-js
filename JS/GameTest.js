@@ -9,7 +9,7 @@ let playerInterface = document.getElementById("playerInterface");
 let playerName = document.getElementById("playerName");
 let midSec = document.getElementById("midSec");
 let body = document.getElementById("body");
-let playerCombatsBtns = document.getElementById("btnsHidder");
+var playerCombatsBtns = $("#btnsHidder");
 //Enemy Interface
 let enemyInterface = document.getElementById("enemyInterface")
 let enemyAvatar = document.getElementById("enemyAvatar");
