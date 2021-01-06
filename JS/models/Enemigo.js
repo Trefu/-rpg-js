@@ -6,10 +6,10 @@ class Enemy {
         this.agi = 0;
         this.defense = 0;
         this.dodgeChance = 0;
-        this.fumbleChance = 0;
         this.counterChance = 0;
         this.accuracyChance = 0;
         this.protection = 0;
+        this.critical = 0;
         this.status = {
             inspired: false,
             cold: false,
@@ -22,18 +22,29 @@ class Enemy {
         this.energyBar = document.getElementById("enemyEnergyBar");
     }
     turn() {
-        let ran = 1 //Math.floor(Math.random() * 3 + 1);
-        switch (ran) {
-            case 1:
-                this.act1();
-                break;
-            case 2:
-                this.act2();
-                break;
-            case 3:
-                this.act3()
-                break;
+        let ran = Math.floor(Math.random() * 3 + 1);
+        battleText.innerHTML += ("<h4>Enemy Turn</h4>");
+        if (this.energy <= 0) {
+            battleTextAdd(`${enemy.name} is exhaust!`)
+            this.energy += this.maxEnergy * 40 / 100;
+            actStats(enemy)
+            setTimeout(() => {
+                battleText.innerHTML += (`<h4>${player.name} Turn</h4>`);
+                $(playerCombatsBtns).show();
+            }, 4000);
+        } else {
+            switch (ran) {
+                case 1:
+                    this.act1();
+                    break;
+                case 2:
+                    this.act2();
+                    break;
+                case 3:
+                    this.act3()
+                    break;
 
+            }
         }
     }
 
@@ -42,61 +53,90 @@ class Enemy {
 class Ice_Troll extends Enemy {
     constructor(name) {
         super(name)
-        this.maxHealth = 120;
-        this.health = 120;
-        this.maxEnergy = 150;
-        this.energy = 150;
-        this.agi = 5;
+        this.maxHealth = 140;
+        this.health = 140;
+        this.maxEnergy = 160;
+        this.energy = 160;
+        this.agi = 1;
         this.defense = 2;
-        this.dodgeChance = 5;
-        this.fumbleChance = 30;
-        this.counterChance = 10;
-        this.accuracyChance = 70;
         this.protection = 5;
+        this.dodgeChance = 5;
+        this.counterChance = 5;
+        this.accuracyChance = 70;
+        this.critical = 8;
         this.weapon = claws;
+        this.raged = false;
         this.avatar = "imgs/enemy/claws of winter/ice troll.png";
     }
+    turn() {
+        let ran = Math.floor(Math.random() * 3 + 1);
+
+        if (this.energy <= 0) {
+            battleTextAdd(`${enemy.name} is exhaust!`)
+            this.energy = 0;
+            this.energy += (this.maxEnergy * 40 / 100);
+            actStats(enemy)
+            setTimeout(() => {
+                battleText.innerHTML += (`<h4>${player.name} Turn</h4>`);
+                $(playerCombatsBtns).show();
+            }, 3000);
+        } else {
+            if (this.raged) {
+                this.act2()
+            } else {
+                switch (ran) {
+                    case 1:
+                        this.act1();
+                        break;
+                    case 2:
+                        this.act2();
+                        break;
+                    case 3:
+                        this.act3()
+                        break;
+                }
+
+            }
+        }
+    }
     act1() {
+        let cost = this.maxEnergy * 5 / 100;
         let n = 0;
-        battleText.innerText += `
-        ${enemy.name} Mades three attacks with his claws!`
+        battleTextAdd(`${enemy.name} Mades three attacks with his claws!`)
         let claws = () => {
             let attackD100 = d100();
-            let dmg = Math.round(generateMediaDmgCris(this));
+            let dmg = generateWeaponDmg(this)
             let AccTotal = this.accuracyChance - player.dodgeChance;
             let counterD100 = d100();
-            this.energy -= this.maxEnergy * 5 / 100;
+            this.energy -= cost;
+            this.energy <= 0 ? (this.energy = 0, dmg -= 2) : this.energy;
             if (this.critical >= attackD100) {
                 dmg *= 2
                 player.health -= dmg;
-                battleText.innerText += `
-            Critical strike!, ${dmg} ${this.weapon.type} damage`;
+                battleTextAdd(`Critical strike!, ${dmg} ${this.weapon.type} damage`, "critical");
             } else if (AccTotal >= attackD100) {
-                battleText.innerText += `
-            The ${enemy.name} impact with ${dmg} ${this.weapon.type} damage`;
+                battleTextAdd(`The ${enemy.name} impact with ${dmg} ${this.weapon.type} damage`);
                 player.health -= dmg;
             } else {
-                battleText.innerText += `
-            ${player.name} has dodge the attack!`;
+                battleTextAdd(`${player.name} has dodge the attack!`, "dodge");
             }
             if (player.health <= 0) {
-                console.log("rip");
+                alert("you lose, pete,refresh to get fucking fucked again")
                 player.health = 0;
             } else {
                 if (counterD100 < player.counterChance) {
                     counterAttack(player, this)
                 }
             }
+            actStats(enemy);
+            actStats(player);
             n++;
             if (n < 3 && this.health > 0) {
                 setTimeout(() => {
-                    claws()
+                    claws();
                 }, 2000);
             } else {
-                setTimeout(() => {
-                    battleText.innerText = `${player.classCharacter} Turn`
-                    $(playerCombatsBtns).show();
-                }, 4000);
+                passTurn(player)
             }
         }
         setTimeout(() => {
@@ -105,19 +145,55 @@ class Ice_Troll extends Enemy {
 
     }
     act2() {
-        console.log("claws")
+        if (this.raged) {
+            this.raged = false;
+            let dmg = generateWeaponDmg(this) * 3;
+            let attackD100 = d100();
+            let counterD100 = d100();
+            let AccTotal = (this.accuracyChance - player.dodgeChance) + 15;
+            if (AccTotal > attackD100) {
+                player.health -= dmg;
+                battleTextAdd(`${this.name} ram into ${player.name} and deals ${dmg} damage!`);
+            } else {
+                battleTextAdd(`${player.name} dodge the ${this.name}`);
+                counterD100 -= 10;
+            }
+            if (player.health <= 0) {
+                alert("you lose, pete,refresh to get fucking fucked again")
+                player.health = 0;
+                actStats(player);
+            } else {
+                if (counterD100 < player.counterChance) {
+                    counterAttack(player, this)
+                }
+                actStats(enemy);
+                actStats(player);
+                passTurn(player);
+            }
+        } else {
+            let cost = parseInt(this.maxEnergy * 19 / 100)
+            if (cost > this.energy) {
+                this.turn()
+            } else {
+                this.energy -= cost;
+                this.raged = true;
+                battleTextAdd(`${this.name} is preparing to ram!`);
+                actStats(enemy);
+                actStats(player);
+                passTurn(player);
+            }
+        }
     }
     act3() {
-        let costHeal = this.maxEnergy * 20 / 100;
-        if (this.health === this.maxHealth || this.energy < costHeal) {
+        let costHeal = this.maxEnergy * 18 / 100;
+        if (this.health >= 60 * this.maxHealth / 100 || this.energy < costHeal) {
             this.turn();
-            console.log("falta energia para helear")
+
         } else {
-            let trollHeal = Math.round(this.health * 15 / this.maxHealth);
+            let trollHeal = Math.round(this.maxHealth * 24 / 100);
             this.energy -= costHeal;
-            heal(this, this.trollHeal);
-            battleText.innerText += `
-            ${enemy.name} heals for ${trollHeal}`
+            heal(this, trollHeal);
+            passTurn(player)
         }
         actStats(enemy)
     }

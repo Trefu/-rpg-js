@@ -157,6 +157,7 @@ class locationMap {
     locationStart() {
         locationsImgs.remove();
         body.style.backgroundImage = this.imgs.bg;
+
         battleText.classList.remove("d-none");
     }
     eventRandom() {

@@ -66,40 +66,35 @@ const Manager = {
         $(enemyInterface).removeClass("d-none");
         battleText.innerText = "";
         $(playerCombatsBtns).removeClass("d-none")
-
+        battleText.innerHTML += (`<h4>${player.name} Turn</h4>`);
         actionBtn1.innerText = `Use ${player.weapon.name}`
+        actionBtn1.setAttribute("onclick", "player.attack(enemy)");
         $(actionBtn1).tooltip({
             title: `
+                ${player.name} will try to attack using his ${player.weapon.name}.
+                Crit chance: ${player.critical}%.
                 Hit chance:${player.accuracyChance - enemy.dodgeChance}.
-                Damage media: ${player.weapon.dmg}.`,
+                Damage media: ${player.weapon.dmg.join("-")}.`,
             container: "body",
             placement: "right",
             trigger: "hover"
         })
 
         if (player.classCharacter === "Battlemaster") {
-
             actionBtn2.innerText = `Lethal blow`
-            actionBtn3.innerText = `Feint swing`
-            actionBtn1.setAttribute("onclick", "player.attack(enemy)");
-
-
+            actionBtn2.setAttribute("onclick", "player.lethalblow()");
             $(actionBtn2).tooltip({
-                title: `atque amet, eos eveniet voluptatem culpa! Harum soluta, vitae sint illo dignissimos
-                voluptatibus.
-                Hit chance:${player.accuracyChance - enemy.dodgeChance}. \n
-                Damage media: ${player.weapon.dmg}.`,
+                title: `${player.name} will attempt to hit a vital point, risking him to a counterattack.
+Crit chance: ${player.critical}%.
+Hit chance:${player.accuracyChance - enemy.dodgeChance}.
+Damage media: ${player.weapon.dmg.join("-")}.
+Bonus damage: ${restantLife(enemy)}
+Bonus damage based on %enemy missed health`,
                 container: "body",
                 placement: "right",
                 trigger: "hover"
             })
-            $(actionBtn3).tooltip({
-                title: `Hit chance:${player.accuracyChance - enemy.dodgeChance}. \n Damage media: ${player.weapon.dmg}.`,
-                container: "body",
-                placement: "right",
-                trigger: "hover"
-            })
-
+            actionBtn3.innerText = `Feint swing`
         }
 
     }
@@ -107,21 +102,53 @@ const Manager = {
 
 }
 
-let changeTextTooltip = function (e, txt) {
-    $(e).attr('data-bs-original-title', txt)
+let battleTextAdd = (txt, esp) => {
+    var newP = $("<p></p>")
+    newP.text(txt);
+    switch (esp) {
+        case "critical":
+            $(newP).addClass(esp);
+            break;
+        case "counter":
+            $(newP).addClass(esp)
+            break;
+        case "dodge":
+            $(newP).addClass(esp)
+            break;
+        case "heal":
+            $(newP).addClass(esp)
+            break;
+    }
+    $("#battleText").append(newP);
 }
 
+let changeTextTooltip = function (e, txt) {
+    $(e).attr('data-bs-original-title', txt)
 
+}
+
+restantLife = (obj) => {
+    return Math.round((obj.maxHealth - obj.health) / obj.maxHealth * 100 / 3)
+}
 
 
 let actStats = function (obj) {
     obj.health <= 0 ? obj.health = 0 : obj.health;
+    obj.energy <= 0 ? obj.energy = 0 : obj.energy;
     obj.healthBar.style.width = `${obj.health * 100 / obj.maxHealth}%`;
     obj.energyBar.style.width = `${obj.energy * 100 / obj.maxEnergy}%`;
-    changeTextTooltip(actionBtn1, `
-    Hit chance:${player.accuracyChance - enemy.dodgeChance}.
-    Damage media: ${player.weapon.dmg}.`)
-
+    changeTextTooltip(actionBtn1, `${player.name} will try to attack using his ${player.weapon.name}.
+    Crit: ${player.critical}%.
+    Hit: ${player.accuracyChance - enemy.dodgeChance}%.
+    Dmg: ${player.weapon.dmg.join("-")}.`)
+    if (player.classCharacter === "Battlemaster") {
+        changeTextTooltip(actionBtn2, `${player.name} will attempt to hit a vital point, risking him to a counterattack.
+Crit chance: ${player.critical}%.
+Hit chance:${player.accuracyChance - enemy.dodgeChance}.
+Damage media: ${player.weapon.dmg.join("-")}.
+Bonus damage: ${restantLife(enemy)}
+Bonus damage based on %enemy missed health`)
+    }
     if (obj.name === player.name) {
         for (let pro in obj.status) {
             if (obj.status[pro]) {
@@ -135,55 +162,48 @@ let actStats = function (obj) {
     }
 }
 
-let heal = function (obj, num) {
+const heal = function (obj, num) {
     obj.health += num;
     obj.health >= obj.maxHealth ? obj.health = obj.maxHealth : obj.health;
-    battleText.innerText += `
-    ${obj.name} heals for ${num}`;
-    actStats(player);
+    battleTextAdd(`${obj.name} heals for ${num}`, "heal");
+
+    actStats(obj);
 }
 
-let showButtons = function (boolean, btn) {
+const showButtons = function (boolean, btn) {
     boolean ? btn.classList.remove("d-none") : btn.classList.add("d-none");
 };
 
-const generateMediaDmgCris = function (obj) {
-    let min = 0.800;
-    let percent = Math.round((obj.energy * 100) / obj.maxEnergy);
-    let max = 1.200
-    let media = Math.random() * (max - min) + min;
-    if (player.status.inspired) {
-        media += media * 1.30
-    } else {
-        if (percent > 60) {
-            media *= 1.20
-        } else if (percent <= 60) {
-            media *= 0.80;
-        } else if (percent <= 40) {
-            media *= 0.70;
-        } else if (percent <= 20) {
-            media *= 0.60;
-        }
-    }
-    return Math.round(obj.weapon.dmg * media);
-};
-
-const counterAttack = function (counter, objective) {
-    let counterdmg = Math.round(generateMediaDmgCris(counter));
-    objective.health -= counterdmg;
-    battleText.innerText += `
-    ${counter.name} counter the attack dealing ${counterdmg} ${counter.weapon.type} damage`
-    actStats(enemy);
-    actStats(player);
+const passTurn = (next) => {
+    setTimeout(() => {
+        battleText.innerHTML += (`<h4>${next.name} Turn</h4>`);
+        next instanceof BaseModel ? $(playerCombatsBtns).show() : next.turn();
+    }, 3000);
+}
+const generateWeaponDmg = (obj) => {
+    let min = obj.weapon.dmg[0];
+    let max = obj.weapon.dmg[1];
+    let output = Math.floor(Math.random() * (max - min + 1) + min);
+    return output;
 }
 
-const d100 = () => Math.floor(Math.random() * 100 + 1);
+const counterAttack = function (counter, objective) {
+    let counterdmg = generateWeaponDmg(counter)
+    objective.health -= counterdmg;
+    battleTextAdd(`${counter.name} counter the attack dealing ${counterdmg} ${counter.weapon.type} damage`, "counter")
+    actStats(enemy);
+    actStats(player);
+
+}
+
+const d100 = () => Math.ceil(Math.random() * 100);
 
 $(document).ready(function () {
     //para evitar que al clickear la primera vez se devuelva al inicio
     $(".btn").click(function (e) {
         e.preventDefault();
     });
+
     if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
         $('.btn').popover('disable');
     }

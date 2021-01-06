@@ -1,32 +1,32 @@
 const staff = {
     name: "Staff",
-    damage: 4,
+    damage: [2, 6],
     attackBonusWeapon: 2,
     damageBonusWeapon: 0
 };
 const dagger = {
     name: "dagger",
-    damage: 6,
+    damage: [6, 8],
     attackBonusWeapon: 2,
     damageBonusWeapon: 0
 };
 const greatsword = {
     name: "Greatsword",
-    damage: 12,
+    damage: [12, 20],
     attackBonusWeapon: 2,
     damageBonusWeapon: 0
 };
 
 const sword = {
     name: "Sword",
-    dmg: 11,
+    dmg: [8, 16],
     fumbleChance: 5,
     type: "Slashing",
 };
 
 const claws = {
     name: "Claws",
-    dmg: 6,
+    dmg: [4, 7],
     fumbleChance: 3,
     type: "Slashing"
 }

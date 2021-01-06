@@ -16,9 +16,11 @@
 </head>
 
 <body id="body">
-    <div class="container-fluid">
+    <div class="container-fluid overlay">
         <div id="principal" class="container mt-5">
+
             <!--Pick class interface-->
+
             <div id="characterselection" class="row  my-5 p-5 text-center text-md-left rounded">
                 <div class="col-md-6">
                     <img class="img-fluid d-md-flex" src="/imgs/avatars/weaponmaster.png" alt="Avatar">
@@ -82,30 +84,25 @@
 
                                 <ul class="dropdown-menu">
 
-
                                     <li><a class="dropdown-item btn btn-dark btn-outline-success" href="#\"
-                                            id="playerAction1">
-                                        </a>
-                                    </li>
-
-
-
+                                            id="playerAction1"> </a></li>
                                     <li><a class="dropdown-item btn btn-dark btn-outline-success" href="#\"
                                             id="playerAction2"></a></li>
                                     <li><a class="dropdown-item btn btn-dark btn-outline-success" href="#\"
                                             id="playerAction3"></a></li>
                                 </ul>
                             </div>
-
-
                         </div>
                     </div>
                 </div>
                 <!---->
 
                 <!--Location select and combat text area-->
-                <div id="midSec" class="col-md text-center my-5 mt-md-0 d-none textRecordSec">
-                    <div id="battleText" class="container-fluid d-none py-3"></div>
+                <div id="midSec" class="overflow-auto col-md text-center my-5 mt-md-0 d-none textRecordSec"
+                    style="height: 640px;">
+                    <!--Battle Text-->
+                    <div id="battleText" class="container container-md-fluid d-none py-3"></div>
+
                     <a href="#\" id="ElectionEvent1"
                         class="btn btn-dark btn-outline-success my-2 w-100 d-none">Election</a>
                     <a href="#\" id="ElectionEvent2"
@@ -146,7 +143,7 @@
 
                 <!--Enemy-->
                 <div class="col-md">
-                    <div id="enemyInterface" class="card p-5 w-auto d-none h-100" style="width: 18rem;">
+                    <div id="enemyInterface" class="card p-5 w-auto d-none" style="width: 18rem; height: 640px;">
                         <img id="enemyAvatar" class="card-img-top" src="" alt="Avatar of the enemy">
                         <div class="card-body">
                             <div class="card-title text-center">
