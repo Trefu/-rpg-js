@@ -137,17 +137,19 @@ let actStats = function (obj) {
     obj.energy <= 0 ? obj.energy = 0 : obj.energy;
     obj.healthBar.style.width = `${obj.health * 100 / obj.maxHealth}%`;
     obj.energyBar.style.width = `${obj.energy * 100 / obj.maxEnergy}%`;
-    changeTextTooltip(actionBtn1, `${player.name} will try to attack using his ${player.weapon.name}.
+    if (enemy !== null) {
+        changeTextTooltip(actionBtn1, `${player.name} will try to attack using his ${player.weapon.name}.
     Crit: ${player.critical}%.
     Hit: ${player.accuracyChance - enemy.dodgeChance}%.
     Dmg: ${player.weapon.dmg.join("-")}.`)
-    if (player.classCharacter === "Battlemaster") {
-        changeTextTooltip(actionBtn2, `${player.name} will attempt to hit a vital point, risking him to a counterattack.
+        if (player.classCharacter === "Battlemaster") {
+            changeTextTooltip(actionBtn2, `${player.name} will attempt to hit a vital point, risking him to a counterattack.
 Crit chance: ${player.critical}%.
 Hit chance:${player.accuracyChance - enemy.dodgeChance}.
 Damage media: ${player.weapon.dmg.join("-")}.
 Bonus damage: ${restantLife(enemy)}
 Bonus damage based on %enemy missed health`)
+        }
     }
     if (obj.name === player.name) {
         for (let pro in obj.status) {
@@ -191,6 +193,10 @@ const counterAttack = function (counter, objective) {
     let counterdmg = generateWeaponDmg(counter)
     objective.health -= counterdmg;
     battleTextAdd(`${counter.name} counter the attack dealing ${counterdmg} ${counter.weapon.type} damage`, "counter")
+    if (objective.health <= 0) {
+        objective.health = 0;
+        alert("win coutner")
+    }
     actStats(enemy);
     actStats(player);
 

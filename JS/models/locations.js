@@ -17,10 +17,14 @@ let winterDangers = {
     coldPassed: false,
     cavePassed: false,
     monstersPassed: false,
+
     cold() {
         battleText.innerText = "Its getting colder"
         console.log("cold")
         this.coldPassed = true;
+        btnEvent1.innerText = "cold"
+        showButtons(true, btnEvent1);
+        btnEvent1.setAttribute("onClick", 'winterDangers.resultWinterEvent("cold")')
     },
     cave() {
         battleText.innerText = "Deep footprints of a booted, humanoid are visible in the fresh snow. The footsteps lead deep into a cave; they do not return."
@@ -60,12 +64,9 @@ let winterDangers = {
         showButtons(false, btnEvent2)
         showButtons(false, btnEvent3)
         let luckThrow = d100()
-        let nextEvent = setTimeout(() => {
-            locationBattle.eventRandom();
-            console.log("asd")
-        }, 500);
-        console.log(`Luck trow ${luckThrow}`)
         luckThrow += player.luck;
+        console.log(`Luck trow ${luckThrow}`)
+
         switch (pick) {
             case "advance":
                 if (luckThrow >= 80) {
@@ -84,8 +85,13 @@ let winterDangers = {
                     player.health -= 25;
                 }
                 this.stormPassed = true;
+                setTimeout(() => {
+                    locationBattle.dangers.randomEvent()
+                }, 1000);
                 break;
+
             case "refuge":
+                let probRefuge = d100()
                 if (probRefuge >= 70) {
                     battleText.innerText += `
                     ${player.name} finds a great place to stay and get warm`;
@@ -95,25 +101,35 @@ let winterDangers = {
                     ${player.name} almost get frozen in the storm`;
                     player.status.cold = true;
                     player.health -= 25;
-                    break;
                 }
+                this.stormPassed = true;
+                setTimeout(() => {
+                    locationBattle.dangers.randomEvent()
+                }, 1000);
+                break;
 
-                case "examine":
-                    //CAMBIAR ESTO DESPUES DE TESTEAR
-                    if (luckThrow >= 200) {
-                        battleText.innerText += `
-                    ${player.name} Finds a little treasure`;
-                    } else {
-                        locationBattle.randomFight();
-                        clearTimeout(nextEvent);
-                    }
-                    break;
-
-                case "ignore":
+            case "examine":
+                //CAMBIAR ESTO DESPUES DE TESTEAR
+                if (luckThrow >= 200) {
                     battleText.innerText += `
-                ${player.name} decides to better past away`;
-                    break;
+                ${player.name} Finds a little treasure`;
+                } else {
+                    locationBattle.randomFight();
+                }
+                break;
 
+            case "ignore":
+                battleText.innerText += `
+            ${player.name} decides to better past away`;
+                break;
+            case "cold":
+                battleText.innerText += `
+            ${player.name} ta bien codl`;
+                this.coldPassed;
+                setTimeout(() => {
+                    locationBattle.dangers.randomEvent()
+                }, 1000);
+                break;
         }
         actStats(player);
 
@@ -129,24 +145,36 @@ let winterDangers = {
             2: this.cave,
             3: this.monsters,
         }
-        let randomNum = 2 //Math.floor(Math.random() * 4);
+        let randomNum = Math.floor(Math.random() * 3);
         if (!eventList[randomNum]) {
             eventMethods[randomNum]()
         } else {
             this.randomEvent()
+            console.log("otro evento porque ya estaba")
         }
     }
 
 }
 
 
-
 //locations images
 let winterImgs = {
-    bg: "url('imgs/locations/winterbg.jpg')"
+    bg: "linear-gradient(to right, #000428, #004e92)",
+    reward: "",
+    final: ""
+}
+let duniaImgs = {
+
 }
 
+let theDeepImgs = {
 
+}
+
+let neverWinterForestImgs = {
+
+
+}
 class locationMap {
     constructor(name, dangers, monsters, imgs) {
         this.name = name;
@@ -156,7 +184,7 @@ class locationMap {
     }
     locationStart() {
         locationsImgs.remove();
-        body.style.backgroundImage = this.imgs.bg;
+        body.style.background = this.imgs.bg;
 
         battleText.classList.remove("d-none");
     }
