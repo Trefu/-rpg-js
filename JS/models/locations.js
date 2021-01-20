@@ -2,15 +2,21 @@
 let wolf = "Asd";
 let winterTroll = "asdasd";
 let snowDrake = "asd";
-
+let dustWorm = "asdl"
 //Monsters groups
 let winterMonsters = {
     wolf,
     winterTroll,
     snowDrake
 };
-
+let duniaMonsters = {
+    dustWorm
+}
 //locations dangers
+let duniaDangers = {
+    eventPassed: 0,
+    stormPassed: false
+}
 let winterDangers = {
     eventsPassed: 0,
     stormPassed: false,
@@ -70,12 +76,10 @@ let winterDangers = {
         switch (pick) {
             case "advance":
                 if (luckThrow >= 80) {
-                    battleText.innerText += `
-                    ${player.name} manages to go trought the storm without problems and gets inspired`;
+                    battleTextAdd(`${player.name} manages to go trought the storm without problems and gets inspired`);
                     player.status.inspired = true;
                 } else if (luckThrow >= 70) {
-                    battleText.innerText += `
-                    ${player.name} barely escapes the storm and feels icy`;
+                    battleTextAdd(`${player.name} barely escapes the storm and feels icy`)
                     player.status.cold = true;
                     player.health -= 15;
                 } else {
@@ -125,15 +129,13 @@ let winterDangers = {
             case "cold":
                 battleText.innerText += `
             ${player.name} ta bien codl`;
-                this.coldPassed;
+                this.coldPassed = true;
                 setTimeout(() => {
                     locationBattle.dangers.randomEvent()
                 }, 1000);
                 break;
         }
         actStats(player);
-
-
     },
 
 
@@ -164,7 +166,7 @@ let winterImgs = {
     final: ""
 }
 let duniaImgs = {
-
+    bg: "background: linear-gradient(to right, #cac531, #f3f9a7);"
 }
 
 let theDeepImgs = {
@@ -185,7 +187,6 @@ class locationMap {
     locationStart() {
         locationsImgs.remove();
         body.style.background = this.imgs.bg;
-
         battleText.classList.remove("d-none");
     }
     eventRandom() {

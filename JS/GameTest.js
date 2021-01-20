@@ -60,6 +60,12 @@ const Manager = {
                 locationBattle.locationStart();
                 locationBattle.eventRandom();
                 break;
+            case "dunia":
+                locationBattle = new locationMap("Dunia", duniaDangers, duniaMonsters, duniaImgs);
+                locationBattle.locationStart();
+                locationBattle.eventRandom();
+                break;
+
         }
     },
     fight() {
@@ -75,8 +81,6 @@ const Manager = {
                 Crit chance: ${player.critical}%.
                 Hit chance:${player.accuracyChance - enemy.dodgeChance}.
                 Damage media: ${player.weapon.dmg.join("-")}.`,
-            container: "body",
-            placement: "right",
             trigger: "hover"
         })
 
@@ -90,11 +94,17 @@ Hit chance:${player.accuracyChance - enemy.dodgeChance}.
 Damage media: ${player.weapon.dmg.join("-")}.
 Bonus damage: ${restantLife(enemy)}
 Bonus damage based on %enemy missed health`,
-                container: "body",
-                placement: "right",
                 trigger: "hover"
             })
             actionBtn3.innerText = `Feint swing`
+            actionBtn3.setAttribute("onclick", "player.feintSwing(enemy)");
+            $(actionBtn3).tooltip({
+                title: `${player.name} Darius will perform a feint followed by a distancing attack to regain some energy.
+Hit chance:${player.accuracyChance - enemy.dodgeChance}.
+Damage media: ${player.weapon.dmg.join("-")}.
+`,
+                trigger: "hover"
+            })
         }
 
     }
@@ -149,7 +159,9 @@ Hit chance:${player.accuracyChance - enemy.dodgeChance}.
 Damage media: ${player.weapon.dmg.join("-")}.
 Bonus damage: ${restantLife(enemy)}
 Bonus damage based on %enemy missed health`)
+            changeTextTooltip(actionBtn3, )
         }
+
     }
     if (obj.name === player.name) {
         for (let pro in obj.status) {
@@ -206,9 +218,11 @@ const d100 = () => Math.ceil(Math.random() * 100);
 
 $(document).ready(function () {
     //para evitar que al clickear la primera vez se devuelva al inicio
+    let btnsActionsInterface = $("#btnsActions");
     $(".btn").click(function (e) {
         e.preventDefault();
     });
+
 
     if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
         $('.btn').popover('disable');

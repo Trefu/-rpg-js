@@ -57,9 +57,6 @@ class Ice_Troll extends Enemy {
         this.health = 140;
         this.maxEnergy = 160;
         this.energy = 160;
-        this.agi = 1;
-        this.defense = 2;
-        this.protection = 5;
         this.dodgeChance = 5;
         this.counterChance = 5;
         this.accuracyChance = 70;
