@@ -76,11 +76,10 @@ const Manager = {
         actionBtn1.innerText = `Use ${player.weapon.name}`
         actionBtn1.setAttribute("onclick", "player.attack(enemy)");
         $(actionBtn1).tooltip({
-            title: `
-                ${player.name} will try to attack using his ${player.weapon.name}.
-                Crit chance: ${player.critical}%.
-                Hit chance:${player.accuracyChance - enemy.dodgeChance}.
-                Damage media: ${player.weapon.dmg.join("-")}.`,
+            title: `${player.name} will try to attack using his ${player.weapon.name}.
+Crit chance: ${player.critical}%.
+Hit chance:${player.accuracyChance - enemy.dodgeChance}.
+Damage media: ${player.weapon.dmg.join("-")}.`,
             trigger: "hover"
         })
 
@@ -101,12 +100,11 @@ Bonus damage based on %enemy missed health`,
             $(actionBtn3).tooltip({
                 title: `${player.name} Darius will perform a feint followed by a distancing attack to regain some energy.
 Hit chance:${player.accuracyChance - enemy.dodgeChance}.
-Damage media: ${player.weapon.dmg.join("-")}.
+Damage media: ${player.weapon.dmg.map((a) => a /2).join("-")}.
 `,
                 trigger: "hover"
             })
         }
-
     }
 
 
@@ -159,7 +157,10 @@ Hit chance:${player.accuracyChance - enemy.dodgeChance}.
 Damage media: ${player.weapon.dmg.join("-")}.
 Bonus damage: ${restantLife(enemy)}
 Bonus damage based on %enemy missed health`)
-            changeTextTooltip(actionBtn3, )
+            changeTextTooltip(actionBtn3, `${player.name} Darius will perform a feint followed by a distancing attack to regain some energy.
+Hit chance:${player.accuracyChance - enemy.dodgeChance}.
+Damage media: ${Math.round(player.weapon.dmg.map((a) => a /2).join("-"))}.
+`)
         }
 
     }
@@ -194,15 +195,15 @@ const passTurn = (next) => {
         next instanceof BaseModel ? $(playerCombatsBtns).show() : next.turn();
     }, 3000);
 }
-const generateWeaponDmg = (obj) => {
-    let min = obj.weapon.dmg[0];
-    let max = obj.weapon.dmg[1];
+const generateWeaponDmg = (weapon) => {
+    let min = weapon.dmg[0];
+    let max = weapon.dmg[1];
     let output = Math.floor(Math.random() * (max - min + 1) + min);
     return output;
 }
 
 const counterAttack = function (counter, objective) {
-    let counterdmg = generateWeaponDmg(counter)
+    let counterdmg = generateWeaponDmg(counter.weapon)
     objective.health -= counterdmg;
     battleTextAdd(`${counter.name} counter the attack dealing ${counterdmg} ${counter.weapon.type} damage`, "counter")
     if (objective.health <= 0) {
@@ -213,6 +214,13 @@ const counterAttack = function (counter, objective) {
     actStats(player);
 
 }
+const arrayRemove = (arr, value) => {
+    return arr.filter(function (ele) {
+        return ele != value;
+    });
+}
+const getMethods = (obj) =>
+    Object.getOwnPropertyNames(obj).filter(item => typeof obj[item] === 'function')
 
 const d100 = () => Math.ceil(Math.random() * 100);
 

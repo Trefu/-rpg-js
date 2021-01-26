@@ -22,14 +22,13 @@ class BaseModel {
         }
     }
     attack(objective) {
+
         let cost = this.maxEnergy * 8 / 100;
         $(playerCombatsBtns).hide();
         let attackD100 = d100();
         let counterD100 = d100()
-        let dmg = generateWeaponDmg(this)
+        let dmg = generateWeaponDmg(this.weapon)
         let AccTotal = this.accuracyChance - objective.dodgeChance;
-        console.log(`ataque ${attackD100}
-        counter ${counterD100}`)
         this.energy -= cost;
 
         if (this.critical >= attackD100) {
@@ -99,7 +98,7 @@ class Battlemaster extends BaseModel {
             let attackD100 = d100();
             let counterD100 = d100() - 10;
             let bonusDmg = restantLife(enemy);
-            let dmg = generateWeaponDmg(this) + bonusDmg;
+            let dmg = generateWeaponDmg(this.weapon) + bonusDmg;
             let AccTotal = this.accuracyChance - enemy.dodgeChance;
             this.energy -= cost;
             if (this.critical >= attackD100) {
@@ -135,7 +134,10 @@ class Battlemaster extends BaseModel {
         $(playerCombatsBtns).hide();
         let attackD100 = d100();
         let counterD100 = d100()
-        let dmg = Math.round(generateWeaponDmg(this));
+        let feintDmg = {
+            dmg: Math.round(this.weapon.dmg.map((a) => a / 2))
+        }
+        let dmg = Math.round(generateWeaponDmg(feintDmg));
         let AccTotal = (this.accuracyChance - objective.dodgeChance) + 10;
         let energyRecover = this.maxEnergy * 14 / 100;
         this.energy += energyRecover;

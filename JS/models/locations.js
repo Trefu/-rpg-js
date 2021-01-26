@@ -1,4 +1,5 @@
 //Monsters
+let troll = new Ice_Troll("Ice Troll");
 let wolf = "Asd";
 let winterTroll = "asdasd";
 let snowDrake = "asd";
@@ -7,7 +8,8 @@ let dustWorm = "asdl"
 let winterMonsters = {
     wolf,
     winterTroll,
-    snowDrake
+    snowDrake,
+    troll
 };
 let duniaMonsters = {
     dustWorm
@@ -17,13 +19,8 @@ let duniaDangers = {
     eventPassed: 0,
     stormPassed: false
 }
-let winterDangers = {
-    eventsPassed: 0,
-    stormPassed: false,
-    coldPassed: false,
-    cavePassed: false,
-    monstersPassed: false,
 
+let winterDangers = {
     cold() {
         battleText.innerText = "Its getting colder"
         console.log("cold")
@@ -65,97 +62,78 @@ let winterDangers = {
         }
     },
 
-    resultWinterEvent(pick) {
-        showButtons(false, btnEvent1)
-        showButtons(false, btnEvent2)
-        showButtons(false, btnEvent3)
-        let luckThrow = d100()
-        luckThrow += player.luck;
-        console.log(`Luck trow ${luckThrow}`)
+    /*     resultWinterEvent(pick) {
+            showButtons(false, btnEvent1)
+            showButtons(false, btnEvent2)
+            showButtons(false, btnEvent3)
+            let luckThrow = d100()
+            luckThrow += player.luck;
+            console.log(`Luck trow ${luckThrow}`)
 
-        switch (pick) {
-            case "advance":
-                if (luckThrow >= 80) {
-                    battleTextAdd(`${player.name} manages to go trought the storm without problems and gets inspired`);
-                    player.status.inspired = true;
-                } else if (luckThrow >= 70) {
-                    battleTextAdd(`${player.name} barely escapes the storm and feels icy`)
-                    player.status.cold = true;
-                    player.health -= 15;
-                } else {
+            switch (pick) {
+                case "advance":
+                    if (luckThrow >= 80) {
+                        battleTextAdd(`${player.name} manages to go trought the storm without problems and gets inspired`);
+                        player.status.inspired = true;
+                    } else if (luckThrow >= 70) {
+                        battleTextAdd(`${player.name} barely escapes the storm and feels icy`)
+                        player.status.cold = true;
+                        player.health -= 15;
+                    } else {
+                        battleText.innerText += `
+                        ${player.name} almost get frozen in the storm`;
+                        player.status.cold = true;
+                        player.health -= 25;
+                    }
+                    this.stormPassed = true;
+                    setTimeout(() => {
+                        locationBattle.eventRandom()
+                    }, 1000);
+                    break;
+
+                case "refuge":
+                    let probRefuge = d100()
+                    if (probRefuge >= 70) {
+                        battleText.innerText += `
+                        ${player.name} finds a great place to stay and get warm`;
+                        player.status.cold = false;
+                    } else {
+                        battleText.innerText += `
+                        ${player.name} almost get frozen in the storm`;
+                        player.status.cold = true;
+                        player.health -= 25;
+                    }
+                    this.stormPassed = true;
+                    setTimeout(() => {
+                        locationBattle.eventRandom()
+                    }, 1000);
+                    break;
+
+                case "examine":
+                    //CAMBIAR ESTO DESPUES DE TESTEAR
+                    if (luckThrow >= 200) {
+                        battleText.innerText += `
+                    ${player.name} Finds a little treasure`;
+                    } else {
+                        locationBattle.randomFight();
+                    }
+                    break;
+
+                case "ignore":
                     battleText.innerText += `
-                    ${player.name} almost get frozen in the storm`;
-                    player.status.cold = true;
-                    player.health -= 25;
-                }
-                this.stormPassed = true;
-                setTimeout(() => {
-                    locationBattle.dangers.randomEvent()
-                }, 1000);
-                break;
-
-            case "refuge":
-                let probRefuge = d100()
-                if (probRefuge >= 70) {
+                ${player.name} decides to better past away`;
+                    break;
+                case "cold":
                     battleText.innerText += `
-                    ${player.name} finds a great place to stay and get warm`;
-                    player.status.cold = false;
-                } else {
-                    battleText.innerText += `
-                    ${player.name} almost get frozen in the storm`;
-                    player.status.cold = true;
-                    player.health -= 25;
-                }
-                this.stormPassed = true;
-                setTimeout(() => {
-                    locationBattle.dangers.randomEvent()
-                }, 1000);
-                break;
-
-            case "examine":
-                //CAMBIAR ESTO DESPUES DE TESTEAR
-                if (luckThrow >= 200) {
-                    battleText.innerText += `
-                ${player.name} Finds a little treasure`;
-                } else {
-                    locationBattle.randomFight();
-                }
-                break;
-
-            case "ignore":
-                battleText.innerText += `
-            ${player.name} decides to better past away`;
-                break;
-            case "cold":
-                battleText.innerText += `
-            ${player.name} ta bien codl`;
-                this.coldPassed = true;
-                setTimeout(() => {
-                    locationBattle.dangers.randomEvent()
-                }, 1000);
-                break;
-        }
-        actStats(player);
-    },
-
-
-    randomEvent() {
-        let eventList = [this.stormPassed, this.coldPassed, this.cavePassed, this.monstersPassed];
-        let eventMethods = {
-            0: this.storm,
-            1: this.cold,
-            2: this.cave,
-            3: this.monsters,
-        }
-        let randomNum = Math.floor(Math.random() * 3);
-        if (!eventList[randomNum]) {
-            eventMethods[randomNum]()
-        } else {
-            this.randomEvent()
-            console.log("otro evento porque ya estaba")
-        }
-    }
-
+                ${player.name} ta bien codl`;
+                    this.coldPassed = true;
+                    setTimeout(() => {
+                        locationBattle.eventRandom()
+                    }, 1000);
+                    break;
+            }
+            actStats(player);
+        }, */
 }
 
 
@@ -183,17 +161,36 @@ class locationMap {
         this.dangers = dangers;
         this.monsters = monsters;
         this.imgs = imgs;
+        this.eventList = getMethods(this.dangers);
     }
     locationStart() {
         locationsImgs.remove();
         body.style.background = this.imgs.bg;
         battleText.classList.remove("d-none");
     }
+    /*
+    la lista obtiene los nombres de los primeros 3 metodos de la location
+    los cuales son los eventos,luego un numero aleatorio del 1 al 3 ejecuta el evento
+    y lo popea
+     */
+
     eventRandom() {
-        this.dangers.randomEvent();
+        if (this.eventList.length === 0) {
+            console.log("nada")
+        } else {
+            let randomNum = Math.floor(Math.random() * this.eventList.length);
+            let eventSelected = this.eventList[randomNum];
+            if (this.eventList[randomNum]) {
+                this.dangers[eventSelected]();
+                this.eventList = arrayRemove(locationBattle.eventList, eventSelected)
+            } else {
+                this.eventRandom();
+            }
+        }
+
     }
     randomFight() {
-        enemy = new Ice_Troll("Ice Troll")
+        enemy = troll;
         battleText.innerText = `${player.name} stands against ${enemy.name}`
         enemyName.innerText = `${enemy.name}`
         enemyAvatar.src = "imgs/enemy/claws of winter/ice troll.png"

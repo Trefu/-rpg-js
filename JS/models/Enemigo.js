@@ -102,7 +102,7 @@ class Ice_Troll extends Enemy {
         battleTextAdd(`${enemy.name} Mades three attacks with his claws!`)
         let claws = () => {
             let attackD100 = d100();
-            let dmg = generateWeaponDmg(this)
+            let dmg = generateWeaponDmg(this.weapon)
             let AccTotal = this.accuracyChance - player.dodgeChance;
             let counterD100 = d100();
             this.energy -= cost;
@@ -144,7 +144,7 @@ class Ice_Troll extends Enemy {
     act2() {
         if (this.raged) {
             this.raged = false;
-            let dmg = generateWeaponDmg(this) * 3;
+            let dmg = generateWeaponDmg(this.weapon) * 3;
             let attackD100 = d100();
             let counterD100 = d100();
             let AccTotal = (this.accuracyChance - player.dodgeChance) + 15;
@@ -185,7 +185,6 @@ class Ice_Troll extends Enemy {
         let costHeal = this.maxEnergy * 18 / 100;
         if (this.health >= 60 * this.maxHealth / 100 || this.energy < costHeal) {
             this.turn();
-
         } else {
             let trollHeal = Math.round(this.maxHealth * 24 / 100);
             this.energy -= costHeal;
