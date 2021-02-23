@@ -24,3 +24,9 @@ var claws = {
     fumbleChance: 3,
     type: "Slashing"
 }
+
+var bite = {
+    name: "jaws",
+    dmg: [7, 11],
+    type: "Piercing"
+}

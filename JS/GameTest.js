@@ -57,16 +57,13 @@ const Manager = {
         switch (loc) {
             case "winter":
                 locationBattle = new locationMap("Claws of winter", winterDangers, winterMonsters, winterImgs);
-                locationBattle.locationStart();
-                locationBattle.eventRandom();
                 break;
             case "dunia":
                 locationBattle = new locationMap("Dunia", duniaDangers, duniaMonsters, duniaImgs);
-                locationBattle.locationStart();
-                locationBattle.eventRandom();
                 break;
-
         }
+        locationBattle.locationStart();
+        locationBattle.eventRandom();
     },
     fight() {
         $(enemyInterface).removeClass("d-none");
@@ -214,13 +211,9 @@ const counterAttack = function (counter, objective) {
     actStats(player);
 
 }
-const arrayRemove = (arr, value) => {
-    return arr.filter(function (ele) {
-        return ele != value;
-    });
-}
-const getMethods = (obj) =>
-    Object.getOwnPropertyNames(obj).filter(item => typeof obj[item] === 'function')
+const arrayRemoveElement = (arr, value) => arr.filter(ele => ele != value);
+
+
 
 const d100 = () => Math.ceil(Math.random() * 100);
 
