@@ -156,7 +156,7 @@ Bonus damage: ${restantLife(enemy)}
 Bonus damage based on %enemy missed health`)
             changeTextTooltip(actionBtn3, `${player.name} Darius will perform a feint followed by a distancing attack to regain some energy.
 Hit chance:${player.accuracyChance - enemy.dodgeChance}.
-Damage media: ${Math.round(player.weapon.dmg.map((a) => a /2).join("-"))}.
+Damage media: ${Math.round(player.weapon.dmg.map((a) => a *= 0.5).join("-"))}.
 `)
         }
 

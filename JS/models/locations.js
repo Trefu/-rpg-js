@@ -1,31 +1,40 @@
 class EventsLocations {
-    constructor(name, difficulty) {
+    constructor(name, difficulty, description, actions) {
         this.name = name;
         this.difficulty = difficulty;
+        this.description = description;
+        this.actions = actions;
     }
     execute() {
-        console.log("ejecutado ", this.name)
+        battleText.innerText = this.description;
+        for (let btn in this.actions) {
+            let newBtn = $(`<a>${this.actions[btn]}</a>`)
+            $(newBtn).addClass("btn btn-dark btn-outline-success w-100 my-2");
+            $("#midSec").append(
+                newBtn
+            );
+            console.log(this.actions[btn])
+
+        }
+
+        btnEvent1.setAttribute("onClick", `winterDangers[${this.name}].choise()`)
+        showButtons(true, btnEvent1, btnEvent2, btnEvent3)
     }
     reward() {
         console.log("reward")
     }
 
 }
-//Monsters
-let troll = new Ice_Troll("Ice Troll");
-let wolf = "Asd";
-let winterTroll = "asdasd";
-let snowDrake = "asd";
-let dustWorm = "asdl"
+
+
 //Monsters groups
 let winterMonsters = {
-    wolf,
-    winterTroll,
-    snowDrake,
-    troll
+    wolf: "wolf",
+    winterTroll: new Ice_Troll("Ice Troll"),
+    snowDrake: "Snow Drak2",
 };
 let duniaMonsters = {
-    dustWorm
+    dustWorm: "dust Worm"
 }
 //locations dangers
 let duniaDangers = {
@@ -34,10 +43,22 @@ let duniaDangers = {
 }
 
 let winterDangers = {
-    cold: new EventsLocations("cold", 60),
-    cave: new EventsLocations("cave", 60),
-    monster: new EventsLocations("monster", 60),
-    storm: new EventsLocations("storm", 60)
+    cold: new EventsLocations("cold",
+        65,
+        "Its getting colder", {
+            "btn1": "Run",
+            "btn2": "Find refugee",
+            "btn3": "idk"
+        }),
+    cave: new EventsLocations("cave",
+        80,
+        "Deep footprints of a booted, humanoid are visible in the fresh snow. The footsteps lead deep into a cave; they do not return."),
+    monster: new EventsLocations("monster",
+        0,
+        `there is something coming towards you but the thick ice fog prevents you from seeing`),
+    storm: new EventsLocations("storm",
+        90,
+        `seems to be that a storm is aproaching from the north`)
 }
 
 
@@ -197,19 +218,18 @@ class locationMap {
             console.log("especial evento")
         } else {
             let randomNum = Math.floor(Math.random() * this.eventList.length);
+            randomNum = 0;
             let eventSelected = this.eventList[randomNum];
             console.log(eventSelected)
             this.dangers[eventSelected].execute();
             this.eventList = arrayRemoveElement(locationBattle.eventList, eventSelected)
         }
-
     }
     randomFight() {
-        enemy = troll;
+        enemy = this.monsters.winterTroll;
         battleText.innerText = `${player.name} stands against ${enemy.name}`
         enemyName.innerText = `${enemy.name}`
         enemyAvatar.src = "imgs/enemy/claws of winter/ice troll.png"
-
         setTimeout(() => {
             Manager.fight();
         }, 1000);

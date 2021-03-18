@@ -135,7 +135,7 @@ class Battlemaster extends BaseModel {
         let attackD100 = d100();
         let counterD100 = d100()
         let feintDmg = {
-            dmg: Math.round(this.weapon.dmg.map((a) => a / 2))
+            dmg: Math.round(this.weapon.dmg.map((a) => a *= 0.5))
         }
         let dmg = Math.round(generateWeaponDmg(feintDmg));
         let AccTotal = (this.accuracyChance - objective.dodgeChance) + 10;
