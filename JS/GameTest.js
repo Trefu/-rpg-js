@@ -34,7 +34,6 @@ let statusScared = document.getElementById(`scared`);
 
 
 const Manager = {
-
     start(pickedClass) {
         this.playerClassSelect(pickedClass);
         this.preFight();

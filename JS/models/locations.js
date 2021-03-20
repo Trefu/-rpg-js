@@ -1,24 +1,22 @@
 class EventsLocations {
-    constructor(name, difficulty, description, actions) {
+    constructor(name, difficulty, description, options, actions) {
         this.name = name;
         this.difficulty = difficulty;
         this.description = description;
+        this.options = options;
         this.actions = actions;
     }
     execute() {
         battleText.innerText = this.description;
-        for (let btn in this.actions) {
-            let newBtn = $(`<a>${this.actions[btn]}</a>`)
+        for (let btn in this.options) {
+            let newBtn = $(`<a>${this.options[btn]}</a>`)
+            $(newBtn).attr('id', btn)
             $(newBtn).addClass("btn btn-dark btn-outline-success w-100 my-2");
+            $(newBtn).attr("onClick", this.actions[btn])
             $("#midSec").append(
                 newBtn
             );
-            console.log(this.actions[btn])
-
         }
-
-        btnEvent1.setAttribute("onClick", `winterDangers[${this.name}].choise()`)
-        showButtons(true, btnEvent1, btnEvent2, btnEvent3)
     }
     reward() {
         console.log("reward")
@@ -45,11 +43,10 @@ let duniaDangers = {
 let winterDangers = {
     cold: new EventsLocations("cold",
         65,
-        "Its getting colder", {
-            "btn1": "Run",
-            "btn2": "Find refugee",
-            "btn3": "idk"
-        }),
+        "Its getting colder",
+        winterColdOptions,
+        winterColdActions
+    ),
     cave: new EventsLocations("cave",
         80,
         "Deep footprints of a booted, humanoid are visible in the fresh snow. The footsteps lead deep into a cave; they do not return."),
