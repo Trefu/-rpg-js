@@ -1,7 +1,28 @@
-var gameOver = false;
+import {
+    functions
+} from "./functions"
+console.log(functions.heal)
+import {
+    weapons
+} from "./Weapons"
+import {
+    enemy
+} from "./models/Enemigo.js"
+
+console.log(enemy.Ice_Troll)
+import {
+    battlemaster
+} from "./models/battlemaster"
+
+import {
+    eventClicks
+} from "./eventsClicks"
+import {
+    LocationsMap
+} from "./models/locations"
+console.log(LocationsMap)
 var player = null;
 var locationBattle = null;
-var enemy = null;
 //Interface Player Variables
 let playerNameStatus = document.getElementById("playerNameStatus"); // ???
 let interfaceSelection = document.getElementById("characterselection");
@@ -30,35 +51,42 @@ let statusFatigued = document.getElementById(`fatigued`);
 let statusBleeding = document.getElementById(`bleeding`);
 let statusPoisoned = document.getElementById(`poisoned`);
 let statusScared = document.getElementById(`scared`);
-
-
+// locations selects buttons
+const winterLocBtn = document.getElementById("loc1")
+const duniaLocBtn = document.getElementById("loc2")
+const deepLocBtn = document.getElementById("loc3")
+const neverwinterLocBtn = document.getElementById("loc4")
 
 const Manager = {
     start(pickedClass) {
         this.playerClassSelect(pickedClass);
-        this.preFight();
+        this.ready();
     },
     playerClassSelect(pickedClass) {
         switch (pickedClass) {
             case "battlemaster":
-                player = new Battlemaster("Darius", "Battlemaster", sword);
+                player = new battlemaster("Darius", "Battlemaster", weapons.sword);
                 break;
         }
         return this.player;
     },
-    preFight() {
+    ready() {
         interfaceSelection.remove();
         $(playerInterface).removeClass("d-none")
         $(midSec).removeClass("d-none")
         playerName.innerText = `${player.name}`
+        $(winterLocBtn).click(function (e) {
+            e.preventDefault();
+            Manager.locationSelect("winter")
+        });
     },
     locationSelect(loc) {
         switch (loc) {
             case "winter":
-                locationBattle = new locationMap("Claws of winter", winterDangers, winterMonsters, winterImgs);
+                locationBattle = new LocationsMap.LocationClass("Claws of winter", LocationsMap.winterDangers, LocationsMap.winterMonsters, LocationsMap.winterImgs);
                 break;
             case "dunia":
-                locationBattle = new locationMap("Dunia", duniaDangers, duniaMonsters, duniaImgs);
+                locationBattle = new LocationsMap.LocationClass("Dunia", LocationsMap.duniaDangers, LocationsMap.duniaMonsters, LocationsMap.duniaImgs);
                 break;
         }
         locationBattle.locationStart();
@@ -73,9 +101,9 @@ const Manager = {
         actionBtn1.setAttribute("onclick", "player.attack(enemy)");
         $(actionBtn1).tooltip({
             title: `${player.name} will try to attack using his ${player.weapon.name}.
-Crit chance: ${player.critical}%.
-Hit chance:${player.accuracyChance - enemy.dodgeChance}.
-Damage media: ${player.weapon.dmg.join("-")}.`,
+    Crit chance: ${player.critical}%.
+    Hit chance:${player.accuracyChance - enemy.dodgeChance}.
+    Damage media: ${player.weapon.dmg.join("-")}.`,
             trigger: "hover"
         })
 
@@ -84,25 +112,24 @@ Damage media: ${player.weapon.dmg.join("-")}.`,
             actionBtn2.setAttribute("onclick", "player.lethalblow()");
             $(actionBtn2).tooltip({
                 title: `${player.name} will attempt to hit a vital point, risking him to a counterattack.
-Crit chance: ${player.critical}%.
-Hit chance:${player.accuracyChance - enemy.dodgeChance}.
-Damage media: ${player.weapon.dmg.join("-")}.
-Bonus damage: ${restantLife(enemy)}
-Bonus damage based on %enemy missed health`,
+    Crit chance: ${player.critical}%.
+    Hit chance:${player.accuracyChance - enemy.dodgeChance}.
+    Damage media: ${player.weapon.dmg.join("-")}.
+    Bonus damage: ${functions.restantLife(enemy)}
+    Bonus damage based on %enemy missed health`,
                 trigger: "hover"
             })
             actionBtn3.innerText = `Feint swing`
             actionBtn3.setAttribute("onclick", "player.feintSwing(enemy)");
             $(actionBtn3).tooltip({
                 title: `${player.name} Darius will perform a feint followed by a distancing attack to regain some energy.
-Hit chance:${player.accuracyChance - enemy.dodgeChance}.
-Damage media: ${player.weapon.dmg.map((a) => a /2).join("-")}.
-`,
+    Hit chance:${player.accuracyChance - enemy.dodgeChance}.
+    Damage media: ${player.weapon.dmg.map((a) => a /2).join("-")}.
+    `,
                 trigger: "hover"
             })
         }
     }
-
 
 }
 
@@ -129,10 +156,6 @@ let battleTextAdd = (txt, esp) => {
 let changeTextTooltip = function (e, txt) {
     $(e).attr('data-bs-original-title', txt)
 
-}
-
-restantLife = (obj) => {
-    return Math.round((obj.maxHealth - obj.health) / obj.maxHealth * 100 / 3)
 }
 
 
@@ -173,51 +196,14 @@ Damage media: ${Math.round(player.weapon.dmg.map((a) => a *= 0.5).join("-"))}.
     }
 }
 
-const heal = function (obj, num) {
-    obj.health += num;
-    obj.health >= obj.maxHealth ? obj.health = obj.maxHealth : obj.health;
-    battleTextAdd(`${obj.name} heals for ${num}`, "heal");
-
-    actStats(obj);
-}
-
-const showButtons = function (boolean, btn) {
-    boolean ? btn.classList.remove("d-none") : btn.classList.add("d-none");
-};
-
-const passTurn = (next) => {
-    setTimeout(() => {
-        battleText.innerHTML += (`<h4>${next.name} Turn</h4>`);
-        next instanceof BaseModel ? $(playerCombatsBtns).show() : next.turn();
-    }, 3000);
-}
-const generateWeaponDmg = (weapon) => {
-    let min = weapon.dmg[0];
-    let max = weapon.dmg[1];
-    let output = Math.floor(Math.random() * (max - min + 1) + min);
-    return output;
-}
-
-const counterAttack = function (counter, objective) {
-    let counterdmg = generateWeaponDmg(counter.weapon)
-    objective.health -= counterdmg;
-    battleTextAdd(`${counter.name} counter the attack dealing ${counterdmg} ${counter.weapon.type} damage`, "counter")
-    if (objective.health <= 0) {
-        objective.health = 0;
-        alert("win coutner")
-    }
-    actStats(enemy);
-    actStats(player);
-
-}
-const arrayRemoveElement = (arr, value) => arr.filter(ele => ele != value);
-
-
-
-const d100 = () => Math.ceil(Math.random() * 100);
-
 $(document).ready(function () {
+    $("#startBtnBattlemaster").click(function (e) {
+        e.preventDefault();
+        Manager.start("battlemaster")
+        console.log(player)
+    });
     //para evitar que al clickear la primera vez se devuelva al inicio
+    console.log("asd")
     let btnsActionsInterface = $("#btnsActions");
     $(".btn").click(function (e) {
         e.preventDefault();
@@ -227,5 +213,4 @@ $(document).ready(function () {
     if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
         $('.btn').popover('disable');
     }
-
 });

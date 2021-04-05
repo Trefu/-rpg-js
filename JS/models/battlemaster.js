@@ -22,7 +22,6 @@ class BaseModel {
         }
     }
     attack(objective) {
-
         let cost = this.maxEnergy * 8 / 100;
         $(playerCombatsBtns).hide();
         let attackD100 = d100();
@@ -166,4 +165,7 @@ class Battlemaster extends BaseModel {
         }
     }
 
+
 }
+
+export const battlemaster = Battlemaster

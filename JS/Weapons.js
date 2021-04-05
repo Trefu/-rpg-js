@@ -30,3 +30,12 @@ var bite = {
     dmg: [7, 11],
     type: "Piercing"
 }
+
+export const weapons = {
+    staff,
+    dagger,
+    greatsword,
+    sword,
+    claws,
+    bite
+}

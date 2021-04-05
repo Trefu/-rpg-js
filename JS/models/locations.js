@@ -1,22 +1,39 @@
+import {
+    enemy
+} from "./Enemigo"
+import {
+    eventClicks
+} from "../eventsClicks"
+import {
+    functions
+} from "../functions"
 class EventsLocations {
-    constructor(name, difficulty, description, options, actions) {
+    constructor(name, difficulty, description, options, resolutions) {
         this.name = name;
         this.difficulty = difficulty;
         this.description = description;
         this.options = options;
-        this.actions = actions;
+        this.resolutions = resolutions;
     }
     execute() {
+        console.log(this.resolutions)
         battleText.innerText = this.description;
         for (let btn in this.options) {
+            console.log(btn)
             let newBtn = $(`<a>${this.options[btn]}</a>`)
             $(newBtn).attr('id', btn)
-            $(newBtn).addClass("btn btn-dark btn-outline-success w-100 my-2");
-            $(newBtn).attr("onClick", this.actions[btn])
+            $(newBtn).addClass("btn btn-dark btn-outline-success w-100 my-2 actBtns");
             $("#midSec").append(
                 newBtn
             );
         }
+        let midSecBtns = document.querySelectorAll(".actBtns");
+        console.log(midSecBtns)
+        midSecBtns.forEach((el, i) =>
+            el.addEventListener("click", e => {
+                console.log("asd", i)
+                this.resolutions[i]()
+            }))
     }
     reward() {
         console.log("reward")
@@ -28,7 +45,7 @@ class EventsLocations {
 //Monsters groups
 let winterMonsters = {
     wolf: "wolf",
-    winterTroll: new Ice_Troll("Ice Troll"),
+    winterTroll: new enemy.Ice_Troll("Ice Troll"),
     snowDrake: "Snow Drak2",
 };
 let duniaMonsters = {
@@ -41,11 +58,11 @@ let duniaDangers = {
 }
 
 let winterDangers = {
-    cold: new EventsLocations("cold",
-        65,
-        "Its getting colder",
-        winterColdOptions,
-        winterColdActions
+    cold: new EventsLocations(eventClicks.coldEvent.name,
+        eventClicks.coldEvent.difficulty,
+        eventClicks.coldEvent.description,
+        eventClicks.coldEvent.options,
+        eventClicks.coldEvent.resolutions
     ),
     cave: new EventsLocations("cave",
         80,
@@ -55,123 +72,8 @@ let winterDangers = {
         `there is something coming towards you but the thick ice fog prevents you from seeing`),
     storm: new EventsLocations("storm",
         90,
-        `seems to be that a storm is aproaching from the north`)
+        `The air is extremely cold. Ice crystals form around the nose and mouth, as well as on the eyebrows. It's so cold in here, it takes your breath away `)
 }
-
-
-/* {
-cold() {
-    battleText.innerText = "Its getting colder"
-    console.log("cold")
-    this.coldPassed = true;
-    btnEvent1.innerText = "cold"
-    showButtons(true, btnEvent1);
-    btnEvent1.setAttribute("onClick", 'winterDangers.resultWinterEvent("cold")')
-},
-cave() {
-    battleText.innerText = "Deep footprints of a booted, humanoid are visible in the fresh snow. The footsteps lead deep into a cave; they do not return."
-    showButtons(true, btnEvent1);
-    showButtons(true, btnEvent2);
-    btnEvent1.innerText = "Examine the cave"
-    btnEvent1.setAttribute("onClick", 'winterDangers.resultWinterEvent("examine")')
-    btnEvent2.innerText = "Ignore and keep forward"
-    btnEvent2.setAttribute("onClick", 'winterDangers.resultWinterEvent("ignore")')
-    console.log("cueva")
-},
-monsters() {
-    battleText.innerText = `you detect something coming towards you but the thick ice fog prevents you from seeing`
-    locationBattle.randomFight()
-},
-storm() {
-    console.log("tormenta")
-    battleText.innerText = `seems to be that a storm is aproaching from the north`
-    if ((player.health * 100 / player.maxHealth) >= 30) {
-        showButtons(true, btnEvent1);
-        showButtons(true, btnEvent2);
-        btnEvent1.innerText = "Keep foward and try to pass the storm"
-        btnEvent1.setAttribute("onClick", 'winterDangers.resultWinterEvent("advance")')
-        btnEvent2.innerText = "Try to search for refuge"
-        btnEvent2.setAttribute("onClick", 'winterDangers.resultWinterEvent("refuge")')
-    } else {
-        btnEvent1.innerText = "Keep foward and try to pass the storm (Health to low)"
-        btnEvent1.className = "btn btn-dark btn-outline-danger my-2 w-100"
-        showButtons(true, btnEvent2);
-        showButtons(true, btnEvent3);
-    }
-},
- resultWinterEvent(pick) {
-        showButtons(false, btnEvent1)
-        showButtons(false, btnEvent2)
-        showButtons(false, btnEvent3)
-        let luckThrow = d100()
-        luckThrow += player.luck;
-        console.log(`Luck trow ${luckThrow}`)
-
-        switch (pick) {
-            case "advance":
-                if (luckThrow >= 80) {
-                    battleTextAdd(`${player.name} manages to go trought the storm without problems and gets inspired`);
-                    player.status.inspired = true;
-                } else if (luckThrow >= 70) {
-                    battleTextAdd(`${player.name} barely escapes the storm and feels icy`)
-                    player.status.cold = true;
-                    player.health -= 15;
-                } else {
-                    battleText.innerText += `
-                    ${player.name} almost get frozen in the storm`;
-                    player.status.cold = true;
-                    player.health -= 25;
-                }
-                this.stormPassed = true;
-                setTimeout(() => {
-                    locationBattle.eventRandom()
-                }, 1000);
-                break;
-
-            case "refuge":
-                let probRefuge = d100()
-                if (probRefuge >= 70) {
-                    battleText.innerText += `
-                    ${player.name} finds a great place to stay and get warm`;
-                    player.status.cold = false;
-                } else {
-                    battleText.innerText += `
-                    ${player.name} almost get frozen in the storm`;
-                    player.status.cold = true;
-                    player.health -= 25;
-                }
-                this.stormPassed = true;
-                setTimeout(() => {
-                    locationBattle.eventRandom()
-                }, 1000);
-                break;
-
-            case "examine":
-                //CAMBIAR ESTO DESPUES DE TESTEAR
-                if (luckThrow >= 200) {
-                    battleText.innerText += `
-                ${player.name} Finds a little treasure`;
-                } else {
-                    locationBattle.randomFight();
-                }
-                break;
-
-            case "ignore":
-                battleText.innerText += `
-            ${player.name} decides to better past away`;
-                break;
-            case "cold":
-                battleText.innerText += `
-            ${player.name} ta bien codl`;
-                this.coldPassed = true;
-                setTimeout(() => {
-                    locationBattle.eventRandom()
-                }, 1000);
-                break;
-        }
-        actStats(player);
-    }
-}, */
 
 
 //locations images
@@ -192,7 +94,7 @@ let neverWinterForestImgs = {
 
 
 }
-class locationMap {
+class LocationClass {
     constructor(name, dangers, monsters, imgs) {
         this.name = name;
         this.dangers = dangers;
@@ -219,7 +121,7 @@ class locationMap {
             let eventSelected = this.eventList[randomNum];
             console.log(eventSelected)
             this.dangers[eventSelected].execute();
-            this.eventList = arrayRemoveElement(locationBattle.eventList, eventSelected)
+            this.eventList = functions.arrayRemoveElement(this.eventList, eventSelected)
         }
     }
     randomFight() {
@@ -232,4 +134,17 @@ class locationMap {
         }, 1000);
     }
 
+
+
+
+}
+export const LocationsMap = {
+    LocationClass,
+    EventsLocations,
+    winterDangers,
+    winterImgs,
+    winterMonsters,
+    duniaMonsters,
+    duniaDangers,
+    duniaImgs
 }

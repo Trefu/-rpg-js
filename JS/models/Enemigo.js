@@ -1,3 +1,6 @@
+import {
+    weapons
+} from "../Weapons"
 class Enemy {
     constructor(name) {
         this.name = name;
@@ -61,7 +64,7 @@ class Ice_Troll extends Enemy {
         this.counterChance = 5;
         this.accuracyChance = 70;
         this.critical = 8;
-        this.weapon = claws;
+        this.weapon = weapons.claws;
         this.raged = false;
         this.avatar = "imgs/enemy/claws of winter/ice troll.png";
     }
@@ -335,4 +338,10 @@ class Winter_Wolf extends Enemy {
     }
 
 
+}
+
+export const enemy = {
+    Enemy,
+    Ice_Troll,
+    Winter_Wolf
 }

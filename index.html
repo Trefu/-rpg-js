@@ -23,7 +23,7 @@
 
             <div id="characterselection" class="row  my-5 p-5 text-center text-md-left rounded">
                 <div class="col-md-6">
-                    <img class="img-fluid d-md-flex" src="/imgs/avatars/weaponmaster.png" alt="Avatar">
+                    <img class="img-fluid d-md-flex" src="imgs/avatars/weaponmaster.png" alt="Avatar">
                 </div>
                 <div class="col-md-6 mt-5 mt-md-0">
                     <h1 class="mb-2 mb-md-2">nombre de clase</h1>
@@ -35,8 +35,8 @@
                         voluptatibus.
                     </p>
 
-                    <a id="startBtn" href="\#" class="btn btn-dark btn-outline-success  w-50 mt-5 mt-md-0"
-                        onclick="Manager.start('battlemaster')">Select</a>
+                    <a id="startBtnBattlemaster" href="\#"
+                        class="btn btn-dark btn-outline-success  w-50 mt-5 mt-md-0">Select</a>
                 </div>
             </div>
 
@@ -44,7 +44,7 @@
             <div class="row">
                 <div class="col-md">
                     <div id="playerInterface" class="card p-5 d-none w-auto" style="width: 18rem;">
-                        <img class="card-img-top" src="/imgs/avatars/weaponmaster.png" alt="Avatar">
+                        <img class="card-img-top" src="imgs/avatars/weaponmaster.png" alt="Avatar">
                         <div class="card-body">
                             <div class="card-title text-center">
                                 <h2 class="my-2" id="playerName"></h2>
@@ -107,28 +107,26 @@
 
                         <div class="col">
                             <h4>Claws of winter</h4>
-                            <a href="\#" class="btn">
-                                <img src="/imgs/locations/winter.png" alt="" style="max-width: 10em;"
-                                    onclick="Manager.locationSelect('winter')">
+                            <a id="loc1" href="\#" class="btn">
+                                <img src="imgs/locations/winter.png" alt="" style="max-width: 10em;">
                             </a>
                         </div>
                         <div class="col">
                             <h4>Dunia</h4>
-                            <a href="\#" class="btn">
-                                <img src="/imgs/locations/desert.png" alt="" style="max-width: 10em;"
-                                    onclick='Manager.locationSelect("dunia")'>
+                            <a id="loc2" href="\#" class="btn">
+                                <img src="imgs/locations/desert.png" alt="" style="max-width: 10em;">
                             </a>
                         </div>
                         <div class="col">
                             <h4>The Deep</h4>
-                            <a href="\#" class="btn">
-                                <img src="/imgs/locations/caves.png" alt="" style="max-width: 10em;">
+                            <a id="loc3" href="\#" class="btn">
+                                <img src="imgs/locations/caves.png" alt="" style="max-width: 10em;">
                             </a>
                         </div>
                         <div class="col">
                             <h4>Neverwinter Forest</h4>
-                            <a href="\#" class="btn">
-                                <img src="/imgs/locations/forest.png" alt="" style="max-width: 10em;">
+                            <a id="loc4" href="\#" class="btn">
+                                <img src="imgs/locations/forest.png" alt="" style="max-width: 10em;">
                             </a>
                         </div>
                     </div>
@@ -174,18 +172,9 @@
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/js/bootstrap.bundle.min.js"
             integrity="sha384-ygbV9kiqUc6oa4msXn9868pTtWMgiQaeYH7/t7LECLbyPA2x65Kgf80OJFdroafW" crossorigin="anonymous">
         </script>
-
         <!--JS Files-->
-        <script type="text/javascript" src="JS/GameTest.js"></script>
-        <script type="text/javascript" src="JS/models/Jugador.js"></script>
-        <script type="text/javascript" src="JS/Weapons.js"></script>
-        <script type="text/javascript" src="JS/models/Enemigo.js"></script>
-        <script type="text/javascript" src="JS/models/battlemaster.js"></script>
-        <script type="text/javascript" src="JS/models/Rogue.js"></script>
-        <script type="text/javascript" src="JS/models/Mage.js"></script>
-        <script type="text/javascript" src="JS/eventsClicks.js"></script>
-        <script type="text/javascript" src="JS/models/locations.js"></script>
-        <script type="text/javascript" src="JS/Weapons.js"></script>
+        <script type="module" src="JS/GameTest.js"></script>
+
 </body>
 
 </html>
