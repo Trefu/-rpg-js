@@ -1,4 +1,5 @@
-2import {
+console.log('main js')
+/* import {
     functions
 } from "./functions"
 console.log(functions.heal)
@@ -213,4 +214,4 @@ $(document).ready(function () {
     if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
         $('.btn').popover('disable');
     }
-});
+}); */

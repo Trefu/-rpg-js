@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rpg</title>
-    <!--Boostrap css cdn-->
+    <link rel="stylestylesheetsheet" href="https://unpkg.com/sanitize.css">
     <link rel="stylesheet" href="css/styles.css">
     <link rel="preconnect" href="https://fonts.gstatic.com">
     <!--Medieval Font-->
@@ -15,9 +15,26 @@
 
 <body>
 
+    <div id="nav"></div>
+
+    <div id="main-content">
+        <p id="text-header" class="h1 text-info">Elegir clase</p>
+
+        <div class="choose-class-card">
+            <div class="choose-class-card-content">
+                <div class="d-flex flex-col">
+                    <h4><b>Nombre de clase</b></h4>
+                    <p>Stats</p>
+                </div>
+                <img class="avatar-image" src="imgs/avatars/warrior.png" alt="">
+            </div>
+        </div>
+
+    </div>
+
+
     <!--Cargo el main js-->
     <script type="module" src="js/main.js"></script>
-
 </body>
 
 </html>

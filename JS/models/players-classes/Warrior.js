@@ -23,7 +23,6 @@ class BaseModel {
     }
     attack(objective) {
         let cost = this.maxEnergy * 8 / 100;
-        $(playerCombatsBtns).hide();
         let attackD100 = d100();
         let counterD100 = d100()
         let dmg = generateWeaponDmg(this.weapon)
