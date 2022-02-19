@@ -12,10 +12,3 @@ Iniciar con extension Liveserver en index.html
 - /imgs - imagenes a usar en la web
 ---
 
-
-css
--archivos de estilo
-
-imgs
--imagenes a usar
-
