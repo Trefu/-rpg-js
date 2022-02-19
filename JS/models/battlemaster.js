@@ -31,7 +31,12 @@ class BaseModel {
         this.energy -= cost;
 
         if (this.critical >= attackD100) {
-            let critDmg = dmg * 2;
+           ctStats(enemy);
+        actStats(player);
+        //Chequea si murio, de ser cierto no hay contraataque y actualiza las interfaces 🦴
+        if (objective.health <= 0) {
+            console.log("rip enemigo")
+            ob let critDmg = dmg * 2;
             enemy.health -= critDmg
             battleTextAdd(`Critical, ${critDmg} ${this.weapon.type} damage`, "critical")
         } else if (AccTotal >= attackD100) {
@@ -40,12 +45,7 @@ class BaseModel {
         } else {
             battleTextAdd(`${objective.name} has dodge the attack!`, "dodge")
         }
-        actStats(enemy);
-        actStats(player);
-        //Chequea si murio, de ser cierto no hay contraataque y actualiza las interfaces 🦴
-        if (objective.health <= 0) {
-            console.log("rip enemigo")
-            objective.health = 0
+        ajective.health = 0
             actStats(enemy);
             actStats(player);
             //solo se ejecuta si el enemigo sigue vivo 💅
