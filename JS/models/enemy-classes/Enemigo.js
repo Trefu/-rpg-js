@@ -1,6 +1,6 @@
 import {
     weapons
-} from "../Weapons"
+} from "../../Weapons"
 class Enemy {
     constructor(name) {
         this.name = name;

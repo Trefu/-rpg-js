@@ -36,7 +36,7 @@ class BaseModel {
         //Chequea si murio, de ser cierto no hay contraataque y actualiza las interfaces 🦴
         if (objective.health <= 0) {
             console.log("rip enemigo")
-            ob let critDmg = dmg * 2;
+            let critDmg = dmg * 2;
             enemy.health -= critDmg
             battleTextAdd(`Critical, ${critDmg} ${this.weapon.type} damage`, "critical")
         } else if (AccTotal >= attackD100) {

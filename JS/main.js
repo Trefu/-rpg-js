@@ -1,4 +1,4 @@
-import {
+2import {
     functions
 } from "./functions"
 console.log(functions.heal)

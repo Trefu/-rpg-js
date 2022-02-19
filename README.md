@@ -4,8 +4,8 @@ Iniciar con extension Liveserver en index.html
 ### Estructura de archivos
 - /js - archivos de scripts y clases
  /models - modelos de clases personajes/enemigos
-    -   /playersClasses - enemigos de clases de jugador
-    -   /enemyClasses - clases de enemigos
+    -   /player-classes - enemigos de clases de jugador
+    -   /enemy-classes - clases de enemigos
 ---
 - /css - archivos de estilos
 ---
