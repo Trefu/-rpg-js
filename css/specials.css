@@ -4,7 +4,7 @@
 
 body {
     font-family      : 'MedievalSharp', cursive;
-    background-image : url('../imgs/background.jpg');
+    background-image : url('../imgs/locations/winterbg.jpg');
     background-size  : cover;
     background-repeat: no-repeat;
 }
@@ -29,7 +29,7 @@ body {
     flex-direction: column;
 }
 .text-info {
-   color: rgb(33, 2, 58);
+   color: rgb(194, 22, 22);
 }
 
 .choose-class-card {
@@ -37,9 +37,9 @@ body {
     transition: 0.3s;
     width     : 80%;
     background: rgba(17, 15, 15, 0.54);
-    background: linear-gradient(0deg, rgba(17, 15, 15, 0.54) 0%, #5a1010 50%);
-    background: -webkit-linear-gradient(0deg, rgba(17, 15, 15, 0.54) 0%, #5a1010 50%);
-    background: -moz-linear-gradient(0deg, rgba(17, 15, 15, 0.54) 0%, #5a1010 50%);
+    background: linear-gradient(0deg, rgba(17, 15, 15, 0.54) 0%, #137c7c 50%);
+    background: -webkit-linear-gradient(0deg, rgba(17, 15, 15, 0.54) 0%, #137c7c 50%);
+    background: -moz-linear-gradient(0deg, rgba(17, 15, 15, 0.54) 0%, #137c7c 50%);
     margin-top: 2rem;
     border-radius: 20px;
 }
@@ -58,13 +58,13 @@ body {
 }
 
 .enemy-image {
-    width: 120px;
+    width: 130px;
     height: auto;
-    margin-left: 50px;
-    margin-right: 10px;
+    margin-left: 10px;
+    margin-right: 5px;
 }
 
 h4{
-    color: #bb0d0d;
+    color: #04003a;
     font-size: 25px;
 }
