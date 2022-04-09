@@ -29,7 +29,7 @@ body {
     flex-direction: column;
 }
 .text-info {
-    color: var(--info-color) !important;
+   color: rgb(11, 1, 19);
 }
 
 .choose-class-card {
@@ -64,3 +64,7 @@ body {
     margin-right: 10px;
 }
 
+h4{
+    color: #bb0d0d;
+    font-size: 25px;
+}
