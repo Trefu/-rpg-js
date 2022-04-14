@@ -11,6 +11,7 @@ class BaseModel {
         this.counterChance = 0;
         this.accuracyChance = 0;
         this.critical = 0;
+        this.lore = "";
         this.weapon = null;
         this.status = {
             inspired: false,

@@ -45,6 +45,8 @@ const restantLife = (obj) => {
     return Math.round((obj.maxHealth - obj.health) / obj.maxHealth * 100 / 3)
 }
 
+
+
 export const functions = {
     heal,
     showButtons,
