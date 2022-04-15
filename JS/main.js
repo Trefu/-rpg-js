@@ -1,15 +1,17 @@
-console.log('main js');
 import BaseModel from "./models/players/BaseModel.js";
 import Battlemaster from "./models/players/Battlemaster.js";
 import Shadowmaster from "./models/players/Shadowmaster.js";
 import Spellmaster from "./models/players/Spellmaster.js";
-console.log(BaseModel, Battlemaster, Shadowmaster, Spellmaster);
+import { test } from "./models/viewManager.js";
+
+console.log(test());
 
 var player;
 
 
+
 const selectClass = (selectedClass) => {
-    return console.log(selectClass)
+    return console.log(selectedClass)
 }
 
 /* import {
