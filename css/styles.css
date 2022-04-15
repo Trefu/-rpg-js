@@ -107,3 +107,22 @@ body {
 .btn-select-class:hover{
     background-color: #c3c334;    
 }
+
+.avatar-image-selected {
+    width: 50%;
+    height: 50%;
+    margin-left: auto;
+}
+
+.choosed-class-card {
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+    transition: 0.3s;
+    width     : 80%;
+    height     : 80%;
+    background: rgba(17, 15, 15, 0.54);
+    background: linear-gradient(0deg, rgba(17, 15, 15, 0.54) 0%, #c3c334 50%);
+    background: -webkit-linear-gradient(0deg, rgba(17, 15, 15, 0.54) 0%, #c3c334 50%);
+    background: -moz-linear-gradient(0deg, rgba(17, 15, 15, 0.54) 0%, #c3c334 50%);
+    margin-top: 2rem;
+    border-radius: 20px;
+}
