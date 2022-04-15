@@ -1,6 +1,10 @@
 console.log('main js');
 import BaseModel from "./models/players/BaseModel.js";
-console.log(BaseModel);
+import Battlemaster from "./models/players/Battlemaster.js";
+import Shadowmaster from "./models/players/Shadowmaster.js";
+import Spellmaster from "./models/players/Spellmaster.js";
+console.log(BaseModel, Battlemaster, Shadowmaster, Spellmaster);
+
 /* import {
     functions
 } from "./functions"
