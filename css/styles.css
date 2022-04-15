@@ -100,3 +100,10 @@ body {
     margin-top: 2rem;
     border-radius: 20px;
 }
+
+.Button{
+    background-color: #35b5cc;
+}
+.Button:hover{
+    background-color: #c3c334;    
+}
