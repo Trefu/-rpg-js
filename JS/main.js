@@ -1,4 +1,6 @@
-console.log('main js')
+console.log('main js');
+import BaseModel from "./models/players/BaseModel.js";
+console.log(BaseModel);
 /* import {
     functions
 } from "./functions"
