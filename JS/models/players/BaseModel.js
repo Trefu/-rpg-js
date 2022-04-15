@@ -1,6 +1,6 @@
 export default class BaseModel {
-    constructor(name) {
-        this.name = name;
+    constructor() {
+        this.name = "";
         this.maxHealth = 0;
         this.health = 0;
         this.attack = 0;

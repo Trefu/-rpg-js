@@ -5,6 +5,13 @@ import Shadowmaster from "./models/players/Shadowmaster.js";
 import Spellmaster from "./models/players/Spellmaster.js";
 console.log(BaseModel, Battlemaster, Shadowmaster, Spellmaster);
 
+var player;
+
+
+const selectClass = (selectedClass) => {
+    return console.log(selectClass)
+}
+
 /* import {
     functions
 } from "./functions"
