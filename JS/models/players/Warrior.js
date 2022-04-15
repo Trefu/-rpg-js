@@ -1,30 +1,12 @@
-
+import BaseModel from "./BaseModel";
 
 class Battlemaster extends BaseModel {
     constructor(name, classCharacter, weapon) {
         super()
-        this.classCharacter = classCharacter;
         this.name = name;
         this.maxHealth = 80;
         this.health = 80;
-        this.maxEnergy = 100;
-        this.energy = 100;
-        this.luck = 5;
-        this.dodgeChance = 10;
-        this.counterChance = 10;
-        this.accuracyChance = 95;
-        this.critical = 10;
-        this.weapon = weapon;
-        this.status = {
-            inspired: false,
-            cold: false,
-            bleeding: false,
-            poisoned: false,
-            bleeding: false,
-            scared: false
-        }
-        this.healthBar = document.getElementById("playerHealth");
-        this.energyBar = document.getElementById("energyBar");
+        this.attack = 10
     }
     lethalblow() {
         let cost = this.maxEnergy * 24 / 100;

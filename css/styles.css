@@ -4,14 +4,14 @@
 
 body {
     font-family      : 'MedievalSharp', cursive;
-    background-image : url('../imgs/background.jpg');
+    background-image : url('../Images/background.jpg');
     background-size  : cover;
     background-repeat: no-repeat;
 }
 
 .claws-background {
     font-family      : 'MedievalSharp', cursive;
-    background-image : url('../imgs/locations/winterbg.jpg');
+    background-image : url('../Images/locations/winterbg.jpg');
     background-size  : cover;
     background-repeat: no-repeat;
 }
