@@ -5,26 +5,38 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Character</title>
-        <link rel="stylesheet" href="../css/styles.css">
+        <link rel="stylesheet" href="css/styles.css">
         <link rel="preconnect" href="https://fonts.gstatic.com">
         <!--Medieval Font-->
         <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&display=swap" rel="stylesheet">
-    <link rel="shortcut icon" href="/favico.ico" type="image/x-icon">
+        <link rel="shortcut icon" href="/favico.ico" type="image/x-icon">
     </head>
    
     <body>
         <div id="main-content">
-            <p id="text-header" class="h1 text-info">Choosen Avatar</p>
+
+            <p id="text-header" class="h1 text-info">Choose Avatar</p>
     
-            <div class="choosed-class-card">
-                <div class="choose-class-card-content">
-                    <div class="d-flex flex-col">
-                        <h4 id="warrior-title"><b>Battlemaster</b></h4>
-                        <p>HP: <small id="warrior-life"></small></p>
-                        <p>STR:<small id="warrior-str"></small></p>
-                        <p>DEX:<small id="warrior-dex"></small></p>
+            <div class="choose-class-card">
+                <div class="choose-class-card-content  flex-col">
+                    <div class="d-flex">
+                        <div class="d-flex flex-col">
+                            <h4 id="battlemaster-title"><b>Battlemaster</b></h4>
+                            <p>HP: <small id="battlemaster-life"></small></p>
+                            <p>STR:<small id="battlemaster-str"></small></p>
+                            <p>DEX:<small id="battlemaster-dex"></small></p>
+                        </div>
+                        <div class="avatar-container">
+                            <img src="Images/avatars/battlemaster.png" alt="">
+                        </div>
                     </div>
-                    <img class="avatar-image-selected" src="../Images/avatars/battlemaster.png" alt="">
+                    <div class="d-flex justify-end">
+                        <div class="box-btn">
+                            <div data-class="battlemaster" id="battlemaster-select-btn" class="btn btn-select-class">
+                                <span>Seleccionar</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
     </body>
