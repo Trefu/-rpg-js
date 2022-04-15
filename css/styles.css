@@ -101,9 +101,9 @@ body {
     border-radius: 20px;
 }
 
-.Button{
+.btn-select-class{
     background-color: #35b5cc;
 }
-.Button:hover{
+.btn-select-class:hover{
     background-color: #c3c334;    
 }
