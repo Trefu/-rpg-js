@@ -7,6 +7,7 @@ body {
     background-image: url('../Images/background.jpg');
     background-size: cover;
     background-repeat: no-repeat;
+    min-height: 100vh;
 }
 
 .justify-end {
@@ -162,41 +163,39 @@ body {
 }
 
 
-----------------------character sheet---------------------------
+/* ----------------------character sheet--------------------------- */
 #main-content-sheet {
     display: flex;
-    flex-direction: column;
     justify-content: center;
-    align-items: center;
+    margin-top: auto;
+    margin-bottom: auto;
 }
 
 .avatar-selected {
-
-    margin-left: auto;
+    display: flex;
 }
 
 .d-flex-selected {
     display: flex;
-}
-
-.flex-col-selected {
     flex-direction: column;
+    align-items: center;
 }
 
-.class-card-selected {
-    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
-    transition: 0.3s;
-    width: 100%;
-    width: 100%;
-    background: rgba(17, 15, 15, 0.54);
-    background: linear-gradient(0deg, rgba(17, 15, 15, 0.54) 0%, #c3c334 50%);
-    background: -webkit-linear-gradient(0deg, rgba(17, 15, 15, 0.54) 0%, #c3c334 50%);
-    background: -moz-linear-gradient(0deg, rgba(17, 15, 15, 0.54) 0%, #c3c334 50%);
-    margin-top: 2rem;
-    border-radius: 20px;
+.flex-col-selected {   
+    align-items: flex-start;
+    
 }
 
-.class-card-content-selected {
-    display: flex;
-    padding: 30px;
+.character-container {
+    padding-top: 10%;
+    padding-bottom: 10%;
+    border-style: dotted;
+    width: 70%;
+    
+   
+}
+
+.character-content-selected {
+    align-items: center;
+    
 }
