@@ -2,7 +2,6 @@ import BaseModel from "./models/players/BaseModel.js";
 import Battlemaster from "./models/players/Battlemaster.js";
 import Shadowmaster from "./models/players/Shadowmaster.js";
 import Spellmaster from "./models/players/Spellmaster.js";
-import { test } from "./models/viewManager.js";
 import GameManager from "./GameManager.js";
 
 var player = null;
@@ -11,13 +10,8 @@ const SELECT_BATTLE_MASTER_BUTTON = document.getElementById('battlemaster-select
 const SELECT_SHADOW_MASTER_BUTTON = document.getElementById('shadowmaster-select-btn');
 const SELECT_SPELL_MASTER_BUTTON = document.getElementById('spellmaster-select-btn');
 
-const handlerClassSelect = function (event) {
-    console.log(event.target.getAttribute("data-class"));
-    player = event.target.getAttribute("data-class");
-}
+SELECT_BATTLE_MASTER_BUTTON.addEventListener('click', GameManager.handlerClassSelect);
+SELECT_SHADOW_MASTER_BUTTON.addEventListener('click', GameManager.handlerClassSelect);
+SELECT_SPELL_MASTER_BUTTON.addEventListener('click', GameManager.handlerClassSelect);
 
-
-SELECT_BATTLE_MASTER_BUTTON.addEventListener('click', handlerClassSelect);
-SELECT_SHADOW_MASTER_BUTTON.addEventListener('click', handlerClassSelect);
-SELECT_SPELL_MASTER_BUTTON.addEventListener('click', handlerClassSelect);
 console.log(player)
