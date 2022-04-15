@@ -14,11 +14,23 @@
 </head>
 
 <body>
-<div id="root">
-    <div id="nav"></div>
-    <!--Cargo el main js-->
-    <script type="module" src="js/index.js"></script>
-</div>
+    <div id="root">
+        <nav id="main-nav" class="sidebar">
+            <h1>
+                <a  onclick="route()" href="/">Home</a>
+            </h1>
+            <h1>
+                <a onclick="route()" href="/select-character">Seleccionar pj</a>
+            </h1>
+            <h1>
+                <a onclick="route()" href="/character-sheet">ver pj</a>
+            </h1>
+        </nav>
+        <div id="content"></div>
+    </div>
+
+    <script type="module" src="index.js"></script>
+    <script src="JS/router.js"></script>
 </body>
 
 </html>

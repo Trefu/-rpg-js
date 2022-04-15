@@ -8,15 +8,16 @@ const route = (event) => {
 const routes = {
     404: "/pages/404.html",
     "/": "/pages/index.html",
-    "/about": "/pages/about.html",
-    "/lorem": "/pages/lorem.html",
+    "/index.html": "/pages/index.html",
+    "/select-character": "/pages/select-character.html",
+    "/character-sheet": "/pages/character-sheet.html"
 };
 
 const handleLocation = async () => {
     const path = window.location.pathname;
     const route = routes[path] || routes[404];
     const html = await fetch(route).then((data) => data.text());
-    document.getElementById("main-page").innerHTML = html;
+    document.getElementById("content").innerHTML = html;
 };
 
 window.onpopstate = handleLocation;
