@@ -13,7 +13,15 @@ const SELECT_SPELL_MASTER_BUTTON = document.getElementById('spellmaster-select-b
 
 const handlerClassSelect = function (event) {
     console.log(event.target.getAttribute("data-class"));
-    player = event.target.getAttribute("data-class");
+    let selectedClass = event.target.getAttribute("data-class");
+    if (selectedClass === "battlemaster") {
+        player = new Battlemaster();
+    }else if (selectedClass === "shadowmaster") {
+        player = new Shadowmaster();
+    }else if (selectedClass === "spellmaster") {
+        player = new Spellmaster();
+    } 
+    console.log(player);
 }
 
 
