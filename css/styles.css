@@ -161,14 +161,42 @@ body {
     transform: scale(0.1, 1);
 }
 
-.choosed-class-card {
+
+----------------------character sheet---------------------------
+#main-content-sheet {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.avatar-selected {
+
+    margin-left: auto;
+}
+
+.d-flex-selected {
+    display: flex;
+}
+
+.flex-col-selected {
+    flex-direction: column;
+}
+
+.class-card-selected {
     box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
     transition: 0.3s;
-    width: 80%;
+    width: 100%;
+    width: 100%;
     background: rgba(17, 15, 15, 0.54);
     background: linear-gradient(0deg, rgba(17, 15, 15, 0.54) 0%, #c3c334 50%);
     background: -webkit-linear-gradient(0deg, rgba(17, 15, 15, 0.54) 0%, #c3c334 50%);
     background: -moz-linear-gradient(0deg, rgba(17, 15, 15, 0.54) 0%, #c3c334 50%);
     margin-top: 2rem;
     border-radius: 20px;
+}
+
+.class-card-content-selected {
+    display: flex;
+    padding: 30px;
 }
