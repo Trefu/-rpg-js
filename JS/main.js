@@ -14,4 +14,5 @@ SELECT_BATTLE_MASTER_BUTTON.addEventListener('click', GameManager.handlerClassSe
 SELECT_SHADOW_MASTER_BUTTON.addEventListener('click', GameManager.handlerClassSelect);
 SELECT_SPELL_MASTER_BUTTON.addEventListener('click', GameManager.handlerClassSelect);
 
+
 console.log(player)
