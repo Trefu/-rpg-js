@@ -2,6 +2,11 @@
     --info-color: #124042
 }
 
+* {
+    padding: 0;
+    margin: 0;
+  }
+  
 body {
     font-family: 'MedievalSharp', cursive;
     background-image: url('../Images/background.jpg');
@@ -199,3 +204,20 @@ body {
     align-items: center;
     
 }
+
+nav {
+    display: flex; 
+    justify-content: space-between;
+    padding: 1rem 2rem; 
+    background: #ffffff75; 
+  }
+  
+  nav ul {
+    display: flex; /* 5 */
+    list-style: none; /* 6 */
+  }
+  
+  nav li {
+    padding-left: 1rem; /* 7! */
+  }
+  

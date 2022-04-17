@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Character</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <!--Medieval Font-->
+    <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&display=swap" rel="stylesheet">
+    <link rel="shortcut icon" href="/favico.ico" type="image/x-icon">
+</head>
+
+<body>
+    <nav id="main-nav" class="sidebar">
+        <ul>
+            <li><a href="/">Home</a></li>
+            <li><a href="/views/select-character.html">Selecionar pj</a></li>
+            <li><a href="/views/character-sheet">Borrar pj</a></li>
+        </ul>
+    </nav>
+    <div id="main-content">
+
+        <p id="text-header" class="h1 text-info">Choose Avatar</p>
+
+        <div class="choose-class-card">
+            <div class="choose-class-card-content  flex-col">
+                <div class="d-flex">
+                    <div class="d-flex flex-col">
+                        <h4 id="battlemaster-title"><b>Battlemaster</b></h4>
+                        <p>HP: <small id="battlemaster-life"></small></p>
+                        <p>STR:<small id="battlemaster-str"></small></p>
+                        <p>DEX:<small id="battlemaster-dex"></small></p>
+                    </div>
+                    <div class="avatar-container">
+                        <img src="../Images/avatars/battlemaster.png" alt="">
+                    </div>
+                </div>
+                <div class="d-flex justify-end">
+                    <div class="box-btn">
+                        <div data-class="battlemaster" id="battlemaster-select-btn" class="btn btn-select-class">
+                            <span>Seleccionar</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="choose-class-card">
+            <div class="choose-class-card-content  flex-col">
+                <div class="d-flex">
+                    <div class="d-flex flex-col">
+                        <h4 id="shadowmaster-title"><b>Shadowmaster</b></h4>
+                        <p>HP: <small id="shadowmaster-life"></small></p>
+                        <p>STR:<small id="shadowmaster-str"></small></p>
+                        <p>DEX:<small id="shadowmaster-dex"></small></p>
+                    </div>
+                    <div class="avatar-container">
+                        <img src="../Images/avatars/shadowmaster.png" alt="">
+                    </div>
+                </div>
+                <div class="d-flex justify-end">
+                    <div class="box-btn">
+                        <div data-class="shadowmaster" id="shadowmaster-select-btn" class="btn btn-select-class">
+                            <span>Seleccionar</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="choose-class-card">
+            <div class="choose-class-card-content  flex-col">
+                <div class="d-flex">
+                    <div class="d-flex flex-col">
+                        <h4 id="spellmaster-title"><b>spellmaster</b></h4>
+                        <p>HP: <small id="spellmaster-life"></small></p>
+                        <p>STR:<small id="spellmaster-str"></small></p>
+                        <p>DEX:<small id="spellmaster-dex"></small></p>
+                    </div>
+                    <div class="avatar-container">
+                        <img src="../Images/avatars/spellmaster.png" alt="">
+                    </div>
+                </div>
+                <div class="d-flex justify-end">
+                    <div class="box-btn">
+                        <div data-class="spellmaster" id="spellmaster-select-btn" class="btn btn-select-class">
+                            <span>Seleccionar</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <script type="module" src="../js/select-character.js"></script>
+</body>
+
+</html>

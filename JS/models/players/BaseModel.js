@@ -8,4 +8,12 @@ export default class BaseModel {
     attack() {
         console.log('attack')
     }
+    toJson() {
+        return {
+            name: this.name,
+            maxHealth: this.maxHealth,
+            health: this.health,
+            attack: this.attack
+        }
+    }
 }
