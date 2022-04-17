@@ -1,6 +1,6 @@
-import AutoSave from "./Autosave.js";
-import { LOCAL_STORAGE_PLAYER } from "./const.js";
-import GameManager from "./GameManager.js";
+import AutoSave from "../../js/Autosave.js";
+import { LOCAL_STORAGE_PLAYER } from "../../js/const.js";
+import GameManager from "../../js/GameManager.js";
 
 //SI YA HAY UN PJ GUARDADO REDIRECCIONA
 if (localStorage.getItem(LOCAL_STORAGE_PLAYER)) {

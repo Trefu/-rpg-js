@@ -10,19 +10,27 @@ const setPlayer = (newPlayer) => {
 
 const GameManager = {
     /**
-     * 
      * @param {Event} event 
      * @returns console.log
      */
     handlerClassSelect: function (event) {
         let selectedClass = event.target.getAttribute("data-class");
-        if (selectedClass === "battlemaster") {
-            setPlayer(new Battlemaster());
-        } else if (selectedClass === "shadowmaster") {
-            setPlayer(new Shadowmaster());
-        } else if (selectedClass === "spellmaster") {
-            setPlayer(new Spellmaster());
+        selectedClass = selectedClass.toLowerCase();
+        switch (selectedClass) {
+            case "battlemaster":
+                setPlayer(new Battlemaster());
+                break;
+            case "shadowmaster":
+                setPlayer(new Battlemaster());
+                break;
+            case "spellmaster":
+                setPlayer(new Battlemaster());
+                break;
+            default:
+                setPlayer(null);
+                break;
         }
+
         return console.log(player);
     },
     /**
@@ -30,7 +38,7 @@ const GameManager = {
      * @returns console.log
      */
     restoreSavedPlayer: function () {
-        var savedPlayer = JSON.parse(localStorage.getItem("PlayerSaved"))
+        var savedPlayer = JSON.parse(localStorage.getItem(LOCAL_STORAGE_PLAYER))
         console.log(savedPlayer)
         if (!savedPlayer) return null;
         switch (savedPlayer.name) {

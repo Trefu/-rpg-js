@@ -4,6 +4,7 @@ export default class BaseModel {
         this.maxHealth = 0;
         this.health = 0;
         this.attack = 0;
+        //this.avatarFolder = ;
     }
     attack() {
         console.log('attack')

@@ -1,4 +1,4 @@
-import AutoSave from "./Autosave";
+import AutoSave from "../../js/Autosave.js";
 
 console.log('character sheet js')
 
