@@ -21,16 +21,15 @@ const GameManager = {
                 setPlayer(new Battlemaster());
                 break;
             case "shadowmaster":
-                setPlayer(new Battlemaster());
+                setPlayer(new Shadowmaster());
                 break;
             case "spellmaster":
-                setPlayer(new Battlemaster());
+                setPlayer(new Spellmaster());
                 break;
             default:
                 setPlayer(null);
                 break;
         }
-
         return console.log(player);
     },
     /**
@@ -39,7 +38,6 @@ const GameManager = {
      */
     restoreSavedPlayer: function () {
         var savedPlayer = JSON.parse(localStorage.getItem(LOCAL_STORAGE_PLAYER))
-        console.log(savedPlayer)
         if (!savedPlayer) return null;
         switch (savedPlayer.name) {
             case "Battlemaster":

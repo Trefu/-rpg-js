@@ -12,7 +12,8 @@ export default class Battlemaster extends BaseModel {
         this.name = "Battlemaster";
         this.maxHealth = initialStats.maxHealth;
         this.health = initialStats.health;
-        this.attack = initialStats.attack
+        this.attack = initialStats.attack;
+        this.avatar = "/images/avatars/battlemaster.png";
     }
     lethalblow() {
         return console.log('lethal');

@@ -13,5 +13,6 @@ export default class Shadowmaster extends BaseModel {
         this.maxHealth = initialStats.maxHealth;
         this.health = initialStats.health;
         this.attack = initialStats.attack;
+        this.avatar = "/images/avatars/shadowmaster.png";
     }
 }
