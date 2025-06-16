@@ -1,14 +1,20 @@
 export interface ICharacter {
-  id: string
   name: string
-  level: number
   health: number
   maxHealth: number
-  isAlive: boolean
+  attack: number | (() => number)
+  defense: number | (() => number)
+  magic: number | (() => number)
+  specialAbility: {
+    name: string
+    description: string
+  }
 }
 
 export interface ICombatant extends ICharacter {
-  attack(): number
+  attack: () => number
+  defense: () => number
+  magic: () => number
   takeDamage(amount: number): void
   heal(amount: number): void
 }
