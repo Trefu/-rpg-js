@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
 import ClassSelector from './components/ui/ClassSelector.vue'
 import CityMap from './components/map/CityMap.vue'
 import ZoneSelector from './components/expedition/ZoneSelector.vue'
@@ -9,6 +9,7 @@ import GameUI from './components/ui/GameUI.vue'
 import { useGameStore } from './stores/game'
 import { Player } from './core/Player'
 import { Loader } from './core/Loader'
+import { AudioManager } from './core/AudioManager'
 import { mountainPeakNodes } from './core/zones/MountainPeakNodes'
 import type { IZone, INode } from './core/interfaces/IExpedition'
 
@@ -16,6 +17,33 @@ const gameStore = useGameStore()
 const currentView = computed(() => gameStore.currentLocation)
 const selectedZone = ref<IZone | null>(null)
 const expeditionNodes = ref<INode[]>([])
+const audioManager = AudioManager.getInstance()
+
+// Manejar cambios de música según la vista actual
+watch(currentView, (newView) => {
+  switch (newView) {
+    case 'expedition-map':
+      // Reproducir música de exploración de montaña
+      audioManager.playMountainExploration()
+      break
+    case 'combat':
+      // La música de combate se maneja en CombatView
+      break
+    case 'city':
+    case 'expedition':
+    case 'class-selector':
+    default:
+      // Detener música para otras vistas
+      audioManager.stopCurrentMusic()
+      break
+  }
+})
+
+onMounted(() => {
+  // Inicializar audio manager
+  audioManager.setMusicVolume(0.3)
+  audioManager.setSFXVolume(0.5)
+})
 
 const handleClassSelected = async (className: string) => {
   const loader = Loader.getInstance()
@@ -136,11 +164,6 @@ html, body, #app, .app {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-}
-
-/* Ensure content is not hidden behind the sticky GameUI */
-.app > *:not(.game-ui) {
-  margin-top: 70px;
 }
 
 .app-header {

@@ -9,10 +9,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "howler": "^2.2.4",
     "pinia": "^2.1.7",
     "vue": "^3.3.4"
   },
   "devDependencies": {
+    "@types/howler": "^2.2.12",
     "@types/node": "^24.0.3",
     "@vitejs/plugin-vue": "^5.2.4",
     "typescript": "^5.8.3"

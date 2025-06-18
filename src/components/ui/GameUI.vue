@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useGameStore } from '@/stores/game'
 import { storeToRefs } from 'pinia'
+import AudioControls from './AudioControls.vue'
 
 const emit = defineEmits<{
   (e: 'resetGame'): void
@@ -28,6 +29,7 @@ const resetGame = () => {
         <span class="score">Puntuación: {{ currentScore }}</span>
       </div>
       <div class="actions">
+        <AudioControls />
         <button class="ui-button" @click="showCharacter = !showCharacter">
           {{ showCharacter ? 'Ocultar Personaje' : 'Ver Personaje' }}
         </button>
