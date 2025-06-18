@@ -58,10 +58,12 @@ const selectClass = (characterClass: IClass) => {
           <div class="stats">
             <h4>Estadísticas base:</h4>
             <ul>
-              <li>Vida: {{ characterClass.baseStats.health }}</li>
-              <li>Ataque: {{ characterClass.baseStats.attack }}</li>
-              <li>Defensa: {{ characterClass.baseStats.defense }}</li>
-              <li>Magia: {{ characterClass.baseStats.magic }}</li>
+              <li>Fuerza: {{ characterClass.baseStats.fuerza }}</li>
+              <li>Destreza: {{ characterClass.baseStats.destreza }}</li>
+              <li>Inteligencia: {{ characterClass.baseStats.inteligencia }}</li>
+              <li>Sabiduría: {{ characterClass.baseStats.sabiduria }}</li>
+              <li>Constitución: {{ characterClass.baseStats.constitucion }}</li>
+              <li>Carisma: {{ characterClass.baseStats.carisma }}</li>
             </ul>
           </div>
           <div class="ability">

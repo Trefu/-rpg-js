@@ -1,6 +1,4 @@
 import { Warrior } from './classes/Warrior'
-import { Rogue } from './classes/Rogue'
-import { Wizard } from './classes/Wizard'
 import type { IClass } from './interfaces/IClass'
 
 export class Loader {
@@ -10,10 +8,8 @@ export class Loader {
   private readonly classes: Map<string, IClass> = new Map()
 
   private constructor() {
-    // Inicializar las clases disponibles
+    // Inicializar solo la clase Warrior
     this.classes.set('warrior', new Warrior())
-    this.classes.set('rogue', new Rogue())
-    this.classes.set('wizard', new Wizard())
   }
 
   public static getInstance(): Loader {

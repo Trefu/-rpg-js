@@ -1,11 +1,16 @@
 import { Character } from './Character'
-import { ICombatant, ILevelable, IInventory } from './interfaces/ICharacter'
+import { ICombatant, ILevelable, IInventory, IPlayerStats } from './interfaces/ICharacter'
 
 export class Player extends Character implements ICombatant, ILevelable, IInventory {
   public experience: number
   public experienceToNextLevel: number
   public gold: number
   public items: string[]
+  public stats: IPlayerStats
+  public readonly specialAbility = {
+    name: 'Ataque Básico',
+    description: 'Ataque normal del jugador'
+  }
   private baseAttack: number
   private baseDefense: number
 
@@ -24,12 +29,38 @@ export class Player extends Character implements ICombatant, ILevelable, IInvent
     this.items = []
     this.baseAttack = baseAttack
     this.baseDefense = baseDefense
+    this.stats = {
+      fuerza: 10,
+      destreza: 10,
+      inteligencia: 10,
+      sabiduria: 10,
+      constitucion: 10,
+      carisma: 10
+    }
+  }
+
+  public setStatsFromClass(stats: IPlayerStats): void {
+    this.stats = { ...stats }
+    // Recalcular vida basada en constitución
+    this.maxHealth = 50 + (this.stats.constitucion * 5)
+    this.health = this.maxHealth
+    // Recalcular ataque y defensa basados en fuerza y destreza
+    this.baseAttack = Math.floor(this.stats.fuerza / 2) + Math.floor(this.stats.destreza / 4)
+    this.baseDefense = Math.floor(this.stats.constitucion / 2) + Math.floor(this.stats.destreza / 4)
   }
 
   public attack(): number {
     if (!this.isAlive) return 0
-    // Ataque base + bonus por nivel
-    return this.baseAttack + (this.level * 2)
+    // Ataque base + bonus por nivel + bonus por fuerza
+    return this.baseAttack + (this.level * 2) + Math.floor(this.stats.fuerza / 3)
+  }
+
+  public defense(): number {
+    return this.baseDefense + (this.level * 1) + Math.floor(this.stats.constitucion / 3)
+  }
+
+  public magic(): number {
+    return Math.floor(this.stats.inteligencia / 2) + Math.floor(this.stats.sabiduria / 2)
   }
 
   public gainExperience(amount: number): void {
@@ -79,7 +110,14 @@ export class Player extends Character implements ICombatant, ILevelable, IInvent
       Nivel: ${this.level}
       Vida: ${this.health}/${this.maxHealth}
       Ataque: ${this.attack()}
-      Defensa: ${this.baseDefense}
+      Defensa: ${this.defense()}
+      Magia: ${this.magic()}
+      Fuerza: ${this.stats.fuerza}
+      Destreza: ${this.stats.destreza}
+      Inteligencia: ${this.stats.inteligencia}
+      Sabiduría: ${this.stats.sabiduria}
+      Constitución: ${this.stats.constitucion}
+      Carisma: ${this.stats.carisma}
       Experiencia: ${this.experience}/${this.experienceToNextLevel}
       Oro: ${this.gold}
     `

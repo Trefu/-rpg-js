@@ -4,8 +4,12 @@ import ClassSelector from './components/ui/ClassSelector.vue'
 import CityMap from './components/map/CityMap.vue'
 import ZoneSelector from './components/expedition/ZoneSelector.vue'
 import ExpeditionMap from './components/expedition/ExpeditionMap.vue'
+import CombatView from './components/combat/CombatView.vue'
 import GameUI from './components/ui/GameUI.vue'
 import { useGameStore } from './stores/game'
+import { Player } from './core/Player'
+import { Loader } from './core/Loader'
+import { mountainPeakNodes } from './core/zones/MountainPeakNodes'
 import type { IZone, INode } from './core/interfaces/IExpedition'
 
 const gameStore = useGameStore()
@@ -13,19 +17,15 @@ const currentView = computed(() => gameStore.currentLocation)
 const selectedZone = ref<IZone | null>(null)
 const expeditionNodes = ref<INode[]>([])
 
-const mountainNodes: INode[] = [
-  { id: 'start', type: 'combat', position: { x: 50, y: 10 }, connections: ['combat1', 'combat2', 'combat3'], completed: false },
-  { id: 'combat1', type: 'combat', position: { x: 30, y: 30 }, connections: ['shop1', 'event1'], completed: false },
-  { id: 'combat2', type: 'combat', position: { x: 50, y: 30 }, connections: ['event1', 'shop1', 'combat4'], completed: false },
-  { id: 'combat3', type: 'combat', position: { x: 70, y: 30 }, connections: ['shop1', 'combat4'], completed: false },
-  { id: 'shop1', type: 'shop', position: { x: 30, y: 50 }, connections: ['combat5'], completed: false },
-  { id: 'event1', type: 'event', position: { x: 50, y: 50 }, connections: ['combat5'], completed: false },
-  { id: 'combat4', type: 'combat', position: { x: 70, y: 50 }, connections: ['combat5'], completed: false },
-  { id: 'combat5', type: 'combat', position: { x: 50, y: 70 }, connections: [], completed: false }
-]
-
-const handleClassSelected = (className: string) => {
-  gameStore.navigateTo('city')
+const handleClassSelected = async (className: string) => {
+  const loader = Loader.getInstance()
+  const selectedClass = loader.getClass(className)
+  
+  if (selectedClass) {
+    const player = new Player('player-1', 'Héroe', 1, 100, 10, 5)
+    player.setStatsFromClass(selectedClass.baseStats)
+    gameStore.setPlayer(player)
+  }
 }
 
 const handleGoToExpedition = () => {
@@ -47,7 +47,7 @@ const handleResetGame = () => {
 const handleZoneSelected = (zone: IZone) => {
   selectedZone.value = zone
   if (zone.id === 'mountain-peak') {
-    expeditionNodes.value = mountainNodes
+    expeditionNodes.value = mountainPeakNodes
   } else {
     expeditionNodes.value = []
   }
@@ -55,8 +55,22 @@ const handleZoneSelected = (zone: IZone) => {
 }
 
 const handleNodeSelected = (node: INode) => {
-  // TODO: Implementar lógica según el tipo de nodo
-  console.log('Nodo seleccionado:', node)
+  if (node.type === 'combat') {
+    gameStore.navigateTo('combat')
+  } else {
+    // TODO: Implementar lógica para otros tipos de nodos
+    console.log('Nodo seleccionado:', node)
+  }
+}
+
+const handleCombatEnded = (victory: boolean) => {
+  if (victory) {
+    // Marcar el nodo como completado y volver al mapa
+    gameStore.navigateTo('expedition-map')
+  } else {
+    // En caso de derrota, volver al mapa también
+    gameStore.navigateTo('expedition-map')
+  }
 }
 </script>
 
@@ -91,6 +105,11 @@ const handleNodeSelected = (node: INode) => {
         completed: false
       }"
       @node-selected="handleNodeSelected"
+    />
+
+    <CombatView
+      v-if="currentView === 'combat'"
+      @combat-ended="handleCombatEnded"
     />
 
     <!-- TODO: Implementar vista de tienda -->

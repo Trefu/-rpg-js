@@ -1,10 +1,10 @@
 import { defineStore } from 'pinia'
-import type { ICharacter } from '../core/interfaces/ICharacter'
+import type { Player } from '../core/Player'
 
-export type GameLocation = 'class-selector' | 'city' | 'expedition' | 'shop' | 'expedition-map'
+export type GameLocation = 'class-selector' | 'city' | 'expedition' | 'shop' | 'expedition-map' | 'combat'
 
 interface GameState {
-  player: ICharacter | null
+  player: Player | null
   currentLevel: number
   currentScore: number
   isGameStarted: boolean
@@ -25,7 +25,7 @@ export const useGameStore = defineStore('game', {
   }),
 
   actions: {
-    setPlayer(character: ICharacter) {
+    setPlayer(character: Player) {
       this.player = character
       this.isGameStarted = true
       this.currentLocation = 'city'

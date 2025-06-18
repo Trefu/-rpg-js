@@ -1,7 +1,9 @@
 export interface ICharacter {
+  readonly id: string
   name: string
   health: number
   maxHealth: number
+  isAlive: boolean
   attack: number | (() => number)
   defense: number | (() => number)
   magic: number | (() => number)
@@ -9,6 +11,15 @@ export interface ICharacter {
     name: string
     description: string
   }
+}
+
+export interface IPlayerStats {
+  fuerza: number
+  destreza: number
+  inteligencia: number
+  sabiduria: number
+  constitucion: number
+  carisma: number
 }
 
 export interface ICombatant extends ICharacter {
@@ -33,4 +44,8 @@ export interface IInventory {
   removeItem(item: string): void
   addGold(amount: number): void
   spendGold(amount: number): boolean
+}
+
+export interface IEnemy extends ICombatant {
+  getRewards(): { experience: number; gold: number }
 } 

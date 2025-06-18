@@ -2,16 +2,20 @@ export interface IClass {
   name: string
   description: string
   baseStats: {
-    health: number
-    attack: number
-    defense: number
-    magic: number
+    fuerza: number
+    destreza: number
+    inteligencia: number
+    sabiduria: number
+    constitucion: number
+    carisma: number
   }
   levelUpStats: {
-    health: number
-    attack: number
-    defense: number
-    magic: number
+    fuerza: number
+    destreza: number
+    inteligencia: number
+    sabiduria: number
+    constitucion: number
+    carisma: number
   }
   specialAbility: {
     name: string

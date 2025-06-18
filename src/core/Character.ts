@@ -7,6 +7,15 @@ export abstract class Character implements ICharacter {
   public health: number
   public maxHealth: number
   public isAlive: boolean
+  public readonly specialAbility = {
+    name: 'Basic Ability',
+    description: 'Basic character ability'
+  }
+
+  // Abstract methods that subclasses must implement
+  abstract attack(): number
+  abstract defense(): number
+  abstract magic(): number
 
   constructor(
     id: string,

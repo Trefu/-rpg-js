@@ -5,17 +5,21 @@ export class Warrior implements IClass {
   public readonly description = 'Un guerrero experto en combate cuerpo a cuerpo y defensa.'
   
   public readonly baseStats = {
-    health: 120,
-    attack: 15,
-    defense: 10,
-    magic: 5
+    fuerza: 16,
+    destreza: 12,
+    inteligencia: 8,
+    sabiduria: 10,
+    constitucion: 14,
+    carisma: 10
   }
 
   public readonly levelUpStats = {
-    health: 25,
-    attack: 6,
-    defense: 4,
-    magic: 2
+    fuerza: 2,
+    destreza: 1,
+    inteligencia: 0,
+    sabiduria: 1,
+    constitucion: 2,
+    carisma: 0
   }
 
   public readonly specialAbility = {
