@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from 'vue'
 import { useCombat } from '@/composables/useCombat'
-import { Goblin } from '@/core/enemies/Goblin'
+import { Dummy } from '@/core/enemies/Dummy'
 import goblinSprite from '@/assets/sprites/enemies/goblin.png'
 import TimingCircle from './TimingCircle.vue'
 
 const emit = defineEmits<{
-  (e: 'combatEnded', victory: boolean): void
+  (e: 'trainingEnded'): void
 }>()
 
 const {
@@ -42,7 +42,7 @@ const {
   executeActionWithTiming,
   endPlayerTurn,
   enemyTurn,
-  endCombat,
+  endTraining,
   addToLog,
   getHealthPercentage,
   onTimingResult,
@@ -57,21 +57,16 @@ const {
   showPlayerHit,
   actionRequiresTarget
 } = useCombat({
-  onCombatEnd: (victory: boolean) => emit('combatEnded', victory)
+  isTraining: true,
+  onTrainingEnd: () => emit('trainingEnded')
 })
 
 onMounted(() => {
   if (!player.value) return
 
-  // Generar enemigos aleatorios (1-3)
-  const enemyCount = Math.floor(Math.random() * 3) + 1
-  const enemyList = []
-  for (let i = 0; i < enemyCount; i++) {
-    const enemy = new Goblin(player.value.level)
-    enemyList.push(enemy)
-  }
-
-  initializeCombat(enemyList)
+  // Crear dummy de entrenamiento
+  const dummy = new Dummy(player.value.level)
+  initializeCombat([dummy])
 
   window.addEventListener('keydown', handleCombatShortcuts)
   window.addEventListener('keydown', handleAbilitiesModalShortcuts)
@@ -94,51 +89,36 @@ const getEnemySprite = (enemy: any) => {
 
 <template>
   <div class="combat-view">
-    <!-- Área de enemigos -->
+    <!-- Área de dummy -->
     <div class="enemies-area">
       <div class="enemies-container">
-        <div v-for="enemy in enemies" :key="enemy.id" class="enemy-sprite" :class="{
-          selected: selectedEnemy?.id === enemy.id,
-          dead: !enemy.isAlive,
-          'target-selectable': isSelectingTarget && enemy.isAlive && actionRequiresTarget(selectedAction),
-          attacking: attackingEnemyId === enemy.id,
-          'target-all': isSelectingTarget && !actionRequiresTarget(selectedAction) && enemy.isAlive
-        }" @click="selectEnemy(enemy)">
+        <div v-if="enemies[0]" class="enemy-sprite" :class="{
+          selected: isSelectingTarget && enemies[0].isAlive && actionRequiresTarget(selectedAction),
+          'target-selectable': isSelectingTarget && enemies[0].isAlive && actionRequiresTarget(selectedAction)
+        }" @click="selectEnemy(enemies[0])">
           <!-- Barra de estados -->
-          <div v-if="enemy.statusEffects && enemy.statusEffects.length" class="status-bar">
-            <div v-for="effect in enemy.statusEffects" :key="effect.type" class="status-effect-icon">
+          <div v-if="enemies[0].statusEffects && enemies[0].statusEffects.length" class="status-bar">
+            <div v-for="effect in enemies[0].statusEffects" :key="effect.type" class="status-effect-icon">
               <img :src="effect.icon" :alt="effect.name" :title="`${effect.name} (${effect.turns})\n${effect.description}`" />
             </div>
           </div>
-          <img :src="getEnemySprite(enemy)" :alt="enemy.name" />
+          <img :src="getEnemySprite(enemies[0])" :alt="enemies[0].name" />
           <div class="enemy-health">
             <div class="health-bar">
-              <div class="health-fill" :style="{ width: `${getHealthPercentage(enemy.health, enemy.maxHealth)}%` }">
+              <div class="health-fill" :style="{ width: `${getHealthPercentage(enemies[0].health, enemies[0].maxHealth)}%` }">
               </div>
             </div>
           </div>
-          <!-- Hit number popups para enemigos -->
+          <!-- Hit number popups para dummy -->
           <transition-group name="hit-popup" tag="div">
-            <div v-for="popup in enemyHitPopups.filter(p => p.id === enemy.id)" :key="popup.key" class="hit-popup">
+            <div v-for="popup in enemyHitPopups.filter(p => p.id === enemies[0].id)" :key="popup.key" class="hit-popup">
               -{{ popup.value }}
             </div>
           </transition-group>
-          <!-- Badge de número cuando se selecciona objetivo y requiere target, solo para vivos -->
-          <div v-if="isSelectingTarget && actionRequiresTarget(selectedAction) && enemy.isAlive" class="enemy-shortcut-badge">
-            [{{ aliveEnemies.findIndex(e => e.id === enemy.id) + 1 }}]
+          <!-- Badge de número cuando se selecciona objetivo -->
+          <div v-if="isSelectingTarget && actionRequiresTarget(selectedAction) && enemies[0].isAlive" class="enemy-shortcut-badge">
+            [1]
           </div>
-          <!-- Aviso visual sobre el enemigo que va a atacar -->
-          <transition name="attack-float">
-            <div v-if="attackingEnemyId === enemy.id && attackingEnemyLabel" class="enemy-attack-warning">
-              {{ attackingEnemyLabel }}
-            </div>
-          </transition>
-          <transition name="attack-float">
-            <div v-if="enemyStatusWarning && enemyStatusWarning.enemyId === enemy.id" :class="['enemy-status-warning', enemyStatusWarning.isBuff ? 'buff' : 'debuff']">
-              <img :src="enemyStatusWarning.icon" class="status-label-icon" />
-              {{ enemyStatusWarning.text }}
-            </div>
-          </transition>
         </div>
       </div>
     </div>
@@ -191,10 +171,10 @@ const getEnemySprite = (enemy: any) => {
             🛡️ Habilidades <span class="shortcut-badge">[A]</span>
           </button>
           <button class="action-btn flee" :disabled="!isPlayerTurn || isCombatEnded" @click="selectAction('Huir')">
-            🏃 Huir
+            🏃 Terminar Entrenamiento
           </button>
-          <button class="action-btn item" :disabled="!isPlayerTurn || isCombatEnded" @click="selectAction('Objeto')">
-            🎒 Objeto
+          <button class="action-btn item" :disabled="true" @click="selectAction('Objeto')">
+            🎒 Objetos (No disponible)
           </button>
         </div>
       </div>
@@ -203,12 +183,8 @@ const getEnemySprite = (enemy: any) => {
     <!-- Indicador de selección de objetivo -->
     <div v-if="isSelectingTarget">
       <div v-if="actionRequiresTarget(selectedAction)" class="target-indicator">
-        <p>🎯 Selecciona un objetivo para {{ selectedAction.toLowerCase() }}<br>
-        <span class="shortcut-hint">Presiona 1, 2 o 3 para seleccionar un objetivo.</span></p>
-      </div>
-      <div v-else class="target-indicator target-all-indicator">
-        <p>Todos los enemigos serán afectados.<br>
-        <span class="shortcut-hint">Presiona <b>[A]</b> para confirmar.</span></p>
+        <p>🎯 Selecciona el dummy para {{ selectedAction.toLowerCase() }}<br>
+        <span class="shortcut-hint">Presiona 1 para seleccionar el dummy.</span></p>
       </div>
     </div>
 
@@ -319,19 +295,6 @@ const getEnemySprite = (enemy: any) => {
   background-color: rgba(255, 152, 0, 0.2);
   border: 2px solid #ff9800;
   animation: pulse 1.5s infinite;
-}
-
-.enemy-sprite.dead {
-  opacity: 0.3;
-  filter: grayscale(100%);
-  cursor: default;
-}
-
-.enemy-sprite.attacking {
-  box-shadow: 0 0 24px 6px #ff3333, 0 0 0 4px #ff3333 inset;
-  border: 2px solid #ff3333;
-  animation: attack-glow 1s infinite alternate;
-  z-index: 2;
 }
 
 .enemy-health {
@@ -551,45 +514,7 @@ const getEnemySprite = (enemy: any) => {
   50% { box-shadow: 0 0 60px 30px #ff3333cc; }
   100% { box-shadow: 0 0 0 0 #ff333300; }
 }
-@keyframes attack-glow {
-  0% { box-shadow: 0 0 8px 2px #ff3333, 0 0 0 4px #ff3333 inset; }
-  100% { box-shadow: 0 0 32px 12px #ff3333, 0 0 0 4px #ff3333 inset; }
-}
-.enemy-attack-warning {
-  position: absolute;
-  top: -48px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #ff3333;
-  color: #fff;
-  font-weight: bold;
-  padding: 0.5rem 1.2rem;
-  border-radius: 8px;
-  font-size: 1.1rem;
-  box-shadow: 0 2px 12px #000a;
-  z-index: 10;
-  pointer-events: none;
-  opacity: 0.95;
-}
-.attack-float-enter-active, .attack-float-leave-active {
-  transition: all 0.4s cubic-bezier(.68,-0.55,.27,1.55);
-}
-.attack-float-enter-from {
-  opacity: 0;
-  transform: translateX(-50%) translateY(20px) scale(0.8);
-}
-.attack-float-enter-to {
-  opacity: 0.95;
-  transform: translateX(-50%) translateY(0) scale(1);
-}
-.attack-float-leave-from {
-  opacity: 0.95;
-  transform: translateX(-50%) translateY(0) scale(1);
-}
-.attack-float-leave-to {
-  opacity: 0;
-  transform: translateX(-50%) translateY(-20px) scale(0.8);
-}
+
 .shortcut-badge {
   background: #222;
   color: #ffe600;
@@ -603,16 +528,6 @@ const getEnemySprite = (enemy: any) => {
   z-index: 10;
   position: relative;
   margin-top: 2px;
-}
-.target-all {
-  box-shadow: 0 0 16px 4px #ffe60099;
-  border: 2px solid #ffe600;
-  animation: pulse 1.2s infinite alternate;
-}
-.target-all-indicator {
-  background: #ffe600;
-  color: #222;
-  font-weight: bold;
 }
 .shortcut-hint {
   color: #ffe600;
@@ -840,36 +755,4 @@ const getEnemySprite = (enemy: any) => {
   transform: scale(1.18);
   z-index: 2;
 }
-.enemy-status-warning {
-  position: absolute;
-  top: -80px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #ff3333;
-  color: #fff;
-  font-weight: bold;
-  padding: 0.5rem 1.2rem;
-  border-radius: 8px;
-  font-size: 1.1rem;
-  box-shadow: 0 2px 12px #000a;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  pointer-events: none;
-  opacity: 0.95;
-}
-.enemy-status-warning.buff {
-  background: #4CAF50;
-}
-.enemy-status-warning.debuff {
-  background: #ff3333;
-}
-.status-label-icon {
-  width: 28px;
-  height: 28px;
-  object-fit: contain;
-  margin-right: 0.3rem;
-  filter: drop-shadow(0 2px 6px #000a);
-}
-</style>
+</style> 

@@ -1,5 +1,5 @@
 import { Character } from './Character'
-import { ICombatant, ILevelable, IInventory, IPlayerStats } from './interfaces/ICharacter'
+import { ICombatant, ILevelable, IInventory, IPlayerStats, IStatusEffect } from './interfaces/ICharacter'
 
 export interface TimingContext {
   action?: string // 'attack', 'skill', 'spell', etc.
@@ -18,6 +18,8 @@ export class Player extends Character implements ICombatant, ILevelable, IInvent
   }
   private baseAttack: number
   private baseDefense: number
+  public classRef?: any
+  public statusEffects: IStatusEffect[] = []
 
   constructor(
     id: string,
@@ -134,8 +136,9 @@ export class Player extends Character implements ICombatant, ILevelable, IInvent
    */
   public getPointerSpeed(context?: TimingContext): number {
     // En el futuro: puedes modificar la fórmula según el contexto
-    const minSpeed = 150;
-    const maxSpeed = 600;
+    console.log(context);
+    const minSpeed = 300;
+    const maxSpeed = 800;
     const dex = Math.max(5, Math.min(100, this.stats.destreza));
     return maxSpeed - (Math.log10(dex - 4) / Math.log10(96)) * (maxSpeed - minSpeed);
   }
@@ -146,9 +149,36 @@ export class Player extends Character implements ICombatant, ILevelable, IInvent
    */
   public getTimingAreas(context?: TimingContext): { startAngle: number; endAngle: number; type: 'normal' | 'bonificado' | 'critico'; color: string }[] {
     // Bonificada: 220°-232°, Crítica: 232°-237°, Bonificada: 237°-249°
+    console.log(context); 
     const bonus1 = { startAngle: 220, endAngle: 232, type: 'bonificado' as const, color: '#a00' }
     const crit = { startAngle: 232, endAngle: 237, type: 'critico' as const, color: '#ffe600' }
     const bonus2 = { startAngle: 237, endAngle: 249, type: 'bonificado' as const, color: '#a00' }
     return [bonus1, crit, bonus2]
+  }
+
+  public addStatusEffect(effect: IStatusEffect) {
+    const existing = this.statusEffects.find(e => e.type === effect.type)
+    if (existing) {
+      existing.turns = effect.turns
+    } else {
+      this.statusEffects.push({ ...effect })
+    }
+  }
+
+  public hasStatusEffect(type: string): boolean {
+    return this.statusEffects.some(e => e.type === type && e.turns > 0)
+  }
+
+  public reduceStatusEffects() {
+    this.statusEffects.forEach(e => e.turns--)
+    this.removeExpiredStatusEffects()
+  }
+
+  public removeExpiredStatusEffects() {
+    this.statusEffects = this.statusEffects.filter(e => e.turns > 0)
+  }
+
+  public isStunned(): boolean {
+    return this.hasStatusEffect('stun')
   }
 } 

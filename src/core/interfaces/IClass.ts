@@ -22,4 +22,12 @@ export interface IClass {
     description: string
     cooldown: number
   }
+  abilities?: Ability[]
+}
+
+export type Ability = {
+  name: string
+  description: string
+  type: string
+  cooldown: number
 } 

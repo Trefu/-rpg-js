@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, defineExpose, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 
 interface Area {
   startAngle: number // en grados, 0 = arriba
@@ -9,11 +9,12 @@ interface Area {
 }
 
 const props = defineProps<{
-  areas: Area[]                // Áreas especiales del círculo
+  areas?: Area[]               // Áreas especiales del círculo (ahora opcional)
   pointerSpeed: number         // Velocidad de rotación (grados/segundo)
   multiCircles?: Area[][]      // Para habilidades avanzadas: varios círculos
   radius?: number              // Radio del círculo (opcional)
   autoFailOnFullCircle?: boolean // Si true, al dar una vuelta completa se emite 'normal'
+  generateRandomAreas?: boolean // Si true, genera áreas aleatorias
 }>()
 
 const emit = defineEmits<{
@@ -25,12 +26,73 @@ const isRunning = ref(false)
 let animationFrame: number | null = null
 let lastTimestamp = 0
 
+// Áreas generadas aleatoriamente
+const randomAreas = ref<Area[]>([])
+
 // SVG size helpers
 const size = computed(() => props.radius ? props.radius * 2 : 200)
 const center = computed(() => size.value / 2)
 const circleRadius = computed(() => (props.radius ?? 100) - 10) // margen de 10px
 
+// Función para generar áreas aleatorias
+function generateRandomAreas(): Area[] {
+  const areas: Area[] = []
+
+  // Configuración de áreas
+  const bonusAreaSize = 30 // grados para área bonificada
+  const criticalAreaSize = 20 // grados para área crítica
+  const safeZoneEnd = 180
+
+  // El rango permitido para el inicio de la crítica debe dejar espacio para las bonificadas pegadas
+  const minCriticalStart = safeZoneEnd + bonusAreaSize
+  const maxCriticalStart = 360 - criticalAreaSize - bonusAreaSize
+
+  const criticalStart = Math.random() * (maxCriticalStart - minCriticalStart) + minCriticalStart
+  const criticalEnd = criticalStart + criticalAreaSize
+
+  // Bonificadas pegadas a la crítica
+  const bonus1Start = criticalStart - bonusAreaSize
+  const bonus1End = criticalStart
+  const bonus2Start = criticalEnd
+  const bonus2End = criticalEnd + bonusAreaSize
+
+  // Añadir las áreas en orden
+  areas.push({
+    startAngle: bonus1Start,
+    endAngle: bonus1End,
+    type: 'bonificado',
+    color: '#4CAF50'
+  })
+  areas.push({
+    startAngle: criticalStart,
+    endAngle: criticalEnd,
+    type: 'critico',
+    color: '#FF5722'
+  })
+  areas.push({
+    startAngle: bonus2Start,
+    endAngle: bonus2End,
+    type: 'bonificado',
+    color: '#4CAF50'
+  })
+
+  return areas
+}
+
+// Áreas que se usarán (props o generadas aleatoriamente)
+const currentAreas = computed(() => {
+  if (props.generateRandomAreas) {
+    return randomAreas.value
+  }
+  return props.areas || []
+})
+
 function start() {
+  // Generar nuevas áreas aleatorias si es necesario
+  if (props.generateRandomAreas) {
+    randomAreas.value = generateRandomAreas()
+  }
+  
   isRunning.value = true
   pointerAngle.value = 0
   lastTimestamp = performance.now()
@@ -44,7 +106,7 @@ function stop(forceNormal = false) {
   let resultType: Area['type'] = 'normal'
   let hit: Area | null = null
   if (!forceNormal) {
-    hit = props.areas.find(area =>
+    hit = currentAreas.value.find(area =>
       pointerAngle.value >= area.startAngle && pointerAngle.value <= area.endAngle
     ) || null
     resultType = hit?.type ?? 'normal'
@@ -124,7 +186,7 @@ function polarToCartesian(cx: number, cy: number, r: number, angle: number) {
         stroke-dasharray="6,4"
       />
       <!-- Áreas -->
-      <template v-for="(area, i) in areas" :key="i">
+      <template v-for="(area, i) in currentAreas" :key="i">
         <path
           :d="describeArc(center, center, circleRadius, area.startAngle, area.endAngle)"
           :fill="area.color"

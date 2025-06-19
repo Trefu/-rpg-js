@@ -4,6 +4,7 @@ import { ref } from 'vue'
 const emit = defineEmits<{
   (e: 'goToShop'): void
   (e: 'goToExpedition'): void
+  (e: 'goToTraining'): void
 }>()
 
 const locations = [
@@ -18,6 +19,12 @@ const locations = [
     name: 'Expedición',
     description: 'Explora zonas peligrosas',
     icon: '🗺️'
+  },
+  {
+    id: 'training',
+    name: 'Entrenamiento',
+    description: 'Practica con un dummy de entrenamiento',
+    icon: '🥊'
   }
 ]
 
@@ -29,6 +36,8 @@ const selectLocation = (locationId: string) => {
     emit('goToShop')
   } else if (locationId === 'expedition') {
     emit('goToExpedition')
+  } else if (locationId === 'training') {
+    emit('goToTraining')
   }
 }
 </script>

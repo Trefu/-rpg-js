@@ -5,6 +5,7 @@ import CityMap from './components/map/CityMap.vue'
 import ZoneSelector from './components/expedition/ZoneSelector.vue'
 import ExpeditionMap from './components/expedition/ExpeditionMap.vue'
 import CombatView from './components/combat/CombatView.vue'
+import TrainingView from './components/combat/TrainingView.vue'
 import GameUI from './components/ui/GameUI.vue'
 import { useGameStore } from './stores/game'
 import { Player } from './core/Player'
@@ -52,6 +53,7 @@ const handleClassSelected = async (className: string) => {
   if (selectedClass) {
     const player = new Player('player-1', 'Héroe', 1, 100, 10, 5)
     player.setStatsFromClass(selectedClass.baseStats)
+    player.classRef = selectedClass
     gameStore.setPlayer(player)
   }
 }
@@ -62,6 +64,10 @@ const handleGoToExpedition = () => {
 
 const handleGoToShop = () => {
   gameStore.navigateTo('shop')
+}
+
+const handleGoToTraining = () => {
+  gameStore.navigateTo('training')
 }
 
 const handleBackToCity = () => {
@@ -100,6 +106,10 @@ const handleCombatEnded = (victory: boolean) => {
     gameStore.navigateTo('expedition-map')
   }
 }
+
+const handleTrainingEnded = () => {
+  gameStore.navigateTo('city')
+}
 </script>
 
 <template>
@@ -117,6 +127,7 @@ const handleCombatEnded = (victory: boolean) => {
       v-if="currentView === 'city'"
       @go-to-shop="handleGoToShop"
       @go-to-expedition="handleGoToExpedition"
+      @go-to-training="handleGoToTraining"
     />
 
     <ZoneSelector
@@ -138,6 +149,11 @@ const handleCombatEnded = (victory: boolean) => {
     <CombatView
       v-if="currentView === 'combat'"
       @combat-ended="handleCombatEnded"
+    />
+
+    <TrainingView
+      v-if="currentView === 'training'"
+      @training-ended="handleTrainingEnded"
     />
 
     <!-- TODO: Implementar vista de tienda -->

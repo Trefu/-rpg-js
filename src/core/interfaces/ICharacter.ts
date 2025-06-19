@@ -22,12 +22,23 @@ export interface IPlayerStats {
   carisma: number
 }
 
+export interface IStatusEffect {
+  type: string // 'stun', 'poison', etc.
+  name: string
+  icon: string // ruta al icono
+  turns: number
+  description: string
+  isBuff?: boolean // true si es positivo
+  turnLabel?: string // texto que se muestra en el turno del portador
+}
+
 export interface ICombatant extends ICharacter {
   attack: () => number
   defense: () => number
   magic: () => number
   takeDamage(amount: number): void
   heal(amount: number): void
+  statusEffects: IStatusEffect[]
 }
 
 export interface ILevelable extends ICharacter {
@@ -49,4 +60,9 @@ export interface IInventory {
 export interface IEnemy extends ICombatant {
   getRewards(): { experience: number; gold: number }
   delayMs?: number
+  stunTurns?: number
+  isStunned?(): boolean
+  reduceStun?(): void
+  addStatusEffect?(effect: IStatusEffect): void
+  reduceStatusEffects?(): void
 } 
