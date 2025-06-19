@@ -9,7 +9,7 @@ export class Goblin extends Enemy {
       'Goblin',
       level,
       50 + (level * 10), // Vida base + bonus por nivel
-      8 + (level * 1),   // Ataque base + bonus por nivel
+      3 + (level * 1),   // Ataque base + bonus por nivel
       3 + (level * 1),   // Defensa base + bonus por nivel
       2 + (level * 0.5), // Magia base + bonus por nivel
       20 + (level * 5),  // Experiencia base + bonus por nivel

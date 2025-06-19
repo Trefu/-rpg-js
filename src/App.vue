@@ -41,8 +41,8 @@ watch(currentView, (newView) => {
 
 onMounted(() => {
   // Inicializar audio manager
-  audioManager.setMusicVolume(0.3)
-  audioManager.setSFXVolume(0.5)
+  audioManager.setMusicVolume(0.1)
+  audioManager.setSFXVolume(0.9)
 })
 
 const handleClassSelected = async (className: string) => {

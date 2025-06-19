@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
 import { useGameStore } from '@/stores/game'
 import { Goblin } from '@/core/enemies/Goblin'
 import { IEnemy } from '@/core/interfaces/ICharacter'
@@ -27,8 +27,14 @@ const timingResult = ref<'normal' | 'bonificado' | 'critico'>('normal')
 const currentAction = ref<string>('attack')
 const attackingEnemyId = ref<string | null>(null)
 const attackingEnemyLabel = ref<string | null>(null)
+const combatLogRef = ref<HTMLDivElement | null>(null)
+const enemyHitPopups = ref<{ id: string, value: number, key: number }[]>([])
+const playerHitPopups = ref<{ value: number, key: number }[]>([])
+let popupKey = 0
 
 let timingAreas = ref(player.value?.getTimingAreas({ action: currentAction.value }) ?? [])
+
+const aliveEnemies = computed(() => enemies.value.filter(enemy => enemy.isAlive))
 
 function resetTimingAreas() {
   timingAreas.value = player.value?.getTimingAreas({ action: currentAction.value }) ?? []
@@ -36,6 +42,31 @@ function resetTimingAreas() {
 
 function getPointerSpeed() {
   return player.value?.getPointerSpeed({ action: currentAction.value }) ?? 300
+}
+
+function handleCombatShortcuts(e: KeyboardEvent) {
+  if (isCombatEnded.value) return
+
+  // Atacar con 'A' si es el turno del jugador y no está seleccionando objetivo
+  if (e.key.toLowerCase() === 'a' && isPlayerTurn.value && !isSelectingTarget.value) {
+    selectAction('attack')
+    e.preventDefault()
+    return
+  }
+
+  // Seleccionar enemigo con 1, 2, 3 si está seleccionando objetivo y la acción requiere target
+  if (isSelectingTarget.value && ['1', '2', '3'].includes(e.key) && actionRequiresTarget(selectedAction.value)) {
+    const idx = parseInt(e.key, 10) - 1
+    const alive = aliveEnemies.value
+    if (alive[idx]) {
+      selectEnemy(alive[idx])
+      e.preventDefault()
+    } else {
+      addToLog(`No hay enemigo en la posición ${e.key}.`)
+      e.preventDefault()
+    }
+  }
+  // Si en el futuro la acción no requiere target, puedes manejar la confirmación aquí
 }
 
 onMounted(() => {
@@ -52,11 +83,15 @@ onMounted(() => {
   audioManager.playMountainCombat()
 
   addToLog(`¡Combate iniciado! Te enfrentas a ${enemyCount} enemigo${enemyCount > 1 ? 's' : ''}.`)
+
+  window.addEventListener('keydown', handleCombatShortcuts)
 })
 
 onUnmounted(() => {
   // Detener música de combate al salir
   audioManager.stopCurrentMusic()
+
+  window.removeEventListener('keydown', handleCombatShortcuts)
 })
 
 const selectEnemy = (enemy: IEnemy) => {
@@ -128,20 +163,21 @@ async function enemyTurn() {
 
     // Mostrar mensaje de ataque
     const damage = enemy.attack()
-    addToLog(`${enemyLabel} te va a atacar causando ${damage} de daño.`)
-    await delay(enemy.delayMs ?? 7000)
+    addToLog(`${enemyLabel} ataca causando ${damage} de daño.`)
 
     player.value.takeDamage(damage)
+    showPlayerHit(damage)
     audioManager.playAttackSound()
-    setTimeout(() => {
+    if (damage > 0) {
       audioManager.playHitSound()
-    }, 20000)
+    }
 
     if (!player.value.isAlive) {
       addToLog('¡Has sido derrotado!')
       endCombat(false)
       return
     }
+    await delay(2500);
   }
 
   isPlayerTurn.value = true
@@ -174,6 +210,12 @@ const addToLog = (message: string) => {
   if (combatLog.value.length > 10) {
     combatLog.value.shift()
   }
+  // Scroll automático
+  nextTick(() => {
+    if (combatLogRef.value) {
+      combatLogRef.value.scrollTop = combatLogRef.value.scrollHeight
+    }
+  })
 }
 
 const getHealthPercentage = (current: number, max: number) => {
@@ -202,6 +244,21 @@ function triggerTimingEffect(type: 'crit' | 'bonus') {
   setTimeout(() => { timingEffect.value = '' }, 500)
 }
 
+function showEnemyHit(enemyId: string, value: number) {
+  const key = popupKey++
+  enemyHitPopups.value.push({ id: enemyId, value, key })
+  setTimeout(() => {
+    enemyHitPopups.value = enemyHitPopups.value.filter(p => p.key !== key)
+  }, 900)
+}
+function showPlayerHit(value: number) {
+  const key = popupKey++
+  playerHitPopups.value.push({ value, key })
+  setTimeout(() => {
+    playerHitPopups.value = playerHitPopups.value.filter(p => p.key !== key)
+  }, 900)
+}
+
 function executeActionWithTiming(timingType: 'normal' | 'bonificado' | 'critico') {
   if (!player.value || !selectedEnemy.value || !isPlayerTurn.value) return
 
@@ -218,6 +275,7 @@ function executeActionWithTiming(timingType: 'normal' | 'bonificado' | 'critico'
   }
 
   selectedEnemy.value.takeDamage(damage)
+  showEnemyHit(selectedEnemy.value.id, damage)
   audioManager.playAttackSound()
   addToLog(`Atacas a ${selectedEnemy.value.name} causando ${damage} de daño (${timingType}).`)
 
@@ -243,6 +301,15 @@ function executeActionWithTiming(timingType: 'normal' | 'bonificado' | 'critico'
 
   setTimeout(enemyTurn, 2000)
 }
+
+// Para el futuro: acciones que no requieren objetivo
+function actionRequiresTarget(action: string): boolean {
+  // Por ahora solo 'attack' requiere objetivo, pero puedes extenderlo
+  if (action === 'attack') return true
+  // Ejemplo: habilidades de área
+  // if (action === 'areaSkill') return false
+  return true
+}
 </script>
 
 <template>
@@ -250,18 +317,29 @@ function executeActionWithTiming(timingType: 'normal' | 'bonificado' | 'critico'
     <!-- Área de enemigos -->
     <div class="enemies-area">
       <div class="enemies-container">
-        <div v-for="(enemy, idx) in enemies" :key="enemy.id" class="enemy-sprite" :class="{
+        <div v-for="enemy in enemies" :key="enemy.id" class="enemy-sprite" :class="{
           selected: selectedEnemy?.id === enemy.id,
           dead: !enemy.isAlive,
-          'target-selectable': isSelectingTarget && enemy.isAlive,
-          attacking: attackingEnemyId === enemy.id
+          'target-selectable': isSelectingTarget && enemy.isAlive && actionRequiresTarget(selectedAction),
+          attacking: attackingEnemyId === enemy.id,
+          'target-all': isSelectingTarget && !actionRequiresTarget(selectedAction) && enemy.isAlive
         }" @click="selectEnemy(enemy)">
           <img :src="getEnemySprite(enemy)" :alt="enemy.name" />
           <div class="enemy-health">
             <div class="health-bar">
               <div class="health-fill" :style="{ width: `${getHealthPercentage(enemy.health, enemy.maxHealth)}%` }">
               </div>
-            </div>            
+            </div>
+          </div>
+          <!-- Hit number popups para enemigos -->
+          <transition-group name="hit-popup" tag="div">
+            <div v-for="popup in enemyHitPopups.filter(p => p.id === enemy.id)" :key="popup.key" class="hit-popup">
+              -{{ popup.value }}
+            </div>
+          </transition-group>
+          <!-- Badge de número cuando se selecciona objetivo y requiere target, solo para vivos -->
+          <div v-if="isSelectingTarget && actionRequiresTarget(selectedAction) && enemy.isAlive" class="enemy-shortcut-badge">
+            [{{ aliveEnemies.findIndex(e => e.id === enemy.id) + 1 }}]
           </div>
           <!-- Aviso visual sobre el enemigo que va a atacar -->
           <transition name="attack-float">
@@ -273,7 +351,6 @@ function executeActionWithTiming(timingType: 'normal' | 'bonificado' | 'critico'
       </div>
     </div>
 
-    <!-- UI tipo Pokémon -->
     <div class="player-ui">
       <!-- Área de log de combate (izquierda) -->
       <div class="combat-log-area">
@@ -301,8 +378,8 @@ function executeActionWithTiming(timingType: 'normal' | 'bonificado' | 'critico'
           <div class="separator"></div>
 
           <!-- Log de combate -->
-          <div class="combat-log">
-            <div v-for="(message, index) in combatLog" :key="index" class="log-message">
+          <div class="combat-log" ref="combatLogRef">
+            <div v-for="(message, index) in combatLog" :key="index" class="log-message" :class="{ 'log-highlight': index >= combatLog.length - 3 }">
               {{ message }}
             </div>
           </div>
@@ -313,7 +390,7 @@ function executeActionWithTiming(timingType: 'normal' | 'bonificado' | 'critico'
       <div class="actions-area">
         <div class="action-buttons">
           <button class="action-btn attack" :disabled="!isPlayerTurn || isCombatEnded" @click="selectAction('attack')">
-            ⚔️ Atacar
+            ⚔️ Atacar <span class="shortcut-badge">[A]</span>
           </button>
           <button class="action-btn flee" :disabled="!isPlayerTurn || isCombatEnded" @click="selectAction('Huir')">
             🏃 Huir
@@ -326,8 +403,15 @@ function executeActionWithTiming(timingType: 'normal' | 'bonificado' | 'critico'
     </div>
 
     <!-- Indicador de selección de objetivo -->
-    <div v-if="isSelectingTarget" class="target-indicator">
-      <p>🎯 Selecciona un objetivo para {{ selectedAction.toLowerCase() }}</p>
+    <div v-if="isSelectingTarget">
+      <div v-if="actionRequiresTarget(selectedAction)" class="target-indicator">
+        <p>🎯 Selecciona un objetivo para {{ selectedAction.toLowerCase() }}<br>
+        <span class="shortcut-hint">Presiona 1, 2 o 3 para seleccionar un objetivo.</span></p>
+      </div>
+      <div v-else class="target-indicator target-all-indicator">
+        <p>Todos los enemigos serán afectados.<br>
+        <span class="shortcut-hint">Presiona <b>[A]</b> para confirmar.</span></p>
+      </div>
     </div>
 
     <!-- Overlay para el minijuego de timing -->
@@ -341,6 +425,13 @@ function executeActionWithTiming(timingType: 'normal' | 'bonificado' | 'critico'
         :autoFailOnFullCircle="true"
       />
     </div>
+
+    <!-- Hit number popups para el jugador -->
+    <transition-group name="hit-popup" tag="div">
+      <div v-for="popup in playerHitPopups" :key="popup.key" class="hit-popup player-hit-popup">
+        -{{ popup.value }}
+      </div>
+    </transition-group>
   </div>
 </template>
 
@@ -669,5 +760,78 @@ function executeActionWithTiming(timingType: 'normal' | 'bonificado' | 'critico'
 .attack-float-leave-to {
   opacity: 0;
   transform: translateX(-50%) translateY(-20px) scale(0.8);
+}
+.shortcut-badge {
+  background: #222;
+  color: #ffe600;
+  font-weight: bold;
+  border-radius: 4px;
+  padding: 0.1em 0.4em;
+  margin-left: 0.5em;
+  font-size: 0.95em;
+}
+.enemy-shortcut-badge {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #222;
+  color: #ffe600;
+  font-weight: bold;
+  border-radius: 4px;
+  padding: 0.1em 0.5em;
+  font-size: 1em;
+  z-index: 5;
+  pointer-events: none;
+  box-shadow: 0 2px 8px #000a;
+}
+.target-all {
+  box-shadow: 0 0 16px 4px #ffe60099;
+  border: 2px solid #ffe600;
+  animation: pulse 1.2s infinite alternate;
+}
+.target-all-indicator {
+  background: #ffe600;
+  color: #222;
+  font-weight: bold;
+}
+.shortcut-hint {
+  color: #ffe600;
+  font-size: 0.95em;
+}
+.log-message.log-highlight {
+  background: linear-gradient(90deg, #ffe60033 0%, #fff0 100%);
+  color: #ffe600;
+  font-weight: bold;
+  border-left: 4px solid #ffe600;
+  box-shadow: 0 2px 8px #ffe60022;
+}
+.hit-popup {
+  position: absolute;
+  left: 50%;
+  top: -28px;
+  transform: translateX(-50%);
+  color: #ff3333;
+  font-size: 1.3em;
+  font-weight: bold;
+  text-shadow: 0 2px 8px #000a;
+  pointer-events: none;
+  opacity: 0.95;
+  z-index: 20;
+  animation: hit-pop 0.9s cubic-bezier(.68,-0.55,.27,1.55);
+}
+.player-hit-popup {
+  top: auto;
+  bottom: 120px;
+  left: 120px;
+  color: #ff3333;
+  font-size: 1.5em;
+  text-shadow: 0 2px 12px #000a;
+}
+@keyframes hit-pop {
+  0% { opacity: 0; transform: translateX(-50%) translateY(10px) scale(0.8); }
+  30% { opacity: 1; transform: translateX(-50%) translateY(-10px) scale(1.1); }
+  80% { opacity: 1; transform: translateX(-50%) translateY(-24px) scale(1); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-40px) scale(0.8); }
 }
 </style>

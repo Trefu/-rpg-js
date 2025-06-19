@@ -24,7 +24,7 @@ export class Player extends Character implements ICombatant, ILevelable, IInvent
     name: string,
     level: number = 1,
     maxHealth: number = 100,
-    baseAttack: number = 10,
+    baseAttack: number = 100,
     baseDefense: number = 5
   ) {
     super(id, name, level, maxHealth)
@@ -35,7 +35,7 @@ export class Player extends Character implements ICombatant, ILevelable, IInvent
     this.baseAttack = baseAttack
     this.baseDefense = baseDefense
     this.stats = {
-      fuerza: 10,
+      fuerza: 1900,
       destreza: 10,
       inteligencia: 10,
       sabiduria: 10,
@@ -134,8 +134,8 @@ export class Player extends Character implements ICombatant, ILevelable, IInvent
    */
   public getPointerSpeed(context?: TimingContext): number {
     // En el futuro: puedes modificar la fórmula según el contexto
-    const minSpeed = 60;
-    const maxSpeed = 300;
+    const minSpeed = 150;
+    const maxSpeed = 600;
     const dex = Math.max(5, Math.min(100, this.stats.destreza));
     return maxSpeed - (Math.log10(dex - 4) / Math.log10(96)) * (maxSpeed - minSpeed);
   }
@@ -145,11 +145,10 @@ export class Player extends Character implements ICombatant, ILevelable, IInvent
    * El contexto puede usarse para modificar las áreas según la acción.
    */
   public getTimingAreas(context?: TimingContext): { startAngle: number; endAngle: number; type: 'normal' | 'bonificado' | 'critico'; color: string }[] {
-    // En el futuro: puedes modificar las áreas según el contexto
-    // Bonificada: 220°-240°, Crítica: 240°-252°, Bonificada: 252°-272°
-    const bonus1 = { startAngle: 220, endAngle: 240, type: 'bonificado' as const, color: '#a00' }
-    const crit = { startAngle: 240, endAngle: 252, type: 'critico' as const, color: '#ffe600' }
-    const bonus2 = { startAngle: 252, endAngle: 272, type: 'bonificado' as const, color: '#a00' }
+    // Bonificada: 220°-232°, Crítica: 232°-237°, Bonificada: 237°-249°
+    const bonus1 = { startAngle: 220, endAngle: 232, type: 'bonificado' as const, color: '#a00' }
+    const crit = { startAngle: 232, endAngle: 237, type: 'critico' as const, color: '#ffe600' }
+    const bonus2 = { startAngle: 237, endAngle: 249, type: 'bonificado' as const, color: '#a00' }
     return [bonus1, crit, bonus2]
   }
 } 

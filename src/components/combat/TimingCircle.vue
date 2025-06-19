@@ -23,7 +23,7 @@ const emit = defineEmits<{
 const pointerAngle = ref(0)
 const isRunning = ref(false)
 let animationFrame: number | null = null
-let lastAngle = 0
+let lastTimestamp = 0
 
 // SVG size helpers
 const size = computed(() => props.radius ? props.radius * 2 : 200)
@@ -33,8 +33,8 @@ const circleRadius = computed(() => (props.radius ?? 100) - 10) // margen de 10p
 function start() {
   isRunning.value = true
   pointerAngle.value = 0
-  lastAngle = 0
-  animate()
+  lastTimestamp = performance.now()
+  animate(lastTimestamp)
 }
 
 function stop(forceNormal = false) {
@@ -52,10 +52,11 @@ function stop(forceNormal = false) {
   emit('result', { type: resultType, area: hit })
 }
 
-function animate() {
+function animate(now: number) {
   if (!isRunning.value) return
-  lastAngle = pointerAngle.value
-  pointerAngle.value = (pointerAngle.value + props.pointerSpeed / 60)
+  const delta = (now - lastTimestamp) / 1000 // segundos
+  lastTimestamp = now
+  pointerAngle.value = (pointerAngle.value + props.pointerSpeed * delta)
   // Si pasa de 360° y autoFailOnFullCircle está activo, termina como normal
   if (props.autoFailOnFullCircle && pointerAngle.value >= 360) {
     pointerAngle.value = 360
