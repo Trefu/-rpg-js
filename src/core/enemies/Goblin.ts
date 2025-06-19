@@ -1,6 +1,8 @@
 import { Enemy } from './Enemy'
 
 export class Goblin extends Enemy {
+  public delayMs = 1500 // Delay de ataque en milisegundos para el minijuego de combate
+
   constructor(level: number = 1) {
     super(
       `goblin-${Math.random().toString(36).substr(2, 9)}`,

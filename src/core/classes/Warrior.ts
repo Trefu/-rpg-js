@@ -6,7 +6,7 @@ export class Warrior implements IClass {
   
   public readonly baseStats = {
     fuerza: 16,
-    destreza: 12,
+    destreza: 5,
     inteligencia: 8,
     sabiduria: 10,
     constitucion: 14,

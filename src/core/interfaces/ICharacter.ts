@@ -48,4 +48,5 @@ export interface IInventory {
 
 export interface IEnemy extends ICombatant {
   getRewards(): { experience: number; gold: number }
+  delayMs?: number
 } 

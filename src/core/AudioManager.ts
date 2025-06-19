@@ -3,20 +3,20 @@ import { Howl, Howler } from 'howler'
 export class AudioManager {
   private static instance: AudioManager
   private currentMusic: Howl | null = null
-  private musicVolume: number = 0.3
-  private sfxVolume: number = 0.5
+  private musicVolume: number = 0.1
+  private sfxVolume: number = 1
   private isMuted: boolean = false
 
   // Música de la montaña
   private mountainMusic = {
     exploration: new Howl({
-      src: ['/src/assets/music/mountain_ost_2.mp3'],
+      src: ['/src/assets/music/mountain_ost_1.mp3'],
       loop: true,
       volume: this.musicVolume,
       html5: true
     }),
     combat: new Howl({
-      src: ['/src/assets/music/mountain_ost_1.mp3'],
+      src: ['/src/assets/music/mountain_ost_2.mp3'],
       loop: true,
       volume: this.musicVolume,
       html5: true
@@ -29,7 +29,7 @@ export class AudioManager {
     })
   }
 
-  // Efectos de sonido
+  // Efectos de sonido 
   private soundEffects = {
     attack: new Howl({
       src: ['/src/assets/sounds/Stab 4-1.wav'],
@@ -42,11 +42,18 @@ export class AudioManager {
     victory: new Howl({
       src: ['/src/assets/sounds/Special Collectible 26-1.wav'],
       volume: this.sfxVolume
+    }),
+    crit: new Howl({
+      src: ['/src/assets/sounds/Explosion Large 1-1.wav'],
+      volume: this.sfxVolume
+    }),
+    bonus: new Howl({
+      src: ['/src/assets/sounds/Explosion Medium 2-1.wav'],
+      volume: this.sfxVolume
     })
   }
 
   private constructor() {
-    // Configurar Howler global
     Howler.volume(this.musicVolume)
   }
 
@@ -57,7 +64,6 @@ export class AudioManager {
     return AudioManager.instance
   }
 
-  // Métodos para música
   public playMountainExploration(): void {
     this.stopCurrentMusic()
     this.currentMusic = this.mountainMusic.exploration
@@ -114,15 +120,24 @@ export class AudioManager {
     }
   }
 
+  public playCritSound(): void {
+    if (!this.isMuted) {
+      this.soundEffects.crit.play()
+    }
+  }
+
+  public playBonusSound(): void {
+    if (!this.isMuted) {
+      this.soundEffects.bonus.play()
+    }
+  }
+
   // Control de volumen
   public setMusicVolume(volume: number): void {
     this.musicVolume = Math.max(0, Math.min(1, volume))
-    Howler.volume(this.musicVolume)
-    
-    // Actualizar volumen de música actual
-    if (this.currentMusic) {
-      this.currentMusic.volume(this.musicVolume)
-    }
+    Object.values(this.mountainMusic).forEach(music => {
+      music.volume(this.musicVolume)
+    })
   }
 
   public setSFXVolume(volume: number): void {
@@ -144,9 +159,9 @@ export class AudioManager {
   public toggleMute(): void {
     this.isMuted = !this.isMuted
     if (this.isMuted) {
-      Howler.mute(true)
+      Howler.volume(0)
     } else {
-      Howler.mute(false)
+      Howler.volume(1)
     }
   }
 

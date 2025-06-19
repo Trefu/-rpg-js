@@ -5,6 +5,7 @@ import { Goblin } from '@/core/enemies/Goblin'
 import { IEnemy } from '@/core/interfaces/ICharacter'
 import { AudioManager } from '@/core/AudioManager'
 import goblinSprite from '@/assets/sprites/enemies/goblin.png'
+import TimingCircle from './TimingCircle.vue'
 
 const emit = defineEmits<{
   (e: 'combatEnded', victory: boolean): void
@@ -20,6 +21,22 @@ const isCombatEnded = ref(false)
 const isSelectingTarget = ref(false)
 const selectedAction = ref<string>('')
 const audioManager = AudioManager.getInstance()
+const showTimingCircle = ref(false)
+const timingCircleRef = ref<any>(null)
+const timingResult = ref<'normal' | 'bonificado' | 'critico'>('normal')
+const currentAction = ref<string>('attack')
+const attackingEnemyId = ref<string | null>(null)
+const attackingEnemyLabel = ref<string | null>(null)
+
+let timingAreas = ref(player.value?.getTimingAreas({ action: currentAction.value }) ?? [])
+
+function resetTimingAreas() {
+  timingAreas.value = player.value?.getTimingAreas({ action: currentAction.value }) ?? []
+}
+
+function getPointerSpeed() {
+  return player.value?.getPointerSpeed({ action: currentAction.value }) ?? 300
+}
 
 onMounted(() => {
   if (!player.value) return
@@ -47,8 +64,18 @@ const selectEnemy = (enemy: IEnemy) => {
 
   if (isSelectingTarget.value) {
     selectedEnemy.value = enemy
-    executeAction()
+    resetTimingAreas()
+    showTimingCircle.value = true
+    setTimeout(() => {
+      timingCircleRef.value?.start()
+    }, 100)
   }
+}
+
+type ActionType = 'attack' | 'skill' | 'spell' // puedes extender esto
+
+function isActionType(action: string): action is ActionType {
+  return action === 'attack' || action === 'skill' || action === 'spell';
 }
 
 const selectAction = (action: string) => {
@@ -67,51 +94,16 @@ const selectAction = (action: string) => {
     return
   }
 
-  selectedAction.value = action
-  isSelectingTarget.value = true
-  addToLog(`Selecciona un objetivo para ${action.toLowerCase()}.`)
-}
-
-const executeAction = () => {
-  if (!player.value || !selectedEnemy.value || !isPlayerTurn.value) return
-
-  if (selectedAction.value === 'Atacar') {
-    const damage = player.value.attack()
-    selectedEnemy.value.takeDamage(damage)
-
-    // Reproducir sonido de ataque
-    audioManager.playAttackSound()
-
-    addToLog(`Atacas a ${selectedEnemy.value.name} causando ${damage} de daño.`)
-
-    if (!selectedEnemy.value.isAlive) {
-      // Reproducir sonido de hit cuando el enemigo muere
-      audioManager.playHitSound()
-      addToLog(`${selectedEnemy.value.name} ha sido derrotado!`)
-      const rewards = selectedEnemy.value.getRewards()
-      player.value.gainExperience(rewards.experience)
-      player.value.addGold(rewards.gold)
-      setTimeout(() => {
-        addToLog(`Ganas ${rewards.experience} experiencia y ${rewards.gold} oro.`)
-      }, 1000)
-    } else {
-      // Reproducir sonido de hit cuando el enemigo recibe daño
-      setTimeout(() => {
-        audioManager.playHitSound()
-      }, 200)
-    }
+  if (isActionType(action)) {
+    currentAction.value = action
+    selectedAction.value = action
+    isSelectingTarget.value = true
+    addToLog(`Selecciona un objetivo para ${action.toLowerCase()}.`)
+    return
   }
-
-  selectedEnemy.value = null
-  selectedAction.value = ''
-  isSelectingTarget.value = false
-  isPlayerTurn.value = false
-
-  // Turno de los enemigos
-  setTimeout(enemyTurn, 2000)
 }
 
-const enemyTurn = () => {
+async function enemyTurn() {
   if (!player.value) return
 
   const aliveEnemies = enemies.value.filter(enemy => enemy.isAlive)
@@ -120,26 +112,44 @@ const enemyTurn = () => {
     return
   }
 
-  aliveEnemies.forEach(enemy => {
-    if (!player.value || !player.value.isAlive) return
+  for (let i = 0; i < aliveEnemies.length; i++) {
+    const enemy = aliveEnemies[i]
+    if (!player.value || !player.value.isAlive) break
 
+    // Mostrar aviso de acción
+    const enemyIndex = enemies.value.filter(e => e.name === enemy.name && e.isAlive).indexOf(enemy) + 1
+    const enemyLabel = aliveEnemies.length > 1 ? `${enemy.name} ${enemyIndex}` : enemy.name
+    attackingEnemyId.value = enemy.id
+    attackingEnemyLabel.value = `${enemyLabel} va a atacar!`
+    addToLog(`${enemyLabel} va a atacar`)
+    await delay(2000)
+    attackingEnemyId.value = null
+    attackingEnemyLabel.value = null
+
+    // Mostrar mensaje de ataque
     const damage = enemy.attack()
+    addToLog(`${enemyLabel} te va a atacar causando ${damage} de daño.`)
+    await delay(enemy.delayMs ?? 7000)
+
     player.value.takeDamage(damage)
-
-    // Reproducir sonido de ataque enemigo
     audioManager.playAttackSound()
+    setTimeout(() => {
+      audioManager.playHitSound()
+    }, 20000)
 
-    addToLog(`${enemy.name} te ataca causando ${damage} de daño.`)
-  })
-
-  if (!player.value.isAlive) {
-    addToLog('¡Has sido derrotado!')
-    endCombat(false)
-    return
+    if (!player.value.isAlive) {
+      addToLog('¡Has sido derrotado!')
+      endCombat(false)
+      return
+    }
   }
 
   isPlayerTurn.value = true
   addToLog('Tu turno.')
+}
+
+function delay(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms))
 }
 
 const endCombat = (victory: boolean) => {
@@ -177,6 +187,62 @@ const getEnemySprite = (enemy: IEnemy) => {
   }
   return goblinSprite // fallback
 }
+
+// Recibe el resultado del minijuego y ejecuta el ataque
+function onTimingResult({ type }: { type: 'normal' | 'bonificado' | 'critico' }) {
+  showTimingCircle.value = false
+  timingResult.value = type
+  executeActionWithTiming(type)
+}
+
+// Feedback visual para critico/bonificado
+const timingEffect = ref('')
+function triggerTimingEffect(type: 'crit' | 'bonus') {
+  timingEffect.value = type
+  setTimeout(() => { timingEffect.value = '' }, 500)
+}
+
+function executeActionWithTiming(timingType: 'normal' | 'bonificado' | 'critico') {
+  if (!player.value || !selectedEnemy.value || !isPlayerTurn.value) return
+
+  let damage = player.value.attack()
+  if (timingType === 'bonificado') {
+    damage = Math.round(damage * 1.5)
+    audioManager.playBonusSound()
+    triggerTimingEffect('bonus')
+  }
+  if (timingType === 'critico') {
+    damage = Math.round(damage * 2)
+    audioManager.playCritSound()
+    triggerTimingEffect('crit')
+  }
+
+  selectedEnemy.value.takeDamage(damage)
+  audioManager.playAttackSound()
+  addToLog(`Atacas a ${selectedEnemy.value.name} causando ${damage} de daño (${timingType}).`)
+
+  if (!selectedEnemy.value.isAlive) {
+    audioManager.playHitSound()
+    addToLog(`${selectedEnemy.value.name} ha sido derrotado!`)
+    const rewards = selectedEnemy.value.getRewards()
+    player.value.gainExperience(rewards.experience)
+    player.value.addGold(rewards.gold)
+    setTimeout(() => {
+      addToLog(`Ganas ${rewards.experience} experiencia y ${rewards.gold} oro.`)
+    }, 1000)
+  } else {
+    setTimeout(() => {
+      audioManager.playHitSound()
+    }, 200)
+  }
+
+  selectedEnemy.value = null
+  selectedAction.value = ''
+  isSelectingTarget.value = false
+  isPlayerTurn.value = false
+
+  setTimeout(enemyTurn, 2000)
+}
 </script>
 
 <template>
@@ -184,19 +250,25 @@ const getEnemySprite = (enemy: IEnemy) => {
     <!-- Área de enemigos -->
     <div class="enemies-area">
       <div class="enemies-container">
-        <div v-for="enemy in enemies" :key="enemy.id" class="enemy-sprite" :class="{
+        <div v-for="(enemy, idx) in enemies" :key="enemy.id" class="enemy-sprite" :class="{
           selected: selectedEnemy?.id === enemy.id,
           dead: !enemy.isAlive,
-          'target-selectable': isSelectingTarget && enemy.isAlive
+          'target-selectable': isSelectingTarget && enemy.isAlive,
+          attacking: attackingEnemyId === enemy.id
         }" @click="selectEnemy(enemy)">
           <img :src="getEnemySprite(enemy)" :alt="enemy.name" />
           <div class="enemy-health">
             <div class="health-bar">
               <div class="health-fill" :style="{ width: `${getHealthPercentage(enemy.health, enemy.maxHealth)}%` }">
               </div>
-            </div>
-            <span class="health-text">{{ enemy.health }}/{{ enemy.maxHealth }}</span>
+            </div>            
           </div>
+          <!-- Aviso visual sobre el enemigo que va a atacar -->
+          <transition name="attack-float">
+            <div v-if="attackingEnemyId === enemy.id && attackingEnemyLabel" class="enemy-attack-warning">
+              {{ attackingEnemyLabel }}
+            </div>
+          </transition>
         </div>
       </div>
     </div>
@@ -240,7 +312,7 @@ const getEnemySprite = (enemy: IEnemy) => {
       <!-- Área de acciones (derecha) -->
       <div class="actions-area">
         <div class="action-buttons">
-          <button class="action-btn attack" :disabled="!isPlayerTurn || isCombatEnded" @click="selectAction('Atacar')">
+          <button class="action-btn attack" :disabled="!isPlayerTurn || isCombatEnded" @click="selectAction('attack')">
             ⚔️ Atacar
           </button>
           <button class="action-btn flee" :disabled="!isPlayerTurn || isCombatEnded" @click="selectAction('Huir')">
@@ -256,6 +328,18 @@ const getEnemySprite = (enemy: IEnemy) => {
     <!-- Indicador de selección de objetivo -->
     <div v-if="isSelectingTarget" class="target-indicator">
       <p>🎯 Selecciona un objetivo para {{ selectedAction.toLowerCase() }}</p>
+    </div>
+
+    <!-- Overlay para el minijuego de timing -->
+    <div v-if="showTimingCircle" class="timing-overlay" :class="timingEffect">
+      <TimingCircle
+        ref="timingCircleRef"
+        :areas="timingAreas"
+        :pointerSpeed="getPointerSpeed()"
+        :radius="160"
+        @result="onTimingResult"
+        :autoFailOnFullCircle="true"
+      />
     </div>
   </div>
 </template>
@@ -321,6 +405,13 @@ const getEnemySprite = (enemy: IEnemy) => {
   opacity: 0.3;
   filter: grayscale(100%);
   cursor: default;
+}
+
+.enemy-sprite.attacking {
+  box-shadow: 0 0 24px 6px #ff3333, 0 0 0 4px #ff3333 inset;
+  border: 2px solid #ff3333;
+  animation: attack-glow 1s infinite alternate;
+  z-index: 2;
 }
 
 .enemy-health {
@@ -508,5 +599,75 @@ const getEnemySprite = (enemy: IEnemy) => {
   100% {
     box-shadow: 0 0 15px rgba(255, 152, 0, 0.8);
   }
+}
+
+.timing-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(10, 10, 20, 0.85);
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.timing-overlay.crit {
+  box-shadow: 0 0 80px 20px #ffe60099;
+  animation: crit-glow 0.5s;
+}
+.timing-overlay.bonus {
+  box-shadow: 0 0 60px 10px #ff333399;
+  animation: bonus-glow 0.5s;
+}
+@keyframes crit-glow {
+  0% { box-shadow: 0 0 0 0 #ffe60000; }
+  50% { box-shadow: 0 0 80px 40px #ffe600cc; }
+  100% { box-shadow: 0 0 0 0 #ffe60000; }
+}
+@keyframes bonus-glow {
+  0% { box-shadow: 0 0 0 0 #ff333300; }
+  50% { box-shadow: 0 0 60px 30px #ff3333cc; }
+  100% { box-shadow: 0 0 0 0 #ff333300; }
+}
+@keyframes attack-glow {
+  0% { box-shadow: 0 0 8px 2px #ff3333, 0 0 0 4px #ff3333 inset; }
+  100% { box-shadow: 0 0 32px 12px #ff3333, 0 0 0 4px #ff3333 inset; }
+}
+.enemy-attack-warning {
+  position: absolute;
+  top: -48px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #ff3333;
+  color: #fff;
+  font-weight: bold;
+  padding: 0.5rem 1.2rem;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  box-shadow: 0 2px 12px #000a;
+  z-index: 10;
+  pointer-events: none;
+  opacity: 0.95;
+}
+.attack-float-enter-active, .attack-float-leave-active {
+  transition: all 0.4s cubic-bezier(.68,-0.55,.27,1.55);
+}
+.attack-float-enter-from {
+  opacity: 0;
+  transform: translateX(-50%) translateY(20px) scale(0.8);
+}
+.attack-float-enter-to {
+  opacity: 0.95;
+  transform: translateX(-50%) translateY(0) scale(1);
+}
+.attack-float-leave-from {
+  opacity: 0.95;
+  transform: translateX(-50%) translateY(0) scale(1);
+}
+.attack-float-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-20px) scale(0.8);
 }
 </style>

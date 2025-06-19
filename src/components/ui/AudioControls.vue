@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { AudioManager } from '@/core/AudioManager'
 
 const audioManager = AudioManager.getInstance()
@@ -7,11 +7,17 @@ const isMuted = ref(false)
 const musicVolume = ref(0.3)
 const sfxVolume = ref(0.5)
 const showControls = ref(false)
+const panelRef = ref<HTMLElement | null>(null)
 
 onMounted(() => {
   isMuted.value = audioManager.isAudioMuted()
   musicVolume.value = audioManager.getMusicVolume()
   sfxVolume.value = audioManager.getSFXVolume()
+  document.addEventListener('mousedown', handleClickOutside)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('mousedown', handleClickOutside)
 })
 
 const toggleMute = () => {
@@ -36,6 +42,13 @@ const updateSFXVolume = (event: Event) => {
   audioManager.setSFXVolume(volume)
   sfxVolume.value = volume
 }
+
+function handleClickOutside(event: MouseEvent) {
+  if (!showControls.value) return
+  if (panelRef.value && !panelRef.value.contains(event.target as Node)) {
+    showControls.value = false
+  }
+}
 </script>
 
 <template>
@@ -44,7 +57,7 @@ const updateSFXVolume = (event: Event) => {
       {{ isMuted ? '🔇' : '🔊' }}
     </button>
     
-    <div class="volume-panel" v-if="showControls">
+    <div class="volume-panel" v-if="showControls" ref="panelRef">
       <div class="volume-header">
         <span>Audio</span>
         <button class="close-btn" @click="showControls = false">×</button>

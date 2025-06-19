@@ -1,6 +1,11 @@
 import { Character } from './Character'
 import { ICombatant, ILevelable, IInventory, IPlayerStats } from './interfaces/ICharacter'
 
+export interface TimingContext {
+  action?: string // 'attack', 'skill', 'spell', etc.
+  // En el futuro: dificultad, tipo de habilidad, etc.
+}
+
 export class Player extends Character implements ICombatant, ILevelable, IInventory {
   public experience: number
   public experienceToNextLevel: number
@@ -121,5 +126,30 @@ export class Player extends Character implements ICombatant, ILevelable, IInvent
       Experiencia: ${this.experience}/${this.experienceToNextLevel}
       Oro: ${this.gold}
     `
+  }
+
+  /**
+   * Calcula la velocidad del puntero para el minijuego de timing.
+   * El contexto puede usarse para modificar la velocidad según la acción.
+   */
+  public getPointerSpeed(context?: TimingContext): number {
+    // En el futuro: puedes modificar la fórmula según el contexto
+    const minSpeed = 60;
+    const maxSpeed = 300;
+    const dex = Math.max(5, Math.min(100, this.stats.destreza));
+    return maxSpeed - (Math.log10(dex - 4) / Math.log10(96)) * (maxSpeed - minSpeed);
+  }
+
+  /**
+   * Genera las áreas de timing para el minijuego de ataque o habilidad.
+   * El contexto puede usarse para modificar las áreas según la acción.
+   */
+  public getTimingAreas(context?: TimingContext): { startAngle: number; endAngle: number; type: 'normal' | 'bonificado' | 'critico'; color: string }[] {
+    // En el futuro: puedes modificar las áreas según el contexto
+    // Bonificada: 220°-240°, Crítica: 240°-252°, Bonificada: 252°-272°
+    const bonus1 = { startAngle: 220, endAngle: 240, type: 'bonificado' as const, color: '#a00' }
+    const crit = { startAngle: 240, endAngle: 252, type: 'critico' as const, color: '#ffe600' }
+    const bonus2 = { startAngle: 252, endAngle: 272, type: 'bonificado' as const, color: '#a00' }
+    return [bonus1, crit, bonus2]
   }
 } 
