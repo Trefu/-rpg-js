@@ -1,5 +1,6 @@
 import { Character } from './Character'
-import { ICombatant, ILevelable, IInventory, IPlayerStats, IStatusEffect } from './interfaces/ICharacter'
+import { ICombatant, ILevelable, IInventory, IPlayerStats } from './interfaces/ICharacter'
+import { IStatusEffect } from './interfaces/IStatusEffect'
 
 export interface TimingContext {
   action?: string // 'attack', 'skill', 'spell', etc.

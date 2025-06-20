@@ -49,7 +49,8 @@ const {
   actionRequiresTarget,
   handleTimingCircleClick,
   handleModalOverlayClick,
-  isPlayerInputLocked
+  isPlayerInputLocked,
+  handleTimingCircleResult
 } = useCombat({
   onCombatEnd: (victory: boolean) => emit('combatEnded', victory)
 })
@@ -77,7 +78,7 @@ const playerStatusEffects = computed(() => {
 
 // Función para obtener los efectos de estado de un enemigo
 const getEnemyStatusEffects = (enemy: ICharacter) => {
-  if (!shouldShowStatusBar.value || !hasStatusEffects(enemy)) {
+  if (!hasStatusEffects(enemy)) {
     return []
   }
   return enemy.statusEffects || []
@@ -97,13 +98,10 @@ const getEnemySprite = (enemy: any) => {
   return goblinSprite // fallback
 }
 
-const handleTimingCircleResult = (result: { type: 'normal' | 'bonificado' | 'critico' }) => {
-  const typeMap = {
-    critico: 'perfect',
-    bonificado: 'good',
-    normal: 'bad'
+const handleTimingResult = (result: { type: 'normal' | 'bonificado' | 'critico', area: any }) => {
+  if (onTimingResult.value) {
+    onTimingResult.value(result)
   }
-  onTimingResult(typeMap[result.type] || 'miss')
 }
 
 onMounted(() => {
@@ -144,6 +142,7 @@ onUnmounted(() => {
             <div v-for="effect in getEnemyStatusEffects(enemy)" :key="effect.type" class="status-effect-icon">
               <img :src="effect.icon" :alt="effect.name"
                 :title="`${effect.name} (${effect.turns})\n${effect.description}`" />
+              <span class="status-turns">{{ effect.turns }}</span>
             </div>
           </div>
           <img :src="getEnemySprite(enemy)" :alt="enemy.name" />
@@ -190,6 +189,7 @@ onUnmounted(() => {
               <div v-for="effect in playerStatusEffects" :key="effect.type" class="status-effect-icon">
                 <img :src="effect.icon" :alt="effect.name"
                   :title="`${effect.name} (${effect.turns})\n${effect.description}`" />
+                <span class="status-turns">{{ effect.turns }}</span>
               </div>
             </div>
             <div class="player-header">
@@ -252,7 +252,7 @@ onUnmounted(() => {
 
     <!-- Overlay para el minijuego de timing -->
     <div v-if="showTimingCircle" class="timing-overlay" :class="timingEffect" @click="handleTimingCircleClick">
-      <TimingCircle ref="timingCircleRef" :pointerSpeed="getPointerSpeed()" :radius="160" @result="handleTimingCircleResult"
+      <TimingCircle ref="timingCircleRef" :pointerSpeed="getPointerSpeed()" :radius="160" @result="handleTimingResult"
         :autoFailOnFullCircle="true" :generateRandomAreas="true" />
     </div>
 
@@ -334,6 +334,7 @@ onUnmounted(() => {
   transition: all 0.3s ease;
   border-radius: 8px;
   padding: 0.5rem;
+  padding-top: 55px;
 }
 
 .enemy-sprite img {
@@ -971,21 +972,22 @@ onUnmounted(() => {
 }
 
 .status-bar {
+  position: absolute;
+  top: 5px;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   gap: 0.3rem;
   justify-content: center;
   align-items: center;
-  margin-bottom: 0.2rem;
-  margin-top: -0.7rem;
   background: rgba(30, 32, 60, 0.85);
   border-radius: 8px;
   padding: 0.15rem 0.4rem;
   box-shadow: 0 2px 8px #0002;
-  min-height: 28px;
+  min-height: 45px;
   max-width: 120px;
   overflow-x: auto;
   z-index: 12;
-  position: relative;
 }
 
 .status-effect-icon {
@@ -995,9 +997,9 @@ onUnmounted(() => {
 }
 
 .status-effect-icon img {
-  width: 24px;
-  height: 24px;
-  object-fit: contain;
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
   border-radius: 4px;
   box-shadow: 0 1px 4px #0005;
   background: #fff;
@@ -1008,6 +1010,25 @@ onUnmounted(() => {
 .status-effect-icon img:hover {
   transform: scale(1.18);
   z-index: 2;
+}
+
+.status-turns {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #ff3333;
+  color: white;
+  font-size: 0.7rem;
+  font-weight: bold;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px #0005;
+  border: 1px solid #fff;
+  z-index: 3;
 }
 
 .status-float-enter-active, .status-float-leave-active {
