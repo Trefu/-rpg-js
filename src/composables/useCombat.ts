@@ -1,8 +1,15 @@
 import { ref, computed, nextTick } from 'vue'
+import type { Ref } from 'vue'
 import { useGameStore } from '@/stores/game'
-import { IEnemy } from '@/core/interfaces/ICharacter'
+import type { Player } from '@/core/Player'
+import type { Enemy } from '@/core/enemies/Enemy'
 import { AudioManager } from '@/core/AudioManager'
-import { Ability } from '@/core/interfaces/IClass'
+import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
+import { IEnemy } from '@/core/interfaces/ICharacter'
+import type { Ability } from '@/core/interfaces/IClass'
+import type { IAbility, TimingResult } from '@/core/interfaces/IAbility'
+
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
 export interface CombatConfig {
   isTraining?: boolean
@@ -17,14 +24,15 @@ export function useCombat(config: CombatConfig = {}) {
   const selectedEnemy = ref<IEnemy | null>(null)
   const combatLog = ref<string[]>([])
   const isPlayerTurn = ref(true)
+  const isExecutingAction = ref(false)
   const isCombatEnded = ref(false)
   const isSelectingTarget = ref(false)
-  const selectedAction = ref<string>('')
+  const selectedAbility = ref<IAbility | null>(null)
   const audioManager = AudioManager.getInstance()
   const showTimingCircle = ref(false)
   const timingCircleRef = ref<any>(null)
   const timingResult = ref<'normal' | 'bonificado' | 'critico'>('normal')
-  const currentAction = ref<string>('attack')
+  const currentAction = ref<{ ability: IAbility, target: IEnemy } | null>(null)
   const attackingEnemyId = ref<string | null>(null)
   const attackingEnemyLabel = ref<string | null>(null)
   const combatLogRef = ref<HTMLDivElement | null>(null)
@@ -48,6 +56,13 @@ export function useCombat(config: CombatConfig = {}) {
 
   const aliveEnemies = computed(() => enemies.value.filter(enemy => enemy.isAlive))
 
+  const isPlayerInputLocked = computed(() => {
+    return !isPlayerTurn.value || 
+           isCombatEnded.value || 
+           isExecutingAction.value || 
+           showTimingCircle.value
+  })
+
   // Cooldowns
   function resetAbilityCooldowns() {
     abilityCooldowns.value = {}
@@ -68,7 +83,7 @@ export function useCombat(config: CombatConfig = {}) {
 
   // Modal de habilidades
   function openAbilitiesModal() {
-    if (!isPlayerTurn.value || isCombatEnded.value) return
+    if (!isPlayerTurn.value || isCombatEnded.value || showTimingCircle.value || isExecutingAction.value) return
     showAbilitiesModal.value = true
   }
 
@@ -76,10 +91,9 @@ export function useCombat(config: CombatConfig = {}) {
     showAbilitiesModal.value = false
   }
 
-  function selectAbility(ability: any, idx?: number) {
-    console.log(idx);
+  function selectAbility(ability: IAbility, index: number) {
     if (abilityCooldowns.value[ability.type] > 0) return
-    selectedAction.value = ability.type
+    selectedAbility.value = ability
     closeAbilitiesModal()
     isSelectingTarget.value = true
   }
@@ -88,45 +102,36 @@ export function useCombat(config: CombatConfig = {}) {
   const abilityShortcuts = ['q', 'w', 'e', 'r']
 
   function handleAbilitiesModalShortcuts(e: KeyboardEvent) {
-    if (!showAbilitiesModal.value) return
+    // Si el modal no está abierto, no procesar los shortcuts
+    if (!showAbilitiesModal.value) {
+      if (e.key.toLowerCase() === 'a' && isPlayerTurn.value && !showTimingCircle.value && !isExecutingAction.value) {
+        openAbilitiesModal()
+        e.preventDefault()
+      }
+      return
+    }
+
+    // Si el modal está abierto
     if (e.key.toLowerCase() === 'a') {
       closeAbilitiesModal()
       e.preventDefault()
       return
     }
-    if (e.key.toLowerCase() === 'q') {
-      selectAbility(abilities.value[0], 0)
+
+    // Shortcuts para las habilidades
+    const keyIndex = abilityShortcuts.indexOf(e.key.toLowerCase())
+    if (keyIndex !== -1 && abilities.value[keyIndex]) {
+      selectAbility(abilities.value[keyIndex], keyIndex)
       e.preventDefault()
-      return
-    }
-    if (e.key.toLowerCase() === 'w' && abilities.value.length > 1) {
-      selectAbility(abilities.value[1], 1)
-      e.preventDefault()
-      return
-    }
-    if (e.key.toLowerCase() === 'e' && abilities.value.length > 2) {
-      selectAbility(abilities.value[2], 2)
-      e.preventDefault()
-      return
-    }
-    if (e.key.toLowerCase() === 'r' && abilities.value.length > 3) {
-      selectAbility(abilities.value[3], 3)
-      e.preventDefault()
-      return
     }
   }
 
   function handleCombatShortcuts(e: KeyboardEvent) {
     if (isCombatEnded.value) return
     if (showAbilitiesModal.value) return
-    if (e.key.toLowerCase() === 'a' && isPlayerTurn.value && !showAbilitiesModal.value) {
-      openAbilitiesModal()
-      e.preventDefault()
-      return
-    }
     
     // Seleccionar enemigo con 1, 2, 3 si está seleccionando objetivo
-    if (isSelectingTarget.value && ['1', '2', '3'].includes(e.key) && actionRequiresTarget(selectedAction.value)) {
+    if (isSelectingTarget.value && ['1', '2', '3'].includes(e.key) && actionRequiresTarget(selectedAbility.value)) {
       const idx = parseInt(e.key, 10) - 1
       const alive = aliveEnemies.value
       if (alive[idx]) {
@@ -141,7 +146,7 @@ export function useCombat(config: CombatConfig = {}) {
 
   // Utilidades
   function getPointerSpeed() {
-    return player.value?.getPointerSpeed({ action: currentAction.value }) ?? 300
+    return player.value?.getPointerSpeed({ action: currentAction.value?.ability.type || '' }) ?? 300
   }
 
   function showEnemyHit(enemyId: string, value: number) {
@@ -160,13 +165,10 @@ export function useCombat(config: CombatConfig = {}) {
     }, 900)
   }
 
-  function actionRequiresTarget(action: string): boolean {
-    return true
-  }
-
-  function triggerTimingEffect(type: 'crit' | 'bonus') {
-    timingEffect.value = type
-    setTimeout(() => { timingEffect.value = '' }, 500)
+  function actionRequiresTarget(ability: IAbility | null): boolean {
+    // Por ahora, asumimos que todas las habilidades requieren un objetivo.
+    // Esto se puede expandir en el futuro (ej. hechizos de área o auto-bufos)
+    return !!ability
   }
 
   function handleModalOverlayClick(e: MouseEvent) {
@@ -176,119 +178,6 @@ export function useCombat(config: CombatConfig = {}) {
   }
 
   // Lógica de combate
-  function executeActionWithTiming(timingType: 'normal' | 'bonificado' | 'critico') {
-    if (!player.value || !selectedEnemy.value || !isPlayerTurn.value) return
-
-    // Lógica para Golpe Aturdidor
-    if (selectedAction.value === 'stunStrike') {
-      let baseDamage = Math.round(player.value.attack() * 0.8)
-      let stunTurns = 1
-      let logMsg = ''
-      let ability = abilities.value.find((a: Ability) => a.type === 'stunStrike')
-      
-      if (timingType === 'bonificado') {
-        baseDamage = Math.round(baseDamage * 1.5)
-        stunTurns = 2
-        audioManager.playBonusSound()
-        triggerTimingEffect('bonus')
-        logMsg = `¡Golpe aturdidor bonificado! ${selectedEnemy.value.name} queda aturdido 2 turnos.`
-      } else if (timingType === 'critico') {
-        baseDamage = Math.round(baseDamage * 2)
-        audioManager.playCritSound()
-        triggerTimingEffect('crit')
-        if (Math.random() < 0.5) {
-          stunTurns = 3
-          logMsg = `¡Golpe aturdidor crítico! 50% de probabilidad: ${selectedEnemy.value.name} queda aturdido 3 turnos.`
-        } else {
-          stunTurns = 2
-          logMsg = `¡Golpe aturdidor crítico! Pero no se logró el 50% extra, aturdido 2 turnos.`
-        }
-      } else {
-        logMsg = `Golpe aturdidor fallido. ${selectedEnemy.value.name} queda aturdido 1 turno.`
-      }
-      
-      selectedEnemy.value.takeDamage(baseDamage)
-      selectedEnemy.value.addStatusEffect && selectedEnemy.value.addStatusEffect({
-        type: 'stun',
-        name: 'Aturdido',
-        icon: '/src/assets/icons/Splash icons/3.png',
-        turns: stunTurns,
-        description: 'No puede actuar en su turno.',
-        turnLabel: '¡Está aturdido y pierde su turno!'
-      })
-      showEnemyHit(selectedEnemy.value.id, baseDamage)
-      audioManager.playAttackSound()
-      addToLog(`Usas Golpe Aturdidor en ${selectedEnemy.value.name} causando ${baseDamage} de daño (${timingType}).`)
-      addToLog(logMsg)
-      
-      if (!selectedEnemy.value.isAlive) {
-        audioManager.playHitSound()
-        addToLog(`${selectedEnemy.value.name} ha sido derrotado!`)
-        if (!config.isTraining) {
-          const rewards = selectedEnemy.value.getRewards()
-          player.value.gainExperience(rewards.experience)
-          player.value.addGold(rewards.gold)
-          setTimeout(() => {
-            addToLog(`Ganas ${rewards.experience} experiencia y ${rewards.gold} oro.`)
-          }, 1000)
-        }
-      } else {
-        setTimeout(() => {
-          audioManager.playHitSound()
-        }, 200)
-      }
-      
-      onAbilityUsed('stunStrike', ability?.cooldown || 0)
-      selectedEnemy.value = null
-      selectedAction.value = ''
-      isSelectingTarget.value = false
-      endPlayerTurn()
-      return
-    }
-
-    // Lógica normal de ataque
-    let damage = player.value.attack()
-    if (timingType === 'bonificado') {
-      damage = Math.round(damage * 1.5)
-      audioManager.playBonusSound()
-      triggerTimingEffect('bonus')
-    }
-    if (timingType === 'critico') {
-      damage = Math.round(damage * 2)
-      audioManager.playCritSound()
-      triggerTimingEffect('crit')
-    }
-
-    selectedEnemy.value.takeDamage(damage)
-    showEnemyHit(selectedEnemy.value.id, damage)
-    audioManager.playAttackSound()
-    addToLog(`Atacas a ${selectedEnemy.value.name} causando ${damage} de daño (${timingType}).`)
-
-    if (!selectedEnemy.value.isAlive) {
-      audioManager.playHitSound()
-      addToLog(`${selectedEnemy.value.name} ha sido derrotado!`)
-      if (!config.isTraining) {
-        const rewards = selectedEnemy.value.getRewards()
-        player.value.gainExperience(rewards.experience)
-        player.value.addGold(rewards.gold)
-        setTimeout(() => {
-          addToLog(`Ganas ${rewards.experience} experiencia y ${rewards.gold} oro.`)
-        }, 1000)
-      }
-    } else {
-      setTimeout(() => {
-        audioManager.playHitSound()
-      }, 200)
-    }
-
-    selectedEnemy.value = null
-    selectedAction.value = ''
-    isSelectingTarget.value = false
-    isPlayerTurn.value = false
-
-    setTimeout(enemyTurn, config.isTraining ? 1000 : 2000)
-  }
-
   function endPlayerTurn() {
     isPlayerTurn.value = false
     decrementAbilityCooldowns()
@@ -311,8 +200,9 @@ export function useCombat(config: CombatConfig = {}) {
       await showEnemyStatusSequence(enemy)
 
       // Si el enemigo está aturdido, salta su turno
-      if (enemy.isStunned && enemy.isStunned()) {
-        addToLog(`${enemy.name} está aturdido y pierde su turno. (${enemy.statusEffects.find(e => e.type === 'stun')?.turns || 0} turno(s) restante(s))`)
+      const stunEffect = enemy.statusEffects.find(e => e.type === 'stun')
+      if (stunEffect && stunEffect.turns > 0) {
+        addToLog(`${enemy.name} está aturdido y pierde su turno. (${stunEffect.turns} turno(s) restante(s))`)
         enemy.reduceStatusEffects && enemy.reduceStatusEffects()
         await delay(config.isTraining ? 1000 : 2000)
         continue
@@ -359,28 +249,26 @@ export function useCombat(config: CombatConfig = {}) {
     }
 
     isPlayerTurn.value = true
+    isExecutingAction.value = false
     addToLog('Tu turno.')
   }
 
-  async function showEnemyStatusSequence(enemy: any) {
-    if (!enemy.statusEffects || !enemy.statusEffects.length) return
-    for (const effect of enemy.statusEffects) {
-      if (effect.turns > 0 && effect.turnLabel) {
-        enemyStatusWarning.value = {
-          enemyId: enemy.id,
-          icon: effect.icon,
-          text: effect.turnLabel,
-          isBuff: !!effect.isBuff
+  async function showEnemyStatusSequence(enemy: IEnemy) {
+    if (enemy.isAlive && enemy.statusEffects.length > 0) {
+      for (const effect of enemy.statusEffects) {
+        if (effect.turns > 0 && effect.turnLabel) {
+          enemyStatusWarning.value = {
+            enemyId: enemy.id,
+            text: effect.turnLabel,
+            icon: effect.icon,
+            isBuff: !!effect.isBuff
+          }
+          await delay(2000)
+          enemyStatusWarning.value = null
+          await delay(200)
         }
-        await delay(1000)
-        enemyStatusWarning.value = null
-        await delay(200)
       }
     }
-  }
-
-  function delay(ms: number) {
-    return new Promise(resolve => setTimeout(resolve, ms))
   }
 
   function endCombat(victory: boolean) {
@@ -426,17 +314,45 @@ export function useCombat(config: CombatConfig = {}) {
     return Math.max(0, (current / max) * 100)
   }
 
-  function onTimingResult({ type }: { type: 'normal' | 'bonificado' | 'critico' }) {
+  const onTimingResult = async (result: string) => {
     showTimingCircle.value = false
-    timingResult.value = type
-    executeActionWithTiming(type)
+    isExecutingAction.value = true
+
+    if (currentAction.value) {
+      const { ability, target } = currentAction.value
+      const playerChar = player.value as Player
+
+      if (ability.execute) {
+        ability.execute({
+          caster: playerChar,
+          target,
+          timingResult: result as TimingResult,
+          addToLog,
+          showEnemyHit,
+          endPlayerTurn
+        })
+        onAbilityUsed(ability.type, ability.cooldown)
+      } else {
+        // Si por alguna razón no hay método execute, terminamos el turno para evitar un bloqueo.
+        endPlayerTurn()
+      }
+    } else {
+      endPlayerTurn()
+    }
+
+    isSelectingTarget.value = false
+    selectedAbility.value = null
+    selectedEnemy.value = null
+    currentAction.value = null
   }
 
   function selectEnemy(enemy: IEnemy) {
     if (!isPlayerTurn.value || !enemy.isAlive) return
 
-    if (isSelectingTarget.value) {
+    if (isSelectingTarget.value && selectedAbility.value) {
       selectedEnemy.value = enemy
+      currentAction.value = { ability: selectedAbility.value, target: enemy }
+      
       showTimingCircle.value = true
       setTimeout(() => {
         timingCircleRef.value?.start()
@@ -451,7 +367,7 @@ export function useCombat(config: CombatConfig = {}) {
   }
 
   function selectAction(action: string) {
-    if (!isPlayerTurn.value || isCombatEnded.value) return
+    if (!isPlayerTurn.value || isCombatEnded.value || isExecutingAction.value) return
 
     if (action === 'Huir') {
       if (config.isTraining) {
@@ -482,10 +398,12 @@ export function useCombat(config: CombatConfig = {}) {
     }
 
     if (isActionType(action)) {
-      currentAction.value = action
-      selectedAction.value = action
-      isSelectingTarget.value = true
-      addToLog(`Selecciona un objetivo para ${action.toLowerCase()}.`)
+      const ability = abilities.value.find((a: IAbility) => a.type === action)
+      if (ability) {
+        selectedAbility.value = ability
+        isSelectingTarget.value = true
+        addToLog(`Selecciona un objetivo para ${action.toLowerCase()}.`)
+      }
       return
     }
   }
@@ -507,6 +425,12 @@ export function useCombat(config: CombatConfig = {}) {
     audioManager.stopCurrentMusic()
   }
 
+  function handleTimingCircleClick() {
+    if (showTimingCircle.value) {
+      timingCircleRef.value?.stop()
+    }
+  }
+
   return {
     // Estado
     player,
@@ -516,7 +440,7 @@ export function useCombat(config: CombatConfig = {}) {
     isPlayerTurn,
     isCombatEnded,
     isSelectingTarget,
-    selectedAction,
+    selectedAbility,
     showTimingCircle,
     timingCircleRef,
     timingResult,
@@ -533,6 +457,7 @@ export function useCombat(config: CombatConfig = {}) {
     abilities,
     aliveEnemies,
     abilityShortcuts,
+    isPlayerInputLocked,
 
     // Métodos
     openAbilitiesModal,
@@ -540,7 +465,6 @@ export function useCombat(config: CombatConfig = {}) {
     selectAbility,
     handleAbilitiesModalShortcuts,
     handleCombatShortcuts,
-    executeActionWithTiming,
     endPlayerTurn,
     enemyTurn,
     endCombat,
@@ -552,11 +476,11 @@ export function useCombat(config: CombatConfig = {}) {
     selectAction,
     initializeCombat,
     cleanup,
-    triggerTimingEffect,
-    handleModalOverlayClick,
+    handleTimingCircleClick,
     getPointerSpeed,
     showEnemyHit,
     showPlayerHit,
-    actionRequiresTarget
+    actionRequiresTarget,
+    handleModalOverlayClick
   }
 } 

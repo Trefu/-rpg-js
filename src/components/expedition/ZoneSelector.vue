@@ -1,21 +1,21 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useGameStore } from '@/stores/game'
+import { useExpeditionStore } from '@/stores/expedition'
 import type { IZone } from '@/core/interfaces/IExpedition'
 import { zones } from '@/core/zones/Zones'
 
 const selectedZone = ref<IZone | null>(null)
+const expeditionStore = useExpeditionStore()
+const gameStore = useGameStore()
 
 const mountainZone = zones.find(z => z.id === 'mountain-peak')
 const availableZones = mountainZone ? [mountainZone] : []
 
-const emit = defineEmits<{
-  (e: 'zoneSelected', zone: IZone): void
-}>()
-
 const selectZone = (zone: IZone) => {
   selectedZone.value = zone
-  emit('zoneSelected', zone)
+  expeditionStore.startExpedition(zone)
+  gameStore.navigateTo('expedition-map')
 }
 </script>
 

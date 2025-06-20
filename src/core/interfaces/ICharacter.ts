@@ -1,12 +1,22 @@
+import type { IStatusEffect } from './IStatusEffect'
+import type { IAbility } from './IAbility'
+
 export interface ICharacter {
   readonly id: string
   name: string
+  level: number
   health: number
   maxHealth: number
   isAlive: boolean
-  attack: number | (() => number)
-  defense: number | (() => number)
-  magic: number | (() => number)
+  statusEffects: IStatusEffect[]
+  addStatusEffect(effect: IStatusEffect): void
+  removeStatusEffect(effectType: string): void
+  attack(): number
+  defense(): number
+  magic(): number
+  takeDamage(amount: number): void
+  heal(amount: number): void
+  getHealthPercentage(): number
   specialAbility: {
     name: string
     description: string
@@ -20,16 +30,6 @@ export interface IPlayerStats {
   sabiduria: number
   constitucion: number
   carisma: number
-}
-
-export interface IStatusEffect {
-  type: string // 'stun', 'poison', etc.
-  name: string
-  icon: string // ruta al icono
-  turns: number
-  description: string
-  isBuff?: boolean // true si es positivo
-  turnLabel?: string // texto que se muestra en el turno del portador
 }
 
 export interface ICombatant extends ICharacter {
@@ -58,11 +58,16 @@ export interface IInventory {
 }
 
 export interface IEnemy extends ICombatant {
-  getRewards(): { experience: number; gold: number }
+  getRewards: () => { experience: number; gold: number }
   delayMs?: number
-  stunTurns?: number
-  isStunned?(): boolean
-  reduceStun?(): void
-  addStatusEffect?(effect: IStatusEffect): void
-  reduceStatusEffects?(): void
+  baseAttack: number
+  baseDefense: number
+  baseMagic: number
+  experienceReward: number
+  goldReward: { min: number; max: number }
+  abilities?: IAbility[]
+  statusEffects: IStatusEffect[]
+  addStatusEffect(effect: IStatusEffect): void
+  removeStatusEffect(effectType: string): void
+  reduceStatusEffects?: () => void
 } 

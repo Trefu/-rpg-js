@@ -1,3 +1,5 @@
+import type { IAbility } from './IAbility'
+
 export interface IClass {
   name: string
   description: string
@@ -22,7 +24,7 @@ export interface IClass {
     description: string
     cooldown: number
   }
-  abilities?: Ability[]
+  abilities: IAbility[]
 }
 
 export type Ability = {

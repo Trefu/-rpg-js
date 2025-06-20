@@ -11,7 +11,6 @@ import { useGameStore } from './stores/game'
 import { Player } from './core/Player'
 import { Loader } from './core/Loader'
 import { AudioManager } from './core/AudioManager'
-import { mountainPeakNodes } from './core/zones/MountainPeakNodes'
 import type { IZone, INode } from './core/interfaces/IExpedition'
 
 const gameStore = useGameStore()
@@ -42,7 +41,7 @@ watch(currentView, (newView) => {
 
 onMounted(() => {
   // Inicializar audio manager
-  audioManager.setMusicVolume(0.1)
+  audioManager.setMusicVolume(0)
   audioManager.setSFXVolume(0.9)
 })
 
@@ -80,11 +79,6 @@ const handleResetGame = () => {
 
 const handleZoneSelected = (zone: IZone) => {
   selectedZone.value = zone
-  if (zone.id === 'mountain-peak') {
-    expeditionNodes.value = mountainPeakNodes
-  } else {
-    expeditionNodes.value = []
-  }
   gameStore.navigateTo('expedition-map')
 }
 

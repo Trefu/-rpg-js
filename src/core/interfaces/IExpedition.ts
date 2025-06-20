@@ -14,13 +14,14 @@ export interface IZone {
 
 export interface INode {
   id: string
-  type: 'combat' | 'shop' | 'rest' | 'treasure' | 'boss' | 'event'
+  type: 'combat' | 'shop' | 'rest' | 'treasure' | 'boss' | 'event' | 'city'
   position: {
     x: number
     y: number
   }
   connections: string[] // IDs de nodos conectados
   completed: boolean
+  enemies?: any[] // Array de enemigos para nodos de tipo combat y boss
 }
 
 export interface IExpedition {

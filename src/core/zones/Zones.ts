@@ -6,7 +6,7 @@ export const zones: IZone[] = [
     name: 'Pico de la Montaña',
     description: 'Una peligrosa montaña donde los vientos helados y las criaturas salvajes acechan a cada paso.',
     background: '/assets/backgrounds/mountain-peak.jpg',
-    difficulty: 'medium',
+    difficulty: 'easy',
     minLevel: 1,
     enemies: ['goblin', 'wolf', 'troll'],
     rewards: {
@@ -32,7 +32,7 @@ export const zones: IZone[] = [
     name: 'Cuevas de Cristal',
     description: 'Un laberinto de cuevas brillantes, donde los cristales mágicos atraen a extrañas criaturas.',
     background: '/assets/backgrounds/crystal-caves.jpg',
-    difficulty: 'easy',
+    difficulty: 'medium',
     minLevel: 1,
     enemies: ['goblin', 'crystal-golem', 'bat'],
     rewards: {

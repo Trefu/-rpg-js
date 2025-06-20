@@ -1,43 +1,61 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import type { IExpedition, INode } from '@/core/interfaces/IExpedition'
+import { computed } from 'vue'
+import type { INode } from '@/core/interfaces/IExpedition'
+import { useExpeditionStore } from '@/stores/expedition'
+import { useGameStore } from '@/stores/game'
 
-const props = defineProps<{
-  expedition: IExpedition
-}>()
+const expeditionStore = useExpeditionStore()
+const gameStore = useGameStore()
 
-const emit = defineEmits<{
-  (e: 'nodeSelected', node: INode): void
-}>()
-
-const currentNode = ref<string | null>(null)
-const availableNodes = ref<string[]>(['start'])
+const currentNode = computed(() => expeditionStore.selectedNode?.id || null)
+const availableNodes = computed(() => expeditionStore.availableNodes)
+const expedition = computed(() => expeditionStore.currentExpedition)
 
 const getNodeIcon = (type: INode['type']) => {
   switch (type) {
     case 'combat': return '⚔️'
     case 'shop': return '🏪'
+    case 'rest': return '🏕️'
+    case 'treasure': return '💎'
     case 'event': return '❓'
+    case 'boss': return '👑'
+    case 'city': return '🏰'
     default: return '❓'
   }
 }
 
-const selectNode = (nodeId: string) => {
-  if (!availableNodes.value.includes(nodeId)) return
+const isNodeReachable = (node: INode) => {
+  if (!expeditionStore.currentExpedition) return false
 
-  const node = props.expedition.nodes.find(n => n.id === nodeId)
-  if (!node) return
+  // El nodo inicial siempre es alcanzable si es el primer turno
+  if (expeditionStore.currentExpedition.currentNode === null) {
+    const startNode = expeditionStore.currentExpedition.nodes.find(n => n.type === 'city')
+    if (startNode) {
+      return startNode.connections.includes(node.id)
+    }
+  }
 
-  node.completed = true
-  currentNode.value = nodeId
-  availableNodes.value = node.connections
+  // Un nodo es alcanzable si está conectado al nodo completado más recientemente
+  const lastCompletedNode = expeditionStore.currentExpedition.currentNode
+  return lastCompletedNode?.connections.includes(node.id) ?? false
+}
 
-  emit('nodeSelected', node)
+const handleNodeClick = (node: INode) => {
+  if (node.type === 'city' || node.completed || !isNodeReachable(node)) return
+
+  expeditionStore.selectNode(node)
+
+  if (node.type === 'combat') {
+    gameStore.navigateTo('combat')
+  } else {
+    // Handle other node types (shop, event, etc.)
+    console.log(`Entering ${node.type} node...`)
+  }
 }
 </script>
 
 <template>
-  <div class="expedition-map">
+  <div v-if="expedition" class="expedition-map">
     <h2>Expedición: {{ expedition.zone.name }}</h2>
     <div class="map-container">
       <!-- Líneas de conexión -->
@@ -76,7 +94,7 @@ const selectNode = (nodeId: string) => {
           left: `${node.position.x}%`,
           top: `${node.position.y}%`
         }"
-        @click="selectNode(node.id)"
+        @click="handleNodeClick(node)"
       >
         <span class="node-icon">{{ getNodeIcon(node.type) }}</span>
       </div>
@@ -112,11 +130,13 @@ const selectNode = (nodeId: string) => {
   background-color: #2a2a2a;
   border: 2px solid #3a3a3a;
   transform: translate(-50%, -50%);
+  z-index: 2;
 }
 
 .map-node.available {
   border-color: #4CAF50;
   box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+  animation: pulse 1.5s infinite;
 }
 
 .map-node.current {
@@ -127,6 +147,17 @@ const selectNode = (nodeId: string) => {
 .map-node.completed {
   opacity: 0.5;
   cursor: default;
+}
+
+.map-node.boss {
+  width: 60px;
+  height: 60px;
+  background-color: #f44336;
+  border-color: #d32f2f;
+}
+
+.map-node.boss .node-icon {
+  font-size: 2rem;
 }
 
 .node-icon {
@@ -140,6 +171,7 @@ const selectNode = (nodeId: string) => {
   width: 100%;
   height: 100%;
   pointer-events: none;
+  z-index: 1;
 }
 
 .connection-line {
@@ -149,9 +181,23 @@ const selectNode = (nodeId: string) => {
 
 .connection-line.available {
   stroke: #4CAF50;
+  stroke-width: 3;
+  filter: drop-shadow(0 0 3px #4CAF50);
 }
 
 .connection-line.completed {
   stroke: #2196F3;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(76, 175, 80, 0.8);
+  }
+  100% {
+    box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+  }
 }
 </style> 

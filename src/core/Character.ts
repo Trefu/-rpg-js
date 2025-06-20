@@ -1,4 +1,5 @@
 import { ICharacter } from './interfaces/ICharacter'
+import type { IStatusEffect } from './interfaces/IStatusEffect'
 
 export abstract class Character implements ICharacter {
   public readonly id: string
@@ -7,6 +8,7 @@ export abstract class Character implements ICharacter {
   public health: number
   public maxHealth: number
   public isAlive: boolean
+  public statusEffects: IStatusEffect[] = []
   public readonly specialAbility = {
     name: 'Basic Ability',
     description: 'Basic character ability'
@@ -29,6 +31,20 @@ export abstract class Character implements ICharacter {
     this.maxHealth = maxHealth
     this.health = maxHealth
     this.isAlive = true
+    this.statusEffects = []
+  }
+
+  public addStatusEffect(effect: IStatusEffect) {
+    const existingEffect = this.statusEffects.find(e => e.type === effect.type)
+    if (existingEffect) {
+      existingEffect.turns = Math.max(existingEffect.turns, effect.turns)
+    } else {
+      this.statusEffects.push(effect)
+    }
+  }
+
+  public removeStatusEffect(effectType: string) {
+    this.statusEffects = this.statusEffects.filter(e => e.type !== effectType)
   }
 
   protected die(): void {
