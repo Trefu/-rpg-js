@@ -36,7 +36,8 @@ export class Warrior implements IClass {
       description: 'Un ataque básico con daño completo.',
       type: 'attack',
       cooldown: 0,
-      execute: async ({ caster, target, addToLog, showEnemyHit, endPlayerTurn, performTimingChallenge }: AbilityContext) => {
+      execute: async ({ caster, target, addToLog, showEnemyHit, endPlayerTurn, performTimingChallenge, audioManager }: AbilityContext) => {
+        audioManager.playAttackSound()
         const timingResult = await performTimingChallenge()
         
         let damageMultiplier = 1.0
@@ -51,6 +52,7 @@ export class Warrior implements IClass {
           target.takeDamage(finalDamage)
           addToLog(`${caster.name} ataca e inflige ${finalDamage} de daño.`)
           showEnemyHit(target.id, finalDamage)
+          audioManager.playHitSound()
         } else {
           addToLog(`${caster.name} falla el ataque.`)
         }
@@ -63,11 +65,12 @@ export class Warrior implements IClass {
       description: 'Lanza 3 ataques rápidos. Cada uno inflige un 20% de daño y tiene un 50% de probabilidad de aturdir al objetivo si el golpe es bueno o perfecto.',
       type: 'stunStrike',
       cooldown: 3,
-      execute: async ({ caster, target, addToLog, showEnemyHit, endPlayerTurn, performTimingChallenge }: AbilityContext) => {
+      execute: async ({ caster, target, addToLog, showEnemyHit, endPlayerTurn, performTimingChallenge, audioManager }: AbilityContext) => {
         for (let i = 0; i < 3; i++) {
           if (!target.isAlive) break
 
           addToLog(`Golpe ${i + 1} de 3...`)
+
           const timingResult = await performTimingChallenge()
 
           if (timingResult === 'miss') {
@@ -85,6 +88,7 @@ export class Warrior implements IClass {
           target.takeDamage(finalDamage)
           addToLog(`Infliges ${finalDamage} de daño.`)
           showEnemyHit(target.id, finalDamage)
+          audioManager.playHitSound()
 
           if (timingResult === 'perfect' || timingResult === 'good') {
             if (Math.random() < 0.9) {

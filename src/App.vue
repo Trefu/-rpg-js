@@ -152,7 +152,7 @@ const handleTrainingEnded = () => {
 
     <!-- TODO: Implementar vista de tienda -->
     <div v-if="currentView === 'shop'">
-      <h2>Tienda (En construcción)</h2>
+      <h2>Tienda (En construcción)</h2>9
       <button @click="handleBackToCity">Volver a la ciudad</button>
     </div>
   </div>

@@ -1,7 +1,10 @@
 import { Enemy } from './Enemy'
 import { IEnemy } from '../interfaces/ICharacter'
+import dummySprite from '@/assets/sprites/enemies/dummy.png'
 
 export class Dummy extends Enemy implements IEnemy {
+  public readonly sprite = dummySprite
+
   constructor(level: number = 1) {
     super(
       `dummy-${Date.now()}-${Math.random()}`,
@@ -12,7 +15,7 @@ export class Dummy extends Enemy implements IEnemy {
       0,    // No defiende
       0,    // No magia
       0,    // No experiencia
-      0     // No oro
+      { min: 0, max: 0 }  // No oro
     )
   }
 

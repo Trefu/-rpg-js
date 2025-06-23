@@ -6,6 +6,7 @@ import { useGameStore } from '@/stores/game'
 import goblinSprite from '@/assets/sprites/enemies/goblin.png'
 import TimingCircle from './TimingCircle.vue'
 import type { ICharacter } from '@/core/interfaces/ICharacter'
+import StatusBar from './StatusBar.vue'
 
 const emit = defineEmits<{
   (e: 'combatEnded', victory: boolean): void
@@ -50,7 +51,6 @@ const {
   handleTimingCircleClick,
   handleModalOverlayClick,
   isPlayerInputLocked,
-  handleTimingCircleResult
 } = useCombat({
   onCombatEnd: (victory: boolean) => emit('combatEnded', victory)
 })
@@ -91,11 +91,12 @@ const handleKeyDown = (e: KeyboardEvent) => {
 }
 
 const getEnemySprite = (enemy: any) => {
-  // Por ahora solo tenemos goblin, pero esto se puede expandir
-  if (enemy.name.toLowerCase().includes('goblin')) {
-    return goblinSprite
+  // Usar el sprite específico del enemigo si está disponible
+  if (enemy.sprite) {
+    return enemy.sprite
   }
-  return goblinSprite // fallback
+  // Fallback a goblin si no hay sprite específico
+  return goblinSprite
 }
 
 const handleTimingResult = (result: { type: 'normal' | 'bonificado' | 'critico', area: any }) => {
@@ -139,11 +140,7 @@ onUnmounted(() => {
         }" @click="selectEnemy(enemy)">
           <!-- Barra de estados -->
           <div v-if="getEnemyStatusEffects(enemy).length > 0" class="status-bar">
-            <div v-for="effect in getEnemyStatusEffects(enemy)" :key="effect.type" class="status-effect-icon">
-              <img :src="effect.icon" :alt="effect.name"
-                :title="`${effect.name} (${effect.turns})\n${effect.description}`" />
-              <span class="status-turns">{{ effect.turns }}</span>
-            </div>
+            <StatusBar :effects="getEnemyStatusEffects(enemy)" />
           </div>
           <img :src="getEnemySprite(enemy)" :alt="enemy.name" />
           <div class="enemy-health">
@@ -186,11 +183,7 @@ onUnmounted(() => {
           <div class="player-status">
             <!-- Barra de estados del jugador -->
             <div v-if="playerStatusEffects.length > 0" class="status-bar">
-              <div v-for="effect in playerStatusEffects" :key="effect.type" class="status-effect-icon">
-                <img :src="effect.icon" :alt="effect.name"
-                  :title="`${effect.name} (${effect.turns})\n${effect.description}`" />
-                <span class="status-turns">{{ effect.turns }}</span>
-              </div>
+              <StatusBar :effects="playerStatusEffects" />
             </div>
             <div class="player-header">
               <h4>{{ player?.name || 'Héroe' }}</h4>
@@ -969,47 +962,6 @@ onUnmounted(() => {
   .modal-header h2 {
     font-size: 1.1rem;
   }
-}
-
-.status-bar {
-  position: absolute;
-  top: 5px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 0.3rem;
-  justify-content: center;
-  align-items: center;
-  background: rgba(30, 32, 60, 0.85);
-  border-radius: 8px;
-  padding: 0.15rem 0.4rem;
-  box-shadow: 0 2px 8px #0002;
-  min-height: 45px;
-  max-width: 120px;
-  overflow-x: auto;
-  z-index: 12;
-}
-
-.status-effect-icon {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.status-effect-icon img {
-  width: 40px;
-  height: 40px;
-  object-fit: cover;
-  border-radius: 4px;
-  box-shadow: 0 1px 4px #0005;
-  background: #fff;
-  cursor: pointer;
-  transition: transform 0.15s;
-}
-
-.status-effect-icon img:hover {
-  transform: scale(1.18);
-  z-index: 2;
 }
 
 .status-turns {

@@ -4,6 +4,7 @@ import { useCombat } from '@/composables/useCombat'
 import { Dummy } from '@/core/enemies/Dummy'
 import goblinSprite from '@/assets/sprites/enemies/goblin.png'
 import TimingCircle from './TimingCircle.vue'
+import StatusBar from './StatusBar.vue'
 
 const emit = defineEmits<{
   (e: 'trainingEnded'): void
@@ -14,48 +15,34 @@ const {
   enemies,
   selectedEnemy,
   combatLog,
-  isPlayerTurn,
-  isCombatEnded,
   isSelectingTarget,
-  selectedAction,
+  selectedAbility,
   showTimingCircle,
   timingCircleRef,
-  timingResult,
-  currentAction,
-  attackingEnemyId,
-  attackingEnemyLabel,
   combatLogRef,
   enemyHitPopups,
   playerHitPopups,
   showAbilitiesModal,
   abilityCooldowns,
-  enemyStatusWarning,
   timingEffect,
   abilities,
-  aliveEnemies,
   abilityShortcuts,
   openAbilitiesModal,
   closeAbilitiesModal,
   selectAbility,
   handleAbilitiesModalShortcuts,
   handleCombatShortcuts,
-  executeActionWithTiming,
-  endPlayerTurn,
-  enemyTurn,
-  endTraining,
-  addToLog,
   getHealthPercentage,
   onTimingResult,
   selectEnemy,
   selectAction,
   initializeCombat,
   cleanup,
-  triggerTimingEffect,
   handleModalOverlayClick,
   getPointerSpeed,
-  showEnemyHit,
-  showPlayerHit,
-  actionRequiresTarget
+  actionRequiresTarget,
+  handleTimingCircleClick,
+  isPlayerInputLocked
 } = useCombat({
   isTraining: true,
   onTrainingEnd: () => emit('trainingEnded')
@@ -79,11 +66,16 @@ onUnmounted(() => {
 })
 
 const getEnemySprite = (enemy: any) => {
-  // Por ahora solo tenemos goblin, pero esto se puede expandir
-  if (enemy.name.toLowerCase().includes('goblin')) {
-    return goblinSprite
+  if (enemy.sprite) {
+    return enemy.sprite
   }
-  return goblinSprite // fallback
+  return goblinSprite
+}
+
+const handleTimingResult = (result: { type: 'normal' | 'bonificado' | 'critico', area: any }) => {
+  if (onTimingResult.value) {
+    onTimingResult.value(result)
+  }
 }
 </script>
 
@@ -93,14 +85,12 @@ const getEnemySprite = (enemy: any) => {
     <div class="enemies-area">
       <div class="enemies-container">
         <div v-if="enemies[0]" class="enemy-sprite" :class="{
-          selected: isSelectingTarget && enemies[0].isAlive && actionRequiresTarget(selectedAction),
-          'target-selectable': isSelectingTarget && enemies[0].isAlive && actionRequiresTarget(selectedAction)
+          selected: selectedEnemy?.id === enemies[0].id,
+          'target-selectable': isSelectingTarget && enemies[0].isAlive && actionRequiresTarget(selectedAbility)
         }" @click="selectEnemy(enemies[0])">
           <!-- Barra de estados -->
           <div v-if="enemies[0].statusEffects && enemies[0].statusEffects.length" class="status-bar">
-            <div v-for="effect in enemies[0].statusEffects" :key="effect.type" class="status-effect-icon">
-              <img :src="effect.icon" :alt="effect.name" :title="`${effect.name} (${effect.turns})\n${effect.description}`" />
-            </div>
+            <StatusBar :effects="enemies[0].statusEffects" />
           </div>
           <img :src="getEnemySprite(enemies[0])" :alt="enemies[0].name" />
           <div class="enemy-health">
@@ -116,7 +106,7 @@ const getEnemySprite = (enemy: any) => {
             </div>
           </transition-group>
           <!-- Badge de número cuando se selecciona objetivo -->
-          <div v-if="isSelectingTarget && actionRequiresTarget(selectedAction) && enemies[0].isAlive" class="enemy-shortcut-badge">
+          <div v-if="isSelectingTarget && actionRequiresTarget(selectedAbility) && enemies[0].isAlive" class="enemy-shortcut-badge">
             [1]
           </div>
         </div>
@@ -131,9 +121,7 @@ const getEnemySprite = (enemy: any) => {
           <div class="player-status">
             <!-- Barra de estados del jugador -->
             <div v-if="player?.statusEffects && player.statusEffects.length" class="status-bar">
-              <div v-for="effect in player.statusEffects" :key="effect.type" class="status-effect-icon">
-                <img :src="effect.icon" :alt="effect.name" :title="`${effect.name} (${effect.turns})\n${effect.description}`" />
-              </div>
+              <StatusBar :effects="player.statusEffects" />
             </div>
             <div class="player-header">
               <h4>{{ player?.name || 'Héroe' }}</h4>
@@ -167,10 +155,10 @@ const getEnemySprite = (enemy: any) => {
       <!-- Área de acciones (derecha) -->
       <div class="actions-area">
         <div class="action-buttons">
-          <button class="action-btn" :disabled="!isPlayerTurn || isCombatEnded" @click="openAbilitiesModal">
+          <button class="action-btn" :disabled="isPlayerInputLocked" @click="openAbilitiesModal">
             🛡️ Habilidades <span class="shortcut-badge">[A]</span>
           </button>
-          <button class="action-btn flee" :disabled="!isPlayerTurn || isCombatEnded" @click="selectAction('Huir')">
+          <button class="action-btn flee" :disabled="isPlayerInputLocked" @click="selectAction('Huir')">
             🏃 Terminar Entrenamiento
           </button>
           <button class="action-btn item" :disabled="true" @click="selectAction('Objeto')">
@@ -181,20 +169,20 @@ const getEnemySprite = (enemy: any) => {
     </div>
 
     <!-- Indicador de selección de objetivo -->
-    <div v-if="isSelectingTarget">
-      <div v-if="actionRequiresTarget(selectedAction)" class="target-indicator">
-        <p>🎯 Selecciona el dummy para {{ selectedAction.toLowerCase() }}<br>
+    <div v-if="isSelectingTarget && selectedAbility">
+      <div v-if="actionRequiresTarget(selectedAbility)" class="target-indicator">
+        <p>🎯 Selecciona el dummy para {{ selectedAbility.name.toLowerCase() }}<br>
         <span class="shortcut-hint">Presiona 1 para seleccionar el dummy.</span></p>
       </div>
     </div>
 
     <!-- Overlay para el minijuego de timing -->
-    <div v-if="showTimingCircle" class="timing-overlay" :class="timingEffect">
+    <div v-if="showTimingCircle" class="timing-overlay" :class="timingEffect" @click="handleTimingCircleClick">
       <TimingCircle
         ref="timingCircleRef"
         :pointerSpeed="getPointerSpeed()"
         :radius="160"
-        @result="onTimingResult"
+        @result="handleTimingResult"
         :autoFailOnFullCircle="true"
         :generateRandomAreas="true"
       />
@@ -718,23 +706,6 @@ const getEnemySprite = (enemy: any) => {
   .modal-header h2 {
     font-size: 1.1rem;
   }
-}
-.status-bar {
-  display: flex;
-  gap: 0.3rem;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 0.2rem;
-  margin-top: -0.7rem;
-  background: rgba(30, 32, 60, 0.85);
-  border-radius: 8px;
-  padding: 0.15rem 0.4rem;
-  box-shadow: 0 2px 8px #0002;
-  min-height: 28px;
-  max-width: 120px;
-  overflow-x: auto;
-  z-index: 12;
-  position: relative;
 }
 .status-effect-icon {
   position: relative;

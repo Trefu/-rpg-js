@@ -70,4 +70,5 @@ export interface IEnemy extends ICombatant {
   addStatusEffect(effect: IStatusEffect): void
   removeStatusEffect(effectType: string): void
   reduceStatusEffects?: () => void
+  sprite?: string
 } 

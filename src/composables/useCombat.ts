@@ -1,12 +1,8 @@
 import { ref, computed, nextTick } from 'vue'
-import type { Ref } from 'vue'
 import { useGameStore } from '@/stores/game'
 import type { Player } from '@/core/Player'
-import type { Enemy } from '@/core/enemies/Enemy'
 import { AudioManager } from '@/core/AudioManager'
-import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
 import { IEnemy } from '@/core/interfaces/ICharacter'
-import type { Ability } from '@/core/interfaces/IClass'
 import type { IAbility, TimingResult } from '@/core/interfaces/IAbility'
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
@@ -92,6 +88,7 @@ export function useCombat(config: CombatConfig = {}) {
   }
 
   function selectAbility(ability: IAbility, index: number) {
+    console.log(index);
     if (abilityCooldowns.value[ability.type] > 0) return
     selectedAbility.value = ability
     closeAbilitiesModal()
@@ -215,6 +212,7 @@ export function useCombat(config: CombatConfig = {}) {
           enemy.reduceStatusEffects()
         }
         isPlayerTurn.value = true
+        isExecutingAction.value = false
         addToLog('Tu turno.')
         return
       }
@@ -376,7 +374,8 @@ export function useCombat(config: CombatConfig = {}) {
           addToLog,
           showEnemyHit,
           endPlayerTurn,
-          performTimingChallenge
+          performTimingChallenge,
+          audioManager
         })
         onAbilityUsed(ability.type, ability.cooldown)
       } else {
