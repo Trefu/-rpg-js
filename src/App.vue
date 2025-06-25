@@ -48,7 +48,7 @@ onMounted(() => {
 const handleClassSelected = async (className: string) => {
   const loader = Loader.getInstance()
   const selectedClass = loader.getClass(className)
-  
+
   if (selectedClass) {
     const player = new Player('player-1', 'Héroe', 1, 100, 10, 5)
     player.setStatsFromClass(selectedClass.baseStats)
@@ -108,47 +108,27 @@ const handleTrainingEnded = () => {
 
 <template>
   <div class="app">
-    <GameUI 
+         <GameUI 
       @reset-game="handleResetGame"
-    />
-    
-    <ClassSelector
-      v-if="currentView === 'class-selector'"
-      @class-selected="handleClassSelected"
-    />
+    /> 
 
-    <CityMap
-      v-if="currentView === 'city'"
-      @go-to-shop="handleGoToShop"
-      @go-to-expedition="handleGoToExpedition"
-      @go-to-training="handleGoToTraining"
-    />
+    <ClassSelector v-if="currentView === 'class-selector'" @class-selected="handleClassSelected" />
 
-    <ZoneSelector
-      v-if="currentView === 'expedition'"
-      @zone-selected="handleZoneSelected"
-    />
+    <CityMap v-if="currentView === 'city'" @go-to-shop="handleGoToShop" @go-to-expedition="handleGoToExpedition"
+      @go-to-training="handleGoToTraining" />
 
-    <ExpeditionMap
-      v-if="currentView === 'expedition-map'"
-      :expedition="{
-        zone: selectedZone!,
-        nodes: expeditionNodes,
-        currentNode: null,
-        completed: false
-      }"
-      @node-selected="handleNodeSelected"
-    />
+    <ZoneSelector v-if="currentView === 'expedition'" @zone-selected="handleZoneSelected" />
 
-    <CombatView
-      v-if="currentView === 'combat'"
-      @combat-ended="handleCombatEnded"
-    />
+    <ExpeditionMap v-if="currentView === 'expedition-map'" :expedition="{
+      zone: selectedZone!,
+      nodes: expeditionNodes,
+      currentNode: null,
+      completed: false
+    }" @node-selected="handleNodeSelected" />
 
-    <TrainingView
-      v-if="currentView === 'training'"
-      @training-ended="handleTrainingEnded"
-    />
+    <CombatView v-if="currentView === 'combat'" @combat-ended="handleCombatEnded" />
+
+    <TrainingView v-if="currentView === 'training'" @training-ended="handleTrainingEnded" />
 
     <!-- TODO: Implementar vista de tienda -->
     <div v-if="currentView === 'shop'">
@@ -159,7 +139,10 @@ const handleTrainingEnded = () => {
 </template>
 
 <style>
-html, body, #app, .app {
+html,
+body,
+#app,
+.app {
   height: 100%;
   min-height: 100vh;
   margin: 0;
@@ -201,7 +184,8 @@ html, body, #app, .app {
   padding: 4rem;
 }
 
-h1, h2 {
+h1,
+h2 {
   margin: 0;
 }
-</style> 
+</style>

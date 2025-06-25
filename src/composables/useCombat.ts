@@ -185,12 +185,6 @@ export function useCombat(config: CombatConfig = {}) {
     return !!ability
   }
 
-  function handleModalOverlayClick(e: MouseEvent) {
-    if ((e.target as HTMLElement).classList.contains('modal-overlay')) {
-      closeAbilitiesModal()
-    }
-  }
-
   // Lógica de combate
   function endPlayerTurn() {
     isPlayerTurn.value = false
@@ -541,7 +535,6 @@ export function useCombat(config: CombatConfig = {}) {
     showEnemyHit,
     showPlayerHit,
     actionRequiresTarget,
-    handleModalOverlayClick,
     handleTimingCircleResult
   }
 } 
