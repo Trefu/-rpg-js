@@ -423,25 +423,6 @@ export function useCombat(config: CombatConfig = {}) {
   function selectAction(action: string) {
     if (!isPlayerTurn.value || isCombatEnded.value || isExecutingAction.value) return
 
-    if (action === 'Huir') {
-      if (config.isTraining) {
-        addToLog('¡Has terminado el entrenamiento!')
-        setTimeout(() => {
-          if (config.onTrainingEnd) {
-            config.onTrainingEnd()
-          }
-        }, 2000)
-      } else {
-        addToLog('¡Has huido del combate!')
-        setTimeout(() => {
-          if (config.onCombatEnd) {
-            config.onCombatEnd(false)
-          }
-        }, 2000)
-      }
-      return
-    }
-
     if (action === 'Objeto') {
       if (config.isTraining) {
         addToLog('No puedes usar objetos durante el entrenamiento.')
