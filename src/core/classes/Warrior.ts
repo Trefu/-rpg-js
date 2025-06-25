@@ -1,6 +1,6 @@
 import { IClass } from '../interfaces/IClass'
 import type { IAbility, AbilityContext } from '../interfaces/IAbility'
-import type { IStatusEffect } from '../interfaces/IStatusEffect'
+import { StatusEffects } from '../StatusEffects'
 
 export class Warrior implements IClass {
   public readonly name = 'Warrior'
@@ -57,7 +57,7 @@ export class Warrior implements IClass {
   public readonly abilities: IAbility[] = [
     {
       name: 'Golpe Aturdidor',
-      description: 'Lanza 3 ataques rápidos. Cada uno inflige un 20% de daño y tiene un 50% de probabilidad de aturdir al objetivo si el golpe es bueno o perfecto.',
+      description: 'Lanza 3 ataques rápidos. Cada uno inflige un 20% de daño. Si el golpe es bueno o perfecto, tiene 100% de probabilidad de aturdir (reducida en 30% por cada stun existente).',
       type: 'stunStrike',
       cooldown: 3,
       execute: async ({ caster, target, addToLog, showEnemyHit, endPlayerTurn, performTimingChallenge, audioManager }: AbilityContext) => {
@@ -86,25 +86,23 @@ export class Warrior implements IClass {
           audioManager.playHitSound()
 
           if (timingResult === 'perfect' || timingResult === 'good') {
-            if (Math.random() < 0.9) {
-              // Buscar si ya existe un efecto de stun
-              const existingStun = target.statusEffects.find(e => e.type === 'stun')
-              
+            // Buscar si ya existe un efecto de stun
+            const existingStun = target.statusEffects.find(e => e.type === 'stun')
+            
+            // Calcular probabilidad de stun: 100% base, -30% por cada stun existente
+            let stunChance = 1.0 // 100%
+            if (existingStun) {
+              stunChance = Math.max(0.1, 1.0 - (existingStun.turns * 0.3)) // Mínimo 10% de probabilidad
+            }
+            
+            if (Math.random() < stunChance) {
               if (existingStun) {
                 // Si ya hay stun, añadir 1 turno más
-                existingStun.turns += 2
+                existingStun.turns += 1
                 addToLog(`¡${target.name} ha sido aturdido por ${existingStun.turns} turno(s)!`)
               } else {
-                // Si no hay stun, crear uno nuevo
-                const stunEffect: IStatusEffect = {
-                  type: 'stun',
-                  name: 'Stun',
-                  description: 'El personaje no puede realizar acciones.',
-                  turns: 1,
-                  icon: '/src/assets/icons/Splash icons/35.png',
-                  isBuff: false,
-                  turnLabel: '¡Está aturdido y pierde su turno!'
-                }
+                // Usar el efecto predefinido
+                const stunEffect = StatusEffects.createStun(1)
                 target.addStatusEffect(stunEffect)
                 addToLog(`¡${target.name} ha sido aturdido!`)
               }
