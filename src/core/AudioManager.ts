@@ -10,19 +10,19 @@ export class AudioManager {
   // Música de la montaña
   private mountainMusic = {
     exploration: new Howl({
-      src: ['/src/assets/music/mountain_ost_1.mp3'],
+      src: ['/assets/music/mountain_ost_1.mp3'],
       loop: true,
       volume: this.musicVolume,
       html5: true
     }),
     combat: new Howl({
-      src: ['/src/assets/music/mountain_ost_2.mp3'],
+      src: ['/assets/music/mountain_ost_2.mp3'],
       loop: true,
       volume: this.musicVolume,
       html5: true
     }),
     boss: new Howl({
-      src: ['/src/assets/music/mountain_ost_boss.mp3'],
+      src: ['/assets/music/mountain_ost_boss.mp3'],
       loop: true,
       volume: this.musicVolume,
       html5: true
@@ -32,23 +32,23 @@ export class AudioManager {
   // Efectos de sonido 
   private soundEffects = {
     attack: new Howl({
-      src: ['/src/assets/sounds/Stab 4-1.wav'],
+      src: ['/assets/sounds/Stab 4-1.wav'],
       volume: this.sfxVolume
     }),
     hit: new Howl({
-      src: ['/src/assets/sounds/Hit Generic 2-1.wav'],
+      src: ['/assets/sounds/Hit Generic 2-1.wav'],
       volume: this.sfxVolume
     }),
     victory: new Howl({
-      src: ['/src/assets/sounds/Special Collectible 26-1.wav'],
+      src: ['/assets/sounds/Special Collectible 26-1.wav'],
       volume: this.sfxVolume
     }),
     crit: new Howl({
-      src: ['/src/assets/sounds/Explosion Large 1-1.wav'],
+      src: ['/assets/sounds/Explosion Large 1-1.wav'],
       volume: this.sfxVolume
     }),
     bonus: new Howl({
-      src: ['/src/assets/sounds/Explosion Medium 2-1.wav'],
+      src: ['/assets/sounds/Explosion Medium 2-1.wav'],
       volume: this.sfxVolume
     })
   }
@@ -179,4 +179,4 @@ export class AudioManager {
       sound.unload()
     })
   }
-} 
+}
