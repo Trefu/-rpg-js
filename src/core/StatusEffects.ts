@@ -1,4 +1,12 @@
 import type { IStatusEffect } from './interfaces/IStatusEffect'
+import stunIcon from '@/assets/icons/splash-icons/35.png'
+import burnIcon from '@/assets/icons/splash-icons/10.png'
+import poisonIcon from '@/assets/icons/splash-icons/11.png'
+import strengthIcon from '@/assets/icons/splash-icons/1.png'
+import defenseIcon from '@/assets/icons/splash-icons/2.png'
+import speedIcon from '@/assets/icons/splash-icons/3.png'
+import weaknessIcon from '@/assets/icons/splash-icons/12.png'
+import slowIcon from '@/assets/icons/splash-icons/13.png'
 
 export class StatusEffects {
   // Efectos de aturdimiento
@@ -7,7 +15,7 @@ export class StatusEffects {
     name: 'Aturdido',
     description: 'El personaje no puede realizar acciones.',
     turns: 1,
-    icon: '/src/assets/icons/splash-icons/35.png',
+    icon: stunIcon,
     isBuff: false,
     turnLabel: '¡Está aturdido y pierde su turno!'
   }
@@ -17,7 +25,7 @@ export class StatusEffects {
     name: 'Aturdido Extendido',
     description: 'El personaje no puede realizar acciones por múltiples turnos.',
     turns: 2,
-    icon: '/src/assets/icons/splash-icons/35.png',
+    icon: stunIcon,
     isBuff: false,
     turnLabel: '¡Está aturdido y pierde su turno!'
   }
@@ -28,7 +36,7 @@ export class StatusEffects {
     name: 'Quemado',
     description: 'El personaje recibe daño por tiempo.',
     turns: 3,
-    icon: '/src/assets/icons/splash-icons/10.png',
+    icon: burnIcon,
     isBuff: false,
     turnLabel: '¡Recibe daño por quemadura!',
     damagePerTurn: 5
@@ -39,7 +47,7 @@ export class StatusEffects {
     name: 'Envenenado',
     description: 'El personaje recibe daño por veneno.',
     turns: 4,
-    icon: '/src/assets/icons/splash-icons/11.png',
+    icon: poisonIcon,
     isBuff: false,
     turnLabel: '¡Recibe daño por veneno!',
     damagePerTurn: 3
@@ -51,7 +59,7 @@ export class StatusEffects {
     name: 'Fuerza Aumentada',
     description: 'Aumenta el ataque del personaje.',
     turns: 3,
-    icon: '/src/assets/icons/splash-icons/1.png',
+    icon: strengthIcon,
     isBuff: true,
     turnLabel: '¡Su fuerza está aumentada!',
     attackBonus: 5
@@ -62,7 +70,7 @@ export class StatusEffects {
     name: 'Defensa Aumentada',
     description: 'Aumenta la defensa del personaje.',
     turns: 3,
-    icon: '/src/assets/icons/splash-icons/2.png',
+    icon: defenseIcon,
     isBuff: true,
     turnLabel: '¡Su defensa está aumentada!',
     defenseBonus: 3
@@ -73,7 +81,7 @@ export class StatusEffects {
     name: 'Velocidad Aumentada',
     description: 'Aumenta la velocidad del personaje.',
     turns: 2,
-    icon: '/src/assets/icons/splash-icons/3.png',
+    icon: speedIcon,
     isBuff: true,
     turnLabel: '¡Su velocidad está aumentada!',
     speedBonus: 2
@@ -85,7 +93,7 @@ export class StatusEffects {
     name: 'Debilitado',
     description: 'Reduce el ataque del personaje.',
     turns: 2,
-    icon: '/src/assets/icons/splash-icons/12.png',
+    icon: weaknessIcon,
     isBuff: false,
     turnLabel: '¡Está debilitado!',
     attackPenalty: -3
@@ -96,7 +104,7 @@ export class StatusEffects {
     name: 'Ralentizado',
     description: 'Reduce la velocidad del personaje.',
     turns: 2,
-    icon: '/src/assets/icons/splash-icons/13.png',
+    icon: slowIcon,
     isBuff: false,
     turnLabel: '¡Está ralentizado!',
     speedPenalty: -1
@@ -157,4 +165,4 @@ export class StatusEffects {
     
     return effects.find(effect => effect.type === type) || null
   }
-} 
+}
