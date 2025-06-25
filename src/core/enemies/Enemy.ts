@@ -9,10 +9,6 @@ export abstract class Enemy extends Character implements ICombatant {
   public readonly experienceReward: number
   public readonly goldReward: { min: number; max: number }
   public stunTurns: number = 0;
-  public readonly specialAbility = {
-    name: 'Ataque Básico',
-    description: 'Ataque normal del enemigo'
-  }
   public statusEffects: IStatusEffect[] = [];
 
   constructor(

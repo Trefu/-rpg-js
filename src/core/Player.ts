@@ -13,10 +13,6 @@ export class Player extends Character implements ICombatant, ILevelable, IInvent
   public gold: number
   public items: string[]
   public stats: IPlayerStats
-  public readonly specialAbility = {
-    name: 'Ataque Básico',
-    description: 'Ataque normal del jugador'
-  }
   private baseAttack: number
   private baseDefense: number
   public classRef?: any

@@ -24,42 +24,37 @@ export class Warrior implements IClass {
     carisma: 1
   }
 
-  public readonly specialAbility = {
-    name: 'Berserker Rage',
-    description: 'Aumenta el ataque y la velocidad durante 3 turnos.',
-    cooldown: 5
+  public readonly baseAttackAbility: IAbility = {
+    name: 'Atacar',
+    description: 'Un ataque básico con daño completo.',
+    type: 'attack',
+    cooldown: 0,
+    execute: async ({ caster, target, addToLog, showEnemyHit, endPlayerTurn, performTimingChallenge, audioManager }: AbilityContext) => {
+      audioManager.playAttackSound()
+      const timingResult = await performTimingChallenge()
+      
+      let damageMultiplier = 1.0
+      if (timingResult === 'perfect') damageMultiplier = 1.5
+      if (timingResult === 'good') damageMultiplier = 1.0
+      if (timingResult === 'bad') damageMultiplier = 0.5
+      if (timingResult === 'miss') damageMultiplier = 0
+      
+      const finalDamage = Math.round(caster.attack() * damageMultiplier)
+      
+      if (finalDamage > 0) {
+        target.takeDamage(finalDamage)
+        addToLog(`${caster.name} ataca e inflige ${finalDamage} de daño.`)
+        showEnemyHit(target.id, finalDamage)
+        audioManager.playHitSound()
+      } else {
+        addToLog(`${caster.name} falla el ataque.`)
+      }
+      
+      endPlayerTurn()
+    }
   }
 
   public readonly abilities: IAbility[] = [
-    {
-      name: 'Atacar',
-      description: 'Un ataque básico con daño completo.',
-      type: 'attack',
-      cooldown: 0,
-      execute: async ({ caster, target, addToLog, showEnemyHit, endPlayerTurn, performTimingChallenge, audioManager }: AbilityContext) => {
-        audioManager.playAttackSound()
-        const timingResult = await performTimingChallenge()
-        
-        let damageMultiplier = 1.0
-        if (timingResult === 'perfect') damageMultiplier = 1.5
-        if (timingResult === 'good') damageMultiplier = 1.0
-        if (timingResult === 'bad') damageMultiplier = 0.5
-        if (timingResult === 'miss') damageMultiplier = 0
-        
-        const finalDamage = Math.round(caster.attack() * damageMultiplier)
-        
-        if (finalDamage > 0) {
-          target.takeDamage(finalDamage)
-          addToLog(`${caster.name} ataca e inflige ${finalDamage} de daño.`)
-          showEnemyHit(target.id, finalDamage)
-          audioManager.playHitSound()
-        } else {
-          addToLog(`${caster.name} falla el ataque.`)
-        }
-        
-        endPlayerTurn()
-      }
-    },
     {
       name: 'Golpe Aturdidor',
       description: 'Lanza 3 ataques rápidos. Cada uno inflige un 20% de daño y tiene un 50% de probabilidad de aturdir al objetivo si el golpe es bueno o perfecto.',

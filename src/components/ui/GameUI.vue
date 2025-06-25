@@ -63,9 +63,9 @@ const resetGame = () => {
           </ul>
         </div>
         <div class="info-section">
-          <h4>Habilidad Especial</h4>
-          <p>{{ player.specialAbility.name }}</p>
-          <small>{{ player.specialAbility.description }}</small>
+          <h4>Habilidad Inicial</h4>
+          <p>{{ player.classRef?.abilities[0]?.name || 'Sin habilidad' }}</p>
+          <small>{{ player.classRef?.abilities[0]?.description || 'No hay habilidad disponible' }}</small>
         </div>
       </div>
     </div>

@@ -41,13 +41,30 @@ export function useCombat(config: CombatConfig = {}) {
   let popupKey = 0
 
   const abilities = computed(() => {
-    if (player.value && player.value.classRef && player.value.classRef.abilities) {
-      return player.value.classRef.abilities
+    let allAbilities: IAbility[] = []
+    
+    if (player.value && player.value.classRef) {
+      // Add base attack ability first
+      if (player.value.classRef.baseAttackAbility) {
+        allAbilities.push(player.value.classRef.baseAttackAbility)
+      }
+      // Add other abilities
+      if (player.value.classRef.abilities) {
+        allAbilities = allAbilities.concat(player.value.classRef.abilities)
+      }
+    } else if (player.value && player.value.constructor) {
+      // Fallback for constructor-based abilities
+      if (player.value.constructor.baseAttackAbility) {
+        allAbilities.push(player.value.constructor.baseAttackAbility)
+      }
+      if (player.value.constructor.abilities) {
+        allAbilities = allAbilities.concat(player.value.constructor.abilities)
+      }
+    } else if (player.value?.abilities) {
+      allAbilities = player.value.abilities
     }
-    if (player.value && player.value.constructor.abilities) {
-      return player.value.constructor.abilities
-    }
-    return player.value?.abilities || []
+    
+    return allAbilities
   })
 
   const aliveEnemies = computed(() => enemies.value.filter(enemy => enemy.isAlive))
@@ -62,7 +79,7 @@ export function useCombat(config: CombatConfig = {}) {
   // Cooldowns
   function resetAbilityCooldowns() {
     abilityCooldowns.value = {}
-    abilities.value.forEach((a: any) => {
+    abilities.value.forEach((a: IAbility) => {
       abilityCooldowns.value[a.type] = 0
     })
   }
@@ -403,10 +420,10 @@ export function useCombat(config: CombatConfig = {}) {
     }
   }
 
-  type ActionType = 'attack' | 'skill' | 'spell' | 'stunStrike'
+  type ActionType = 'attack' | 'skill' | 'spell' | 'stunStrike' | 'stealthStrike' | 'fireball'
 
   function isActionType(action: string): action is ActionType {
-    return action === 'attack' || action === 'skill' || action === 'spell' || action === 'stunStrike';
+    return action === 'attack' || action === 'skill' || action === 'spell' || action === 'stunStrike' || action === 'stealthStrike' || action === 'fireball';
   }
 
   function selectAction(action: string) {
