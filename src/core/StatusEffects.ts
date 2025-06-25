@@ -7,7 +7,7 @@ export class StatusEffects {
     name: 'Aturdido',
     description: 'El personaje no puede realizar acciones.',
     turns: 1,
-    icon: '/src/assets/icons/Splash icons/35.png',
+    icon: '/src/assets/icons/splash-icons/35.png',
     isBuff: false,
     turnLabel: '¡Está aturdido y pierde su turno!'
   }
