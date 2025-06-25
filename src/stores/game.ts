@@ -6,7 +6,6 @@ export type GameLocation = 'class-selector' | 'city' | 'expedition' | 'shop' | '
 interface GameState {
   player: Player | null
   currentLevel: number
-  currentScore: number
   isGameStarted: boolean
   currentLocation: GameLocation
   gold: number
@@ -17,7 +16,6 @@ export const useGameStore = defineStore('game', {
   state: (): GameState => ({
     player: null,
     currentLevel: 1,
-    currentScore: 0,
     isGameStarted: false,
     currentLocation: 'class-selector',
     gold: 0,
@@ -29,10 +27,6 @@ export const useGameStore = defineStore('game', {
       this.player = character
       this.isGameStarted = true
       this.currentLocation = 'city'
-    },
-
-    updateScore(points: number) {
-      this.currentScore += points
     },
 
     levelUp() {
@@ -55,7 +49,6 @@ export const useGameStore = defineStore('game', {
     resetGame() {
       this.player = null
       this.currentLevel = 1
-      this.currentScore = 0
       this.isGameStarted = false
       this.currentLocation = 'class-selector'
       this.gold = 0

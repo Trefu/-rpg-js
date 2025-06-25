@@ -9,7 +9,7 @@ const emit = defineEmits<{
 }>()
 
 const gameStore = useGameStore()
-const { player, currentLevel, currentScore } = storeToRefs(gameStore)
+const { player, currentLevel } = storeToRefs(gameStore)
 
 const showCharacter = ref(false)
 
@@ -26,7 +26,6 @@ const resetGame = () => {
     <div class="top-bar">
       <div class="stats">
         <span class="level">Nivel: {{ currentLevel }}</span>
-        <span class="score">Puntuación: {{ currentScore }}</span>
       </div>
       <div class="actions">
         <AudioControls />
@@ -97,7 +96,7 @@ const resetGame = () => {
   gap: 1rem;
 }
 
-.level, .score {
+.level{
   font-size: 1.1rem;
   font-weight: bold;
 }
