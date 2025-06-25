@@ -1,5 +1,5 @@
 import type { INode, IZone } from '@/core/interfaces/IExpedition'
-import { Goblin } from '@/core/enemies/Goblin'
+import { getEnemiesForNode } from '@/core/zones/EnemyPools'
 
 interface NodePosition {
   x: number
@@ -131,7 +131,7 @@ function generateRandomNodes(zone: IZone): INode[] {
       `path${index + 1}`,
       'combat',
       generateRandomPosition(1, index, config.initialPaths, config.floors),
-      [new Goblin(1), new Goblin(1)]
+      getEnemiesForNode(zone.id, 1, config.floors)
     )
   )
 
@@ -148,7 +148,7 @@ function generateRandomNodes(zone: IZone): INode[] {
       const nodeType = generateNodeType(floor + 1, config)
       const nodeId = `${nodeType}${floor + 1}-${i}`
       const position = generateRandomPosition(floor + 1, i, nodesInNextFloor, config.floors)
-      const enemies = nodeType === 'combat' ? [new Goblin(1)] : []
+      const enemies = nodeType === 'combat' ? getEnemiesForNode(zone.id, floor + 1, config.floors) : []
       nodes[floor + 1].push(createNode(nodeId, nodeType, position, enemies))
     }
 
@@ -203,7 +203,7 @@ function generateRandomNodes(zone: IZone): INode[] {
   }
 
   // Añadir y conectar nodo final (boss)
-  const bossNode = createNode('boss', 'boss', { x: 50, y: 100 }, [new Goblin(2)])
+  const bossNode = createNode('boss', 'boss', { x: 50, y: 100 }, getEnemiesForNode(zone.id, config.floors, config.floors))
   nodes[config.floors - 1] = [bossNode]
 
   // Conectar penúltimo piso con el boss

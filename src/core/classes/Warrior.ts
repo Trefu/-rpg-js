@@ -1,6 +1,6 @@
 import { IClass } from '../interfaces/IClass'
 import type { IAbility, AbilityContext } from '../interfaces/IAbility'
-import type { IStatusEffect } from '../interfaces/IStatusEffect'
+import { StatusEffects } from '../StatusEffects'
 
 export class Warrior implements IClass {
   public readonly name = 'Warrior'
@@ -8,7 +8,7 @@ export class Warrior implements IClass {
   
   public readonly baseStats = {
     fuerza: 10,
-    destreza: 5,
+    destreza: 15,
     inteligencia: 5,
     sabiduria: 10,
     constitucion: 14,
@@ -24,65 +24,92 @@ export class Warrior implements IClass {
     carisma: 1
   }
 
-  public readonly specialAbility = {
-    name: 'Berserker Rage',
-    description: 'Aumenta el ataque y la velocidad durante 3 turnos.',
-    cooldown: 5
+  public readonly baseAttackAbility: IAbility = {
+    name: 'Atacar',
+    description: 'Un ataque básico con daño completo.',
+    type: 'attack',
+    cooldown: 0,
+    execute: async ({ caster, target, addToLog, showEnemyHit, endPlayerTurn, performTimingChallenge, audioManager }: AbilityContext) => {
+      audioManager.playAttackSound()
+      const timingResult = await performTimingChallenge()
+      
+      let damageMultiplier = 1.0
+      if (timingResult === 'perfect') damageMultiplier = 1.5
+      if (timingResult === 'good') damageMultiplier = 1.0
+      if (timingResult === 'bad') damageMultiplier = 0.5
+      if (timingResult === 'miss') damageMultiplier = 0
+      
+      const finalDamage = Math.round(caster.attack() * damageMultiplier)
+      
+      if (finalDamage > 0) {
+        target.takeDamage(finalDamage)
+        addToLog(`${caster.name} ataca e inflige ${finalDamage} de daño.`)
+        showEnemyHit(target.id, finalDamage)
+        audioManager.playHitSound()
+      } else {
+        addToLog(`${caster.name} falla el ataque.`)
+      }
+      
+      endPlayerTurn()
+    }
   }
 
   public readonly abilities: IAbility[] = [
     {
-      name: 'Atacar',
-      description: 'Un ataque básico con daño completo.',
-      type: 'attack',
-      cooldown: 0,
-      execute: ({ caster, target, addToLog, showEnemyHit, timingResult, endPlayerTurn }: AbilityContext) => {
-        let damageMultiplier = 1.0
-        if (timingResult === 'perfect') damageMultiplier = 1.5
-        if (timingResult === 'good') damageMultiplier = 1.0
-        if (timingResult === 'bad') damageMultiplier = 0.5
-        if (timingResult === 'miss') damageMultiplier = 0
-        
-        const finalDamage = Math.round(caster.attack() * damageMultiplier)
-        
-        if (finalDamage > 0) {
-          target.takeDamage(finalDamage)
-          addToLog(`${caster.name} ataca e inflige ${finalDamage} de daño.`)
-          showEnemyHit(target.id, finalDamage)
-        } else {
-          addToLog(`${caster.name} falla el ataque.`)
-        }
-        
-        endPlayerTurn()
-      }
-    },
-    {
       name: 'Golpe Aturdidor',
-      description: 'Inflige 80% de daño y puede aturdir al enemigo.',
+      description: 'Lanza 3 ataques rápidos. Cada uno inflige un 20% de daño. Si el golpe es bueno o perfecto, tiene 100% de probabilidad de aturdir (reducida en 30% por cada stun existente).',
       type: 'stunStrike',
       cooldown: 3,
-      execute: ({ caster, target, addToLog, showEnemyHit, timingResult, endPlayerTurn }: AbilityContext) => {
-        const baseDamage = Math.round(caster.attack() * 0.8)
-        
-        if (timingResult === 'perfect' || timingResult === 'good') {
-          target.takeDamage(baseDamage)
-          addToLog(`${caster.name} usa Golpe Aturdidor e inflige ${baseDamage} de daño.`)
-          showEnemyHit(target.id, baseDamage)
-          
-          const stunEffect: IStatusEffect = {
-            type: 'stun',
-            name: 'Stun',
-            description: 'El personaje no puede realizar acciones.',
-            turns: 1,
-            icon: '/src/assets/icons/Splash icons/35.png',
-            isBuff: false,
-            turnLabel: '¡Está aturdido y pierde su turno!'
+      execute: async ({ caster, target, addToLog, showEnemyHit, endPlayerTurn, performTimingChallenge, audioManager }: AbilityContext) => {
+        for (let i = 0; i < 3; i++) {
+          if (!target.isAlive) break
+
+          addToLog(`Golpe ${i + 1} de 3...`)
+
+          const timingResult = await performTimingChallenge()
+
+          if (timingResult === 'miss') {
+            addToLog('¡Fallado!')
+            continue
           }
-          target.addStatusEffect(stunEffect)
-          addToLog(`${target.name} ha sido aturdido.`)
+
+          // Calcular daño basado en el timing
+          let damageMultiplier = 0.2 // 20% base para timing malo
+          if (timingResult === 'good') damageMultiplier = 0.3 // 30% para timing bueno (+50%)
+          if (timingResult === 'perfect') damageMultiplier = 0.4 // 40% para timing perfecto (+100%)
           
-        } else {
-          addToLog(`${caster.name} falla su Golpe Aturdidor.`)
+          const finalDamage = Math.round(caster.attack() * damageMultiplier)
+
+          target.takeDamage(finalDamage)
+          addToLog(`Infliges ${finalDamage} de daño.`)
+          showEnemyHit(target.id, finalDamage)
+          audioManager.playHitSound()
+
+          if (timingResult === 'perfect' || timingResult === 'good') {
+            // Buscar si ya existe un efecto de stun
+            const existingStun = target.statusEffects.find(e => e.type === 'stun')
+            
+            // Calcular probabilidad de stun: 100% base, -30% por cada stun existente
+            let stunChance = 1.0 // 100%
+            if (existingStun) {
+              stunChance = Math.max(0.1, 1.0 - (existingStun.turns * 0.3)) // Mínimo 10% de probabilidad
+            }
+            
+            if (Math.random() < stunChance) {
+              if (existingStun) {
+                // Si ya hay stun, añadir 1 turno más
+                existingStun.turns += 1
+                addToLog(`¡${target.name} ha sido aturdido por ${existingStun.turns} turno(s)!`)
+              } else {
+                // Usar el efecto predefinido
+                const stunEffect = StatusEffects.createStun(1)
+                target.addStatusEffect(stunEffect)
+                addToLog(`¡${target.name} ha sido aturdido!`)
+              }
+            } else {
+              addToLog('El aturdimiento falló.')
+            }
+          }
         }
         
         endPlayerTurn()

@@ -17,10 +17,6 @@ export interface ICharacter {
   takeDamage(amount: number): void
   heal(amount: number): void
   getHealthPercentage(): number
-  specialAbility: {
-    name: string
-    description: string
-  }
 }
 
 export interface IPlayerStats {
@@ -70,4 +66,5 @@ export interface IEnemy extends ICombatant {
   addStatusEffect(effect: IStatusEffect): void
   removeStatusEffect(effectType: string): void
   reduceStatusEffects?: () => void
+  sprite?: string
 } 

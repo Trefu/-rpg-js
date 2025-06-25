@@ -67,9 +67,9 @@ const selectClass = (characterClass: IClass) => {
             </ul>
           </div>
           <div class="ability">
-            <h4>Habilidad especial:</h4>
-            <p>{{ characterClass.specialAbility.name }}</p>
-            <small>{{ characterClass.specialAbility.description }}</small>
+            <h4>Habilidad inicial:</h4>
+            <p>{{ characterClass.abilities[0]?.name || 'Sin habilidad' }}</p>
+            <small>{{ characterClass.abilities[0]?.description || 'No hay habilidad disponible' }}</small>
           </div>
         </div>
       </div>

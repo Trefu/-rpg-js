@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 
+// Constantes
+const DEFAULT_RADIUS = 120
+const MARGIN = 10
+
 interface Area {
   startAngle: number // en grados, 0 = arriba
   endAngle: number   // en grados
@@ -15,6 +19,7 @@ const props = defineProps<{
   radius?: number              // Radio del círculo (opcional)
   autoFailOnFullCircle?: boolean // Si true, al dar una vuelta completa se emite 'normal'
   generateRandomAreas?: boolean // Si true, genera áreas aleatorias
+  randomPosition?: boolean      // Si true, posiciona el círculo aleatoriamente en el viewport
 }>()
 
 const emit = defineEmits<{
@@ -26,13 +31,28 @@ const isRunning = ref(false)
 let animationFrame: number | null = null
 let lastTimestamp = 0
 
+// Posición aleatoria
+const randomPosition = ref({ x: 0, y: 0 })
+
 // Áreas generadas aleatoriamente
 const randomAreas = ref<Area[]>([])
 
 // SVG size helpers
-const size = computed(() => props.radius ? props.radius * 2 : 200)
+const size = computed(() => props.radius ? props.radius * 2 : DEFAULT_RADIUS * 2)
 const center = computed(() => size.value / 2)
-const circleRadius = computed(() => (props.radius ?? 100) - 10) // margen de 10px
+const circleRadius = computed(() => (props.radius ?? DEFAULT_RADIUS) - MARGIN) // margen de 10px
+
+// Función para generar posición aleatoria dentro del viewport
+function generateRandomPosition() {
+  const margin = 50 // Margen mínimo desde los bordes
+  const maxX = window.innerWidth - size.value - margin
+  const maxY = window.innerHeight - size.value - margin
+  
+  randomPosition.value = {
+    x: Math.max(margin, Math.random() * maxX),
+    y: Math.max(margin, Math.random() * maxY)
+  }
+}
 
 // Función para generar áreas aleatorias
 function generateRandomAreas(): Area[] {
@@ -87,7 +107,25 @@ const currentAreas = computed(() => {
   return props.areas || []
 })
 
+// Estilos de posición
+const positionStyles = computed(() => {
+  if (props.randomPosition) {
+    return {
+      position: 'fixed' as const,
+      left: `${randomPosition.value.x}px`,
+      top: `${randomPosition.value.y}px`,
+      transform: 'none'
+    }
+  }
+  return {}
+})
+
 function start() {
+  // Generar nueva posición aleatoria si es necesario
+  if (props.randomPosition) {
+    generateRandomPosition()
+  }
+  
   // Generar nuevas áreas aleatorias si es necesario
   if (props.generateRandomAreas) {
     randomAreas.value = generateRandomAreas()
@@ -169,7 +207,7 @@ function polarToCartesian(cx: number, cy: number, r: number, angle: number) {
 </script>
 
 <template>
-  <div class="timing-circle">
+  <div class="timing-circle" :style="positionStyles">
     <svg
       :width="size"
       :height="size"
@@ -222,7 +260,7 @@ function polarToCartesian(cx: number, cy: number, r: number, angle: number) {
   background: rgba(0,0,0,0.7);
   border-radius: 16px;
   padding: 2rem;
-  z-index: 2000;
+  z-index: 3500; /* Mayor que el overlay (3000) */
 }
 svg {
   user-select: none;

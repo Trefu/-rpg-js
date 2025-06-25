@@ -19,11 +19,7 @@ export interface IClass {
     constitucion: number
     carisma: number
   }
-  specialAbility: {
-    name: string
-    description: string
-    cooldown: number
-  }
+  baseAttackAbility: IAbility
   abilities: IAbility[]
 }
 

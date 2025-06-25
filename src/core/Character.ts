@@ -9,10 +9,6 @@ export abstract class Character implements ICharacter {
   public maxHealth: number
   public isAlive: boolean
   public statusEffects: IStatusEffect[] = []
-  public readonly specialAbility = {
-    name: 'Basic Ability',
-    description: 'Basic character ability'
-  }
 
   // Abstract methods that subclasses must implement
   abstract attack(): number

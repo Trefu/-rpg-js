@@ -1,18 +1,14 @@
 import { Character } from '../Character'
 import { ICombatant } from '../interfaces/ICharacter'
-import type { IStatusEffect } from '../interfaces/ICharacter'
+import type { IStatusEffect } from '../interfaces/IStatusEffect'
 
 export abstract class Enemy extends Character implements ICombatant {
-  protected baseAttack: number
-  protected baseDefense: number
-  protected baseMagic: number
+  public baseAttack: number
+  public baseDefense: number
+  public baseMagic: number
   public readonly experienceReward: number
-  public readonly goldReward: number
+  public readonly goldReward: { min: number; max: number }
   public stunTurns: number = 0;
-  public readonly specialAbility = {
-    name: 'Ataque Básico',
-    description: 'Ataque normal del enemigo'
-  }
   public statusEffects: IStatusEffect[] = [];
 
   constructor(
@@ -24,7 +20,7 @@ export abstract class Enemy extends Character implements ICombatant {
     baseDefense: number,
     baseMagic: number,
     experienceReward: number,
-    goldReward: number
+    goldReward: { min: number; max: number }
   ) {
     super(id, name, level, maxHealth)
     this.baseAttack = baseAttack
@@ -48,9 +44,10 @@ export abstract class Enemy extends Character implements ICombatant {
   }
 
   public getRewards(): { experience: number; gold: number } {
+    const goldAmount = Math.floor(Math.random() * (this.goldReward.max - this.goldReward.min + 1)) + this.goldReward.min
     return {
       experience: this.experienceReward,
-      gold: this.goldReward
+      gold: goldAmount
     }
   }
 

@@ -1,5 +1,6 @@
 import { Character } from './Character'
-import { ICombatant, ILevelable, IInventory, IPlayerStats, IStatusEffect } from './interfaces/ICharacter'
+import { ICombatant, ILevelable, IInventory, IPlayerStats } from './interfaces/ICharacter'
+import { IStatusEffect } from './interfaces/IStatusEffect'
 
 export interface TimingContext {
   action?: string // 'attack', 'skill', 'spell', etc.
@@ -12,10 +13,6 @@ export class Player extends Character implements ICombatant, ILevelable, IInvent
   public gold: number
   public items: string[]
   public stats: IPlayerStats
-  public readonly specialAbility = {
-    name: 'Ataque Básico',
-    description: 'Ataque normal del jugador'
-  }
   private baseAttack: number
   private baseDefense: number
   public classRef?: any
