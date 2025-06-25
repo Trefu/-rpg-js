@@ -36,7 +36,7 @@ const handleModalOverlayClick = (e: MouseEvent) => {
     <div v-if="show" class="modal-overlay" @mousedown="handleModalOverlayClick">
       <div class="modal abilities-modal">
         <div class="modal-header">
-          <img src="/src/assets/icons/menu/Skills.png" class="modal-main-icon" alt="Habilidades" />
+          <img src="/src/assets/icons/menu/skill.png" class="modal-main-icon" alt="Habilidades" />
           <h2>Habilidades</h2>
           <button class="modal-close-btn" @click="closeModal" title="Cerrar">✕</button>
         </div>
