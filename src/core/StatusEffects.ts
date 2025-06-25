@@ -17,7 +17,7 @@ export class StatusEffects {
     name: 'Aturdido Extendido',
     description: 'El personaje no puede realizar acciones por múltiples turnos.',
     turns: 2,
-    icon: '/src/assets/icons/Splash icons/35.png',
+    icon: '/src/assets/icons/splash-icons/35.png',
     isBuff: false,
     turnLabel: '¡Está aturdido y pierde su turno!'
   }
@@ -28,7 +28,7 @@ export class StatusEffects {
     name: 'Quemado',
     description: 'El personaje recibe daño por tiempo.',
     turns: 3,
-    icon: '/src/assets/icons/Splash icons/10.png',
+    icon: '/src/assets/icons/splash-icons/10.png',
     isBuff: false,
     turnLabel: '¡Recibe daño por quemadura!',
     damagePerTurn: 5
@@ -39,7 +39,7 @@ export class StatusEffects {
     name: 'Envenenado',
     description: 'El personaje recibe daño por veneno.',
     turns: 4,
-    icon: '/src/assets/icons/Splash icons/11.png',
+    icon: '/src/assets/icons/splash-icons/11.png',
     isBuff: false,
     turnLabel: '¡Recibe daño por veneno!',
     damagePerTurn: 3
@@ -51,7 +51,7 @@ export class StatusEffects {
     name: 'Fuerza Aumentada',
     description: 'Aumenta el ataque del personaje.',
     turns: 3,
-    icon: '/src/assets/icons/Splash icons/1.png',
+    icon: '/src/assets/icons/splash-icons/1.png',
     isBuff: true,
     turnLabel: '¡Su fuerza está aumentada!',
     attackBonus: 5
@@ -62,7 +62,7 @@ export class StatusEffects {
     name: 'Defensa Aumentada',
     description: 'Aumenta la defensa del personaje.',
     turns: 3,
-    icon: '/src/assets/icons/Splash icons/2.png',
+    icon: '/src/assets/icons/splash-icons/2.png',
     isBuff: true,
     turnLabel: '¡Su defensa está aumentada!',
     defenseBonus: 3
@@ -73,7 +73,7 @@ export class StatusEffects {
     name: 'Velocidad Aumentada',
     description: 'Aumenta la velocidad del personaje.',
     turns: 2,
-    icon: '/src/assets/icons/Splash icons/3.png',
+    icon: '/src/assets/icons/splash-icons/3.png',
     isBuff: true,
     turnLabel: '¡Su velocidad está aumentada!',
     speedBonus: 2
@@ -85,7 +85,7 @@ export class StatusEffects {
     name: 'Debilitado',
     description: 'Reduce el ataque del personaje.',
     turns: 2,
-    icon: '/src/assets/icons/Splash icons/12.png',
+    icon: '/src/assets/icons/splash-icons/12.png',
     isBuff: false,
     turnLabel: '¡Está debilitado!',
     attackPenalty: -3
@@ -96,7 +96,7 @@ export class StatusEffects {
     name: 'Ralentizado',
     description: 'Reduce la velocidad del personaje.',
     turns: 2,
-    icon: '/src/assets/icons/Splash icons/13.png',
+    icon: '/src/assets/icons/splash-icons/13.png',
     isBuff: false,
     turnLabel: '¡Está ralentizado!',
     speedPenalty: -1

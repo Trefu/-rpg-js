@@ -43,11 +43,11 @@ const handleModalOverlayClick = (e: MouseEvent) => {
         <ul class="abilities-list">
           <li v-for="(ability, idx) in abilities" :key="ability.type" class="ability-item" :class="{ 'on-cooldown': abilityCooldowns[ability.type] > 0 }">
             <div class="ability-info">
-              <img v-if="ability.type === 'attack'" src="/src/assets/icons/Splash icons/1.png" class="ability-icon-lg" alt="Atacar" />
-              <img v-else-if="ability.type === 'stunStrike'" src="/src/assets/icons/Splash icons/35.png" class="ability-icon-lg" alt="Golpe Aturdidor" />
-              <img v-else-if="ability.type === 'stealthStrike'" src="/src/assets/icons/Splash icons/2.png" class="ability-icon-lg" alt="Golpe Sigiloso" />
-              <img v-else-if="ability.type === 'fireball'" src="/src/assets/icons/Splash icons/10.png" class="ability-icon-lg" alt="Bola de Fuego" />
-              <img v-else src="/src/assets/icons/Splash icons/1.png" class="ability-icon-lg" :alt="ability.name" />
+              <img v-if="ability.type === 'attack'" src="/src/assets/icons/splash-icons/1.png" class="ability-icon-lg" alt="Atacar" />
+              <img v-else-if="ability.type === 'stunStrike'" src="/src/assets/icons/splash-icons/35.png" class="ability-icon-lg" alt="Golpe Aturdidor" />
+              <img v-else-if="ability.type === 'stealthStrike'" src="/src/assets/icons/splash-icons/2.png" class="ability-icon-lg" alt="Golpe Sigiloso" />
+              <img v-else-if="ability.type === 'fireball'" src="/src/assets/icons/splash-icons/10.png" class="ability-icon-lg" alt="Bola de Fuego" />
+              <img v-else src="/src/assets/icons/splash-icons/1.png" class="ability-icon-lg" :alt="ability.name" />
               <div class="ability-meta">
                 <div class="ability-name">{{ ability.name }}</div>
                 <div class="ability-type">Tipo: {{ ability.type }}</div>
