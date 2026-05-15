@@ -9,7 +9,7 @@ const emit = defineEmits<{
 }>()
 
 const gameStore = useGameStore()
-const { player, currentLevel } = storeToRefs(gameStore)
+const { player } = storeToRefs(gameStore)
 
 const showCharacter = ref(false)
 
@@ -25,7 +25,7 @@ const resetGame = () => {
   <div class="game-ui">
     <div class="top-bar">
       <div class="stats">
-        <span class="level">Nivel: {{ currentLevel }}</span>
+        <span class="level">Nivel: {{ player?.level || 1 }}</span>
       </div>
       <div class="actions">
         <AudioControls />
@@ -56,15 +56,19 @@ const resetGame = () => {
             <li>Fuerza: {{ player.stats.fuerza }}</li>
             <li>Destreza: {{ player.stats.destreza }}</li>
             <li>Inteligencia: {{ player.stats.inteligencia }}</li>
-            <li>Sabiduría: {{ player.stats.sabiduria }}</li>
-            <li>Constitución: {{ player.stats.constitucion }}</li>
+            <li>Sabiduria: {{ player.stats.sabiduria }}</li>
+            <li>Constitucion: {{ player.stats.constitucion }}</li>
             <li>Carisma: {{ player.stats.carisma }}</li>
           </ul>
         </div>
         <div class="info-section">
-          <h4>Habilidad Inicial</h4>
-          <p>{{ player.classRef?.abilities[0]?.name || 'Sin habilidad' }}</p>
-          <small>{{ player.classRef?.abilities[0]?.description || 'No hay habilidad disponible' }}</small>
+          <h4>Habilidades</h4>
+          <ul v-if="player.abilities.length > 0">
+            <li v-for="ability in player.abilities" :key="ability.type">
+              {{ ability.name }}
+            </li>
+          </ul>
+          <p v-else>Sin habilidades - TODO: aprender habilidades</p>
         </div>
       </div>
     </div>
