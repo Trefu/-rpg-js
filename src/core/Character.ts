@@ -10,10 +10,8 @@ export abstract class Character implements ICharacter {
   public isAlive: boolean
   public statusEffects: IStatusEffect[] = []
 
-  // Abstract methods that subclasses must implement
   abstract attack(): number
   abstract defense(): number
-  abstract magic(): number
 
   constructor(
     id: string,

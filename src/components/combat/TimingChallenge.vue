@@ -43,10 +43,10 @@ const onKeydown = (e: KeyboardEvent) => {
   }
 }
 
-const onClick = () => {
-  if (isActive.value) {
-    handleInput()
-  }
+const onWindowClick = (e: MouseEvent) => {
+  if (!isActive.value) return
+  e.preventDefault()
+  handleInput()
 }
 
 function animate(now: number) {
@@ -87,10 +87,12 @@ function stop() {
 
 onMounted(() => {
   window.addEventListener('keydown', onKeydown)
+  window.addEventListener('click', onWindowClick)
 })
 
 onUnmounted(() => {
   window.removeEventListener('keydown', onKeydown)
+  window.removeEventListener('click', onWindowClick)
   if (animationFrame) cancelAnimationFrame(animationFrame)
 })
 
@@ -98,7 +100,7 @@ defineExpose({ start, stop })
 </script>
 
 <template>
-  <div class="timing-challenge" @click="onClick">
+  <div class="timing-challenge">
     <svg :width="size" :height="size" :viewBox="`0 0 ${size} ${size}`">
       <defs>
         <radialGradient id="criticalGradient" cx="50%" cy="50%" r="50%">

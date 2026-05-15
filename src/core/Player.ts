@@ -1,30 +1,24 @@
 import { Character } from './Character'
-import { ICombatant, ILevelable, IInventory, IPlayerStats } from './interfaces/ICharacter'
+import { ICombatant, ILevelable, IInventory } from './interfaces/ICharacter'
 import { IStatusEffect } from './interfaces/IStatusEffect'
 import type { IAbility } from './interfaces/IAbility'
-
-export interface TimingContext {
-  action?: string
-}
 
 export class Player extends Character implements ICombatant, ILevelable, IInventory {
   public experience: number
   public experienceToNextLevel: number
   public gold: number
   public items: string[]
-  public stats: IPlayerStats
   public abilities: IAbility[]
-  private baseAttack: number
-  private baseDefense: number
   public statusEffects: IStatusEffect[] = []
+  public speed: number
 
   constructor(
     id: string,
     name: string,
     level: number = 1,
     maxHealth: number = 100,
-    baseAttack: number = 100,
-    baseDefense: number = 5
+    defense: number = 10,
+    speed: number = 10
   ) {
     super(id, name, level, maxHealth)
     this.experience = 0
@@ -32,17 +26,11 @@ export class Player extends Character implements ICombatant, ILevelable, IInvent
     this.gold = 0
     this.items = []
     this.abilities = []
-    this.baseAttack = baseAttack
-    this.baseDefense = baseDefense
-    this.stats = {
-      fuerza: 10,
-      destreza: 10,
-      inteligencia: 10,
-      sabiduria: 10,
-      constitucion: 10,
-      carisma: 10
-    }
+    this.defenseValue = defense
+    this.speed = speed
   }
+
+  public defenseValue: number = 10
 
   public learnAbility(ability: IAbility): void {
     if (!this.abilities.find(a => a.type === ability.type)) {
@@ -52,15 +40,11 @@ export class Player extends Character implements ICombatant, ILevelable, IInvent
 
   public attack(): number {
     if (!this.isAlive) return 0
-    return this.baseAttack + (this.level * 2) + Math.floor(this.stats.fuerza / 3)
+    return 10 + (this.level * 2)
   }
 
   public defense(): number {
-    return this.baseDefense + (this.level * 1) + Math.floor(this.stats.constitucion / 3)
-  }
-
-  public magic(): number {
-    return Math.floor(this.stats.inteligencia / 2) + Math.floor(this.stats.sabiduria / 2)
+    return this.defenseValue + (this.level * 1)
   }
 
   public gainExperience(amount: number): void {
@@ -74,11 +58,10 @@ export class Player extends Character implements ICombatant, ILevelable, IInvent
     this.level++
     this.experience -= this.experienceToNextLevel
     this.experienceToNextLevel = Math.floor(this.experienceToNextLevel * 1.5)
-
     this.maxHealth += 20
     this.health = this.maxHealth
-    this.baseAttack += 5
-    this.baseDefense += 3
+    this.defenseValue += 2
+    this.speed += 1
   }
 
   public addItem(item: string): void {
@@ -102,38 +85,6 @@ export class Player extends Character implements ICombatant, ILevelable, IInvent
       return true
     }
     return false
-  }
-
-  public getStats(): string {
-    return `
-      Nivel: ${this.level}
-      Vida: ${this.health}/${this.maxHealth}
-      Ataque: ${this.attack()}
-      Defensa: ${this.defense()}
-      Magia: ${this.magic()}
-      Fuerza: ${this.stats.fuerza}
-      Destreza: ${this.stats.destreza}
-      Inteligencia: ${this.stats.inteligencia}
-      Sabiduria: ${this.stats.sabiduria}
-      Constitucion: ${this.stats.constitucion}
-      Carisma: ${this.stats.carisma}
-      Experiencia: ${this.experience}/${this.experienceToNextLevel}
-      Oro: ${this.gold}
-    `
-  }
-
-  public getPointerSpeed(_context?: TimingContext): number {
-    const minSpeed = 300
-    const maxSpeed = 800
-    const dex = Math.max(5, Math.min(100, this.stats.destreza))
-    return maxSpeed - (Math.log10(dex - 4) / Math.log10(96)) * (maxSpeed - minSpeed)
-  }
-
-  public getTimingAreas(_context?: TimingContext): { startAngle: number; endAngle: number; type: 'normal' | 'bonificado' | 'critico'; color: string }[] {
-    const bonus1 = { startAngle: 220, endAngle: 232, type: 'bonificado' as const, color: '#a00' }
-    const crit = { startAngle: 232, endAngle: 237, type: 'critico' as const, color: '#ffe600' }
-    const bonus2 = { startAngle: 237, endAngle: 249, type: 'bonificado' as const, color: '#a00' }
-    return [bonus1, crit, bonus2]
   }
 
   public addStatusEffect(effect: IStatusEffect) {
@@ -161,4 +112,4 @@ export class Player extends Character implements ICombatant, ILevelable, IInvent
   public isStunned(): boolean {
     return this.hasStatusEffect('stun')
   }
-} 
+}

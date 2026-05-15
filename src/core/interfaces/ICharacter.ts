@@ -13,7 +13,6 @@ export interface ICharacter {
   removeStatusEffect(effectType: string): void
   attack(): number
   defense(): number
-  magic(): number
   takeDamage(amount: number): void
   heal(amount: number): void
   getHealthPercentage(): number
@@ -31,7 +30,6 @@ export interface IPlayerStats {
 export interface ICombatant extends ICharacter {
   attack: () => number
   defense: () => number
-  magic: () => number
   takeDamage(amount: number): void
   heal(amount: number): void
   statusEffects: IStatusEffect[]

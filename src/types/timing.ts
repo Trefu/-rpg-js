@@ -16,7 +16,7 @@ export interface TimingResultData {
 }
 
 export const BASIC_ATTACK_CONFIG: TimingCircleConfig = {
-  shrinkSpeed: 80,
+  shrinkSpeed: 120,
   criticalZoneSize: 30,
   outerRadius: 150,
   direction: 'inward',

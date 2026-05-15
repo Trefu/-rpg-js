@@ -28,7 +28,7 @@ onMounted(() => {
 })
 
 function initGame() {
-  const player = new Player('player-1', 'Héroe', 1, 100, 10, 5)
+  const player = new Player('player-1', 'Héroe', 1, 100, 5, 10)
   player.learnAbility(createBasicAttackAbility())
   gameStore.startGame(player)
   expeditionStore.startExpedition()

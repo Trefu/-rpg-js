@@ -11,6 +11,7 @@ export const createBasicAttackAbility = (): IAbility => ({
     const baseDamage = context.caster.attack()
     const multiplier = context.damageMultiplier ?? 1
     const finalDamage = Math.floor(baseDamage * multiplier)
+    context.target.takeDamage(finalDamage)
     context.showEnemyHit(context.target.id, finalDamage)
     context.addToLog(`Usaste Ataque Básico causando ${finalDamage} de daño.`)
   }
@@ -24,6 +25,7 @@ export const createStunStrikeAbility = (): IAbility => ({
   damage: 50,
   execute: async (context: AbilityContext) => {
     const damage = Math.floor(context.caster.attack() * 0.8)
+    context.target.takeDamage(damage)
     context.showEnemyHit(context.target.id, damage)
     context.addToLog(`Usaste Golpe Aturdidor causando ${damage} de daño.`)
   }
@@ -37,6 +39,7 @@ export const createStealthStrikeAbility = (): IAbility => ({
   damage: 70,
   execute: async (context: AbilityContext) => {
     const damage = Math.floor(context.caster.attack() * 1.5)
+    context.target.takeDamage(damage)
     context.showEnemyHit(context.target.id, damage)
     context.addToLog(`Usaste Golpe Sigiloso causando ${damage} de daño.`)
   }
@@ -49,7 +52,8 @@ export const createFireballAbility = (): IAbility => ({
   cooldown: 3,
   damage: 90,
   execute: async (context: AbilityContext) => {
-    const damage = context.caster.magic() + 30
+    const damage = Math.floor(context.caster.attack() * 1.5)
+    context.target.takeDamage(damage)
     context.showEnemyHit(context.target.id, damage)
     context.addToLog(`Lanzaste Bola de Fuego causando ${damage} de daño de fuego.`)
   }

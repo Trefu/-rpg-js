@@ -45,20 +45,8 @@ const resetGame = () => {
           <h4>Estadísticas</h4>
           <ul>
             <li>Vida: {{ player.health }}/{{ player.maxHealth }}</li>
-            <li>Ataque: {{ player.attack() }}</li>
             <li>Defensa: {{ player.defense() }}</li>
-            <li>Magia: {{ player.magic() }}</li>
-          </ul>
-        </div>
-        <div class="info-section">
-          <h4>Atributos</h4>
-          <ul>
-            <li>Fuerza: {{ player.stats.fuerza }}</li>
-            <li>Destreza: {{ player.stats.destreza }}</li>
-            <li>Inteligencia: {{ player.stats.inteligencia }}</li>
-            <li>Sabiduria: {{ player.stats.sabiduria }}</li>
-            <li>Constitucion: {{ player.stats.constitucion }}</li>
-            <li>Carisma: {{ player.stats.carisma }}</li>
+            <li>Velocidad: {{ player.speed }}</li>
           </ul>
         </div>
         <div class="info-section">
@@ -68,7 +56,7 @@ const resetGame = () => {
               {{ ability.name }}
             </li>
           </ul>
-          <p v-else>Sin habilidades - TODO: aprender habilidades</p>
+          <p v-else>Sin habilidades</p>
         </div>
       </div>
     </div>
