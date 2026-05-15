@@ -23,8 +23,6 @@ watch(currentView, (newView) => {
 })
 
 onMounted(() => {
-  audioManager.setMusicVolume(0)
-  audioManager.setSFXVolume(0.9)
   initGame()
 })
 

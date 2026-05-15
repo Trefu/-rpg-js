@@ -2,10 +2,8 @@
 import { computed } from 'vue'
 import type { INode } from '@/core/interfaces/IExpedition'
 import { useExpeditionStore } from '@/stores/expedition'
-import { useGameStore } from '@/stores/game'
 
 const expeditionStore = useExpeditionStore()
-const gameStore = useGameStore()
 
 const currentNode = computed(() => expeditionStore.selectedNode?.id || null)
 const availableNodes = computed(() => expeditionStore.availableNodes)
@@ -24,31 +22,26 @@ const getNodeIcon = (type: INode['type']) => {
 const isNodeReachable = (node: INode) => {
   if (!expeditionStore.currentExpedition) return false
 
-  // El nodo inicial siempre es alcanzable si es el primer turno
   if (expeditionStore.currentExpedition.currentNode === null) {
-    const startNode = expeditionStore.currentExpedition.nodes.find(n => n.type === 'city')
+    const startNode = expeditionStore.currentExpedition.nodes.find(n => n.id === 'start')
     if (startNode) {
       return startNode.connections.includes(node.id)
     }
   }
 
-  // Un nodo es alcanzable si está conectado al nodo completado más recientemente
   const lastCompletedNode = expeditionStore.currentExpedition.currentNode
   return lastCompletedNode?.connections.includes(node.id) ?? false
 }
 
 const handleNodeClick = (node: INode) => {
-  if (node.type === 'city' || node.completed || !isNodeReachable(node)) return
+  if (node.completed || !isNodeReachable(node)) return
 
-  expeditionStore.selectNode(node)
-
-  if (node.type === 'combat') {
-    gameStore.navigateTo('combat')
-  } else {
-    // Handle other node types (shop, event, etc.)
-    console.log(`Entering ${node.type} node...`)
-  }
+  emit('nodeSelected', node)
 }
+
+const emit = defineEmits<{
+  (e: 'nodeSelected', node: INode): void
+}>()
 </script>
 
 <template>
