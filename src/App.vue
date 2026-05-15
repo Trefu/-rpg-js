@@ -1,139 +1,80 @@
 <script setup lang="ts">
-import { computed, ref, onMounted, watch } from 'vue'
-import ClassSelector from './components/ui/ClassSelector.vue'
-import CityMap from './components/map/CityMap.vue'
-import ZoneSelector from './components/expedition/ZoneSelector.vue'
+import { computed, onMounted, watch } from 'vue'
 import ExpeditionMap from './components/expedition/ExpeditionMap.vue'
 import CombatView from './components/combat/CombatView.vue'
-import TrainingView from './components/combat/TrainingView.vue'
 import GameUI from './components/ui/GameUI.vue'
 import { useGameStore } from './stores/game'
+import { useExpeditionStore } from './stores/expedition'
 import { Player } from './core/Player'
-import { Loader } from './core/Loader'
 import { AudioManager } from './core/AudioManager'
-import type { IZone, INode } from './core/interfaces/IExpedition'
+import type { INode } from './core/interfaces/IExpedition'
 
 const gameStore = useGameStore()
+const expeditionStore = useExpeditionStore()
 const currentView = computed(() => gameStore.currentLocation)
-const selectedZone = ref<IZone | null>(null)
-const expeditionNodes = ref<INode[]>([])
 const audioManager = AudioManager.getInstance()
 
-// Manejar cambios de música según la vista actual
 watch(currentView, (newView) => {
-  switch (newView) {
-    case 'expedition-map':
-      // Reproducir música de exploración de montaña
-      audioManager.playMountainExploration()
-      break
-    case 'combat':
-      // La música de combate se maneja en CombatView
-      break
-    case 'city':
-    case 'expedition':
-    case 'class-selector':
-    default:
-      // Detener música para otras vistas
-      audioManager.stopCurrentMusic()
-      break
+  if (newView === 'expedition-map') {
+    audioManager.playMountainExploration()
+  } else {
+    audioManager.stopCurrentMusic()
   }
 })
 
 onMounted(() => {
-  // Inicializar audio manager
   audioManager.setMusicVolume(0)
   audioManager.setSFXVolume(0.9)
+  initGame()
 })
 
-const handleClassSelected = async (className: string) => {
-  const loader = Loader.getInstance()
-  const selectedClass = loader.getClass(className)
-
-  if (selectedClass) {
-    const player = new Player('player-1', 'Héroe', 1, 100, 10, 5)
-    player.setStatsFromClass(selectedClass.baseStats)
-    player.classRef = selectedClass
-    gameStore.setPlayer(player)
-  }
-}
-
-const handleGoToExpedition = () => {
-  gameStore.navigateTo('expedition')
-}
-
-const handleGoToShop = () => {
-  gameStore.navigateTo('shop')
-}
-
-const handleGoToTraining = () => {
-  gameStore.navigateTo('training')
-}
-
-const handleBackToCity = () => {
-  gameStore.navigateTo('city')
+function initGame() {
+  const player = new Player('player-1', 'Héroe', 1, 100, 10, 5)
+  gameStore.startGame(player)
+  expeditionStore.startExpedition()
+  gameStore.navigateTo('expedition-map')
 }
 
 const handleResetGame = () => {
   gameStore.resetGame()
-}
-
-const handleZoneSelected = (zone: IZone) => {
-  selectedZone.value = zone
-  gameStore.navigateTo('expedition-map')
+  expeditionStore.resetExpedition()
+  initGame()
 }
 
 const handleNodeSelected = (node: INode) => {
-  if (node.type === 'combat') {
+  expeditionStore.selectNode(node)
+  if (node.type === 'combat' || node.type === 'boss') {
     gameStore.navigateTo('combat')
-  } else {
-    // TODO: Implementar lógica para otros tipos de nodos
-    console.log('Nodo seleccionado:', node)
+  } else if (node.type === 'shop') {
+    gameStore.navigateTo('shop')
+  } else if (node.type === 'curiosity') {
+    // TODO: curiosity logic
+    gameStore.navigateTo('expedition-map')
   }
 }
 
 const handleCombatEnded = (victory: boolean) => {
   if (victory) {
-    // Marcar el nodo como completado y volver al mapa
-    gameStore.navigateTo('expedition-map')
-  } else {
-    // En caso de derrota, volver al mapa también
-    gameStore.navigateTo('expedition-map')
+    expeditionStore.completeNode(expeditionStore.selectedNode?.id || '')
+    if (expeditionStore.selectedNode?.type === 'boss') {
+      expeditionStore.completeExpedition()
+    }
   }
-}
-
-const handleTrainingEnded = () => {
-  gameStore.navigateTo('city')
+  gameStore.navigateTo('expedition-map')
 }
 </script>
 
 <template>
   <div class="app">
-         <GameUI 
-      @reset-game="handleResetGame"
-    /> 
+    <GameUI @reset-game="handleResetGame" />
 
-    <ClassSelector v-if="currentView === 'class-selector'" @class-selected="handleClassSelected" />
-
-    <CityMap v-if="currentView === 'city'" @go-to-shop="handleGoToShop" @go-to-expedition="handleGoToExpedition"
-      @go-to-training="handleGoToTraining" />
-
-    <ZoneSelector v-if="currentView === 'expedition'" @zone-selected="handleZoneSelected" />
-
-    <ExpeditionMap v-if="currentView === 'expedition-map'" :expedition="{
-      zone: selectedZone!,
-      nodes: expeditionNodes,
-      currentNode: null,
-      completed: false
-    }" @node-selected="handleNodeSelected" />
+    <ExpeditionMap v-if="currentView === 'expedition-map'" @node-selected="handleNodeSelected" />
 
     <CombatView v-if="currentView === 'combat'" @combat-ended="handleCombatEnded" />
 
-    <TrainingView v-if="currentView === 'training'" @training-ended="handleTrainingEnded" />
-
-    <!-- TODO: Implementar vista de tienda -->
     <div v-if="currentView === 'shop'">
-      <h2>Tienda (En construcción)</h2>9
-      <button @click="handleBackToCity">Volver a la ciudad</button>
+      <h2>Tienda (En construccion)</h2>
+      <button @click="gameStore.navigateTo('expedition-map')">Volver</button>
     </div>
   </div>
 </template>
@@ -157,35 +98,5 @@ body,
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-}
-
-.app-header {
-  padding: 1rem 2rem;
-  background-color: #2a2a2a;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.game-stats {
-  display: flex;
-  gap: 1rem;
-}
-
-.app-main {
-  padding: 2rem;
-}
-
-.main-menu {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2rem;
-  padding: 4rem;
-}
-
-h1,
-h2 {
-  margin: 0;
 }
 </style>

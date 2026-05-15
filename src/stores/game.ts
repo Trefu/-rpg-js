@@ -1,11 +1,10 @@
 import { defineStore } from 'pinia'
 import type { Player } from '../core/Player'
 
-export type GameLocation = 'class-selector' | 'city' | 'expedition' | 'shop' | 'expedition-map' | 'combat' | 'training'
+export type GameLocation = 'expedition-map' | 'combat' | 'shop'
 
 interface GameState {
   player: Player | null
-  currentLevel: number
   isGameStarted: boolean
   currentLocation: GameLocation
   gold: number
@@ -15,31 +14,17 @@ interface GameState {
 export const useGameStore = defineStore('game', {
   state: (): GameState => ({
     player: null,
-    currentLevel: 1,
     isGameStarted: false,
-    currentLocation: 'class-selector',
+    currentLocation: 'city',
     gold: 0,
     experience: 0
   }),
 
   actions: {
-    setPlayer(character: Player) {
-      this.player = character
+    startGame(player: Player) {
+      this.player = player
       this.isGameStarted = true
       this.currentLocation = 'city'
-    },
-
-    levelUp() {
-      this.currentLevel++
-    },
-
-    addGold(amount: number) {
-      this.gold += amount
-    },
-
-    addExperience(amount: number) {
-      this.experience += amount
-      // TODO: Implementar lógica de subida de nivel basada en experiencia
     },
 
     navigateTo(location: GameLocation) {
@@ -48,9 +33,8 @@ export const useGameStore = defineStore('game', {
 
     resetGame() {
       this.player = null
-      this.currentLevel = 1
       this.isGameStarted = false
-      this.currentLocation = 'class-selector'
+      this.currentLocation = 'city'
       this.gold = 0
       this.experience = 0
     }

@@ -5,7 +5,7 @@ export interface IZone {
   background: string
   difficulty: 'easy' | 'medium' | 'hard'
   minLevel: number
-  enemies: string[] // IDs de enemigos que pueden aparecer
+  enemies: string[]
   rewards: {
     experience: number
     gold: number
@@ -14,14 +14,14 @@ export interface IZone {
 
 export interface INode {
   id: string
-  type: 'combat' | 'shop' | 'rest' | 'treasure' | 'boss' | 'event' | 'city'
+  type: 'combat' | 'shop' | 'curiosity' | 'boss'
   position: {
     x: number
     y: number
   }
-  connections: string[] // IDs de nodos conectados
+  connections: string[]
   completed: boolean
-  enemies?: any[] // Array de enemigos para nodos de tipo combat y boss
+  enemies?: any[]
 }
 
 export interface IExpedition {

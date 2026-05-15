@@ -41,30 +41,10 @@ export function useCombat(config: CombatConfig = {}) {
   let popupKey = 0
 
   const abilities = computed(() => {
-    let allAbilities: IAbility[] = []
-    
-    if (player.value && player.value.classRef) {
-      // Add base attack ability first
-      if (player.value.classRef.baseAttackAbility) {
-        allAbilities.push(player.value.classRef.baseAttackAbility)
-      }
-      // Add other abilities
-      if (player.value.classRef.abilities) {
-        allAbilities = allAbilities.concat(player.value.classRef.abilities)
-      }
-    } else if (player.value && player.value.constructor) {
-      // Fallback for constructor-based abilities
-      if (player.value.constructor.baseAttackAbility) {
-        allAbilities.push(player.value.constructor.baseAttackAbility)
-      }
-      if (player.value.constructor.abilities) {
-        allAbilities = allAbilities.concat(player.value.constructor.abilities)
-      }
-    } else if (player.value?.abilities) {
-      allAbilities = player.value.abilities
+    if (player.value?.abilities) {
+      return player.value.abilities
     }
-    
-    return allAbilities
+    return []
   })
 
   const aliveEnemies = computed(() => enemies.value.filter(enemy => enemy.isAlive))

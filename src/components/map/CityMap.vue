@@ -9,12 +9,6 @@ const emit = defineEmits<{
 
 const locations = [
   {
-    id: 'shop',
-    name: 'Tienda',
-    description: 'Compra equipo y pociones',
-    icon: '🏪'
-  },
-  {
     id: 'expedition',
     name: 'Expedición',
     description: 'Explora zonas peligrosas',
@@ -28,13 +22,8 @@ const locations = [
   }
 ]
 
-const selectedLocation = ref<string | null>(null)
-
 const selectLocation = (locationId: string) => {
-  selectedLocation.value = locationId
-  if (locationId === 'shop') {
-    emit('goToShop')
-  } else if (locationId === 'expedition') {
+  if (locationId === 'expedition') {
     emit('goToExpedition')
   } else if (locationId === 'training') {
     emit('goToTraining')

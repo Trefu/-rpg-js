@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import type { IExpedition, INode, IZone } from '@/core/interfaces/IExpedition'
+import type { IExpedition, INode } from '@/core/interfaces/IExpedition'
 import { useExpeditionGenerator } from '@/composables/useExpeditionGenerator'
 
 interface ExpeditionState {
@@ -14,18 +14,17 @@ export const useExpeditionStore = defineStore('expedition', {
   }),
 
   actions: {
-    startExpedition(zone: IZone) {
+    startExpedition() {
       const { generateExpeditionNodes } = useExpeditionGenerator()
-      const nodes = generateExpeditionNodes(zone)
-      
+      const nodes = generateExpeditionNodes()
+
       this.currentExpedition = {
-        zone,
+        zone: { id: 'expedition', name: 'Expedicion', description: '', background: '', difficulty: 'medium', minLevel: 1, enemies: [], rewards: { experience: 0, gold: 0 } },
         nodes,
         currentNode: null,
         completed: false
       }
-      
-      // Establecer el nodo inicial como disponible
+
       this.selectedNode = nodes.find(node => node.id === 'start') || null
     },
 
@@ -38,7 +37,7 @@ export const useExpeditionStore = defineStore('expedition', {
 
     completeNode(nodeId: string) {
       if (!this.currentExpedition) return
-      
+
       const node = this.currentExpedition.nodes.find(n => n.id === nodeId)
       if (node) {
         node.completed = true
@@ -62,7 +61,7 @@ export const useExpeditionStore = defineStore('expedition', {
       if (!state.currentExpedition || !state.selectedNode) return ['start']
       return state.selectedNode.connections
     },
-    
+
     isExpeditionActive: (state): boolean => {
       return state.currentExpedition !== null
     }

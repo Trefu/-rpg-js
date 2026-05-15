@@ -15,11 +15,8 @@ const getNodeIcon = (type: INode['type']) => {
   switch (type) {
     case 'combat': return '⚔️'
     case 'shop': return '🏪'
-    case 'rest': return '🏕️'
-    case 'treasure': return '💎'
-    case 'event': return '❓'
+    case 'curiosity': return '❓'
     case 'boss': return '👑'
-    case 'city': return '🏰'
     default: return '❓'
   }
 }

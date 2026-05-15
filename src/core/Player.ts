@@ -1,10 +1,10 @@
 import { Character } from './Character'
 import { ICombatant, ILevelable, IInventory, IPlayerStats } from './interfaces/ICharacter'
 import { IStatusEffect } from './interfaces/IStatusEffect'
+import type { IAbility } from './interfaces/IAbility'
 
 export interface TimingContext {
-  action?: string // 'attack', 'skill', 'spell', etc.
-  // En el futuro: dificultad, tipo de habilidad, etc.
+  action?: string
 }
 
 export class Player extends Character implements ICombatant, ILevelable, IInventory {
@@ -13,9 +13,9 @@ export class Player extends Character implements ICombatant, ILevelable, IInvent
   public gold: number
   public items: string[]
   public stats: IPlayerStats
+  public abilities: IAbility[]
   private baseAttack: number
   private baseDefense: number
-  public classRef?: any
   public statusEffects: IStatusEffect[] = []
 
   constructor(
@@ -31,10 +31,11 @@ export class Player extends Character implements ICombatant, ILevelable, IInvent
     this.experienceToNextLevel = 100
     this.gold = 0
     this.items = []
+    this.abilities = []
     this.baseAttack = baseAttack
     this.baseDefense = baseDefense
     this.stats = {
-      fuerza: 1900,
+      fuerza: 10,
       destreza: 10,
       inteligencia: 10,
       sabiduria: 10,
@@ -43,19 +44,14 @@ export class Player extends Character implements ICombatant, ILevelable, IInvent
     }
   }
 
-  public setStatsFromClass(stats: IPlayerStats): void {
-    this.stats = { ...stats }
-    // Recalcular vida basada en constitución
-    this.maxHealth = 50 + (this.stats.constitucion * 5)
-    this.health = this.maxHealth
-    // Recalcular ataque y defensa basados en fuerza y destreza
-    this.baseAttack = Math.floor(this.stats.fuerza / 2) + Math.floor(this.stats.destreza / 4)
-    this.baseDefense = Math.floor(this.stats.constitucion / 2) + Math.floor(this.stats.destreza / 4)
+  public learnAbility(ability: IAbility): void {
+    if (!this.abilities.find(a => a.type === ability.type)) {
+      this.abilities.push(ability)
+    }
   }
 
   public attack(): number {
     if (!this.isAlive) return 0
-    // Ataque base + bonus por nivel + bonus por fuerza
     return this.baseAttack + (this.level * 2) + Math.floor(this.stats.fuerza / 3)
   }
 
@@ -78,8 +74,7 @@ export class Player extends Character implements ICombatant, ILevelable, IInvent
     this.level++
     this.experience -= this.experienceToNextLevel
     this.experienceToNextLevel = Math.floor(this.experienceToNextLevel * 1.5)
-    
-    // Mejoras al subir de nivel
+
     this.maxHealth += 20
     this.health = this.maxHealth
     this.baseAttack += 5
@@ -119,34 +114,22 @@ export class Player extends Character implements ICombatant, ILevelable, IInvent
       Fuerza: ${this.stats.fuerza}
       Destreza: ${this.stats.destreza}
       Inteligencia: ${this.stats.inteligencia}
-      Sabiduría: ${this.stats.sabiduria}
-      Constitución: ${this.stats.constitucion}
+      Sabiduria: ${this.stats.sabiduria}
+      Constitucion: ${this.stats.constitucion}
       Carisma: ${this.stats.carisma}
       Experiencia: ${this.experience}/${this.experienceToNextLevel}
       Oro: ${this.gold}
     `
   }
 
-  /**
-   * Calcula la velocidad del puntero para el minijuego de timing.
-   * El contexto puede usarse para modificar la velocidad según la acción.
-   */
   public getPointerSpeed(context?: TimingContext): number {
-    // En el futuro: puedes modificar la fórmula según el contexto
-    console.log(context);
-    const minSpeed = 300;
-    const maxSpeed = 800;
-    const dex = Math.max(5, Math.min(100, this.stats.destreza));
-    return maxSpeed - (Math.log10(dex - 4) / Math.log10(96)) * (maxSpeed - minSpeed);
+    const minSpeed = 300
+    const maxSpeed = 800
+    const dex = Math.max(5, Math.min(100, this.stats.destreza))
+    return maxSpeed - (Math.log10(dex - 4) / Math.log10(96)) * (maxSpeed - minSpeed)
   }
 
-  /**
-   * Genera las áreas de timing para el minijuego de ataque o habilidad.
-   * El contexto puede usarse para modificar las áreas según la acción.
-   */
   public getTimingAreas(context?: TimingContext): { startAngle: number; endAngle: number; type: 'normal' | 'bonificado' | 'critico'; color: string }[] {
-    // Bonificada: 220°-232°, Crítica: 232°-237°, Bonificada: 237°-249°
-    console.log(context); 
     const bonus1 = { startAngle: 220, endAngle: 232, type: 'bonificado' as const, color: '#a00' }
     const crit = { startAngle: 232, endAngle: 237, type: 'critico' as const, color: '#ffe600' }
     const bonus2 = { startAngle: 237, endAngle: 249, type: 'bonificado' as const, color: '#a00' }
