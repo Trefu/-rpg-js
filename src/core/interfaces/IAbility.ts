@@ -1,7 +1,7 @@
 import type { ICharacter } from './ICharacter'
 import type { AudioManager } from '../AudioManager'
 
-export type TimingResult = 'perfect' | 'good' | 'bad' | 'miss'
+export type TimingResult = 'perfect' | 'good' | 'normal' | 'miss'
 
 export interface AbilityContext {
   caster: ICharacter
@@ -11,6 +11,7 @@ export interface AbilityContext {
   endPlayerTurn: () => void
   performTimingChallenge: () => Promise<TimingResult>
   audioManager: AudioManager
+  damageMultiplier?: number
 }
 
 export interface IAbility {
@@ -18,5 +19,6 @@ export interface IAbility {
   description: string
   type: string
   cooldown: number
+  damage?: number
   execute: (context: AbilityContext) => Promise<void>
 } 

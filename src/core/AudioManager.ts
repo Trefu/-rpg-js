@@ -3,7 +3,7 @@ import { Howl, Howler } from 'howler'
 export class AudioManager {
   private static instance: AudioManager
   private currentMusic: Howl | null = null
-  private musicVolume: number = 0.6
+  private musicVolume: number = 0.0
   private sfxVolume: number = 1
   private isMuted: boolean = false
 

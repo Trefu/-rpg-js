@@ -3,7 +3,9 @@ import { useGameStore } from '@/stores/game'
 import type { Player } from '@/core/Player'
 import { AudioManager } from '@/core/AudioManager'
 import { IEnemy } from '@/core/interfaces/ICharacter'
-import type { IAbility, TimingResult } from '@/core/interfaces/IAbility'
+import type { IAbility } from '@/core/interfaces/IAbility'
+import type { TimingResultData } from '@/types/timing'
+import { TIMING_MULTIPLIERS } from '@/types/timing'
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
@@ -25,9 +27,7 @@ export function useCombat(config: CombatConfig = {}) {
   const isSelectingTarget = ref(false)
   const selectedAbility = ref<IAbility | null>(null)
   const audioManager = AudioManager.getInstance()
-  const showTimingCircle = ref(false)
-  const timingCircleRef = ref<any>(null)
-  const timingResult = ref<'normal' | 'bonificado' | 'critico'>('normal')
+  const showTimingOverlay = ref(false)
   const currentAction = ref<{ ability: IAbility, target: IEnemy } | null>(null)
   const attackingEnemyId = ref<string | null>(null)
   const attackingEnemyLabel = ref<string | null>(null)
@@ -40,6 +40,8 @@ export function useCombat(config: CombatConfig = {}) {
   const timingEffect = ref('')
   let popupKey = 0
 
+  const timingResultCallback = ref<((result: TimingResultData) => void) | null>(null)
+
   const abilities = computed(() => {
     if (player.value?.abilities) {
       return player.value.abilities
@@ -50,13 +52,12 @@ export function useCombat(config: CombatConfig = {}) {
   const aliveEnemies = computed(() => enemies.value.filter(enemy => enemy.isAlive))
 
   const isPlayerInputLocked = computed(() => {
-    return !isPlayerTurn.value || 
-           isCombatEnded.value || 
-           isExecutingAction.value || 
-           showTimingCircle.value
+    return !isPlayerTurn.value ||
+           isCombatEnded.value ||
+           isExecutingAction.value ||
+           showTimingOverlay.value
   })
 
-  // Cooldowns
   function resetAbilityCooldowns() {
     abilityCooldowns.value = {}
     abilities.value.forEach((a: IAbility) => {
@@ -74,9 +75,8 @@ export function useCombat(config: CombatConfig = {}) {
     if (cooldown > 0) abilityCooldowns.value[type] = cooldown
   }
 
-  // Modal de habilidades
   function openAbilitiesModal() {
-    if (!isPlayerTurn.value || isCombatEnded.value || showTimingCircle.value || isExecutingAction.value) return
+    if (!isPlayerTurn.value || isCombatEnded.value || showTimingOverlay.value || isExecutingAction.value) return
     showAbilitiesModal.value = true
   }
 
@@ -92,27 +92,23 @@ export function useCombat(config: CombatConfig = {}) {
     isSelectingTarget.value = true
   }
 
-  // Shortcuts
   const abilityShortcuts = ['q', 'w', 'e', 'r']
 
   function handleAbilitiesModalShortcuts(e: KeyboardEvent) {
-    // Si el modal no está abierto, no procesar los shortcuts
     if (!showAbilitiesModal.value) {
-      if (e.key.toLowerCase() === 'a' && isPlayerTurn.value && !showTimingCircle.value && !isExecutingAction.value) {
+      if (e.key.toLowerCase() === 'a' && isPlayerTurn.value && !showTimingOverlay.value && !isExecutingAction.value) {
         openAbilitiesModal()
         e.preventDefault()
       }
       return
     }
 
-    // Si el modal está abierto
     if (e.key.toLowerCase() === 'a') {
       closeAbilitiesModal()
       e.preventDefault()
       return
     }
 
-    // Shortcuts para las habilidades
     const keyIndex = abilityShortcuts.indexOf(e.key.toLowerCase())
     if (keyIndex !== -1 && abilities.value[keyIndex]) {
       selectAbility(abilities.value[keyIndex], keyIndex)
@@ -123,8 +119,7 @@ export function useCombat(config: CombatConfig = {}) {
   function handleCombatShortcuts(e: KeyboardEvent) {
     if (isCombatEnded.value) return
     if (showAbilitiesModal.value) return
-    
-    // Seleccionar enemigo con 1, 2, 3 si está seleccionando objetivo
+
     if (isSelectingTarget.value && ['1', '2', '3'].includes(e.key) && actionRequiresTarget(selectedAbility.value)) {
       const idx = parseInt(e.key, 10) - 1
       const alive = aliveEnemies.value
@@ -138,7 +133,6 @@ export function useCombat(config: CombatConfig = {}) {
     }
   }
 
-  // Utilidades
   function getPointerSpeed() {
     return player.value?.getPointerSpeed({ action: currentAction.value?.ability.type || '' }) ?? 300
   }
@@ -160,12 +154,9 @@ export function useCombat(config: CombatConfig = {}) {
   }
 
   function actionRequiresTarget(ability: IAbility | null): boolean {
-    // Por ahora, asumimos que todas las habilidades requieren un objetivo.
-    // Esto se puede expandir en el futuro (ej. hechizos de área o auto-bufos)
     return !!ability
   }
 
-  // Lógica de combate
   function endPlayerTurn() {
     isPlayerTurn.value = false
     decrementAbilityCooldowns()
@@ -187,7 +178,6 @@ export function useCombat(config: CombatConfig = {}) {
 
       await showEnemyStatusSequence(enemy)
 
-      // Si el enemigo está aturdido, salta su turno
       const stunEffect = enemy.statusEffects.find(e => e.type === 'stun')
       if (stunEffect && stunEffect.turns > 0) {
         addToLog(`${enemy.name} está aturdido y pierde su turno. (${stunEffect.turns} turno(s) restante(s))`)
@@ -196,7 +186,6 @@ export function useCombat(config: CombatConfig = {}) {
         continue
       }
 
-      // En entrenamiento, el dummy no ataca
       if (config.isTraining) {
         addToLog('El dummy no ataca. Es tu turno de nuevo.')
         if (enemy.reduceStatusEffects) {
@@ -208,7 +197,6 @@ export function useCombat(config: CombatConfig = {}) {
         return
       }
 
-      // Mostrar aviso de acción
       const enemyIndex = enemies.value.filter(e => e.name === enemy.name && e.isAlive).indexOf(enemy) + 1
       const enemyLabel = aliveEnemies.length > 1 ? `${enemy.name} ${enemyIndex}` : enemy.name
       attackingEnemyId.value = enemy.id
@@ -218,7 +206,6 @@ export function useCombat(config: CombatConfig = {}) {
       attackingEnemyId.value = null
       attackingEnemyLabel.value = null
 
-      // Mostrar mensaje de ataque
       const damage = enemy.attack()
       addToLog(`${enemyLabel} ataca causando ${damage} de daño.`)
 
@@ -303,55 +290,26 @@ export function useCombat(config: CombatConfig = {}) {
     return Math.max(0, (current / max) * 100)
   }
 
-  const performTimingChallenge = (): Promise<TimingResult> => {
+  const performTimingChallenge = (): Promise<TimingResultData['result']> => {
     return new Promise((resolve) => {
-      // Este es el handler que se llamará cuando el círculo de timing emita un resultado.
-      const handleResult = (result: { type: 'normal' | 'bonificado' | 'critico' } | { type: 'miss' }) => {
-        showTimingCircle.value = false
-        onTimingResult.value = null // Limpiamos el handler para evitar que se llame de nuevo por error.
-
-        // Si el resultado es directamente un 'miss', lo resolvemos como tal.
-        if (result.type === 'miss') {
-          resolve('miss')
-          return
-        }
-        
-        // Mapeamos los resultados del componente a los resultados que espera la lógica de la habilidad.
-        const typeMap = { critico: 'perfect', bonificado: 'good', normal: 'bad' }
-        resolve((typeMap[result.type] || 'miss') as TimingResult)
+      const handleResult = (result: TimingResultData) => {
+        showTimingOverlay.value = false
+        timingResultCallback.value = null
+        resolve(result.result)
       }
-      
-      // Asignamos el handler para que esté listo para cuando el componente emita el resultado.
-      onTimingResult.value = handleResult
 
-      // Mostramos el overlay y el componente del círculo.
-      showTimingCircle.value = true
-      
-      // Usamos nextTick para asegurarnos de que Vue ha renderizado el componente del círculo
-      // antes de que intentemos llamar a su método `start`.
-      nextTick(() => {
-        if (timingCircleRef.value) {
-          timingCircleRef.value.start()
-        } else {
-          // Como fallback, si por alguna razón el componente no se renderiza,
-          // evitamos que el combate se quede colgado resolviendo la promesa con un fallo.
-          console.error('La referencia al componente TimingCircle no se encontró. Fallando automáticamente.')
-          handleResult({ type: 'miss' })
-        }
-      })
+      timingResultCallback.value = handleResult
+      showTimingOverlay.value = true
     })
   }
 
-  const onTimingResult = ref<((result: any) => void) | null>(null)
-
-  // Este es el manejador principal que se llama desde la vista cuando el componente emite un resultado.
-  const handleTimingCircleResult = (result: { type: 'normal' | 'bonificado' | 'critico', area: any }) => {
-    if (onTimingResult.value) {
-      onTimingResult.value(result)
+  const handleTimingResult = (result: TimingResultData) => {
+    if (timingResultCallback.value) {
+      timingResultCallback.value(result)
     }
   }
 
-  const executeAbility = async () => {
+  const executeAbility = async (damageMultiplier: number = 1) => {
     isExecutingAction.value = true
 
     if (currentAction.value) {
@@ -364,22 +322,21 @@ export function useCombat(config: CombatConfig = {}) {
           target,
           addToLog,
           showEnemyHit,
-          endPlayerTurn,
+          endPlayerTurn: () => {},
           performTimingChallenge,
-          audioManager
+          audioManager,
+          damageMultiplier
         })
         onAbilityUsed(ability.type, ability.cooldown)
-      } else {
-        endPlayerTurn()
       }
-    } else {
-      endPlayerTurn()
     }
-    
+
     isSelectingTarget.value = false
     selectedAbility.value = null
     selectedEnemy.value = null
     currentAction.value = null
+
+    endPlayerTurn()
   }
 
   function selectEnemy(enemy: IEnemy) {
@@ -388,9 +345,11 @@ export function useCombat(config: CombatConfig = {}) {
     if (isSelectingTarget.value && selectedAbility.value) {
       selectedEnemy.value = enemy
       currentAction.value = { ability: selectedAbility.value, target: enemy }
-      
-      // Directly execute the ability now that we have all context
-      executeAbility()
+
+      performTimingChallenge().then((timingResult) => {
+        const multiplier = TIMING_MULTIPLIERS[timingResult as keyof typeof TIMING_MULTIPLIERS]
+        executeAbility(multiplier)
+      })
     }
   }
 
@@ -427,7 +386,7 @@ export function useCombat(config: CombatConfig = {}) {
     enemies.value = enemyList
     resetAbilityCooldowns()
     audioManager.playMountainCombat()
-    
+
     if (config.isTraining) {
       addToLog(`¡Entrenamiento iniciado! Practica con el dummy de entrenamiento.`)
       addToLog(`El dummy tiene ${enemyList[0]?.maxHealth} de vida y no te atacará.`)
@@ -440,14 +399,7 @@ export function useCombat(config: CombatConfig = {}) {
     audioManager.stopCurrentMusic()
   }
 
-  function handleTimingCircleClick() {
-    if (showTimingCircle.value) {
-      timingCircleRef.value?.stop()
-    }
-  }
-
   return {
-    // Estado
     player,
     enemies,
     selectedEnemy,
@@ -456,9 +408,7 @@ export function useCombat(config: CombatConfig = {}) {
     isCombatEnded,
     isSelectingTarget,
     selectedAbility,
-    showTimingCircle,
-    timingCircleRef,
-    timingResult,
+    showTimingOverlay,
     currentAction,
     attackingEnemyId,
     attackingEnemyLabel,
@@ -474,7 +424,6 @@ export function useCombat(config: CombatConfig = {}) {
     abilityShortcuts,
     isPlayerInputLocked,
 
-    // Métodos
     openAbilitiesModal,
     closeAbilitiesModal,
     selectAbility,
@@ -486,16 +435,15 @@ export function useCombat(config: CombatConfig = {}) {
     endTraining,
     addToLog,
     getHealthPercentage,
-    onTimingResult,
     selectEnemy,
     selectAction,
     initializeCombat,
     cleanup,
-    handleTimingCircleClick,
     getPointerSpeed,
     showEnemyHit,
     showPlayerHit,
     actionRequiresTarget,
-    handleTimingCircleResult
+    handleTimingResult,
+    executeAbility
   }
-} 
+}

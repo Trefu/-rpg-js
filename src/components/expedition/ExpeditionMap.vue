@@ -23,6 +23,7 @@ const isNodeReachable = (node: INode) => {
   if (!expeditionStore.currentExpedition) return false
 
   if (expeditionStore.currentExpedition.currentNode === null) {
+    if (node.id === 'start') return true
     const startNode = expeditionStore.currentExpedition.nodes.find(n => n.id === 'start')
     if (startNode) {
       return startNode.connections.includes(node.id)

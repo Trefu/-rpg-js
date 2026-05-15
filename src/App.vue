@@ -7,6 +7,7 @@ import { useGameStore } from './stores/game'
 import { useExpeditionStore } from './stores/expedition'
 import { Player } from './core/Player'
 import { AudioManager } from './core/AudioManager'
+import { createBasicAttackAbility } from './core/abilities/Abilities'
 import type { INode } from './core/interfaces/IExpedition'
 
 const gameStore = useGameStore()
@@ -28,6 +29,7 @@ onMounted(() => {
 
 function initGame() {
   const player = new Player('player-1', 'Héroe', 1, 100, 10, 5)
+  player.learnAbility(createBasicAttackAbility())
   gameStore.startGame(player)
   expeditionStore.startExpedition()
   gameStore.navigateTo('expedition-map')
@@ -41,12 +43,13 @@ const handleResetGame = () => {
 
 const handleNodeSelected = (node: INode) => {
   expeditionStore.selectNode(node)
-  if (node.type === 'combat' || node.type === 'boss') {
+  if (node.id === 'start') {
+    gameStore.navigateTo('combat')
+  } else if (node.type === 'combat' || node.type === 'boss') {
     gameStore.navigateTo('combat')
   } else if (node.type === 'shop') {
     gameStore.navigateTo('shop')
   } else if (node.type === 'curiosity') {
-    // TODO: curiosity logic
     gameStore.navigateTo('expedition-map')
   }
 }

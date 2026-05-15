@@ -122,14 +122,14 @@ export class Player extends Character implements ICombatant, ILevelable, IInvent
     `
   }
 
-  public getPointerSpeed(context?: TimingContext): number {
+  public getPointerSpeed(_context?: TimingContext): number {
     const minSpeed = 300
     const maxSpeed = 800
     const dex = Math.max(5, Math.min(100, this.stats.destreza))
     return maxSpeed - (Math.log10(dex - 4) / Math.log10(96)) * (maxSpeed - minSpeed)
   }
 
-  public getTimingAreas(context?: TimingContext): { startAngle: number; endAngle: number; type: 'normal' | 'bonificado' | 'critico'; color: string }[] {
+  public getTimingAreas(_context?: TimingContext): { startAngle: number; endAngle: number; type: 'normal' | 'bonificado' | 'critico'; color: string }[] {
     const bonus1 = { startAngle: 220, endAngle: 232, type: 'bonificado' as const, color: '#a00' }
     const crit = { startAngle: 232, endAngle: 237, type: 'critico' as const, color: '#ffe600' }
     const bonus2 = { startAngle: 237, endAngle: 249, type: 'bonificado' as const, color: '#a00' }
