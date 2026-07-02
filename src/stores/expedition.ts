@@ -15,17 +15,22 @@ export const useExpeditionStore = defineStore('expedition', {
 
   actions: {
     startExpedition() {
-      const { generateExpeditionNodes } = useExpeditionGenerator()
-      const nodes = generateExpeditionNodes()
+      try {
+        const { generateExpeditionNodes } = useExpeditionGenerator()
+        const nodes = generateExpeditionNodes()
 
-      this.currentExpedition = {
-        zone: { id: 'expedition', name: 'Expedicion', description: '', background: '', difficulty: 'medium', minLevel: 1, enemies: [], rewards: { experience: 0, gold: 0 } },
-        nodes,
-        currentNode: null,
-        completed: false
+        this.currentExpedition = {
+          zone: { id: 'expedition', name: 'Expedicion', description: '', background: '', difficulty: 'medium', minLevel: 1, enemies: [], rewards: { experience: 0, gold: 0 } },
+          nodes,
+          currentNode: null,
+          completed: false
+        }
+
+        this.selectedNode = nodes.find(node => node.id === 'start') || null
+      } catch (err) {
+        console.error('[expedition] failed to start expedition', err)
+        this.resetExpedition()
       }
-
-      this.selectedNode = nodes.find(node => node.id === 'start') || null
     },
 
     selectNode(node: INode) {
