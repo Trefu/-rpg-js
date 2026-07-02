@@ -2,8 +2,8 @@ import type { IAbility } from '@/core/interfaces/IAbility'
 import type { AbilityContext } from '@/core/interfaces/IAbility'
 
 const TIMING_PREFIX: Record<string, string> = {
-  perfect: '¡PERFECTO! Usaste',
-  good: '¡CRÍTICO! Usaste',
+  critical: '¡CRÍTICO! Usaste',
+  bonus: '¡BONUS! Usaste',
   normal: 'Usaste',
   miss: 'Fallaste al usar'
 }

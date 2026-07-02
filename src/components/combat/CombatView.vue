@@ -92,7 +92,7 @@ const getEnemySprite = (enemy: any) => {
   return goblinSprite
 }
 
-const onTimingResultReceived = (result: { result: 'perfect' | 'good' | 'normal' | 'miss', accuracy: number, timePressed: number }) => {
+const onTimingResultReceived = (result: { result: 'critical' | 'bonus' | 'normal' | 'miss', accuracy: number, timePressed: number }) => {
   handleTimingResult(result)
 }
 

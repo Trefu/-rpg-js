@@ -46,24 +46,23 @@ export class TimingCircle {
     const hitRadius = playerRadius ?? this.innerRadius
     const timePressed = this.startTime ? performance.now() - this.startTime : 0
 
-    const perfectTarget = this.outerRadius
-    const goodTarget = this.criticalRadius
-
-    const distanceFromPerfect = Math.abs(hitRadius - perfectTarget)
-    const distanceFromGood = Math.abs(hitRadius - goodTarget)
+    const centerDotRadius = this.config.centerDotRadius
+    const criticalRadius = this.criticalRadius
+    const outerRadius = this.outerRadius
 
     let result: TimingResult
     let accuracy: number
 
-    if (hitRadius >= this.outerRadius - this.config.successWindow && hitRadius <= this.outerRadius + this.config.successWindow) {
-      result = 'perfect'
-      accuracy = 100 - (distanceFromPerfect / this.config.successWindow) * 100
-    } else if (hitRadius <= this.criticalRadius) {
-      result = 'good'
-      accuracy = 100 - (distanceFromGood / this.criticalRadius) * 100
-    } else if (hitRadius <= this.outerRadius) {
+    if (hitRadius <= centerDotRadius) {
+      result = 'critical'
+      accuracy = 100
+    } else if (hitRadius <= criticalRadius) {
+      const bonusRange = criticalRadius - centerDotRadius
+      accuracy = 100 - ((hitRadius - centerDotRadius) / bonusRange) * 20
+      result = 'bonus'
+    } else if (hitRadius <= outerRadius) {
+      accuracy = 100 - ((hitRadius - criticalRadius) / (outerRadius - criticalRadius)) * 100
       result = 'normal'
-      accuracy = 100 - ((hitRadius - this.criticalRadius) / (this.outerRadius - this.criticalRadius)) * 100
     } else {
       result = 'miss'
       accuracy = 0

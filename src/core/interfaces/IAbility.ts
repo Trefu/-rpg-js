@@ -1,7 +1,7 @@
 import type { ICharacter } from './ICharacter'
 import type { AudioManager } from '../AudioManager'
 
-export type TimingResult = 'perfect' | 'good' | 'normal' | 'miss'
+export type TimingResult = 'critical' | 'bonus' | 'normal' | 'miss'
 
 export interface AbilityContext {
   caster: ICharacter

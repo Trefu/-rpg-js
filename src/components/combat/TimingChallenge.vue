@@ -32,13 +32,14 @@ const center = computed(() => size.value / 2)
 const outerRadius = computed(() => config.value.outerRadius)
 const innerRadius = computed(() => timingCircle.value?.getCurrentRadius() ?? config.value.outerRadius)
 const criticalRadius = computed(() => config.value.criticalZoneSize)
+const centerDotRadius = computed(() => config.value.centerDotRadius)
 
 const FEEDBACK_DURATION_MS = 750
 
 const feedbackLabel = computed(() => {
   switch (feedbackResult.value) {
-    case 'good': return '¡CRÍTICO!'
-    case 'perfect': return '¡PERFECTO!'
+    case 'critical': return '¡CRÍTICO!'
+    case 'bonus': return '¡BONUS!'
     case 'normal': return '¡ATAQUE!'
     case 'miss': return '¡FALLASTE!'
     default: return ''
@@ -47,8 +48,8 @@ const feedbackLabel = computed(() => {
 
 const feedbackClass = computed(() => {
   switch (feedbackResult.value) {
-    case 'good': return 'crit'
-    case 'perfect': return 'bonus'
+    case 'critical': return 'crit'
+    case 'bonus': return 'bonus'
     case 'normal': return 'normal'
     case 'miss': return 'miss'
     default: return ''
@@ -82,9 +83,9 @@ const handleInput = () => {
   showFeedback(result.result)
 
   const audio = AudioManager.getInstance()
-  if (result.result === 'good') {
+  if (result.result === 'critical') {
     audio.playCritSound()
-  } else if (result.result === 'perfect') {
+  } else if (result.result === 'bonus') {
     audio.playBonusSound()
   }
 
@@ -259,9 +260,9 @@ defineExpose({ start, stop })
       <circle
         :cx="center"
         :cy="center"
-        r="8"
-        fill="#fff"
-        opacity="0.8"
+        :r="centerDotRadius"
+        fill="#FFD700"
+        opacity="0.95"
       />
     </svg>
 

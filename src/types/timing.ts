@@ -1,4 +1,4 @@
-export type TimingResult = 'perfect' | 'good' | 'normal' | 'miss'
+export type TimingResult = 'critical' | 'bonus' | 'normal' | 'miss'
 
 export interface TimingCircleConfig {
   shrinkSpeed: number
@@ -7,6 +7,7 @@ export interface TimingCircleConfig {
   direction: 'inward' | 'outward'
   color: string
   successWindow: number
+  centerDotRadius: number
 }
 
 export interface TimingResultData {
@@ -16,17 +17,18 @@ export interface TimingResultData {
 }
 
 export const BASIC_ATTACK_CONFIG: TimingCircleConfig = {
-  shrinkSpeed: 120,
+  shrinkSpeed: 400,
   criticalZoneSize: 30,
-  outerRadius: 150,
+  outerRadius: 250,
   direction: 'inward',
   color: '#FF5722',
-  successWindow: 15
+  successWindow: 25,
+  centerDotRadius: 10
 }
 
 export const TIMING_MULTIPLIERS = {
-  perfect: 2.0,
-  good: 1.5,
+  critical: 2.5,
+  bonus: 1.5,
   normal: 1.0,
   miss: 0.25
 } as const
