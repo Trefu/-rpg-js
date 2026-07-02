@@ -22,16 +22,14 @@ const getNodeIcon = (type: INode['type']) => {
 const isNodeReachable = (node: INode) => {
   if (!expeditionStore.currentExpedition) return false
 
-  if (expeditionStore.currentExpedition.currentNode === null) {
-    if (node.id === 'start') return true
-    const startNode = expeditionStore.currentExpedition.nodes.find(n => n.id === 'start')
-    if (startNode) {
-      return startNode.connections.includes(node.id)
-    }
+  const startNode = expeditionStore.currentExpedition.nodes.find(n => n.id === 'start')
+  if (!startNode) return false
+
+  if (!startNode.completed) {
+    return node.id === 'start'
   }
 
-  const lastCompletedNode = expeditionStore.currentExpedition.currentNode
-  return lastCompletedNode?.connections.includes(node.id) ?? false
+  return startNode.connections.includes(node.id)
 }
 
 const handleNodeClick = (node: INode) => {
