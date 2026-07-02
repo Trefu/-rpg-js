@@ -29,6 +29,16 @@ const handleModalOverlayClick = (e: MouseEvent) => {
     closeModal()
   }
 }
+
+const getAbilityIcon = (type: string) => {
+  const icons: Record<string, string> = {
+    attack: '/src/assets/icons/splash-icons/1.png',
+    stunStrike: '/src/assets/icons/splash-icons/35.png',
+    stealthStrike: '/src/assets/icons/splash-icons/2.png',
+    fireball: '/src/assets/icons/splash-icons/10.png'
+  }
+  return icons[type] || '/src/assets/icons/splash-icons/1.png'
+}
 </script>
 
 <template>
@@ -40,32 +50,39 @@ const handleModalOverlayClick = (e: MouseEvent) => {
           <h2>Habilidades</h2>
           <button class="modal-close-btn" @click="closeModal" title="Cerrar">✕</button>
         </div>
-        <ul class="abilities-list">
-          <li v-for="(ability, idx) in abilities" :key="ability.type" class="ability-item" :class="{ 'on-cooldown': abilityCooldowns[ability.type] > 0 }">
-            <div class="ability-info">
-              <img v-if="ability.type === 'attack'" src="/src/assets/icons/splash-icons/1.png" class="ability-icon-lg" alt="Atacar" />
-              <img v-else-if="ability.type === 'stunStrike'" src="/src/assets/icons/splash-icons/35.png" class="ability-icon-lg" alt="Golpe Aturdidor" />
-              <img v-else-if="ability.type === 'stealthStrike'" src="/src/assets/icons/splash-icons/2.png" class="ability-icon-lg" alt="Golpe Sigiloso" />
-              <img v-else-if="ability.type === 'fireball'" src="/src/assets/icons/splash-icons/10.png" class="ability-icon-lg" alt="Bola de Fuego" />
-              <img v-else src="/src/assets/icons/splash-icons/1.png" class="ability-icon-lg" :alt="ability.name" />
-              <div class="ability-meta">
-                <div class="ability-name">{{ ability.name }}</div>
-                <div class="ability-type">Tipo: {{ ability.type }}</div>
-                <div v-if="ability.cooldown > 0" class="ability-cooldown">Cooldown base: {{ ability.cooldown }} turno(s)</div>
+
+        <div class="abilities-grid">
+          <div
+            v-for="(ability, idx) in abilities"
+            :key="ability.type"
+            class="ability-card"
+            :class="{ 'on-cooldown': abilityCooldowns[ability.type] > 0 }"
+            @click="selectAbility(ability, idx)"
+          >
+            <div class="ability-icon-wrapper">
+              <img :src="getAbilityIcon(ability.type)" class="ability-icon" :alt="ability.name" />
+              <div v-if="abilityCooldowns[ability.type] > 0" class="cooldown-overlay">
+                <span class="cooldown-count">{{ abilityCooldowns[ability.type] }}</span>
               </div>
             </div>
-            <div class="ability-desc">{{ ability.description }}</div>
-            <button class="ability-use-btn" :disabled="abilityCooldowns[ability.type] > 0" @click="selectAbility(ability, idx)">
-              <span v-if="abilityCooldowns[ability.type] > 0">
-                Enfriamiento ({{ abilityCooldowns[ability.type] }})
-              </span>
-              <span v-else>
-                Usar <span class="shortcut-badge">[{{ abilityShortcuts[idx].toUpperCase() }}]</span>
-              </span>
-            </button>
-          </li>
-        </ul>
-        <div class="modal-hotkey-hint">Pulsa <b>A</b> para abrir/cerrar</div>
+
+            <div class="ability-content">
+              <div class="ability-header">
+                <span class="ability-name">{{ ability.name }}</span>
+                <span class="shortcut-badge">{{ abilityShortcuts[idx].toUpperCase() }}</span>
+              </div>
+              <p class="ability-desc">{{ ability.description }}</p>
+              <div class="ability-footer">
+                <span v-if="ability.cooldown > 0" class="cooldown-badge">
+                  ⏱ {{ ability.cooldown }} turno{{ ability.cooldown > 1 ? 's' : '' }}
+                </span>
+                <span class="use-hint">{{ abilityCooldowns[ability.type] > 0 ? 'Enfriando...' : 'Click para usar' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-hotkey-hint">Pulsa <b>A</b> para cerrar</div>
       </div>
     </div>
   </transition>
@@ -96,15 +113,16 @@ const handleModalOverlayClick = (e: MouseEvent) => {
 }
 
 .abilities-modal {
-  background: #23243a;
+  background: linear-gradient(145deg, #1e2035 0%, #23243a 100%);
   border-radius: 18px;
-  box-shadow: 0 8px 32px #000a;
-  padding: 2.5rem 2.5rem 1.5rem 2.5rem;
-  min-width: 340px;
+  box-shadow: 0 8px 40px #000a, inset 0 1px 0 rgba(255,255,255,0.05);
+  padding: 2rem 2.5rem 1.5rem 2.5rem;
+  min-width: 500px;
   max-width: 95vw;
   text-align: center;
   position: relative;
   animation: pop-in 0.25s;
+  border: 1px solid rgba(255,255,255,0.05);
 }
 
 @keyframes pop-in {
@@ -112,7 +130,6 @@ const handleModalOverlayClick = (e: MouseEvent) => {
     transform: scale(0.92);
     opacity: 0;
   }
-
   100% {
     transform: scale(1);
     opacity: 1;
@@ -123,14 +140,21 @@ const handleModalOverlayClick = (e: MouseEvent) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1.2rem;
-  margin-bottom: 1.5rem;
+  gap: 1rem;
+  margin-bottom: 1.8rem;
   position: relative;
 }
 
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.6rem;
+  color: #fff;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+}
+
 .modal-main-icon {
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   object-fit: contain;
   filter: drop-shadow(0 2px 8px #000a);
 }
@@ -139,154 +163,173 @@ const handleModalOverlayClick = (e: MouseEvent) => {
   position: absolute;
   right: 0.5rem;
   top: 0.5rem;
-  background: none;
+  background: rgba(255,255,255,0.1);
   border: none;
   color: #fff;
-  font-size: 1.7rem;
+  font-size: 1.4rem;
   cursor: pointer;
   opacity: 0.7;
-  transition: opacity 0.2s;
-}
-
-.modal-close-btn:hover {
-  opacity: 1;
-}
-
-.abilities-list {
-  list-style: none;
-  padding: 0;
-  margin: 1.5rem 0 1rem 0;
-}
-
-.ability-item {
-  margin-bottom: 2.2rem;
-  background: #292b44;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px #0003;
-  padding: 1.2rem 1.2rem 1.5rem 1.2rem;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  position: relative;
-}
-
-.ability-info {
-  display: flex;
-  align-items: center;
-  gap: 1.2rem;
-  margin-bottom: 0.7rem;
-}
-
-.ability-icon-lg {
-  width: 44px;
-  height: 44px;
-  object-fit: contain;
-  filter: drop-shadow(0 2px 8px #000a);
-}
-
-.ability-meta {
-  text-align: left;
-}
-
-.ability-name {
-  font-size: 1.25rem;
-  font-weight: bold;
-  color: #fff;
-}
-
-.ability-type {
-  font-size: 0.95rem;
-  color: #6fdc6f;
-  margin-top: 0.1rem;
-}
-
-.ability-cooldown {
-  font-size: 0.95rem;
-  color: #ffe600;
-  margin-top: 0.1rem;
-}
-
-.ability-desc {
-  color: #ffe600;
-  font-size: 1.05rem;
-  margin: 0.5rem 0 0.7rem 0;
-  text-align: left;
-}
-
-.ability-use-btn {
-  margin-top: 0.2rem;
-  background: linear-gradient(90deg, #4CAF50 0%, #2a2a2a 100%);
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 0.7rem 1.7rem;
-  font-size: 1.1rem;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background 0.2s, transform 0.2s, opacity 0.2s;
-  box-shadow: 0 2px 8px #0005;
-}
-
-.ability-use-btn:disabled {
-  background: #555;
-  color: #bbb;
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.ability-use-btn:not(:disabled):hover {
-  background: linear-gradient(90deg, #6fdc6f 0%, #444 100%);
-  transform: scale(1.04);
-}
-
-.ability-use-btn span {
+  transition: all 0.2s;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.ability-item.on-cooldown {
-  background: #2f314d;
-  opacity: 0.6;
+.modal-close-btn:hover {
+  opacity: 1;
+  background: rgba(255,255,255,0.2);
 }
 
-.ability-item.on-cooldown .ability-name,
-.ability-item.on-cooldown .ability-desc {
-  color: #999;
+.abilities-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
-.ability-item.on-cooldown .ability-icon-lg {
-  filter: grayscale(80%);
+.ability-card {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  background: linear-gradient(135deg, #292b44 0%, #2f324d 100%);
+  border-radius: 14px;
+  padding: 1rem 1.2rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid rgba(255,255,255,0.03);
+  text-align: left;
 }
 
-.modal-hotkey-hint {
-  margin-top: 0.7rem;
-  color: #aaa;
-  font-size: 0.95rem;
+.ability-card:hover:not(.on-cooldown) {
+  transform: translateX(4px);
+  background: linear-gradient(135deg, #323559 0%, #393e5f 100%);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+.ability-card.on-cooldown {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ability-icon-wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.ability-icon {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 6px #000a);
+}
+
+.on-cooldown .ability-icon {
+  filter: grayscale(100%) brightness(0.5);
+}
+
+.cooldown-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cooldown-count {
+  color: #ff6b6b;
+  font-size: 1.3rem;
+  font-weight: bold;
+  text-shadow: 0 1px 4px #000;
+}
+
+.ability-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.ability-header {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-bottom: 0.3rem;
+}
+
+.ability-name {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #fff;
 }
 
 .shortcut-badge {
-  background: #222;
+  background: rgba(255,230,0,0.15);
   color: #ffe600;
   font-weight: bold;
-  border-radius: 4px;
-  padding: 0.1em 0.4em;
-  margin-left: 0.5em;
-  font-size: 0.95em;
+  border-radius: 6px;
+  padding: 0.15em 0.6em;
+  font-size: 0.85rem;
+  border: 1px solid rgba(255,230,0,0.3);
+}
+
+.ability-desc {
+  color: #b8b8d0;
+  font-size: 0.95rem;
+  margin: 0.2rem 0;
+  line-height: 1.4;
+}
+
+.ability-footer {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.cooldown-badge {
+  background: rgba(255,180,0,0.15);
+  color: #ffb400;
+  padding: 0.2em 0.6em;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  border: 1px solid rgba(255,180,0,0.25);
+}
+
+.use-hint {
+  color: #6fdc6f;
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+.on-cooldown .use-hint {
+  color: #ff6b6b;
+}
+
+.modal-hotkey-hint {
+  margin-top: 1.5rem;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.modal-hotkey-hint b {
+  color: #999;
 }
 
 @media (max-width: 600px) {
   .abilities-modal {
-    min-width: 90vw;
-    padding: 1.2rem 0.5rem 1rem 0.5rem;
+    min-width: 95vw;
+    padding: 1.2rem 1rem 1rem 1rem;
   }
 
-  .ability-item {
-    padding: 0.7rem 0.5rem 1rem 0.5rem;
+  .ability-card {
+    padding: 0.8rem 1rem;
   }
 
-  .modal-header h2 {
-    font-size: 1.1rem;
+  .ability-icon {
+    width: 44px;
+    height: 44px;
   }
 }
-</style> 
+</style>
