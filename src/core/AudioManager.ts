@@ -1,60 +1,34 @@
 import { Howl, Howler } from 'howler'
 
+type MountainTrack = 'exploration' | 'combat' | 'boss'
+type SfxName = 'attack' | 'hit' | 'victory' | 'crit' | 'bonus'
+
+const MUSIC_SRC: Record<MountainTrack, string> = {
+  exploration: '/assets/music/mountain_ost_1.mp3',
+  combat: '/assets/music/mountain_ost_2.mp3',
+  boss: '/assets/music/mountain_ost_boss.mp3'
+}
+
+const SFX_SRC: Record<SfxName, string> = {
+  attack: '/assets/sounds/Stab 4-1.wav',
+  hit: '/assets/sounds/Hit Generic 2-1.wav',
+  victory: '/assets/sounds/Special Collectible 26-1.wav',
+  crit: '/assets/sounds/Explosion Large 1-1.wav',
+  bonus: '/assets/sounds/Explosion Medium 2-1.wav'
+}
+
 export class AudioManager {
   private static instance: AudioManager
-  private currentMusic: Howl | null = null
-  private musicVolume: number = 0.0
+  private currentMusic: MountainTrack | null = null
+  private mountainMusic: Partial<Record<MountainTrack, Howl>> = {}
+  private soundEffects: Partial<Record<SfxName, Howl>> = {}
+  private musicVolume: number = 0.1
   private sfxVolume: number = 1
   private isMuted: boolean = false
-
-  // Música de la montaña
-  private mountainMusic = {
-    exploration: new Howl({
-      src: ['/assets/music/mountain_ost_1.mp3'],
-      loop: true,
-      volume: this.musicVolume,
-      html5: true
-    }),
-    combat: new Howl({
-      src: ['/assets/music/mountain_ost_2.mp3'],
-      loop: true,
-      volume: this.musicVolume,
-      html5: true
-    }),
-    boss: new Howl({
-      src: ['/assets/music/mountain_ost_boss.mp3'],
-      loop: true,
-      volume: this.musicVolume,
-      html5: true
-    })
-  }
-
-  // Efectos de sonido 
-  private soundEffects = {
-    attack: new Howl({
-      src: ['/assets/sounds/Stab 4-1.wav'],
-      volume: this.sfxVolume
-    }),
-    hit: new Howl({
-      src: ['/assets/sounds/Hit Generic 2-1.wav'],
-      volume: this.sfxVolume
-    }),
-    victory: new Howl({
-      src: ['/assets/sounds/Special Collectible 26-1.wav'],
-      volume: this.sfxVolume
-    }),
-    crit: new Howl({
-      src: ['/assets/sounds/Explosion Large 1-1.wav'],
-      volume: this.sfxVolume
-    }),
-    bonus: new Howl({
-      src: ['/assets/sounds/Explosion Medium 2-1.wav'],
-      volume: this.sfxVolume
-    })
-  }
+  private unlocked: boolean = false
 
   private constructor() {
-    Howler.volume(this.musicVolume)
+    this.bindAutoplayUnlock()
   }
 
   public static getInstance(): AudioManager {
@@ -64,75 +38,111 @@ export class AudioManager {
     return AudioManager.instance
   }
 
+  private bindAutoplayUnlock(): void {
+    const unlock = () => {
+      this.unlocked = true
+      const ctx = Howler.ctx
+      if (ctx && ctx.state === 'suspended') {
+        ctx.resume().catch(() => {})
+      }
+    }
+    window.addEventListener('pointerdown', unlock)
+    window.addEventListener('keydown', unlock)
+    window.addEventListener('touchstart', unlock)
+  }
+
+  private getMusic(track: MountainTrack): Howl {
+    if (!this.mountainMusic[track]) {
+      this.mountainMusic[track] = new Howl({
+        src: [MUSIC_SRC[track]],
+        loop: true,
+        volume: this.musicVolume
+      })
+    }
+    return this.mountainMusic[track]!
+  }
+
+  private getSfx(name: SfxName): Howl {
+    if (!this.soundEffects[name]) {
+      this.soundEffects[name] = new Howl({
+        src: [SFX_SRC[name]],
+        volume: this.sfxVolume
+      })
+    }
+    return this.soundEffects[name]!
+  }
+
+  private tryPlay(howl: Howl): void {
+    if (!this.unlocked) return
+    const ctx = Howler.ctx
+    if (ctx && ctx.state === 'suspended') {
+      ctx.resume().catch(() => {})
+    }
+    if (!howl.playing()) howl.play()
+  }
+
   public playMountainExploration(): void {
-    this.stopCurrentMusic()
-    this.currentMusic = this.mountainMusic.exploration
-    this.currentMusic.play()
+    this.playTrack('exploration')
   }
 
   public playMountainCombat(): void {
-    this.stopCurrentMusic()
-    this.currentMusic = this.mountainMusic.combat
-    this.currentMusic.play()
+    this.playTrack('combat')
   }
 
   public playMountainBoss(): void {
-    this.stopCurrentMusic()
-    this.currentMusic = this.mountainMusic.boss
-    this.currentMusic.play()
+    this.playTrack('boss')
+  }
+
+  private playTrack(track: MountainTrack): void {
+    if (this.currentMusic && this.currentMusic !== track) {
+      const prev = this.mountainMusic[this.currentMusic]
+      if (prev) prev.stop()
+    }
+    this.currentMusic = track
+    this.tryPlay(this.getMusic(track))
   }
 
   public stopCurrentMusic(): void {
     if (this.currentMusic) {
-      this.currentMusic.stop()
+      const howl = this.mountainMusic[this.currentMusic]
+      if (howl) howl.stop()
       this.currentMusic = null
     }
   }
 
   public pauseMusic(): void {
     if (this.currentMusic) {
-      this.currentMusic.pause()
+      const howl = this.mountainMusic[this.currentMusic]
+      if (howl) howl.pause()
     }
   }
 
   public resumeMusic(): void {
     if (this.currentMusic) {
-      this.currentMusic.play()
+      this.tryPlay(this.mountainMusic[this.currentMusic]!)
     }
   }
 
-  // Métodos para efectos de sonido
   public playAttackSound(): void {
-    if (!this.isMuted) {
-      this.soundEffects.attack.play()
-    }
+    this.tryPlay(this.getSfx('attack'))
   }
 
   public playHitSound(): void {
-    if (!this.isMuted) {
-      this.soundEffects.hit.play()
-    }
+    this.tryPlay(this.getSfx('hit'))
   }
 
   public playVictorySound(): void {
-    if (!this.isMuted) {
-      this.soundEffects.victory.play()
-    }
+    this.tryPlay(this.getSfx('victory'))
   }
 
   public playCritSound(): void {
-    if (!this.isMuted) {
-      this.soundEffects.crit.play()
-    }
+    this.tryPlay(this.getSfx('crit'))
   }
 
   public playBonusSound(): void {
-    if (!this.isMuted) {
-      this.soundEffects.bonus.play()
-    }
+    this.tryPlay(this.getSfx('bonus'))
   }
 
-  // Control de volumen
   public setMusicVolume(volume: number): void {
     this.musicVolume = Math.max(0, Math.min(1, volume))
     Object.values(this.mountainMusic).forEach(music => {
@@ -155,28 +165,18 @@ export class AudioManager {
     return this.sfxVolume
   }
 
-  // Control de mute
   public toggleMute(): void {
     this.isMuted = !this.isMuted
-    if (this.isMuted) {
-      Howler.volume(0)
-    } else {
-      Howler.volume(1)
-    }
+    Howler.volume(this.isMuted ? 0 : 1)
   }
 
   public isAudioMuted(): boolean {
     return this.isMuted
   }
 
-  // Limpieza
   public destroy(): void {
     this.stopCurrentMusic()
-    Object.values(this.mountainMusic).forEach(music => {
-      music.unload()
-    })
-    Object.values(this.soundEffects).forEach(sound => {
-      sound.unload()
-    })
+    Object.values(this.mountainMusic).forEach(music => music.unload())
+    Object.values(this.soundEffects).forEach(sound => sound.unload())
   }
 }

@@ -1,6 +1,22 @@
 import type { IAbility } from '@/core/interfaces/IAbility'
 import type { AbilityContext } from '@/core/interfaces/IAbility'
 
+const TIMING_PREFIX: Record<string, string> = {
+  perfect: '¡PERFECTO! Usaste',
+  good: '¡CRÍTICO! Usaste',
+  normal: 'Usaste',
+  miss: 'Fallaste al usar'
+}
+
+const formatAbilityLog = (
+  baseMessage: string,
+  timingResult: AbilityContext['timingResult']
+): string => {
+  if (!timingResult) return baseMessage
+  const prefix = TIMING_PREFIX[timingResult] ?? 'Usaste'
+  return baseMessage.replace(/^Usaste|^Lanzaste|^Fallaste al usar/, prefix)
+}
+
 export const createBasicAttackAbility = (): IAbility => ({
   name: 'Ataque Básico',
   description: 'Un ataque simple con daño bajo',
@@ -13,7 +29,10 @@ export const createBasicAttackAbility = (): IAbility => ({
     const finalDamage = Math.floor(baseDamage * multiplier)
     context.target.takeDamage(finalDamage)
     context.showEnemyHit(context.target.id, finalDamage)
-    context.addToLog(`Usaste Ataque Básico causando ${finalDamage} de daño.`)
+    context.addToLog(formatAbilityLog(
+      `Usaste Ataque Básico causando ${finalDamage} de daño.`,
+      context.timingResult
+    ))
   }
 })
 
@@ -27,7 +46,10 @@ export const createStunStrikeAbility = (): IAbility => ({
     const damage = Math.floor(context.caster.attack() * 0.8)
     context.target.takeDamage(damage)
     context.showEnemyHit(context.target.id, damage)
-    context.addToLog(`Usaste Golpe Aturdidor causando ${damage} de daño.`)
+    context.addToLog(formatAbilityLog(
+      `Usaste Golpe Aturdidor causando ${damage} de daño.`,
+      context.timingResult
+    ))
   }
 })
 
@@ -41,7 +63,10 @@ export const createStealthStrikeAbility = (): IAbility => ({
     const damage = Math.floor(context.caster.attack() * 1.5)
     context.target.takeDamage(damage)
     context.showEnemyHit(context.target.id, damage)
-    context.addToLog(`Usaste Golpe Sigiloso causando ${damage} de daño.`)
+    context.addToLog(formatAbilityLog(
+      `Usaste Golpe Sigiloso causando ${damage} de daño.`,
+      context.timingResult
+    ))
   }
 })
 
@@ -55,6 +80,9 @@ export const createFireballAbility = (): IAbility => ({
     const damage = Math.floor(context.caster.attack() * 1.5)
     context.target.takeDamage(damage)
     context.showEnemyHit(context.target.id, damage)
-    context.addToLog(`Lanzaste Bola de Fuego causando ${damage} de daño de fuego.`)
+    context.addToLog(formatAbilityLog(
+      `Lanzaste Bola de Fuego causando ${damage} de daño de fuego.`,
+      context.timingResult
+    ))
   }
 })

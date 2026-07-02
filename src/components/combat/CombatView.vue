@@ -123,6 +123,18 @@ onUnmounted(() => {
 <template>
   <div class="combat-view">
     <div class="enemies-area">
+      <transition name="target-banner">
+        <div v-if="isSelectingTarget && selectedAbility" class="target-banner-wrap">
+          <div v-if="actionRequiresTarget(selectedAbility)" class="target-indicator">
+            <p>🎯 Selecciona un objetivo para {{ selectedAbility.name.toLowerCase() }}<br>
+              <span class="shortcut-hint">Presiona la <b>tecla</b> del enemigo o haz click.</span></p>
+          </div>
+          <div v-else class="target-indicator target-all-indicator">
+            <p>Todos los enemigos serán afectados.<br>
+              <span class="shortcut-hint">Presiona <b>[A]</b> para confirmar.</span></p>
+          </div>
+        </div>
+      </transition>
       <div class="enemies-container">
         <div v-for="enemy in enemies" :key="enemy.id" class="enemy-sprite" :class="{
           selected: selectedEnemy?.id === enemy.id,
@@ -147,7 +159,8 @@ onUnmounted(() => {
             </div>
           </transition-group>
           <div v-if="isSelectingTarget && actionRequiresTarget(selectedAbility) && enemy.isAlive" class="enemy-shortcut-badge">
-            {{ aliveEnemies.findIndex(e => e.id === enemy.id) + 1 }}
+            <span class="key-cap">{{ aliveEnemies.findIndex(e => e.id === enemy.id) + 1 }}</span>
+            <span class="enemy-name-badge">{{ enemy.name }}</span>
           </div>
           <transition name="attack-float">
             <div v-if="attackingEnemyId === enemy.id && attackingEnemyLabel" class="enemy-attack-warning">
@@ -174,6 +187,11 @@ onUnmounted(() => {
             <div class="player-header">
               <h4>{{ player?.name || 'Héroe' }}</h4>
               <span class="level">Nivel {{ player?.level }}</span>
+              <transition-group name="hit-popup" tag="div" class="player-hit-popup-container">
+                <div v-for="popup in playerHitPopups" :key="popup.key" class="hit-popup player-hit-popup">
+                  -{{ popup.value }}
+                </div>
+              </transition-group>
             </div>
             <div class="player-health-display">
               <div class="health-bar">
@@ -211,28 +229,11 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <div v-if="isSelectingTarget && selectedAbility">
-      <div v-if="actionRequiresTarget(selectedAbility)" class="target-indicator">
-        <p>🎯 Selecciona un objetivo para {{ selectedAbility.name.toLowerCase() }}<br>
-          <span class="shortcut-hint">Presiona 1, 2 o 3 para seleccionar un objetivo.</span></p>
-      </div>
-      <div v-else class="target-indicator target-all-indicator">
-        <p>Todos los enemigos serán afectados.<br>
-          <span class="shortcut-hint">Presiona <b>[A]</b> para confirmar.</span></p>
-      </div>
-    </div>
-
     <TimingOverlay
       :show="showTimingOverlay"
       @result="onTimingResultReceived"
       @close="() => {}"
     />
-
-    <transition-group name="hit-popup" tag="div">
-      <div v-for="popup in playerHitPopups" :key="popup.key" class="hit-popup player-hit-popup">
-        -{{ popup.value }}
-      </div>
-    </transition-group>
 
     <AbilitiesModal
       :show="showAbilitiesModal"

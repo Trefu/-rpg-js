@@ -12,6 +12,7 @@ export interface AbilityContext {
   performTimingChallenge: () => Promise<TimingResult>
   audioManager: AudioManager
   damageMultiplier?: number
+  timingResult?: TimingResult
 }
 
 export interface IAbility {

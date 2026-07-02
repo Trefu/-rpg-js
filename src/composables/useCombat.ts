@@ -309,7 +309,7 @@ export function useCombat(config: CombatConfig = {}) {
     }
   }
 
-  const executeAbility = async (damageMultiplier: number = 1) => {
+  const executeAbility = async (damageMultiplier: number = 1, timingResult?: TimingResultData['result']) => {
     isExecutingAction.value = true
 
     if (currentAction.value) {
@@ -325,7 +325,8 @@ export function useCombat(config: CombatConfig = {}) {
           endPlayerTurn: () => {},
           performTimingChallenge,
           audioManager,
-          damageMultiplier
+          damageMultiplier,
+          timingResult
         })
         onAbilityUsed(ability.type, ability.cooldown)
       }
@@ -348,7 +349,7 @@ export function useCombat(config: CombatConfig = {}) {
 
       performTimingChallenge().then((timingResult) => {
         const multiplier = TIMING_MULTIPLIERS[timingResult as keyof typeof TIMING_MULTIPLIERS]
-        executeAbility(multiplier)
+        executeAbility(multiplier, timingResult)
       })
     }
   }
