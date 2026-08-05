@@ -1,36 +1,34 @@
 import { Enemy } from './Enemy'
 import { IEnemy } from '../interfaces/ICharacter'
-import orcSprite from '@/assets/sprites/enemies/orc.png'
 import type { DefensePatternConfig } from '../defense/types'
 
-export class Orc extends Enemy implements IEnemy {
-  public readonly sprite = orcSprite
+export class Archer extends Enemy implements IEnemy {
   public defensePattern: DefensePatternConfig = {
-    phaseCount: 4,
-    waveSpeed: 10,
+    phaseCount: 1,
+    waveSpeed: 9,
     barWidth: 20,
-    baseSuccessZoneSize: 0.22,
+    baseSuccessZoneSize: 0.15,
     baseMaxBlockReduction: 0.5,
     phaseTimeoutMs: 5000
   }
 
   constructor(level: number = 1) {
     super(
-      `orc-${Date.now()}-${Math.random()}`,
-      'Orco',
+      `archer-${Date.now()}-${Math.random()}`,
+      'Arquero',
       level,
-      120 + (level * 20),
-      15 + (level * 3),
-      8 + (level * 2),
-      5 + (level * 1),
-      25 + (level * 5),
-      { min: 8 + level, max: 15 + (level * 2) }
+      60 + (level * 10),
+      10 + (level * 2),
+      4 + (level * 1),
+      2 + (level * 0.5),
+      18 + (level * 4),
+      { min: 7 + level, max: 12 + (level * 2) }
     )
   }
 
   public attack(): number {
     const baseDamage = this.baseAttack
-    const variation = Math.floor(Math.random() * 6) - 2 // -2 a +3
+    const variation = Math.floor(Math.random() * 4) - 1
     return Math.max(1, baseDamage + variation)
   }
 

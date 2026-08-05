@@ -1,6 +1,7 @@
 import { Character } from '../Character'
 import { ICombatant } from '../interfaces/ICharacter'
 import type { IStatusEffect } from '../interfaces/IStatusEffect'
+import type { DefensePatternConfig } from '../defense/types'
 
 export abstract class Enemy extends Character implements ICombatant {
   public baseAttack: number
@@ -10,6 +11,7 @@ export abstract class Enemy extends Character implements ICombatant {
   public readonly goldReward: { min: number; max: number }
   public stunTurns: number = 0;
   public statusEffects: IStatusEffect[] = [];
+  public defensePattern!: DefensePatternConfig;
 
   constructor(
     id: string,

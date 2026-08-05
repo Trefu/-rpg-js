@@ -1,9 +1,18 @@
 import { Enemy } from './Enemy'
 import goblinSprite from '@/assets/sprites/enemies/goblin.png'
+import type { DefensePatternConfig } from '../defense/types'
 
 export class Goblin extends Enemy {
   public delayMs = 1500 // Delay de ataque en milisegundos para el minijuego de combate
   public readonly sprite = goblinSprite
+  public defensePattern: DefensePatternConfig = {
+    phaseCount: 2,
+    waveSpeed: 14,
+    barWidth: 20,
+    baseSuccessZoneSize: 0.35,
+    baseMaxBlockReduction: 0.5,
+    phaseTimeoutMs: 5000
+  }
 
   constructor(level: number = 1) {
     super(
@@ -25,4 +34,4 @@ export class Goblin extends Enemy {
     // 20% de probabilidad de hacer un ataque crítico
     return Math.random() < 0.2 ? baseAttack * 1.5 : baseAttack
   }
-} 
+}

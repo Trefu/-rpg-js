@@ -6,9 +6,11 @@ import { useExpeditionStore } from '@/stores/expedition'
 import { useGameStore } from '@/stores/game'
 import goblinSprite from '@/assets/sprites/enemies/goblin.png'
 import TimingOverlay from './TimingOverlay.vue'
+import DefenseChallenge from './DefenseChallenge.vue'
 import type { ICharacter } from '@/core/interfaces/ICharacter'
 import StatusBar from './StatusBar.vue'
 import AbilitiesModal from '@/components/ui/AbilitiesModal.vue'
+import type { DefensePhaseResult } from '@/core/defense/types'
 
 const emit = defineEmits<{
   (e: 'combatEnded', victory: boolean): void
@@ -39,6 +41,10 @@ const {
   abilities,
   aliveEnemies,
   abilityShortcuts,
+  isDefenseActive,
+  defensePattern,
+  defenseZones,
+  defensePhaseIndex,
   openAbilitiesModal,
   closeAbilitiesModal,
   selectAbility,
@@ -53,7 +59,10 @@ const {
   actionRequiresTarget,
   handleTimingResult,
   executeAbility,
-  isPlayerInputLocked
+  isPlayerInputLocked,
+  handleDefensePhaseComplete,
+  handleDefenseAllPhasesComplete,
+  closeDefenseChallenge
 } = useCombat({
   onCombatEnd: (victory: boolean) => emit('combatEnded', victory)
 })
@@ -94,6 +103,18 @@ const getEnemySprite = (enemy: any) => {
 
 const onTimingResultReceived = (result: { result: 'critical' | 'bonus' | 'normal' | 'miss', accuracy: number, timePressed: number }) => {
   handleTimingResult(result)
+}
+
+const onDefensePhaseComplete = (result: DefensePhaseResult) => {
+  handleDefensePhaseComplete(result)
+}
+
+const onDefenseAllPhasesComplete = (results: DefensePhaseResult[]) => {
+  handleDefenseAllPhasesComplete(results)
+}
+
+const onDefenseClose = () => {
+  closeDefenseChallenge()
 }
 
 const handleAbilitySelect = (ability: any, index: number) => {
@@ -233,6 +254,16 @@ onUnmounted(() => {
       :show="showTimingOverlay"
       @result="onTimingResultReceived"
       @close="() => {}"
+    />
+
+    <DefenseChallenge
+      :show="isDefenseActive"
+      :pattern="defensePattern"
+      :zones="defenseZones"
+      :phase-index="defensePhaseIndex"
+      @phase-complete="onDefensePhaseComplete"
+      @all-phases-complete="onDefenseAllPhasesComplete"
+      @close="onDefenseClose"
     />
 
     <AbilitiesModal

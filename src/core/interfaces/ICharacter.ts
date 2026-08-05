@@ -1,5 +1,6 @@
 import type { IStatusEffect } from './IStatusEffect'
 import type { IAbility } from './IAbility'
+import type { DefensePatternConfig } from '../defense/types'
 
 export interface ICharacter {
   readonly id: string
@@ -65,4 +66,5 @@ export interface IEnemy extends ICombatant {
   removeStatusEffect(effectType: string): void
   reduceStatusEffects?: () => void
   sprite?: string
-} 
+  defensePattern: DefensePatternConfig
+}

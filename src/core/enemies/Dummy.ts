@@ -1,9 +1,18 @@
 import { Enemy } from './Enemy'
 import { IEnemy } from '../interfaces/ICharacter'
 import dummySprite from '@/assets/sprites/enemies/dummy.png'
+import type { DefensePatternConfig } from '../defense/types'
 
 export class Dummy extends Enemy implements IEnemy {
   public readonly sprite = dummySprite
+  public defensePattern: DefensePatternConfig = {
+    phaseCount: 1,
+    waveSpeed: 4,
+    barWidth: 20,
+    baseSuccessZoneSize: 0.45,
+    baseMaxBlockReduction: 0.8,
+    phaseTimeoutMs: 5000
+  }
 
   constructor(level: number = 1) {
     super(
@@ -47,4 +56,4 @@ export class Dummy extends Enemy implements IEnemy {
     // Nunca muere, siempre mantiene al menos 1 de vida
     this.isAlive = true
   }
-} 
+}

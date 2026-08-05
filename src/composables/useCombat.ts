@@ -4,8 +4,22 @@ import type { Player } from '@/core/Player'
 import { AudioManager } from '@/core/AudioManager'
 import { IEnemy } from '@/core/interfaces/ICharacter'
 import type { IAbility } from '@/core/interfaces/IAbility'
+import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
 import type { TimingResultData } from '@/types/timing'
 import { TIMING_MULTIPLIERS } from '@/types/timing'
+import { StatusEffects } from '@/core/StatusEffects'
+import type {
+  DefenseChallengeResult,
+  DefensePatternConfig,
+  DefensePhaseResult,
+  DefensePhaseZone
+} from '@/core/defense/types'
+import {
+  applyModifiersToPattern,
+  buildDefenseResult,
+  pickZonesForPhases
+} from '@/core/defense/DefenseEngine'
+import { getDefenseModifiers } from '@/core/defense/modifiers'
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
@@ -38,6 +52,16 @@ export function useCombat(config: CombatConfig = {}) {
   const abilityCooldowns = ref<{ [type: string]: number }>({})
   const enemyStatusWarning = ref<{ enemyId: string, icon: string, text: string, isBuff: boolean } | null>(null)
   const timingEffect = ref('')
+
+  const isDefenseActive = ref(false)
+  const defensePattern = ref<DefensePatternConfig | null>(null)
+  const defenseZones = ref<DefensePhaseZone[]>([])
+  const defensePhaseIndex = ref(0)
+  const defenseEnemyId = ref<string | null>(null)
+  let pendingDefenseResolve: ((result: DefenseChallengeResult | null) => void) | null = null
+  let pendingDefensePattern: DefensePatternConfig | null = null
+  let pendingDefenseAttackDamage = 0
+  let pendingDefenseEnemy: IEnemy | null = null
   let popupKey = 0
 
   const timingResultCallback = ref<((result: TimingResultData) => void) | null>(null)
@@ -55,8 +79,95 @@ export function useCombat(config: CombatConfig = {}) {
     return !isPlayerTurn.value ||
            isCombatEnded.value ||
            isExecutingAction.value ||
-           showTimingOverlay.value
+           showTimingOverlay.value ||
+           isDefenseActive.value
   })
+
+  function startDefenseChallenge(enemy: IEnemy, attackDamage: number): Promise<DefenseChallengeResult | null> {
+    return new Promise((resolve) => {
+      const modifiers = getDefenseModifiers(player.value)
+      const adjusted = applyModifiersToPattern(enemy.defensePattern, modifiers)
+      const zones = pickZonesForPhases(adjusted)
+      pendingDefenseResolve = resolve
+      pendingDefensePattern = adjusted
+      pendingDefenseAttackDamage = attackDamage
+      pendingDefenseEnemy = enemy
+      defensePattern.value = adjusted
+      defenseZones.value = zones
+      defensePhaseIndex.value = 0
+      defenseEnemyId.value = enemy.id
+      isDefenseActive.value = true
+    })
+  }
+
+  function handleDefensePhaseComplete(_result: DefensePhaseResult) {
+    if (defensePhaseIndex.value < (defensePattern.value?.phaseCount ?? 1) - 1) {
+      defensePhaseIndex.value++
+    }
+  }
+
+  function handleDefenseAllPhasesComplete(results: DefensePhaseResult[]) {
+    const pattern = pendingDefensePattern
+    const enemy = pendingDefenseEnemy
+    const attackDamage = pendingDefenseAttackDamage
+    const resolve = pendingDefenseResolve
+    pendingDefenseResolve = null
+    pendingDefensePattern = null
+    pendingDefenseEnemy = null
+    isDefenseActive.value = false
+    defensePattern.value = null
+    defenseZones.value = []
+    defenseEnemyId.value = null
+
+    if (!pattern || !enemy || !resolve) return
+
+    const modifiers = getDefenseModifiers(player.value)
+    const result = buildDefenseResult(pattern, results, modifiers, attackDamage)
+
+    const finalDamage = Math.max(0, result.totalDamage)
+    if (finalDamage > 0) {
+      player.value.takeDamage(finalDamage)
+      showPlayerHit(finalDamage)
+      audioManager.playAttackSound()
+      audioManager.playHitSound()
+      addToLog(`Recibes ${finalDamage} de daño.`)
+    } else {
+      addToLog(`¡Bloqueaste el ataque completamente!`)
+      audioManager.playBonusSound()
+    }
+
+    if (result.appliedOnFailureEffect && pattern.onFailureEffect) {
+      applyOnFailureEffectToPlayer(player.value, pattern.onFailureEffect)
+    }
+
+    resolve(result)
+  }
+
+  function applyOnFailureEffectToPlayer(p: any, fx: { statusType: string; duration: number; damagePerTurn?: number }) {
+    const statusType = fx.statusType.toUpperCase()
+    const template = StatusEffects.getByType(statusType)
+    if (!template) return
+    const effect: IStatusEffect = {
+      ...template,
+      turns: fx.duration,
+      damagePerTurn: fx.damagePerTurn ?? template.damagePerTurn
+    }
+    p.addStatusEffect(effect)
+    addToLog(`¡Sufres el efecto: ${template.name}!`)
+  }
+
+  function closeDefenseChallenge() {
+    if (pendingDefenseResolve) {
+      pendingDefenseResolve(null)
+      pendingDefenseResolve = null
+    }
+    pendingDefensePattern = null
+    pendingDefenseEnemy = null
+    isDefenseActive.value = false
+    defensePattern.value = null
+    defenseZones.value = []
+    defenseEnemyId.value = null
+  }
 
   function resetAbilityCooldowns() {
     abilityCooldowns.value = {}
@@ -186,42 +297,26 @@ export function useCombat(config: CombatConfig = {}) {
         continue
       }
 
-      if (config.isTraining) {
-        addToLog('El dummy no ataca. Es tu turno de nuevo.')
-        if (enemy.reduceStatusEffects) {
-          enemy.reduceStatusEffects()
-        }
-        isPlayerTurn.value = true
-        isExecutingAction.value = false
-        addToLog('Tu turno.')
-        return
-      }
-
       const enemyIndex = enemies.value.filter(e => e.name === enemy.name && e.isAlive).indexOf(enemy) + 1
       const enemyLabel = aliveEnemies.length > 1 ? `${enemy.name} ${enemyIndex}` : enemy.name
       attackingEnemyId.value = enemy.id
       attackingEnemyLabel.value = `${enemyLabel} va a atacar!`
       addToLog(`${enemyLabel} va a atacar`)
-      await delay(2000)
+      await delay(config.isTraining ? 800 : 1200)
       attackingEnemyId.value = null
       attackingEnemyLabel.value = null
 
       const damage = enemy.attack()
-      addToLog(`${enemyLabel} ataca causando ${damage} de daño.`)
+      addToLog(`${enemyLabel} lanza un ataque.`)
 
-      player.value.takeDamage(damage)
-      showPlayerHit(damage)
-      audioManager.playAttackSound()
-      if (damage > 0) {
-        audioManager.playHitSound()
-      }
+      await startDefenseChallenge(enemy, damage)
 
       if (!player.value.isAlive) {
         addToLog('¡Has sido derrotado!')
         endCombat(false)
         return
       }
-      await delay(2500);
+      await delay(config.isTraining ? 600 : 1500);
     }
 
     isPlayerTurn.value = true
@@ -424,6 +519,15 @@ export function useCombat(config: CombatConfig = {}) {
     aliveEnemies,
     abilityShortcuts,
     isPlayerInputLocked,
+
+    isDefenseActive,
+    defensePattern,
+    defenseZones,
+    defensePhaseIndex,
+    defenseEnemyId,
+    handleDefensePhaseComplete,
+    handleDefenseAllPhasesComplete,
+    closeDefenseChallenge,
 
     openAbilitiesModal,
     closeAbilitiesModal,
