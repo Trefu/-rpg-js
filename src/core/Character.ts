@@ -11,7 +11,6 @@ export abstract class Character implements ICharacter {
   public statusEffects: IStatusEffect[] = []
 
   abstract attack(): number
-  abstract defense(): number
 
   constructor(
     id: string,

@@ -1,17 +1,15 @@
 import { Character } from '../Character'
-import { ICombatant } from '../interfaces/ICharacter'
+import { ICharacter, ICombatant } from '../interfaces/ICharacter'
 import type { IStatusEffect } from '../interfaces/IStatusEffect'
 import type { DefensePatternConfig } from '../defense/types'
 
 export abstract class Enemy extends Character implements ICombatant {
   public baseAttack: number
-  public baseDefense: number
-  public baseMagic: number
   public readonly experienceReward: number
   public readonly goldReward: { min: number; max: number }
   public stunTurns: number = 0;
   public statusEffects: IStatusEffect[] = [];
-  public defensePattern!: DefensePatternConfig;
+  public attackPatterns: DefensePatternConfig[] = [];
 
   constructor(
     id: string,
@@ -19,15 +17,11 @@ export abstract class Enemy extends Character implements ICombatant {
     level: number,
     maxHealth: number,
     baseAttack: number,
-    baseDefense: number,
-    baseMagic: number,
     experienceReward: number,
     goldReward: { min: number; max: number }
   ) {
     super(id, name, level, maxHealth)
     this.baseAttack = baseAttack
-    this.baseDefense = baseDefense
-    this.baseMagic = baseMagic
     this.experienceReward = experienceReward
     this.goldReward = goldReward
   }
@@ -37,12 +31,11 @@ export abstract class Enemy extends Character implements ICombatant {
     return this.baseAttack + (this.level * 1.5)
   }
 
-  public defense(): number {
-    return this.baseDefense + (this.level * 1)
-  }
-
-  public magic(): number {
-    return this.baseMagic + (this.level * 1.2)
+  public selectAttackPattern(_player: ICharacter | null): DefensePatternConfig {
+    if (this.attackPatterns.length === 0) {
+      throw new Error(`${this.name} no tiene attackPatterns definidos`)
+    }
+    return this.attackPatterns[Math.floor(Math.random() * this.attackPatterns.length)]
   }
 
   public getRewards(): { experience: number; gold: number } {
@@ -85,4 +78,4 @@ export abstract class Enemy extends Character implements ICombatant {
       this.stunTurns--;
     }
   }
-} 
+}

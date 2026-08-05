@@ -1,18 +1,28 @@
 import { Enemy } from './Enemy'
-import goblinSprite from '@/assets/sprites/enemies/goblin.png'
+import goblinSprite from '@/assets/sprites/enemies/goblin2.png'
+import type { ICharacter } from '../interfaces/ICharacter'
 import type { DefensePatternConfig } from '../defense/types'
 
 export class Goblin extends Enemy {
   public delayMs = 1500 // Delay de ataque en milisegundos para el minijuego de combate
   public readonly sprite = goblinSprite
-  public defensePattern: DefensePatternConfig = {
-    phaseCount: 2,
-    waveSpeed: 14,
-    barWidth: 20,
-    baseSuccessZoneSize: 0.35,
-    baseMaxBlockReduction: 0.5,
-    phaseTimeoutMs: 5000
-  }
+  public attackPatterns: DefensePatternConfig[] = [
+    {
+      name: 'Mordida',
+      phaseCount: 2,
+      baseMaxBlockReduction: 0.5
+    },
+    {
+      name: 'Mordida venenosa',
+      phaseCount: 1,
+      baseMaxBlockReduction: 0.5,
+      onFailureEffect: {
+        statusType: 'poison',
+        duration: 4,
+        damagePerTurn: 3
+      }
+    }
+  ]
 
   constructor(level: number = 1) {
     super(
@@ -21,8 +31,6 @@ export class Goblin extends Enemy {
       level,
       50 + (level * 10), // Vida base + bonus por nivel
       3 + (level * 1),   // Ataque base + bonus por nivel
-      3 + (level * 1),   // Defensa base + bonus por nivel
-      2 + (level * 0.5), // Magia base + bonus por nivel
       20 + (level * 5),  // Experiencia base + bonus por nivel
       { min: 10 + (level * 2), max: 15 + (level * 3) }  // Oro base + bonus por nivel
     )
@@ -34,4 +42,15 @@ export class Goblin extends Enemy {
     // 20% de probabilidad de hacer un ataque crítico
     return Math.random() < 0.2 ? baseAttack * 1.5 : baseAttack
   }
+
+  public selectAttackPattern(player: ICharacter | null): DefensePatternConfig {
+    const [normalBite, poisonBite] = this.attackPatterns
+    const fallback = normalBite ?? this.attackPatterns[0]
+    if (!poisonBite) return fallback
+    if (player?.hasStatusEffect?.('poison')) {
+      return normalBite ?? fallback
+    }
+    return Math.random() < 0.35 ? poisonBite : (normalBite ?? fallback)
+  }
 }
+

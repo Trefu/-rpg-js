@@ -15,9 +15,6 @@ export const ZONE_ENEMY_POOLS: Record<string, EnemyPool> = {
   'mountain-peak': {
     early: [
       () => new Goblin(1),
-      () => new Wolf(1),
-      () => new Goblin(1),  // Duplicado para más peso
-      () => new Wolf(1)     // Duplicado para más peso
     ],
     mid: [
       () => new Goblin(1),

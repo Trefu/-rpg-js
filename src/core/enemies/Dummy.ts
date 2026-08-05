@@ -5,14 +5,12 @@ import type { DefensePatternConfig } from '../defense/types'
 
 export class Dummy extends Enemy implements IEnemy {
   public readonly sprite = dummySprite
-  public defensePattern: DefensePatternConfig = {
-    phaseCount: 1,
-    waveSpeed: 4,
-    barWidth: 20,
-    baseSuccessZoneSize: 0.45,
-    baseMaxBlockReduction: 0.8,
-    phaseTimeoutMs: 5000
-  }
+  public attackPatterns: DefensePatternConfig[] = [
+    {
+      phaseCount: 1,
+      baseMaxBlockReduction: 0.8
+    }
+  ]
 
   constructor(level: number = 1) {
     super(
@@ -21,8 +19,6 @@ export class Dummy extends Enemy implements IEnemy {
       level,
       1000, // Mucha vida
       0,    // No ataca
-      0,    // No defiende
-      0,    // No magia
       0,    // No experiencia
       { min: 0, max: 0 }  // No oro
     )
@@ -30,15 +26,6 @@ export class Dummy extends Enemy implements IEnemy {
 
   public attack(): number {
     // El dummy no ataca
-    return 0
-  }
-
-  public defense(): number {
-    // El dummy no defiende
-    return 0
-  }
-
-  public magic(): number {
     return 0
   }
 

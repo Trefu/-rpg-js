@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import type { DefensePatternConfig, DefensePhaseZone, DefensePhaseResult, DefensePhaseOutcome } from '@/core/defense/types'
+import { DEFENSE_BAR_WIDTH, DEFENSE_PHASE_TIMEOUT_MS } from '@/core/defense/types'
 import { isWaveInSuccessZone } from '@/core/defense/DefenseEngine'
+
+const BAR_WIDTH = DEFENSE_BAR_WIDTH
+const PHASE_TIMEOUT_MS = DEFENSE_PHASE_TIMEOUT_MS
 
 const props = defineProps<{
   show: boolean
@@ -18,18 +22,21 @@ const emit = defineEmits<{
 
 const isActive = ref(false)
 const waveColumn = ref(0)
+const waveDirection = ref(1)
 const lastTimestamp = ref(0)
 const phaseOutcome = ref<DefensePhaseOutcome | null>(null)
 const phaseOutcomes = ref<DefensePhaseOutcome[]>([])
 const phaseStarts = ref<number[]>([])
 const timeoutStart = ref(0)
+const timeoutDuration = ref(5000)
+const timeoutKey = ref(0)
 let animationFrame: number | null = null
 let phaseTimeoutHandle: number | null = null
 const FEEDBACK_DURATION_MS = 600
 
-const barWidth = computed(() => props.pattern?.barWidth ?? 20)
+const barWidth = BAR_WIDTH
 
-const waveLeft = computed(() => `${(waveColumn.value / barWidth.value) * 100}%`)
+const waveLeft = computed(() => `${(waveColumn.value / barWidth) * 100}%`)
 
 const phaseResults = ref<DefensePhaseResult[]>([])
 
@@ -72,15 +79,18 @@ function resetForPhase() {
     animationFrame = null
   }
   waveColumn.value = 0
+  waveDirection.value = 1
   lastTimestamp.value = 0
   phaseOutcome.value = null
   isActive.value = true
   timeoutStart.value = performance.now()
   clearPhaseTimeout()
   if (props.pattern) {
+    timeoutDuration.value = PHASE_TIMEOUT_MS
+    timeoutKey.value++
     phaseTimeoutHandle = window.setTimeout(() => {
       handleTimeout()
-    }, props.pattern.phaseTimeoutMs)
+    }, PHASE_TIMEOUT_MS)
   }
 }
 
@@ -92,7 +102,7 @@ function handleTimeout() {
   const zone = currentZone.value!
   const result: DefensePhaseResult = {
     outcome: 'timeout',
-    waveColumn: barWidth.value,
+    waveColumn: barWidth,
     zone
   }
   phaseResults.value.push(result)
@@ -106,7 +116,7 @@ function handleInput() {
   if (animationFrame) cancelAnimationFrame(animationFrame)
   clearPhaseTimeout()
   const col = waveColumn.value
-  const success = isWaveInSuccessZone(col, barWidth.value, currentZone.value)
+  const success = isWaveInSuccessZone(col, currentZone.value)
   const outcome: DefensePhaseOutcome = success ? 'success' : 'fail'
   phaseOutcome.value = outcome
   const result: DefensePhaseResult = {
@@ -133,13 +143,13 @@ function animate(now: number) {
   if (!isActive.value || !props.pattern) return
   const delta = lastTimestamp.value ? now - lastTimestamp.value : 16
   lastTimestamp.value = now
-  waveColumn.value += (delta / 1000) * props.pattern.waveSpeed
-  if (waveColumn.value >= barWidth.value) {
-    waveColumn.value = barWidth.value
-    if (isActive.value) {
-      handleTimeout()
-    }
-    return
+  waveColumn.value += (delta / 1000) * props.pattern.waveSpeed * waveDirection.value
+  if (waveColumn.value >= barWidth) {
+    waveColumn.value = barWidth
+    waveDirection.value = -1
+  } else if (waveColumn.value <= 0) {
+    waveColumn.value = 0
+    waveDirection.value = 1
   }
   animationFrame = requestAnimationFrame(animate)
 }
@@ -204,6 +214,12 @@ defineExpose({})
       <div class="defense-header">
         <h3>¡DEFENDE!</h3>
         <span class="phase-counter">{{ phaseHeader }}</span>
+      </div>
+
+      <div class="defense-timeout-bar-wrap">
+        <div class="defense-timeout-bar">
+          <div class="defense-timeout-fill" :key="timeoutKey" :style="{ animationDuration: timeoutDuration + 'ms' }"></div>
+        </div>
       </div>
 
       <div class="defense-bar-wrap" @click="onBarClick">
@@ -315,6 +331,33 @@ defineExpose({})
   padding: 1rem 1.5rem;
   cursor: pointer;
   user-select: none;
+}
+
+.defense-timeout-bar-wrap {
+  padding: 0 1.5rem;
+}
+
+.defense-timeout-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.defense-timeout-fill {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, #4CAF50 0%, #ffe600 60%, #ff3333 100%);
+  transform-origin: left center;
+  animation-name: timeout-drain;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+@keyframes timeout-drain {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
 }
 
 .defense-bar {

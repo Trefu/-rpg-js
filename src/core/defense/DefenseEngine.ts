@@ -4,7 +4,12 @@ import type {
   DefensePhaseResult,
   DefensePhaseZone
 } from './types'
-import { clampSuccessZoneSize } from './types'
+import {
+  clampSuccessZoneSize,
+  DEFENSE_BAR_WIDTH,
+  DEFAULT_SUCCESS_ZONE_SIZE,
+  DEFAULT_WAVE_SPEED
+} from './types'
 import type { DefenseModifiers } from './modifiers'
 
 export function applyModifiersToPattern(
@@ -12,8 +17,10 @@ export function applyModifiersToPattern(
   modifiers: DefenseModifiers
 ): DefensePatternConfig {
   const phaseCount = Math.max(1, pattern.phaseCount - Math.floor(modifiers.phaseCountReduction))
-  const successZoneSize = clampSuccessZoneSize(pattern.baseSuccessZoneSize + modifiers.successZoneSizeBonus)
-  const waveSpeed = pattern.waveSpeed * modifiers.waveSpeedMultiplier
+  const baseSuccessZoneSize = pattern.baseSuccessZoneSize ?? DEFAULT_SUCCESS_ZONE_SIZE
+  const successZoneSize = clampSuccessZoneSize(baseSuccessZoneSize + modifiers.successZoneSizeBonus)
+  const baseWaveSpeed = pattern.waveSpeed ?? DEFAULT_WAVE_SPEED
+  const waveSpeed = baseWaveSpeed * modifiers.waveSpeedMultiplier
 
   return {
     ...pattern,
@@ -28,7 +35,7 @@ export function pickZonesForPhases(
   rng: () => number = Math.random
 ): DefensePhaseZone[] {
   const zones: DefensePhaseZone[] = []
-  const zoneSize = clampSuccessZoneSize(pattern.baseSuccessZoneSize)
+  const zoneSize = clampSuccessZoneSize(pattern.baseSuccessZoneSize ?? DEFAULT_SUCCESS_ZONE_SIZE)
   const margin = 0.1
   const range = 1 - zoneSize - margin * 2
   for (let i = 0; i < pattern.phaseCount; i++) {
@@ -57,9 +64,9 @@ export function calculateDefenseDamage(
   return Math.max(0, Math.floor(raw))
 }
 
-export function isWaveInSuccessZone(waveColumn: number, barWidth: number, zone: DefensePhaseZone): boolean {
-  if (barWidth <= 0) return false
-  const wavePos = waveColumn / barWidth
+export function isWaveInSuccessZone(waveColumn: number, zone: DefensePhaseZone): boolean {
+  if (DEFENSE_BAR_WIDTH <= 0) return false
+  const wavePos = waveColumn / DEFENSE_BAR_WIDTH
   return wavePos >= zone.successZoneStart && wavePos <= zone.successZoneEnd
 }
 

@@ -2,6 +2,8 @@ import type { IStatusEffect } from './IStatusEffect'
 import type { IAbility } from './IAbility'
 import type { DefensePatternConfig } from '../defense/types'
 
+export type AttackPatternSelector = (player: ICharacter | null) => DefensePatternConfig
+
 export interface ICharacter {
   readonly id: string
   name: string
@@ -12,8 +14,8 @@ export interface ICharacter {
   statusEffects: IStatusEffect[]
   addStatusEffect(effect: IStatusEffect): void
   removeStatusEffect(effectType: string): void
+  hasStatusEffect(type: string): boolean
   attack(): number
-  defense(): number
   takeDamage(amount: number): void
   heal(amount: number): void
   getHealthPercentage(): number
@@ -30,7 +32,6 @@ export interface IPlayerStats {
 
 export interface ICombatant extends ICharacter {
   attack: () => number
-  defense: () => number
   takeDamage(amount: number): void
   heal(amount: number): void
   statusEffects: IStatusEffect[]
@@ -56,8 +57,6 @@ export interface IEnemy extends ICombatant {
   getRewards: () => { experience: number; gold: number }
   delayMs?: number
   baseAttack: number
-  baseDefense: number
-  baseMagic: number
   experienceReward: number
   goldReward: { min: number; max: number }
   abilities?: IAbility[]
@@ -66,5 +65,6 @@ export interface IEnemy extends ICombatant {
   removeStatusEffect(effectType: string): void
   reduceStatusEffects?: () => void
   sprite?: string
-  defensePattern: DefensePatternConfig
+  attackPatterns: DefensePatternConfig[]
+  selectAttackPattern(player: ICharacter | null): DefensePatternConfig
 }

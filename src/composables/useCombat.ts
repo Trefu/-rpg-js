@@ -83,10 +83,11 @@ export function useCombat(config: CombatConfig = {}) {
            isDefenseActive.value
   })
 
-  function startDefenseChallenge(enemy: IEnemy, attackDamage: number): Promise<DefenseChallengeResult | null> {
+  function startDefenseChallenge(enemy: IEnemy, attackDamage: number, preSelectedPattern?: DefensePatternConfig): Promise<DefenseChallengeResult | null> {
     return new Promise((resolve) => {
       const modifiers = getDefenseModifiers(player.value)
-      const adjusted = applyModifiersToPattern(enemy.defensePattern, modifiers)
+      const selectedPattern = preSelectedPattern ?? enemy.selectAttackPattern(player.value)
+      const adjusted = applyModifiersToPattern(selectedPattern, modifiers)
       const zones = pickZonesForPhases(adjusted)
       pendingDefenseResolve = resolve
       pendingDefensePattern = adjusted
@@ -297,19 +298,19 @@ export function useCombat(config: CombatConfig = {}) {
         continue
       }
 
+      const selectedPattern = enemy.selectAttackPattern(player.value)
+      const attackName = selectedPattern.name ?? 'atacar'
       const enemyIndex = enemies.value.filter(e => e.name === enemy.name && e.isAlive).indexOf(enemy) + 1
       const enemyLabel = aliveEnemies.length > 1 ? `${enemy.name} ${enemyIndex}` : enemy.name
       attackingEnemyId.value = enemy.id
-      attackingEnemyLabel.value = `${enemyLabel} va a atacar!`
-      addToLog(`${enemyLabel} va a atacar`)
+      attackingEnemyLabel.value = `${enemyLabel} va a usar ${attackName}!`
+      addToLog(`${enemyLabel} va a usar ${attackName}`)
       await delay(config.isTraining ? 800 : 1200)
       attackingEnemyId.value = null
       attackingEnemyLabel.value = null
 
       const damage = enemy.attack()
-      addToLog(`${enemyLabel} lanza un ataque.`)
-
-      await startDefenseChallenge(enemy, damage)
+      await startDefenseChallenge(enemy, damage, selectedPattern)
 
       if (!player.value.isAlive) {
         addToLog('¡Has sido derrotado!')

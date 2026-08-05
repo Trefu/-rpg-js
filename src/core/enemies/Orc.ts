@@ -5,14 +5,18 @@ import type { DefensePatternConfig } from '../defense/types'
 
 export class Orc extends Enemy implements IEnemy {
   public readonly sprite = orcSprite
-  public defensePattern: DefensePatternConfig = {
-    phaseCount: 4,
-    waveSpeed: 10,
-    barWidth: 20,
-    baseSuccessZoneSize: 0.22,
-    baseMaxBlockReduction: 0.5,
-    phaseTimeoutMs: 5000
-  }
+  public attackPatterns: DefensePatternConfig[] = [
+    {
+      name: 'Hachazos múltiples',
+      phaseCount: 4,
+      baseMaxBlockReduction: 0.5
+    },
+    {
+      name: 'Golpe aplastante',
+      phaseCount: 2,
+      baseMaxBlockReduction: 0.5
+    }
+  ]
 
   constructor(level: number = 1) {
     super(
@@ -21,8 +25,6 @@ export class Orc extends Enemy implements IEnemy {
       level,
       120 + (level * 20),
       15 + (level * 3),
-      8 + (level * 2),
-      5 + (level * 1),
       25 + (level * 5),
       { min: 8 + level, max: 15 + (level * 2) }
     )
@@ -32,14 +34,6 @@ export class Orc extends Enemy implements IEnemy {
     const baseDamage = this.baseAttack
     const variation = Math.floor(Math.random() * 6) - 2 // -2 a +3
     return Math.max(1, baseDamage + variation)
-  }
-
-  public defense(): number {
-    return this.baseDefense
-  }
-
-  public magic(): number {
-    return this.baseMagic
   }
 
   public getRewards(): { experience: number; gold: number } {
