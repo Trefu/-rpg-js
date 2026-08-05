@@ -9,12 +9,14 @@ export class Orc extends Enemy implements IEnemy {
     {
       name: 'Hachazos múltiples',
       phaseCount: 4,
-      baseMaxBlockReduction: 0.5
+      baseMaxBlockReduction: 0.5,
+      damageMultiplier: 0.8
     },
     {
       name: 'Golpe aplastante',
       phaseCount: 2,
-      baseMaxBlockReduction: 0.5
+      baseMaxBlockReduction: 0.5,
+      damageMultiplier: 1.5
     }
   ]
 

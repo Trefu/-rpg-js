@@ -10,12 +10,14 @@ export class Goblin extends Enemy {
     {
       name: 'Mordida',
       phaseCount: 2,
-      baseMaxBlockReduction: 0.5
+      baseMaxBlockReduction: 0.5,
+      damageMultiplier: 1.0
     },
     {
       name: 'Mordida venenosa',
       phaseCount: 1,
       baseMaxBlockReduction: 0.5,
+      damageMultiplier: 0.6,
       onFailureEffect: {
         statusType: 'poison',
         duration: 4,

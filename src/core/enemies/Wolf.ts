@@ -10,13 +10,15 @@ export class Wolf extends Enemy implements IEnemy {
       name: 'Mordida feroz',
       phaseCount: 5,
       waveSpeed: 40,
-      baseMaxBlockReduction: 0.5
+      baseMaxBlockReduction: 0.5,
+      damageMultiplier: 0.8
     },
     {
       name: 'Zarpazos rápidos',
       phaseCount: 3,
       waveSpeed: 40,
-      baseMaxBlockReduction: 0.5
+      baseMaxBlockReduction: 0.5,
+      damageMultiplier: 0.5
     }
   ]
 

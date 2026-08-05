@@ -12,7 +12,7 @@ export interface DefenseFailureEffect {
 export const DEFENSE_BAR_WIDTH = 30
 export const DEFENSE_PHASE_TIMEOUT_MS = 5000
 export const DEFAULT_WAVE_SPEED = 30
-export const DEFAULT_SUCCESS_ZONE_SIZE = 0.10
+export const DEFAULT_SUCCESS_ZONE_SIZE = 0.1
 
 export interface DefensePatternConfig {
   name?: string
@@ -20,6 +20,7 @@ export interface DefensePatternConfig {
   waveSpeed?: number
   baseSuccessZoneSize?: number
   baseMaxBlockReduction: number
+  damageMultiplier: number
   seed?: number
   onFailureEffect?: DefenseFailureEffect
 }

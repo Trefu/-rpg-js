@@ -7,17 +7,31 @@ import { useGameStore } from '@/stores/game'
 import goblinSprite from '@/assets/sprites/enemies/goblin.png'
 import TimingOverlay from './TimingOverlay.vue'
 import DefenseChallenge from './DefenseChallenge.vue'
-import type { ICharacter } from '@/core/interfaces/ICharacter'
+import type { ICharacter, IEnemy } from '@/core/interfaces/ICharacter'
 import StatusBar from './StatusBar.vue'
 import AbilitiesModal from '@/components/ui/AbilitiesModal.vue'
 import type { DefensePhaseResult } from '@/core/defense/types'
 
+const props = defineProps<{
+  enemyList?: IEnemy[]
+  isTraining?: boolean
+}>()
+
 const emit = defineEmits<{
   (e: 'combatEnded', victory: boolean): void
+  (e: 'trainingEnded'): void
 }>()
 
 const expeditionStore = useExpeditionStore()
 const gameStore = useGameStore()
+
+const combatOptions: { isTraining?: boolean; onCombatEnd?: (victory: boolean) => void; onTrainingEnd?: () => void } = {
+  onCombatEnd: (victory: boolean) => emit('combatEnded', victory)
+}
+if (props.isTraining) {
+  combatOptions.isTraining = true
+  combatOptions.onTrainingEnd = () => emit('trainingEnded')
+}
 
 const {
   player,
@@ -63,9 +77,7 @@ const {
   handleDefensePhaseComplete,
   handleDefenseAllPhasesComplete,
   closeDefenseChallenge
-} = useCombat({
-  onCombatEnd: (victory: boolean) => emit('combatEnded', victory)
-})
+} = useCombat(combatOptions)
 
 const shouldShowStatusBar = computed(() => {
   return isPlayerTurn.value && !isCombatEnded.value
@@ -122,14 +134,17 @@ const handleAbilitySelect = (ability: any, index: number) => {
 }
 
 onMounted(() => {
-  const currentNode = expeditionStore.currentExpedition?.currentNode
-
-  if (currentNode && currentNode.enemies && currentNode.enemies.length > 0) {
-    initializeCombat(currentNode.enemies)
+  if (props.enemyList && props.enemyList.length > 0) {
+    initializeCombat(props.enemyList)
   } else {
-    console.error('CombatView: No se encontraron enemigos en el nodo de expedición actual. Volviendo al mapa.')
-    gameStore.navigateTo('expedition-map')
-    return
+    const currentNode = expeditionStore.currentExpedition?.currentNode
+    if (currentNode && currentNode.enemies && currentNode.enemies.length > 0) {
+      initializeCombat(currentNode.enemies)
+    } else {
+      console.error('CombatView: No se encontraron enemigos en el nodo de expedición actual. Volviendo al mapa.')
+      gameStore.navigateTo('expedition-map')
+      return
+    }
   }
 
   window.addEventListener('keydown', handleKeyDown)

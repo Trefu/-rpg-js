@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import type { Player } from '../core/Player'
 
-export type GameLocation = 'expedition-map' | 'combat' | 'shop' | 'city'
+export type GameLocation = 'expedition-map' | 'combat' | 'shop' | 'city' | 'training'
 
 interface GameState {
   player: Player | null

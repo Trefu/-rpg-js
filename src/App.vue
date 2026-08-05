@@ -2,6 +2,7 @@
 import { computed, onMounted, watch } from 'vue'
 import ExpeditionMap from './components/expedition/ExpeditionMap.vue'
 import CombatView from './components/combat/CombatView.vue'
+import TrainingView from './components/combat/TrainingView.vue'
 import GameUI from './components/ui/GameUI.vue'
 import { useGameStore } from './stores/game'
 import { useExpeditionStore } from './stores/expedition'
@@ -18,7 +19,7 @@ const audioManager = AudioManager.getInstance()
 watch(currentView, (newView) => {
   if (newView === 'expedition-map') {
     audioManager.playMountainExploration()
-  } else {
+  } else if (newView === 'city' || newView === 'shop') {
     audioManager.stopCurrentMusic()
   }
 })
@@ -63,6 +64,10 @@ const handleCombatEnded = (victory: boolean) => {
   }
   gameStore.navigateTo('expedition-map')
 }
+
+const handleTrainingEnded = () => {
+  gameStore.navigateTo('city')
+}
 </script>
 
 <template>
@@ -72,6 +77,8 @@ const handleCombatEnded = (victory: boolean) => {
     <ExpeditionMap v-if="currentView === 'expedition-map'" @node-selected="handleNodeSelected" />
 
     <CombatView v-if="currentView === 'combat'" @combat-ended="handleCombatEnded" />
+
+    <TrainingView v-if="currentView === 'training'" @training-ended="handleTrainingEnded" />
 
     <div v-if="currentView === 'shop'">
       <h2>Tienda (En construccion)</h2>

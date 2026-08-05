@@ -7,12 +7,14 @@ export class Archer extends Enemy implements IEnemy {
     {
       name: 'Disparo preciso',
       phaseCount: 1,
-      baseMaxBlockReduction: 0.5
+      baseMaxBlockReduction: 0.5,
+      damageMultiplier: 1.3
     },
     {
       name: 'Disparo rapidísimo',
       phaseCount: 1,
-      baseMaxBlockReduction: 0.5
+      baseMaxBlockReduction: 0.5,
+      damageMultiplier: 0.7
     }
   ]
 

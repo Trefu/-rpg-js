@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import type { DefensePatternConfig, DefensePhaseZone, DefensePhaseResult, DefensePhaseOutcome } from '@/core/defense/types'
-import { DEFENSE_BAR_WIDTH, DEFENSE_PHASE_TIMEOUT_MS } from '@/core/defense/types'
+import { DEFENSE_BAR_WIDTH, DEFENSE_PHASE_TIMEOUT_MS, DEFAULT_WAVE_SPEED } from '@/core/defense/types'
 import { isWaveInSuccessZone } from '@/core/defense/DefenseEngine'
 
 const BAR_WIDTH = DEFENSE_BAR_WIDTH
@@ -143,7 +143,8 @@ function animate(now: number) {
   if (!isActive.value || !props.pattern) return
   const delta = lastTimestamp.value ? now - lastTimestamp.value : 16
   lastTimestamp.value = now
-  waveColumn.value += (delta / 1000) * props.pattern.waveSpeed * waveDirection.value
+  const waveSpeed = props.pattern.waveSpeed ?? DEFAULT_WAVE_SPEED
+  waveColumn.value += (delta / 1000) * waveSpeed * waveDirection.value
   if (waveColumn.value >= barWidth) {
     waveColumn.value = barWidth
     waveDirection.value = -1

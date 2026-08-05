@@ -309,10 +309,17 @@ export function useCombat(config: CombatConfig = {}) {
       attackingEnemyId.value = null
       attackingEnemyLabel.value = null
 
-      const damage = enemy.attack()
+      const rawDamage = enemy.attack()
+      const damage = Math.floor(rawDamage * selectedPattern.damageMultiplier)
       await startDefenseChallenge(enemy, damage, selectedPattern)
 
       if (!player.value.isAlive) {
+        if (config.isTraining) {
+          addToLog('¡Has caído en el entrenamiento! Usa "Revivir" en el panel para continuar.')
+          isPlayerTurn.value = true
+          isExecutingAction.value = false
+          return
+        }
         addToLog('¡Has sido derrotado!')
         endCombat(false)
         return
@@ -323,6 +330,26 @@ export function useCombat(config: CombatConfig = {}) {
     isPlayerTurn.value = true
     isExecutingAction.value = false
     addToLog('Tu turno.')
+  }
+
+  function revivePlayer() {
+    if (!player.value) return
+    player.value.health = player.value.maxHealth
+    player.value.isAlive = true
+    addToLog('Te has revivido con toda tu vida.')
+  }
+
+  function healPlayerToFull() {
+    if (!player.value) return
+    player.value.health = player.value.maxHealth
+    addToLog('Vida restaurada al máximo.')
+  }
+
+  function clearAllStatusEffects() {
+    if (!player.value) return
+    player.value.statusEffects = []
+    enemies.value.forEach(e => { e.statusEffects = [] })
+    addToLog('Efectos de estado eliminados.')
   }
 
   async function showEnemyStatusSequence(enemy: IEnemy) {
@@ -482,11 +509,13 @@ export function useCombat(config: CombatConfig = {}) {
   function initializeCombat(enemyList: IEnemy[]) {
     enemies.value = enemyList
     resetAbilityCooldowns()
-    audioManager.playMountainCombat()
+    if (!config.isTraining) {
+      audioManager.playMountainCombat()
+    }
 
     if (config.isTraining) {
       addToLog(`¡Entrenamiento iniciado! Practica con el dummy de entrenamiento.`)
-      addToLog(`El dummy tiene ${enemyList[0]?.maxHealth} de vida y no te atacará.`)
+      addToLog(`El dummy tiene ${enemyList[0]?.maxHealth} de vida. Elige sus ataques desde el panel.`)
     } else {
       addToLog(`¡Combate iniciado! Te enfrentas a ${enemyList.length} enemigo${enemyList.length > 1 ? 's' : ''}.`)
     }
@@ -550,6 +579,9 @@ export function useCombat(config: CombatConfig = {}) {
     showPlayerHit,
     actionRequiresTarget,
     handleTimingResult,
-    executeAbility
+    executeAbility,
+    revivePlayer,
+    healPlayerToFull,
+    clearAllStatusEffects
   }
 }

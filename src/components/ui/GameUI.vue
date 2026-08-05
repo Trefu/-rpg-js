@@ -12,6 +12,7 @@ const gameStore = useGameStore()
 const { player } = storeToRefs(gameStore)
 
 const showCharacter = ref(false)
+const isDev = import.meta.env.DEV
 
 const resetGame = () => {
   if (confirm('¿Estás seguro de que quieres reiniciar el juego? Se perderá todo el progreso.')) {
@@ -29,6 +30,9 @@ const resetGame = () => {
       </div>
       <div class="actions">
         <AudioControls />
+        <button v-if="isDev" class="ui-button training" @click="gameStore.navigateTo('training')" title="Pelea contra el dummy y prueba habilidades">
+          🛠️ Sala de Pruebas
+        </button>
         <button class="ui-button" @click="showCharacter = !showCharacter">
           {{ showCharacter ? 'Ocultar Personaje' : 'Ver Personaje' }}
         </button>
@@ -118,6 +122,17 @@ const resetGame = () => {
 
 .ui-button.danger:hover {
   background-color: #da190b;
+}
+
+.ui-button.training {
+  background-color: #ff9800;
+  color: #1a1a2e;
+  font-weight: bold;
+}
+
+.ui-button.training:hover {
+  background-color: #ffa733;
+  box-shadow: 0 0 12px rgba(255, 152, 0, 0.5);
 }
 
 .character-panel {
