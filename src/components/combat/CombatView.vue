@@ -6,6 +6,8 @@ import { useExpeditionStore } from '@/stores/expedition'
 import { useGameStore } from '@/stores/game'
 import { Player } from '@/core/Player'
 import goblinSprite from '@/assets/sprites/enemies/goblin.png'
+import statsIcon from '@/assets/icons/icons/ffffff/transparent/1x1/lorc/scroll-unfurled.png'
+import effectsIcon from '@/assets/icons/icons/ffffff/transparent/1x1/lorc/droplets.png'
 import TimingOverlay from './TimingOverlay.vue'
 import DefenseChallenge from './DefenseChallenge.vue'
 import AnnouncementBanner from './AnnouncementBanner.vue'
@@ -123,7 +125,7 @@ const hudOrbitItems = computed(() => [
   {
     id: 'stats',
     label: 'Stats del jugador',
-    glyph: '☰',
+    icon: statsIcon,
     badge: null as number | string | null,
     active: true,
     onClick: () => {}
@@ -133,7 +135,7 @@ const hudOrbitItems = computed(() => [
     label: playerStatusEffectsCount.value > 0
       ? `${playerStatusEffectsCount.value} efecto${playerStatusEffectsCount.value === 1 ? '' : 's'} activo${playerStatusEffectsCount.value === 1 ? '' : 's'}`
       : 'Sin efectos',
-    glyph: '✦',
+    icon: effectsIcon,
     badge: playerStatusEffectsCount.value || null,
     active: playerStatusEffectsCount.value > 0,
     onClick: () => {}

@@ -2,11 +2,14 @@
 import { computed, ref } from 'vue'
 import type { Player } from '@/core/Player'
 import PlayerStatsPanel from './PlayerStatsPanel.vue'
+import statsIcon from '@/assets/icons/icons/ffffff/transparent/1x1/lorc/scroll-unfurled.png'
+import statusIcon from '@/assets/icons/icons/ffffff/transparent/1x1/lorc/heart-drop.png'
+import effectsIcon from '@/assets/icons/icons/ffffff/transparent/1x1/lorc/droplets.png'
 
 export interface HudOrbitItem {
   id: string
   label: string
-  glyph: string
+  icon: string
   badge?: number | string
   active: boolean
   onClick: () => void
@@ -50,6 +53,10 @@ function toggleItem(id: string) {
 function closePanel() {
   expandedItemId.value = null
 }
+
+void statsIcon
+void statusIcon
+void effectsIcon
 </script>
 
 <template>
@@ -87,11 +94,11 @@ function closePanel() {
         <div class="hud-level">Nivel {{ playerLevel }}</div>
         <div class="hud-resources">
           <div class="resource-line hp-line">
-            <span class="resource-icon">❤</span>
+            <img :src="statusIcon" class="resource-icon" alt="HP" />
             <span class="resource-value">{{ hpDisplay }}</span>
           </div>
           <div class="resource-line energy-line">
-            <span class="resource-icon">⚡</span>
+            <img :src="effectsIcon" class="resource-icon" alt="Energía" />
             <span class="resource-value">{{ energyDisplay }}</span>
           </div>
         </div>
@@ -113,7 +120,7 @@ function closePanel() {
         :disabled="!item.active"
         @click="item.active && toggleItem(item.id)"
       >
-        <span class="hud-orbit-glyph">{{ item.glyph }}</span>
+        <img :src="item.icon" :alt="item.label" class="hud-orbit-icon" />
         <span v-if="item.badge !== undefined && item.badge !== null && item.badge !== ''" class="hud-orbit-badge">
           {{ item.badge }}
         </span>
@@ -138,8 +145,8 @@ function closePanel() {
 
 .hud-orbit {
   position: relative;
-  width: 132px;
-  height: 132px;
+  width: 116px;
+  height: 116px;
   border-radius: 50%;
   transition: transform 0.3s ease;
 }
@@ -160,7 +167,7 @@ function closePanel() {
 
 .hud-core {
   position: absolute;
-  inset: 16px;
+  inset: 12px;
   border-radius: 50%;
   background:
     radial-gradient(circle at 35% 25%, rgba(255, 230, 102, 0.18) 0%, rgba(0, 0, 0, 0) 55%),
@@ -174,23 +181,27 @@ function closePanel() {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.15rem;
+  gap: 0.12rem;
   text-align: center;
-  padding: 0.25rem;
+  padding: 0.2rem;
   pointer-events: none;
 }
 
 .hud-name {
   font-family: 'Georgia', serif;
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   color: #ffe066;
   font-weight: 700;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
   text-shadow: 0 1px 2px #000;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .hud-level {
-  font-size: 0.62rem;
+  font-size: 0.58rem;
   color: #b6f5b6;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -199,23 +210,37 @@ function closePanel() {
 .hud-resources {
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
-  margin-top: 0.2rem;
+  gap: 0.05rem;
+  margin-top: 0.15rem;
 }
 
 .resource-line {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.25rem;
+  gap: 0.2rem;
   font-family: 'Courier New', monospace;
-  font-size: 0.7rem;
+  font-size: 0.62rem;
   font-weight: 700;
   color: #fff;
   text-shadow: 0 1px 2px #000;
 }
-.resource-line.hp-line .resource-icon { color: #ff8a80; }
-.resource-line.energy-line .resource-icon { color: #82b1ff; }
+
+.resource-line .resource-icon {
+  width: 13px;
+  height: 13px;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.8));
+  display: block;
+}
+
+.resource-line.hp-line .resource-icon {
+  filter: drop-shadow(0 0 3px rgba(255, 138, 0, 0.6)) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.8));
+}
+
+.resource-line.energy-line .resource-icon {
+  filter: drop-shadow(0 0 3px rgba(64, 196, 255, 0.55)) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.8));
+}
 
 .hud-hit-container {
   position: absolute;
@@ -228,7 +253,7 @@ function closePanel() {
   top: 50%;
   transform: translate(-50%, -50%);
   color: #ff3333;
-  font-size: 1.3rem;
+  font-size: 1.2rem;
   font-weight: 800;
   text-shadow: 0 0 8px rgba(0, 0, 0, 0.85), 0 2px 8px rgba(0, 0, 0, 0.85);
   pointer-events: none;
@@ -239,9 +264,9 @@ function closePanel() {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 38px;
-  height: 38px;
-  margin: -19px 0 0 -19px;
+  width: 30px;
+  height: 30px;
+  margin: -15px 0 0 -15px;
   border-radius: 50%;
   border: 1.5px solid rgba(255, 230, 102, 0.6);
   background: linear-gradient(160deg, rgba(35, 25, 0, 0.92), rgba(15, 10, 0, 0.96));
@@ -252,22 +277,21 @@ function closePanel() {
   align-items: center;
   justify-content: center;
   transition: transform 0.18s ease, border-color 0.15s, background 0.15s, box-shadow 0.18s;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
   z-index: 2;
   padding: 0;
   pointer-events: auto;
-  transform: rotate(calc(var(--idx) * -60deg)) translate(82px) rotate(calc(var(--idx) * 60deg));
+  transform: rotate(calc(var(--idx) * -60deg)) translate(72px) rotate(calc(var(--idx) * 60deg));
 }
 
 .hud-orbit-btn:hover:not(:disabled) {
-  transform: rotate(calc(var(--idx) * -60deg)) translate(86px) rotate(calc(var(--idx) * 60deg)) scale(1.06);
+  transform: rotate(calc(var(--idx) * -60deg)) translate(75px) rotate(calc(var(--idx) * 60deg)) scale(1.08);
   border-color: #ffe066;
-  box-shadow: 0 0 12px rgba(255, 230, 102, 0.45);
+  box-shadow: 0 0 12px rgba(255, 230, 102, 0.5);
 }
 
 .hud-orbit-btn.active {
   background: linear-gradient(160deg, #ffe066 0%, #ff8a00 100%);
-  color: #1a1a2e;
   border-color: #fff;
   box-shadow: 0 0 14px rgba(255, 230, 102, 0.7);
 }
@@ -277,23 +301,34 @@ function closePanel() {
   cursor: not-allowed;
 }
 
-.hud-orbit-glyph {
-  font-size: 1.05rem;
-  line-height: 1;
-  display: block;
+.hud-orbit-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  filter: brightness(0) invert(1) sepia(1) saturate(5) hue-rotate(20deg);
+  transition: filter 0.15s;
+  pointer-events: none;
+}
+
+.hud-orbit-btn.active .hud-orbit-icon {
+  filter: brightness(0) invert(1);
+}
+
+.hud-orbit-btn:hover:not(:disabled) .hud-orbit-icon {
+  filter: brightness(0) invert(1) sepia(1) saturate(5) hue-rotate(20deg) brightness(1.2);
 }
 
 .hud-orbit-badge {
   position: absolute;
   top: -4px;
   right: -4px;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 4px;
-  border-radius: 9px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  border-radius: 8px;
   background: #ff5252;
   color: #fff;
-  font-size: 0.62rem;
+  font-size: 0.58rem;
   font-weight: 800;
   display: flex;
   align-items: center;
@@ -304,7 +339,7 @@ function closePanel() {
 
 .hud-panel-wrap {
   position: absolute;
-  left: calc(100% + 0.75rem);
+  left: calc(100% + 0.6rem);
   top: 50%;
   transform: translateY(-50%);
   width: 260px;
@@ -312,16 +347,17 @@ function closePanel() {
 }
 
 @media (max-width: 720px) {
-  .hud-orbit { width: 110px; height: 110px; }
+  .hud-orbit { width: 96px; height: 96px; }
   .hud-orbit-btn {
-    width: 32px;
-    height: 32px;
-    margin: -16px 0 0 -16px;
-    transform: rotate(calc(var(--idx) * -60deg)) translate(70px) rotate(calc(var(--idx) * 60deg));
+    width: 26px;
+    height: 26px;
+    margin: -13px 0 0 -13px;
+    transform: rotate(calc(var(--idx) * -60deg)) translate(60px) rotate(calc(var(--idx) * 60deg));
   }
   .hud-orbit-btn:hover:not(:disabled) {
-    transform: rotate(calc(var(--idx) * -60deg)) translate(73px) rotate(calc(var(--idx) * 60deg)) scale(1.06);
+    transform: rotate(calc(var(--idx) * -60deg)) translate(63px) rotate(calc(var(--idx) * 60deg)) scale(1.08);
   }
+  .hud-orbit-icon { width: 15px; height: 15px; }
   .hud-panel-wrap {
     left: 50%;
     top: calc(100% + 0.5rem);
