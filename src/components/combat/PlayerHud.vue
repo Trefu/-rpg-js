@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import type { Player } from '@/core/Player'
-import PlayerStatsPanel from './PlayerStatsPanel.vue'
-import statsIcon from '@/assets/icons/icons/ffffff/transparent/1x1/lorc/scroll-unfurled.png'
 import statusIcon from '@/assets/icons/icons/ffffff/transparent/1x1/lorc/heart-drop.png'
 import effectsIcon from '@/assets/icons/icons/ffffff/transparent/1x1/lorc/droplets.png'
 
@@ -21,7 +19,9 @@ const props = defineProps<{
   hitPopups: { value: number, key: number }[]
 }>()
 
-const expandedItemId = ref<string | null>(null)
+const emit = defineEmits<{
+  (e: 'select', id: string): void
+}>()
 
 const hpPercent = computed(() => {
   if (!props.player || props.player.maxHealth <= 0) return 0
@@ -46,22 +46,14 @@ const energyDisplay = computed(() => {
 const playerName = computed(() => props.player?.name ?? 'Héroe')
 const playerLevel = computed(() => props.player?.level ?? 1)
 
-function toggleItem(id: string) {
-  expandedItemId.value = expandedItemId.value === id ? null : id
+function onItemClick(id: string) {
+  emit('select', id)
 }
-
-function closePanel() {
-  expandedItemId.value = null
-}
-
-void statsIcon
-void statusIcon
-void effectsIcon
 </script>
 
 <template>
   <div class="player-hud">
-    <div class="hud-orbit" :class="{ 'is-open': expandedItemId !== null }">
+    <div class="hud-orbit">
       <svg class="hud-ring" viewBox="0 0 200 200" aria-hidden="true">
         <defs>
           <linearGradient id="hudRingGrad" x1="0" y1="0" x2="1" y2="1">
@@ -114,11 +106,11 @@ void effectsIcon
         :key="item.id"
         type="button"
         class="hud-orbit-btn"
-        :class="[item.id, { active: expandedItemId === item.id, inactive: !item.active }]"
+        :class="[item.id, { inactive: !item.active }]"
         :style="{ '--idx': idx }"
         :title="item.label"
         :disabled="!item.active"
-        @click="item.active && toggleItem(item.id)"
+        @click="item.active && onItemClick(item.id)"
       >
         <img :src="item.icon" :alt="item.label" class="hud-orbit-icon" />
         <span v-if="item.badge !== undefined && item.badge !== null && item.badge !== ''" class="hud-orbit-badge">
@@ -126,12 +118,6 @@ void effectsIcon
         </span>
       </button>
     </div>
-
-    <transition name="hud-panel">
-      <div v-if="expandedItemId === 'stats'" class="hud-panel-wrap">
-        <PlayerStatsPanel :player="player" @close="closePanel" />
-      </div>
-    </transition>
   </div>
 </template>
 
@@ -148,9 +134,7 @@ void effectsIcon
   width: 116px;
   height: 116px;
   border-radius: 50%;
-  transition: transform 0.3s ease;
 }
-.hud-orbit.is-open { transform: scale(0.94); }
 
 .hud-ring {
   position: absolute;
@@ -337,15 +321,6 @@ void effectsIcon
   border: 1.5px solid #1a1a2e;
 }
 
-.hud-panel-wrap {
-  position: absolute;
-  left: calc(100% + 0.6rem);
-  top: 50%;
-  transform: translateY(-50%);
-  width: 260px;
-  z-index: 20;
-}
-
 @media (max-width: 720px) {
   .hud-orbit { width: 96px; height: 96px; }
   .hud-orbit-btn {
@@ -358,40 +333,6 @@ void effectsIcon
     transform: rotate(calc(var(--idx) * -60deg)) translate(63px) rotate(calc(var(--idx) * 60deg)) scale(1.08);
   }
   .hud-orbit-icon { width: 15px; height: 15px; }
-  .hud-panel-wrap {
-    left: 50%;
-    top: calc(100% + 0.5rem);
-    transform: translateX(-50%);
-    width: min(280px, calc(100vw - 32px));
-  }
-}
-
-.hud-panel-enter-active,
-.hud-panel-leave-active {
-  transition: opacity 0.18s ease, transform 0.22s cubic-bezier(.34, 1.56, .64, 1);
-}
-.hud-panel-enter-from {
-  opacity: 0;
-  transform: translateY(-50%) translateX(-10px) scale(0.95);
-}
-.hud-panel-enter-to {
-  opacity: 1;
-  transform: translateY(-50%) translateX(0) scale(1);
-}
-.hud-panel-leave-from {
-  opacity: 1;
-  transform: translateY(-50%) translateX(0) scale(1);
-}
-.hud-panel-leave-to {
-  opacity: 0;
-  transform: translateY(-50%) translateX(-10px) scale(0.95);
-}
-
-@media (max-width: 720px) {
-  .hud-panel-enter-from { transform: translateX(-50%) translateY(-10px) scale(0.95); }
-  .hud-panel-enter-to   { transform: translateX(-50%) translateY(0) scale(1); }
-  .hud-panel-leave-from { transform: translateX(-50%) translateY(0) scale(1); }
-  .hud-panel-leave-to   { transform: translateX(-50%) translateY(-10px) scale(0.95); }
 }
 
 .hud-hit-enter-active {

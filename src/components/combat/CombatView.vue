@@ -14,6 +14,7 @@ import AnnouncementBanner from './AnnouncementBanner.vue'
 import CombatLogModal from './CombatLogModal.vue'
 import CombatLogPanel from './CombatLogPanel.vue'
 import PlayerHud from './PlayerHud.vue'
+import PlayerStatsPanel from './PlayerStatsPanel.vue'
 import type { ICharacter, IEnemy } from '@/core/interfaces/ICharacter'
 import StatusBar from './StatusBar.vue'
 import AbilitiesModal from '@/components/ui/AbilitiesModal.vue'
@@ -113,6 +114,13 @@ const handleKeyDown = (e: KeyboardEvent) => {
 }
 
 const showLogModal = ref(false)
+const showStatsModal = ref(false)
+
+function onHudItemSelected(id: string) {
+  if (id === 'stats') {
+    showStatsModal.value = true
+  }
+}
 
 const typedPlayer = computed<Player | null>(() => {
   const p = player.value as unknown
@@ -250,6 +258,7 @@ onUnmounted(() => {
           :player="typedPlayer"
           :orbit-items="hudOrbitItems"
           :hit-popups="playerHitPopups"
+          @select="onHudItemSelected"
         />
         <div v-if="playerStatusEffects.length > 0" class="hud-status-bar">
           <StatusBar :effects="playerStatusEffects" />
@@ -304,6 +313,12 @@ onUnmounted(() => {
       :show="showLogModal"
       :messages="combatLog"
       @close="showLogModal = false"
+    />
+
+    <PlayerStatsPanel
+      :show="showStatsModal"
+      :player="typedPlayer"
+      @close="showStatsModal = false"
     />
   </div>
 </template>
