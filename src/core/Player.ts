@@ -1,5 +1,5 @@
 import { Character } from './Character'
-import { ICombatant, ILevelable, IInventory } from './interfaces/ICharacter'
+import { ICombatant, ILevelable, IInventory, IPlayerStats } from './interfaces/ICharacter'
 import { IStatusEffect } from './interfaces/IStatusEffect'
 import type { IAbility } from './interfaces/IAbility'
 
@@ -11,6 +11,9 @@ export class Player extends Character implements ICombatant, ILevelable, IInvent
   public abilities: IAbility[]
   public statusEffects: IStatusEffect[] = []
   public speed: number
+  public energy: number
+  public maxEnergy: number
+  public baseStats: IPlayerStats
 
   constructor(
     id: string,
@@ -28,6 +31,16 @@ export class Player extends Character implements ICombatant, ILevelable, IInvent
     this.abilities = []
     this.defenseValue = defense
     this.speed = speed
+    this.maxEnergy = 50
+    this.energy = 50
+    this.baseStats = {
+      fuerza: 10,
+      destreza: 10,
+      inteligencia: 10,
+      sabiduria: 10,
+      constitucion: 10,
+      carisma: 10
+    }
   }
 
   public defenseValue: number = 10
@@ -62,6 +75,24 @@ export class Player extends Character implements ICombatant, ILevelable, IInvent
     this.health = this.maxHealth
     this.defenseValue += 2
     this.speed += 1
+    this.maxEnergy += 10
+    this.energy = this.maxEnergy
+    this.baseStats.fuerza += 2
+    this.baseStats.destreza += 2
+    this.baseStats.inteligencia += 2
+    this.baseStats.sabiduria += 2
+    this.baseStats.constitucion += 2
+    this.baseStats.carisma += 1
+  }
+
+  public spendEnergy(amount: number): boolean {
+    if (this.energy < amount) return false
+    this.energy -= amount
+    return true
+  }
+
+  public restoreEnergy(amount: number): void {
+    this.energy = Math.min(this.maxEnergy, this.energy + amount)
   }
 
   public addItem(item: string): void {

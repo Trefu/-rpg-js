@@ -17,6 +17,15 @@ const formatAbilityLog = (
   return baseMessage.replace(/^Usaste|^Lanzaste|^Fallaste al usar/, prefix)
 }
 
+const showCritAnnouncement = (context: AbilityContext) => {
+  const target: any = context.target
+  const weakPoint: string | undefined = target?.weakPointName
+  const text = weakPoint
+    ? `You shot at ${weakPoint}'s Weak Point!`
+    : `¡CRÍTICO!`
+  context.showAnnouncement(text, 'crit', 1800)
+}
+
 export const createBasicAttackAbility = (): IAbility => ({
   name: 'Ataque Básico',
   description: 'Un ataque simple con daño bajo',
@@ -29,6 +38,7 @@ export const createBasicAttackAbility = (): IAbility => ({
     const finalDamage = Math.floor(baseDamage * multiplier)
     context.target.takeDamage(finalDamage)
     context.showEnemyHit(context.target.id, finalDamage)
+    if (context.timingResult === 'critical') showCritAnnouncement(context)
     context.addToLog(formatAbilityLog(
       `Usaste Ataque Básico causando ${finalDamage} de daño.`,
       context.timingResult
@@ -46,6 +56,7 @@ export const createStunStrikeAbility = (): IAbility => ({
     const damage = Math.floor(context.caster.attack() * 0.8)
     context.target.takeDamage(damage)
     context.showEnemyHit(context.target.id, damage)
+    if (context.timingResult === 'critical') showCritAnnouncement(context)
     context.addToLog(formatAbilityLog(
       `Usaste Golpe Aturdidor causando ${damage} de daño.`,
       context.timingResult
@@ -63,6 +74,7 @@ export const createStealthStrikeAbility = (): IAbility => ({
     const damage = Math.floor(context.caster.attack() * 1.5)
     context.target.takeDamage(damage)
     context.showEnemyHit(context.target.id, damage)
+    if (context.timingResult === 'critical') showCritAnnouncement(context)
     context.addToLog(formatAbilityLog(
       `Usaste Golpe Sigiloso causando ${damage} de daño.`,
       context.timingResult
@@ -80,6 +92,7 @@ export const createFireballAbility = (): IAbility => ({
     const damage = Math.floor(context.caster.attack() * 1.5)
     context.target.takeDamage(damage)
     context.showEnemyHit(context.target.id, damage)
+    if (context.timingResult === 'critical') showCritAnnouncement(context)
     context.addToLog(formatAbilityLog(
       `Lanzaste Bola de Fuego causando ${damage} de daño de fuego.`,
       context.timingResult

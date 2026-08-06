@@ -10,6 +10,8 @@ export interface ICharacter {
   level: number
   health: number
   maxHealth: number
+  energy?: number
+  maxEnergy?: number
   isAlive: boolean
   statusEffects: IStatusEffect[]
   addStatusEffect(effect: IStatusEffect): void
@@ -67,4 +69,5 @@ export interface IEnemy extends ICombatant {
   sprite?: string
   attackPatterns: DefensePatternConfig[]
   selectAttackPattern(player: ICharacter | null): DefensePatternConfig
+  weakPointName?: string
 }

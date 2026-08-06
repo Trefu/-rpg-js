@@ -82,12 +82,13 @@
 
 .player-ui {
   position: absolute;
-  bottom: 60px;
+  bottom: 20px;
   left: 20px;
   right: 20px;
   display: flex;
-  gap: 2rem;
-  height: 200px;
+  gap: 1.25rem;
+  height: auto;
+  align-items: stretch;
 }
 
 .combat-log-area {
@@ -96,79 +97,146 @@
 
 .combat-log-box {
   background-color: rgba(0, 0, 0, 0.9);
-  border: 3px solid #4CAF50;
-  border-radius: 12px;
-  padding: 1rem;
-  height: 100%;
+  border: 2px solid #4CAF50;
+  border-radius: 10px;
+  padding: 0.6rem 0.75rem;
   display: flex;
   flex-direction: column;
+  gap: 0.5rem;
 }
 
 .player-status {
-  margin-bottom: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  position: relative;
 }
 
 .player-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.5rem;
   position: relative;
+  min-height: 22px;
 }
 
-.player-header h4 {
-  margin: 0;
+.player-name {
   color: #4CAF50;
-  font-size: 1.1rem;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
-.level {
-  color: #ffd700;
-  font-weight: bold;
-  font-size: 0.9rem;
-}
-
-.player-health-display {
-  margin-bottom: 0.5rem;
-}
-
-.player-stats-display {
+.player-bars {
   display: flex;
-  gap: 1rem;
-  font-size: 0.8rem;
-  color: #ccc;
+  flex-direction: column;
+  gap: 0.3rem;
 }
 
-.separator {
-  height: 1px;
-  background-color: #4CAF50;
-  margin: 0.5rem 0;
+.bar-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.combat-log {
+.bar-track {
   flex: 1;
-  overflow-y: auto;
-  max-height: 80px;
+  height: 8px;
+  background-color: #1a1a1a;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+  border-radius: 4px;
+}
+
+.bar-fill-hp {
+  background: linear-gradient(90deg, #ff5252 0%, #ff8a65 100%);
+}
+
+.bar-fill-energy {
+  background: linear-gradient(90deg, #40c4ff 0%, #82b1ff 100%);
+}
+
+.bar-text {
+  font-size: 0.7rem;
+  color: #ddd;
+  font-weight: 600;
+  min-width: 56px;
+  text-align: right;
+  font-family: 'Courier New', monospace;
+}
+
+.combat-log.compact {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.log-empty {
+  color: #666;
+  font-size: 0.7rem;
+  font-style: italic;
+  padding: 0.25rem 0;
+}
+
+.log-expand-btn {
+  align-self: flex-end;
+  background: rgba(76, 175, 80, 0.15);
+  color: #b6f5b6;
+  border: 1px solid rgba(76, 175, 80, 0.4);
+  border-radius: 6px;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.7rem;
+  cursor: pointer;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.log-expand-btn:hover:not(:disabled) {
+  background: rgba(76, 175, 80, 0.3);
+  border-color: #4CAF50;
+}
+
+.log-expand-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.log-count {
+  background: #ffe066;
+  color: #1a1a2e;
+  font-weight: 700;
+  font-size: 0.65rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 8px;
 }
 
 .log-message {
   color: white;
-  font-size: 0.7rem;
-  margin-bottom: 0.25rem;
-  padding: 0.25rem;
-  background-color: rgba(255, 255, 255, 0.1);
+  font-size: 0.72rem;
+  padding: 0.2rem 0.45rem;
+  background-color: rgba(255, 255, 255, 0.08);
   border-radius: 4px;
+  line-height: 1.3;
 }
 
 .actions-area {
-  flex: 1;
+  flex: 0 0 240px;
+  align-self: stretch;
 }
 
 .action-buttons {
-  display: grid;
-  grid-template-columns: 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 0.5rem;
   height: 100%;
+  justify-content: center;
 }
 
 .action-btn {

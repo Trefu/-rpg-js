@@ -44,14 +44,29 @@ export function useCombat(config: CombatConfig = {}) {
   const showTimingOverlay = ref(false)
   const currentAction = ref<{ ability: IAbility, target: IEnemy } | null>(null)
   const attackingEnemyId = ref<string | null>(null)
-  const attackingEnemyLabel = ref<string | null>(null)
   const combatLogRef = ref<HTMLDivElement | null>(null)
   const enemyHitPopups = ref<{ id: string, value: number, key: number }[]>([])
   const playerHitPopups = ref<{ value: number, key: number }[]>([])
   const showAbilitiesModal = ref(false)
   const abilityCooldowns = ref<{ [type: string]: number }>({})
-  const enemyStatusWarning = ref<{ enemyId: string, icon: string, text: string, isBuff: boolean } | null>(null)
   const timingEffect = ref('')
+
+  const announcement = ref<{ text: string, variant: string, key: number } | null>(null)
+  let announcementKey = 0
+  let announcementTimer: ReturnType<typeof setTimeout> | null = null
+
+  function showAnnouncement(
+    text: string,
+    variant: 'info' | 'attack' | 'status' | 'turn' | 'crit' = 'info',
+    duration: number = 2000
+  ) {
+    if (announcementTimer) clearTimeout(announcementTimer)
+    announcement.value = { text, variant, key: ++announcementKey }
+    announcementTimer = setTimeout(() => {
+      announcement.value = null
+      announcementTimer = null
+    }, duration)
+  }
 
   const isDefenseActive = ref(false)
   const defensePattern = ref<DefensePatternConfig | null>(null)
@@ -272,6 +287,9 @@ export function useCombat(config: CombatConfig = {}) {
   function endPlayerTurn() {
     isPlayerTurn.value = false
     decrementAbilityCooldowns()
+    if (typeof player.value?.restoreEnergy === 'function') {
+      player.value.restoreEnergy(10)
+    }
     setTimeout(enemyTurn, config.isTraining ? 1000 : 2000)
   }
 
@@ -303,11 +321,10 @@ export function useCombat(config: CombatConfig = {}) {
       const enemyIndex = enemies.value.filter(e => e.name === enemy.name && e.isAlive).indexOf(enemy) + 1
       const enemyLabel = aliveEnemies.length > 1 ? `${enemy.name} ${enemyIndex}` : enemy.name
       attackingEnemyId.value = enemy.id
-      attackingEnemyLabel.value = `${enemyLabel} va a usar ${attackName}!`
+      showAnnouncement(`${enemyLabel} va a usar ${attackName}!`, 'attack', config.isTraining ? 800 : 1400)
       addToLog(`${enemyLabel} va a usar ${attackName}`)
       await delay(config.isTraining ? 800 : 1200)
       attackingEnemyId.value = null
-      attackingEnemyLabel.value = null
 
       const rawDamage = enemy.attack()
       const damage = Math.floor(rawDamage * selectedPattern.damageMultiplier)
@@ -330,6 +347,7 @@ export function useCombat(config: CombatConfig = {}) {
     isPlayerTurn.value = true
     isExecutingAction.value = false
     addToLog('Tu turno.')
+    showAnnouncement('Tu turno', 'turn', 1400)
   }
 
   function revivePlayer() {
@@ -356,14 +374,8 @@ export function useCombat(config: CombatConfig = {}) {
     if (enemy.isAlive && enemy.statusEffects.length > 0) {
       for (const effect of enemy.statusEffects) {
         if (effect.turns > 0 && effect.turnLabel) {
-          enemyStatusWarning.value = {
-            enemyId: enemy.id,
-            text: effect.turnLabel,
-            icon: effect.icon,
-            isBuff: !!effect.isBuff
-          }
+          showAnnouncement(effect.turnLabel, 'status', 2000)
           await delay(2000)
-          enemyStatusWarning.value = null
           await delay(200)
         }
       }
@@ -445,6 +457,7 @@ export function useCombat(config: CombatConfig = {}) {
           target,
           addToLog,
           showEnemyHit,
+          showAnnouncement: (text, variant, duration) => showAnnouncement(text, variant ?? 'info', duration),
           endPlayerTurn: () => {},
           performTimingChallenge,
           audioManager,
@@ -537,14 +550,14 @@ export function useCombat(config: CombatConfig = {}) {
     showTimingOverlay,
     currentAction,
     attackingEnemyId,
-    attackingEnemyLabel,
     combatLogRef,
     enemyHitPopups,
     playerHitPopups,
     showAbilitiesModal,
     abilityCooldowns,
-    enemyStatusWarning,
     timingEffect,
+    announcement,
+    showAnnouncement,
     abilities,
     aliveEnemies,
     abilityShortcuts,

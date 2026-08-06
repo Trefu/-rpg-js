@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import '@/styles/combat.css'
-import { onMounted, onUnmounted, computed } from 'vue'
+import { onMounted, onUnmounted, computed, ref } from 'vue'
 import { useCombat } from '@/composables/useCombat'
 import { useExpeditionStore } from '@/stores/expedition'
 import { useGameStore } from '@/stores/game'
+import { Player } from '@/core/Player'
 import goblinSprite from '@/assets/sprites/enemies/goblin.png'
 import TimingOverlay from './TimingOverlay.vue'
 import DefenseChallenge from './DefenseChallenge.vue'
+import AnnouncementBanner from './AnnouncementBanner.vue'
+import CombatLogModal from './CombatLogModal.vue'
+import PlayerHud from './PlayerHud.vue'
 import type { ICharacter, IEnemy } from '@/core/interfaces/ICharacter'
 import StatusBar from './StatusBar.vue'
 import AbilitiesModal from '@/components/ui/AbilitiesModal.vue'
@@ -44,14 +48,13 @@ const {
   isSelectingTarget,
   showTimingOverlay,
   attackingEnemyId,
-  attackingEnemyLabel,
   combatLogRef,
   enemyHitPopups,
   playerHitPopups,
   showAbilitiesModal,
   abilityCooldowns,
-  enemyStatusWarning,
   timingEffect,
+  announcement,
   abilities,
   aliveEnemies,
   abilityShortcuts,
@@ -106,6 +109,17 @@ const handleKeyDown = (e: KeyboardEvent) => {
   handleAbilitiesModalShortcuts(e)
 }
 
+const showLogModal = ref(false)
+const recentLog = computed(() => combatLog.value.slice(-3))
+
+const playerEnergy = computed(() => player.value?.energy ?? 0)
+const playerMaxEnergy = computed(() => player.value?.maxEnergy ?? 0)
+
+const typedPlayer = computed<Player | null>(() => {
+  const p = player.value as unknown
+  return p instanceof Player ? p : null
+})
+
 const getEnemySprite = (enemy: any) => {
   if (enemy.sprite) {
     return enemy.sprite
@@ -158,6 +172,12 @@ onUnmounted(() => {
 
 <template>
   <div class="combat-view">
+    <AnnouncementBanner
+      :visible="!!announcement"
+      :text="announcement?.text"
+      :variant="(announcement?.variant as any) || 'info'"
+    />
+
     <div class="enemies-area">
       <transition name="target-banner">
         <div v-if="isSelectingTarget && selectedAbility" class="target-banner-wrap">
@@ -198,17 +218,6 @@ onUnmounted(() => {
             <span class="key-cap">{{ aliveEnemies.findIndex(e => e.id === enemy.id) + 1 }}</span>
             <span class="enemy-name-badge">{{ enemy.name }}</span>
           </div>
-          <transition name="attack-float">
-            <div v-if="attackingEnemyId === enemy.id && attackingEnemyLabel" class="enemy-attack-warning">
-              {{ attackingEnemyLabel }}
-            </div>
-          </transition>
-          <transition name="status-float">
-            <div v-if="enemyStatusWarning && enemyStatusWarning.enemyId === enemy.id" :class="['enemy-status-warning', enemyStatusWarning.isBuff ? 'buff' : 'debuff']">
-              <img :src="enemyStatusWarning.icon" class="status-label-icon" />
-              {{ enemyStatusWarning.text }}
-            </div>
-          </transition>
         </div>
       </div>
     </div>
@@ -221,35 +230,44 @@ onUnmounted(() => {
               <StatusBar :effects="playerStatusEffects" />
             </div>
             <div class="player-header">
-              <h4>{{ player?.name || 'Héroe' }}</h4>
-              <span class="level">Nivel {{ player?.level }}</span>
+              <span class="player-name">{{ player?.name || 'Héroe' }}</span>
               <transition-group name="hit-popup" tag="div" class="player-hit-popup-container">
                 <div v-for="popup in playerHitPopups" :key="popup.key" class="hit-popup player-hit-popup">
                   -{{ popup.value }}
                 </div>
               </transition-group>
             </div>
-            <div class="player-health-display">
-              <div class="health-bar">
-                <div class="health-fill"
-                  :style="{ width: `${getHealthPercentage(player?.health || 0, player?.maxHealth || 1)}%` }"></div>
+            <div class="player-bars">
+              <div class="bar-row bar-hp">
+                <div class="bar-track">
+                  <div class="bar-fill bar-fill-hp"
+                    :style="{ width: `${getHealthPercentage(player?.health || 0, player?.maxHealth || 1)}%` }"></div>
+                </div>
+                <span class="bar-text">{{ player?.health }}/{{ player?.maxHealth }}</span>
               </div>
-              <span class="health-text">{{ player?.health }}/{{ player?.maxHealth }}</span>
-            </div>
-            <div class="player-stats-display">
-              <span>Ataque: {{ player?.attack() }}</span>
-              <span>Defensa: {{ player?.defense() }}</span>
+              <div class="bar-row bar-energy">
+                <div class="bar-track">
+                  <div class="bar-fill bar-fill-energy"
+                    :style="{ width: `${playerMaxEnergy > 0 ? (playerEnergy / playerMaxEnergy) * 100 : 0}%` }"></div>
+                </div>
+                <span class="bar-text">{{ playerEnergy }}/{{ playerMaxEnergy }}</span>
+              </div>
             </div>
           </div>
 
-          <div class="separator"></div>
-
-          <div class="combat-log" ref="combatLogRef">
-            <div v-for="(message, index) in combatLog" :key="index" class="log-message"
-              :class="{ 'log-highlight': index >= combatLog.length - 3 }">
+          <div class="combat-log compact" ref="combatLogRef">
+            <div v-for="(message, index) in recentLog" :key="`${combatLog.length}-${index}`"
+              class="log-message"
+              :class="{ 'log-highlight': index === recentLog.length - 1 }">
               {{ message }}
             </div>
+            <div v-if="combatLog.length === 0" class="log-empty">Sin acciones todavía.</div>
           </div>
+
+          <button class="log-expand-btn" @click="showLogModal = true" :disabled="combatLog.length === 0">
+            Ver registro completo
+            <span v-if="combatLog.length > recentLog.length" class="log-count">{{ combatLog.length }}</span>
+          </button>
         </div>
       </div>
 
@@ -288,6 +306,12 @@ onUnmounted(() => {
       :ability-shortcuts="abilityShortcuts"
       @close="closeAbilitiesModal"
       @select-ability="handleAbilitySelect"
+    />
+
+    <CombatLogModal
+      :show="showLogModal"
+      :messages="combatLog"
+      @close="showLogModal = false"
     />
   </div>
 </template>
