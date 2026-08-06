@@ -221,7 +221,6 @@ function effectDurationLabel(effect: IStatusEffect): string {
   height: 40px;
   object-fit: contain;
   border-radius: 6px;
-  background: #fff;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.55);
   display: block;
 }
