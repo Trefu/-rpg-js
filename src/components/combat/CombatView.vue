@@ -10,6 +10,7 @@ import TimingOverlay from './TimingOverlay.vue'
 import DefenseChallenge from './DefenseChallenge.vue'
 import AnnouncementBanner from './AnnouncementBanner.vue'
 import CombatLogModal from './CombatLogModal.vue'
+import CombatLogPanel from './CombatLogPanel.vue'
 import PlayerHud from './PlayerHud.vue'
 import type { ICharacter, IEnemy } from '@/core/interfaces/ICharacter'
 import StatusBar from './StatusBar.vue'
@@ -110,15 +111,34 @@ const handleKeyDown = (e: KeyboardEvent) => {
 }
 
 const showLogModal = ref(false)
-const recentLog = computed(() => combatLog.value.slice(-3))
-
-const playerEnergy = computed(() => player.value?.energy ?? 0)
-const playerMaxEnergy = computed(() => player.value?.maxEnergy ?? 0)
 
 const typedPlayer = computed<Player | null>(() => {
   const p = player.value as unknown
   return p instanceof Player ? p : null
 })
+
+const playerStatusEffectsCount = computed(() => playerStatusEffects.value.length)
+
+const hudOrbitItems = computed(() => [
+  {
+    id: 'stats',
+    label: 'Stats del jugador',
+    glyph: '☰',
+    badge: null as number | string | null,
+    active: true,
+    onClick: () => {}
+  },
+  {
+    id: 'status',
+    label: playerStatusEffectsCount.value > 0
+      ? `${playerStatusEffectsCount.value} efecto${playerStatusEffectsCount.value === 1 ? '' : 's'} activo${playerStatusEffectsCount.value === 1 ? '' : 's'}`
+      : 'Sin efectos',
+    glyph: '✦',
+    badge: playerStatusEffectsCount.value || null,
+    active: playerStatusEffectsCount.value > 0,
+    onClick: () => {}
+  }
+])
 
 const getEnemySprite = (enemy: any) => {
   if (enemy.sprite) {
@@ -223,52 +243,22 @@ onUnmounted(() => {
     </div>
 
     <div class="player-ui">
-      <div class="combat-log-area">
-        <div class="combat-log-box">
-          <div class="player-status">
-            <div v-if="playerStatusEffects.length > 0" class="status-bar">
-              <StatusBar :effects="playerStatusEffects" />
-            </div>
-            <div class="player-header">
-              <span class="player-name">{{ player?.name || 'Héroe' }}</span>
-              <transition-group name="hit-popup" tag="div" class="player-hit-popup-container">
-                <div v-for="popup in playerHitPopups" :key="popup.key" class="hit-popup player-hit-popup">
-                  -{{ popup.value }}
-                </div>
-              </transition-group>
-            </div>
-            <div class="player-bars">
-              <div class="bar-row bar-hp">
-                <div class="bar-track">
-                  <div class="bar-fill bar-fill-hp"
-                    :style="{ width: `${getHealthPercentage(player?.health || 0, player?.maxHealth || 1)}%` }"></div>
-                </div>
-                <span class="bar-text">{{ player?.health }}/{{ player?.maxHealth }}</span>
-              </div>
-              <div class="bar-row bar-energy">
-                <div class="bar-track">
-                  <div class="bar-fill bar-fill-energy"
-                    :style="{ width: `${playerMaxEnergy > 0 ? (playerEnergy / playerMaxEnergy) * 100 : 0}%` }"></div>
-                </div>
-                <span class="bar-text">{{ playerEnergy }}/{{ playerMaxEnergy }}</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="combat-log compact" ref="combatLogRef">
-            <div v-for="(message, index) in recentLog" :key="`${combatLog.length}-${index}`"
-              class="log-message"
-              :class="{ 'log-highlight': index === recentLog.length - 1 }">
-              {{ message }}
-            </div>
-            <div v-if="combatLog.length === 0" class="log-empty">Sin acciones todavía.</div>
-          </div>
-
-          <button class="log-expand-btn" @click="showLogModal = true" :disabled="combatLog.length === 0">
-            Ver registro completo
-            <span v-if="combatLog.length > recentLog.length" class="log-count">{{ combatLog.length }}</span>
-          </button>
+      <div class="player-hud-slot">
+        <PlayerHud
+          :player="typedPlayer"
+          :orbit-items="hudOrbitItems"
+          :hit-popups="playerHitPopups"
+        />
+        <div v-if="playerStatusEffects.length > 0" class="hud-status-bar">
+          <StatusBar :effects="playerStatusEffects" />
         </div>
+      </div>
+
+      <div class="combat-log-slot">
+        <CombatLogPanel
+          :messages="combatLog"
+          @open-full="showLogModal = true"
+        />
       </div>
 
       <div class="actions-area">
