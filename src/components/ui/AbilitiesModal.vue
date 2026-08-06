@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import type { IAbility } from '@/core/interfaces/IAbility'
+import closeIcon from '@/assets/icons/cross-mark.png'
+import hourglassIcon from '@/assets/icons/hourglass.png'
 
 interface Props {
   show: boolean
@@ -32,12 +34,9 @@ const handleModalOverlayClick = (e: MouseEvent) => {
 
 const getAbilityIcon = (type: string) => {
   const icons: Record<string, string> = {
-    attack: '/src/assets/icons/splash-icons/1.png',
-    stunStrike: '/src/assets/icons/splash-icons/35.png',
-    stealthStrike: '/src/assets/icons/splash-icons/2.png',
-    fireball: '/src/assets/icons/splash-icons/10.png'
+    attack: '/src/assets/icons/wave-strike.png',
   }
-  return icons[type] || '/src/assets/icons/splash-icons/1.png'
+  return icons[type]
 }
 </script>
 
@@ -46,9 +45,9 @@ const getAbilityIcon = (type: string) => {
     <div v-if="show" class="modal-overlay" @mousedown="handleModalOverlayClick">
       <div class="modal abilities-modal">
         <div class="modal-header">
-          <img src="/src/assets/icons/menu/skill.png" class="modal-main-icon" alt="Habilidades" />
+          <img src="/src/assets/icons/skills.png" class="modal-main-icon" alt="Habilidades" />
           <h2>Habilidades</h2>
-          <button class="modal-close-btn" @click="closeModal" title="Cerrar">✕</button>
+          <button class="modal-close-btn" @click="closeModal" title="Cerrar"><img :src="closeIcon" alt="" class="close-icon" /></button>
         </div>
 
         <div class="abilities-grid">
@@ -74,7 +73,7 @@ const getAbilityIcon = (type: string) => {
               <p class="ability-desc">{{ ability.description }}</p>
               <div class="ability-footer">
                 <span v-if="ability.cooldown > 0" class="cooldown-badge">
-                  ⏱ {{ ability.cooldown }} turno{{ ability.cooldown > 1 ? 's' : '' }}
+                  <img :src="hourglassIcon" alt="" class="cooldown-icon" /> {{ ability.cooldown }} turno{{ ability.cooldown > 1 ? 's' : '' }}
                 </span>
                 <span class="use-hint">{{ abilityCooldowns[ability.type] > 0 ? 'Enfriando...' : 'Click para usar' }}</span>
               </div>
@@ -295,7 +294,12 @@ const getAbilityIcon = (type: string) => {
   border-radius: 6px;
   font-size: 0.85rem;
   border: 1px solid rgba(255,180,0,0.25);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
 }
+.cooldown-icon { width: 0.9em; height: 0.9em; filter: sepia(1) saturate(5) hue-rotate(0deg) brightness(1.2); }
+.close-icon { width: 14px; height: 14px; display: block; margin: auto; filter: brightness(0) invert(1); }
 
 .use-hint {
   color: #6fdc6f;

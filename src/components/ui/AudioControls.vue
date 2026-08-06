@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { AudioManager } from '@/core/AudioManager'
+import speakerOnIcon from '@/assets/icons/speaker.png'
+import speakerOffIcon from '@/assets/icons/speaker-off.png'
+import musicIcon from '@/assets/icons/musical-notes.png'
 
 const audioManager = AudioManager.getInstance()
 const isMuted = ref(false)
@@ -54,7 +57,7 @@ function handleClickOutside(event: MouseEvent) {
 <template>
   <div class="audio-controls">
     <button class="audio-btn" @click="toggleControls" :class="{ muted: isMuted }">
-      {{ isMuted ? '🔇' : '🔊' }}
+      <img :src="isMuted ? speakerOffIcon : speakerOnIcon" alt="" class="audio-icon" />
     </button>
     
     <div class="volume-panel" v-if="showControls" ref="panelRef">
@@ -65,35 +68,36 @@ function handleClickOutside(event: MouseEvent) {
       
       <div class="volume-controls">
         <div class="volume-group">
-          <label>🎵 Música</label>
-          <input 
-            type="range" 
-            min="0" 
-            max="1" 
-            step="0.1" 
+          <label><img :src="musicIcon" alt="" class="audio-icon" /> Música</label>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.1"
             :value="musicVolume"
             @input="updateMusicVolume"
             class="volume-slider"
           />
           <span class="volume-value">{{ Math.round(musicVolume * 100) }}%</span>
         </div>
-        
+
         <div class="volume-group">
-          <label>🔊 Efectos</label>
-          <input 
-            type="range" 
-            min="0" 
-            max="1" 
-            step="0.1" 
+          <label><img :src="speakerOnIcon" alt="" class="audio-icon" /> Efectos</label>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.1"
             :value="sfxVolume"
             @input="updateSFXVolume"
             class="volume-slider"
           />
           <span class="volume-value">{{ Math.round(sfxVolume * 100) }}%</span>
         </div>
-        
+
         <button class="mute-btn" @click="toggleMute" :class="{ muted: isMuted }">
-          {{ isMuted ? '🔇 Silenciado' : '🔊 Activar Sonido' }}
+          <img :src="isMuted ? speakerOffIcon : speakerOnIcon" alt="" class="audio-icon" />
+          {{ isMuted ? 'Silenciado' : 'Activar Sonido' }}
         </button>
       </div>
     </div>
@@ -124,6 +128,16 @@ function handleClickOutside(event: MouseEvent) {
 .audio-btn.muted {
   opacity: 0.5;
 }
+
+.audio-icon {
+  width: 1.05em;
+  height: 1.05em;
+  display: inline-block;
+  vertical-align: -0.18em;
+  margin-right: 0.25rem;
+  filter: brightness(0) invert(1);
+}
+.audio-btn .audio-icon { margin: 0; }
 
 .volume-panel {
   position: absolute;

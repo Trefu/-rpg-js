@@ -4,6 +4,17 @@ import { useGameStore } from '@/stores/game'
 import { useCombat } from '@/composables/useCombat'
 import { Dummy } from '@/core/enemies/Dummy'
 import { StatusEffects } from '@/core/StatusEffects'
+import hammerIcon from '@/assets/icons/hammer-drop.png'
+import robotIcon from '@/assets/icons/robot-golem.png'
+import swordsIcon from '@/assets/icons/crossed-swords.png'
+import personIcon from '@/assets/icons/person.png'
+import heartIcon from '@/assets/icons/heart-drop.png'
+import broomIcon from '@/assets/icons/broom.png'
+import sparklesIcon from '@/assets/icons/sparkles.png'
+import skullIcon from '@/assets/icons/skull-shield.png'
+import cycleIcon from '@/assets/icons/cycle.png'
+import doorIcon from '@/assets/icons/door.png'
+import chevronIcon from '@/assets/icons/arrowhead.png'
 import {
   createBasicAttackAbility,
   createStunStrikeAbility,
@@ -108,17 +119,17 @@ function onTrainingEnded() {
 
     <aside class="training-panel" :class="{ collapsed: panelCollapsed }">
       <button class="collapse-btn" @click="panelCollapsed = !panelCollapsed" :title="panelCollapsed ? 'Expandir panel' : 'Colapsar panel'">
-        {{ panelCollapsed ? '◀' : '▶' }}
+        <img :src="chevronIcon" alt="" class="chevron-icon" :class="{ collapsed: panelCollapsed }" />
       </button>
 
       <div v-show="!panelCollapsed" class="panel-content">
         <header class="panel-header">
-          <h2>🛠️ Zona de Pruebas</h2>
+          <h2><img :src="hammerIcon" alt="" class="inline-icon" /> Zona de Pruebas</h2>
           <p class="subtitle">Configura el dummy y al jugador</p>
         </header>
 
         <section class="panel-section">
-          <h3>🤖 Ataques del Dummy</h3>
+          <h3><img :src="robotIcon" alt="" class="inline-icon" /> Ataques del Dummy</h3>
           <p class="section-hint">El dummy usará el ataque seleccionado en su próximo turno.</p>
           <div class="pattern-grid">
             <button
@@ -139,7 +150,7 @@ function onTrainingEnded() {
         </section>
 
         <section class="panel-section">
-          <h3>⚔️ Daño del Dummy</h3>
+          <h3><img :src="swordsIcon" alt="" class="inline-icon" /> Daño del Dummy</h3>
           <label class="checkbox-row">
             <input type="checkbox" v-model="useCustomDamage" />
             <span>Usar daño personalizado</span>
@@ -152,15 +163,15 @@ function onTrainingEnded() {
         </section>
 
         <section class="panel-section">
-          <h3>🧍 Jugador</h3>
+          <h3><img :src="personIcon" alt="" class="inline-icon" /> Jugador</h3>
           <div class="button-grid two-col">
-            <button class="action-btn" @click="gameStore.player && (gameStore.player.health = gameStore.player.maxHealth)">❤️ Curar</button>
-            <button class="action-btn" @click="gameStore.player && (gameStore.player.statusEffects = [])">🧹 Limpiar efectos</button>
+            <button class="action-btn" @click="gameStore.player && (gameStore.player.health = gameStore.player.maxHealth)"><img :src="heartIcon" alt="" class="btn-icon" /> Curar</button>
+            <button class="action-btn" @click="gameStore.player && (gameStore.player.statusEffects = [])"><img :src="broomIcon" alt="" class="btn-icon" /> Limpiar efectos</button>
           </div>
         </section>
 
         <section class="panel-section">
-          <h3>✨ Habilidades</h3>
+          <h3><img :src="sparklesIcon" alt="" class="inline-icon" /> Habilidades</h3>
           <p class="section-hint">Aprende habilidades para probarlas ({{ playerAbilitiesCount }}/4)</p>
           <div class="button-grid two-col">
             <button class="action-btn small" :disabled="!gameStore.player || !!gameStore.player.abilities.find(a => a.type === 'attack')" @click="learnAbility('attack')">Ataque</button>
@@ -171,7 +182,7 @@ function onTrainingEnded() {
         </section>
 
         <section class="panel-section">
-          <h3>☠️ Aplicar Estado al Jugador</h3>
+          <h3><img :src="skullIcon" alt="" class="inline-icon" /> Aplicar Estado al Jugador</h3>
           <p class="section-hint">Para probar modificadores de defensa</p>
           <div class="button-grid three-col">
             <button class="action-btn small debuff" @click="applyStatusToPlayer('stun')">Aturdir</button>
@@ -186,14 +197,14 @@ function onTrainingEnded() {
         </section>
 
         <section class="panel-section">
-          <h3>🔄 Reset</h3>
+          <h3><img :src="cycleIcon" alt="" class="inline-icon" /> Reset</h3>
           <div class="button-grid">
             <button class="action-btn warn" @click="resetDummy">Reiniciar Dummy</button>
           </div>
         </section>
 
         <footer class="panel-footer">
-          <button class="action-btn danger big" @click="onTrainingEnded">🚪 Salir del Entrenamiento</button>
+          <button class="action-btn danger big" @click="onTrainingEnded"><img :src="doorIcon" alt="" class="btn-icon" /> Salir del Entrenamiento</button>
         </footer>
       </div>
     </aside>
@@ -274,6 +285,14 @@ function onTrainingEnded() {
 .collapse-btn:hover {
   background: #2a2a4e;
 }
+
+.chevron-icon {
+  width: 16px;
+  height: 16px;
+  filter: brightness(0) invert(1) sepia(1) saturate(5) hue-rotate(20deg);
+  transition: transform 0.2s ease;
+}
+.chevron-icon.collapsed { transform: rotate(180deg); }
 
 .panel-content {
   flex: 1;
@@ -522,5 +541,22 @@ function onTrainingEnded() {
   .combat-wrapper :deep(.player-ui) {
     height: 320px;
   }
+}
+
+.inline-icon {
+  width: 1.1em;
+  height: 1.1em;
+  display: inline-block;
+  vertical-align: -0.2em;
+  margin-right: 0.35rem;
+  filter: brightness(0) invert(1);
+}
+.btn-icon {
+  width: 1em;
+  height: 1em;
+  display: inline-block;
+  vertical-align: -0.15em;
+  margin-right: 0.3rem;
+  filter: brightness(0) invert(1);
 }
 </style>

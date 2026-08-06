@@ -2,6 +2,10 @@
 import { computed } from 'vue'
 import type { INode } from '@/core/interfaces/IExpedition'
 import { useExpeditionStore } from '@/stores/expedition'
+import combatIcon from '@/assets/icons/crossed-swords.png'
+import shopIcon from '@/assets/icons/chest.png'
+import curiosityIcon from '@/assets/icons/help.png'
+import bossIcon from '@/assets/icons/crown.png'
 
 const expeditionStore = useExpeditionStore()
 
@@ -11,11 +15,11 @@ const expedition = computed(() => expeditionStore.currentExpedition)
 
 const getNodeIcon = (type: INode['type']) => {
   switch (type) {
-    case 'combat': return '⚔️'
-    case 'shop': return '🏪'
-    case 'curiosity': return '❓'
-    case 'boss': return '👑'
-    default: return '❓'
+    case 'combat': return combatIcon
+    case 'shop': return shopIcon
+    case 'curiosity': return curiosityIcon
+    case 'boss': return bossIcon
+    default: return curiosityIcon
   }
 }
 
@@ -85,7 +89,7 @@ const emit = defineEmits<{
         }"
         @click="handleNodeClick(node)"
       >
-        <span class="node-icon">{{ getNodeIcon(node.type) }}</span>
+        <span class="node-icon"><img :src="getNodeIcon(node.type)" alt="" /></span>
       </div>
     </div>
   </div>
@@ -145,12 +149,21 @@ const emit = defineEmits<{
   border-color: #d32f2f;
 }
 
-.map-node.boss .node-icon {
-  font-size: 2rem;
+.map-node.boss .node-icon img {
+  width: 44px;
+  height: 44px;
 }
 
 .node-icon {
-  font-size: 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.node-icon img {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
 }
 
 .connections {

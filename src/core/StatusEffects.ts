@@ -1,12 +1,12 @@
 import type { IStatusEffect } from './interfaces/IStatusEffect'
-import stunIcon from '@/assets/icons/splash-icons/35.png'
-import burnIcon from '@/assets/icons/splash-icons/10.png'
-import poisonIcon from '@/assets/icons/splash-icons/11.png'
-import strengthIcon from '@/assets/icons/splash-icons/1.png'
-import defenseIcon from '@/assets/icons/splash-icons/2.png'
-import speedIcon from '@/assets/icons/splash-icons/3.png'
-import weaknessIcon from '@/assets/icons/splash-icons/12.png'
-import slowIcon from '@/assets/icons/splash-icons/13.png'
+import stunIcon from '@/assets/icons/ball-glow.png'
+import burnIcon from '@/assets/icons/fire.png'
+import poisonIcon from '@/assets/icons/poison-gas.png'
+import strengthIcon from '@/assets/icons/muscle-up.png'
+import defenseIcon from '@/assets/icons/shield.png'
+import speedIcon from '@/assets/icons/footprint.png'
+import weaknessIcon from '@/assets/icons/anatomy.png'
+import slowIcon from '@/assets/icons/snail.png'
 
 export class StatusEffects {
   // Efectos de aturdimiento

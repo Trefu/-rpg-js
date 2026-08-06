@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import closeIcon from '@/assets/icons/cross-mark.png'
+
 defineProps<{
   show: boolean
   messages: string[]
@@ -15,7 +17,7 @@ const emit = defineEmits<{
       <div class="combat-log-modal">
         <header class="modal-header">
           <h3>Registro de combate</h3>
-          <button class="close-btn" @click="emit('close')" aria-label="Cerrar">✕</button>
+          <button class="close-btn" @click="emit('close')" aria-label="Cerrar"><img :src="closeIcon" alt="" class="close-icon" /></button>
         </header>
         <div class="modal-body">
           <p v-if="messages.length === 0" class="empty">Sin entradas todavía.</p>
@@ -92,6 +94,8 @@ const emit = defineEmits<{
   transition: background 0.15s;
 }
 .close-btn:hover { background: rgba(255, 255, 255, 0.12); }
+
+.close-icon { width: 14px; height: 14px; display: block; margin: auto; filter: brightness(0) invert(1); }
 
 .modal-body {
   padding: 0.75rem 1rem 1rem;

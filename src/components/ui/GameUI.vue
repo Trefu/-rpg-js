@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useGameStore } from '@/stores/game'
 import { storeToRefs } from 'pinia'
 import AudioControls from './AudioControls.vue'
+import hammerIcon from '@/assets/icons/hammer-drop.png'
 
 const emit = defineEmits<{
   (e: 'resetGame'): void
@@ -31,7 +32,7 @@ const resetGame = () => {
       <div class="actions">
         <AudioControls />
         <button v-if="isDev" class="ui-button training" @click="gameStore.navigateTo('training')" title="Pelea contra el dummy y prueba habilidades">
-          🛠️ Sala de Pruebas
+          <img :src="hammerIcon" alt="" class="ui-btn-icon" /> Sala de Pruebas
         </button>
         <button class="ui-button" @click="showCharacter = !showCharacter">
           {{ showCharacter ? 'Ocultar Personaje' : 'Ver Personaje' }}
@@ -133,6 +134,15 @@ const resetGame = () => {
 .ui-button.training:hover {
   background-color: #ffa733;
   box-shadow: 0 0 12px rgba(255, 152, 0, 0.5);
+}
+
+.ui-btn-icon {
+  width: 1em;
+  height: 1em;
+  display: inline-block;
+  vertical-align: -0.18em;
+  margin-right: 0.3rem;
+  filter: brightness(0) invert(1);
 }
 
 .character-panel {

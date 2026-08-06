@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
+import closeIcon from '@/assets/icons/cross-mark.png'
+import sparklesIcon from '@/assets/icons/sparkles.png'
 
 export interface StatusDetail {
   effect: IStatusEffect
@@ -48,12 +50,12 @@ function effectDurationLabel(effect: IStatusEffect): string {
             <h3 class="status-modal-title">Efectos de estado</h3>
             <span class="status-modal-subtitle">{{ ownerName || 'Personaje' }}</span>
           </div>
-          <button class="status-close-btn" @click="emit('close')" aria-label="Cerrar">✕</button>
+          <button class="status-close-btn" @click="emit('close')" aria-label="Cerrar"><img :src="closeIcon" alt="" class="close-icon" /></button>
         </header>
 
         <div class="status-modal-body">
           <div v-if="totalActive === 0" class="status-empty">
-            <span class="status-empty-icon">✨</span>
+            <span class="status-empty-icon"><img :src="sparklesIcon" alt="" /></span>
             <p>Sin efectos activos.</p>
           </div>
 
@@ -180,7 +182,14 @@ function effectDurationLabel(effect: IStatusEffect): string {
 .status-empty-icon {
   font-size: 1.8rem;
   opacity: 0.8;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
+.status-empty-icon img { width: 100%; height: 100%; object-fit: contain; }
+.close-icon { width: 14px; height: 14px; display: block; margin: auto; filter: brightness(0) invert(1); }
 
 .status-list {
   list-style: none;

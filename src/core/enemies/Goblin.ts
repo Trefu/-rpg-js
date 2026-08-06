@@ -46,8 +46,8 @@ export class Goblin extends Enemy {
   }
 
   public selectAttackPattern(player: ICharacter | null): DefensePatternConfig {
+    
     const [normalBite, poisonBite] = this.attackPatterns
-    return poisonBite
     const fallback = normalBite ?? this.attackPatterns[0]
     if (!poisonBite) return fallback
     if (player?.hasStatusEffect?.('poison')) {

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
+import chevronIcon from '@/assets/icons/arrowhead.png'
 
 const props = defineProps<{
   messages: string[]
@@ -47,7 +48,7 @@ onBeforeUnmount(() => {
       :aria-expanded="expanded"
       :title="expanded ? 'Ocultar registro' : 'Expandir registro'"
     >
-      <span class="log-toggle-glyph">{{ expanded ? '▾' : '▴' }}</span>
+      <span class="log-toggle-glyph"><img :src="chevronIcon" alt="" :class="{ collapsed: !expanded }" /></span>
       <span class="log-toggle-label">Registro</span>
       <span v-if="hasMore" class="log-toggle-badge">{{ totalCount }}</span>
     </button>
@@ -119,8 +120,18 @@ onBeforeUnmount(() => {
 }
 
 .log-toggle-glyph {
-  font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   transition: transform 0.2s;
+}
+.log-toggle-glyph img {
+  width: 14px;
+  height: 14px;
+  filter: brightness(0) invert(1) sepia(1) saturate(5) hue-rotate(20deg);
+}
+.log-toggle-glyph img.collapsed {
+  transform: rotate(180deg);
 }
 
 .log-toggle-label {

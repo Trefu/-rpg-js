@@ -6,8 +6,11 @@ import { useExpeditionStore } from '@/stores/expedition'
 import { useGameStore } from '@/stores/game'
 import { Player } from '@/core/Player'
 import goblinSprite from '@/assets/sprites/enemies/goblin.png'
-import statsIcon from '@/assets/icons/icons/ffffff/transparent/1x1/lorc/scroll-unfurled.png'
-import effectsIcon from '@/assets/icons/icons/ffffff/transparent/1x1/lorc/droplets.png'
+import statsIcon from '@/assets/icons/scroll-unfurled.png'
+import effectsIcon from '@/assets/icons/droplets.png'
+import targetIcon from '@/assets/icons/crosshair.png'
+import abilitiesIcon from '@/assets/icons/shield.png'
+import itemIcon from '@/assets/icons/backpack.png'
 import TimingOverlay from './TimingOverlay.vue'
 import DefenseChallenge from './DefenseChallenge.vue'
 import AnnouncementBanner from './AnnouncementBanner.vue'
@@ -221,7 +224,7 @@ onUnmounted(() => {
       <transition name="target-banner">
         <div v-if="isSelectingTarget && selectedAbility" class="target-banner-wrap">
           <div v-if="actionRequiresTarget(selectedAbility)" class="target-indicator">
-            <p>🎯 Selecciona un objetivo para {{ selectedAbility.name.toLowerCase() }}<br>
+            <p><img :src="targetIcon" alt="" class="inline-icon" /> Selecciona un objetivo para {{ selectedAbility.name.toLowerCase() }}<br>
               <span class="shortcut-hint">Presiona la <b>tecla</b> del enemigo o haz click.</span></p>
           </div>
           <div v-else class="target-indicator target-all-indicator">
@@ -279,10 +282,10 @@ onUnmounted(() => {
       <div class="actions-area">
         <div class="action-buttons">
           <button class="action-btn" :disabled="isPlayerInputLocked" @click="openAbilitiesModal">
-            🛡️ Habilidades <span class="shortcut-badge">[A]</span>
+            <img :src="abilitiesIcon" alt="" class="btn-icon" /> Habilidades <span class="shortcut-badge">[A]</span>
           </button>
           <button class="action-btn item" :disabled="isPlayerInputLocked" @click="selectAction('Objeto')">
-            🎒 Objeto
+            <img :src="itemIcon" alt="" class="btn-icon" /> Objeto
           </button>
         </div>
       </div>
@@ -335,4 +338,20 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+.inline-icon {
+  width: 1em;
+  height: 1em;
+  display: inline-block;
+  vertical-align: -0.15em;
+  margin-right: 0.25rem;
+  filter: brightness(0) invert(1);
+}
+.btn-icon {
+  width: 1.05em;
+  height: 1.05em;
+  display: inline-block;
+  vertical-align: -0.18em;
+  margin-right: 0.35rem;
+  filter: brightness(0) invert(1);
+}
 </style>

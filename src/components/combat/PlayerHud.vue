@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { Player } from '@/core/Player'
-import statusIcon from '@/assets/icons/icons/ffffff/transparent/1x1/lorc/heart-drop.png'
-import effectsIcon from '@/assets/icons/icons/ffffff/transparent/1x1/lorc/droplets.png'
+import statusIcon from '@/assets/icons/heart-drop.png'
+import effectsIcon from '@/assets/icons/droplets.png'
 
 export interface HudOrbitItem {
   id: string

@@ -2,6 +2,19 @@
 import { computed } from 'vue'
 import type { IPlayerStats } from '@/core/interfaces/ICharacter'
 import type { Player } from '@/core/Player'
+import heartIcon from '@/assets/icons/heart-drop.png'
+import energyIcon from '@/assets/icons/bolt-drop.png'
+import attackIcon from '@/assets/icons/crossed-swords.png'
+import defenseIcon from '@/assets/icons/shield.png'
+import speedIcon from '@/assets/icons/footprint.png'
+import levelIcon from '@/assets/icons/sparkles.png'
+import closeIcon from '@/assets/icons/cross-mark.png'
+import fuerzaIcon from '@/assets/icons/muscle-up.png'
+import destrezaIcon from '@/assets/icons/crosshair.png'
+import inteligenciaIcon from '@/assets/icons/crystal-ball.png'
+import sabiduriaIcon from '@/assets/icons/spell-book.png'
+import constitucionIcon from '@/assets/icons/stone-crafting.png'
+import carismaIcon from '@/assets/icons/chat-bubble.png'
 
 export interface PlayerDerivedStat {
   key: string
@@ -26,12 +39,12 @@ const derived = computed<PlayerDerivedStat[]>(() => {
   if (!props.player) return []
   const p = props.player
   return [
-    { key: 'hp',    label: 'Vida',     icon: '❤', value: p.maxHealth, hint: 'Salud máxima' },
-    { key: 'energy',label: 'Energía',  icon: '⚡', value: p.maxEnergy, hint: 'Recurso para habilidades' },
-    { key: 'atk',   label: 'Ataque',   icon: '⚔', value: p.attack(), hint: 'Daño base' },
-    { key: 'def',   label: 'Defensa',  icon: '🛡', value: p.defense(), hint: 'Mitigación' },
-    { key: 'spd',   label: 'Velocidad',icon: '👟', value: p.speed, hint: 'Orden de turnos' },
-    { key: 'lvl',   label: 'Nivel',    icon: '✦', value: p.level, hint: 'Nivel del héroe' }
+    { key: 'hp',    label: 'Vida',     icon: heartIcon, value: p.maxHealth, hint: 'Salud máxima' },
+    { key: 'energy',label: 'Energía',  icon: energyIcon, value: p.maxEnergy, hint: 'Recurso para habilidades' },
+    { key: 'atk',   label: 'Ataque',   icon: attackIcon, value: p.attack(), hint: 'Daño base' },
+    { key: 'def',   label: 'Defensa',  icon: defenseIcon, value: p.defense(), hint: 'Mitigación' },
+    { key: 'spd',   label: 'Velocidad',icon: speedIcon, value: p.speed, hint: 'Orden de turnos' },
+    { key: 'lvl',   label: 'Nivel',    icon: levelIcon, value: p.level, hint: 'Nivel del héroe' }
   ]
 })
 
@@ -49,7 +62,7 @@ function onBackdropClick(e: MouseEvent) {
             <h3 class="stats-modal-title">{{ player?.name || 'Héroe' }}</h3>
             <span class="stats-modal-subtitle">Atributos del personaje</span>
           </div>
-          <button class="stats-close-btn" @click="emit('close')" aria-label="Cerrar">✕</button>
+          <button class="stats-close-btn" @click="emit('close')" aria-label="Cerrar"><img :src="closeIcon" alt="" class="close-icon" /></button>
         </header>
 
         <div class="stats-modal-body">
@@ -57,32 +70,32 @@ function onBackdropClick(e: MouseEvent) {
             <h4 class="section-title">Atributos base</h4>
             <ul v-if="baseStats" class="stat-grid">
               <li class="stat-row">
-                <span class="stat-icon">💪</span>
+                <span class="stat-icon"><img :src="fuerzaIcon" alt="" /></span>
                 <span class="stat-label">Fuerza</span>
                 <span class="stat-value">{{ baseStats.fuerza }}</span>
               </li>
               <li class="stat-row">
-                <span class="stat-icon">🎯</span>
+                <span class="stat-icon"><img :src="destrezaIcon" alt="" /></span>
                 <span class="stat-label">Destreza</span>
                 <span class="stat-value">{{ baseStats.destreza }}</span>
               </li>
               <li class="stat-row">
-                <span class="stat-icon">🔮</span>
+                <span class="stat-icon"><img :src="inteligenciaIcon" alt="" /></span>
                 <span class="stat-label">Inteligencia</span>
                 <span class="stat-value">{{ baseStats.inteligencia }}</span>
               </li>
               <li class="stat-row">
-                <span class="stat-icon">📖</span>
+                <span class="stat-icon"><img :src="sabiduriaIcon" alt="" /></span>
                 <span class="stat-label">Sabiduría</span>
                 <span class="stat-value">{{ baseStats.sabiduria }}</span>
               </li>
               <li class="stat-row">
-                <span class="stat-icon">🪨</span>
+                <span class="stat-icon"><img :src="constitucionIcon" alt="" /></span>
                 <span class="stat-label">Constitución</span>
                 <span class="stat-value">{{ baseStats.constitucion }}</span>
               </li>
               <li class="stat-row">
-                <span class="stat-icon">💬</span>
+                <span class="stat-icon"><img :src="carismaIcon" alt="" /></span>
                 <span class="stat-label">Carisma</span>
                 <span class="stat-value">{{ baseStats.carisma }}</span>
               </li>
@@ -221,7 +234,9 @@ function onBackdropClick(e: MouseEvent) {
 
 .stat-row.derived { border-left-color: rgba(76, 175, 80, 0.5); }
 
-.stat-icon { font-size: 0.95rem; text-align: center; }
+.stat-icon { font-size: 0.95rem; text-align: center; display: inline-flex; align-items: center; justify-content: center; }
+.stat-icon img { width: 18px; height: 18px; object-fit: contain; }
+.close-icon { width: 14px; height: 14px; display: block; margin: auto; filter: brightness(0) invert(1); }
 .stat-label { color: #ccc; }
 .stat-value {
   color: #fff;
