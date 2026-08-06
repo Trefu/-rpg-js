@@ -160,7 +160,7 @@ export function useCombat(config: CombatConfig = {}) {
   }
 
   function applyOnFailureEffectToPlayer(p: any, fx: { statusType: string; duration: number; damagePerTurn?: number }) {
-    const statusType = fx.statusType.toUpperCase()
+    const statusType = String(fx.statusType).toLowerCase()
     const template = StatusEffects.getByType(statusType)
     if (!template) return
     const effect: IStatusEffect = {
@@ -170,6 +170,7 @@ export function useCombat(config: CombatConfig = {}) {
     }
     p.addStatusEffect(effect)
     addToLog(`¡Sufres el efecto: ${template.name}!`)
+    showAnnouncement(`¡${template.name}!`, 'status', 1800)
   }
 
   function closeDefenseChallenge() {
@@ -287,10 +288,20 @@ export function useCombat(config: CombatConfig = {}) {
   function endPlayerTurn() {
     isPlayerTurn.value = false
     decrementAbilityCooldowns()
+    if (typeof player.value?.reduceStatusEffects === 'function') {
+      player.value.reduceStatusEffects()
+    }
     if (typeof player.value?.restoreEnergy === 'function') {
       player.value.restoreEnergy(10)
     }
     setTimeout(enemyTurn, config.isTraining ? 1000 : 2000)
+  }
+
+  async function startPlayerTurn() {
+    if (!player.value) return
+    if (isCombatEnded.value) return
+    if (!isPlayerTurn.value) return
+    await applyPlayerStatusTick()
   }
 
   async function enemyTurn() {
@@ -348,6 +359,7 @@ export function useCombat(config: CombatConfig = {}) {
     isExecutingAction.value = false
     addToLog('Tu turno.')
     showAnnouncement('Tu turno', 'turn', 1400)
+    await startPlayerTurn()
   }
 
   function revivePlayer() {
@@ -368,6 +380,28 @@ export function useCombat(config: CombatConfig = {}) {
     player.value.statusEffects = []
     enemies.value.forEach(e => { e.statusEffects = [] })
     addToLog('Efectos de estado eliminados.')
+  }
+
+  async function applyPlayerStatusTick() {
+    const p = player.value
+    if (!p || !Array.isArray(p.statusEffects) || p.statusEffects.length === 0) return
+
+    const active = p.statusEffects.filter(e => e.turns > 0 && typeof e.damagePerTurn === 'number' && (e.damagePerTurn as number) > 0)
+    for (const effect of active) {
+      const dmg = effect.damagePerTurn as number
+      p.takeDamage(dmg)
+      showPlayerHit(dmg)
+      audioManager.playHitSound()
+      if (effect.turnLabel) {
+        showAnnouncement(effect.turnLabel, 'status', 1800)
+        addToLog(`${effect.name}: recibes ${dmg} de daño.`)
+        await delay(1800)
+      }
+    }
+
+    if (typeof p.reduceStatusEffects === 'function') {
+      p.reduceStatusEffects()
+    }
   }
 
   async function showEnemyStatusSequence(enemy: IEnemy) {
@@ -578,6 +612,7 @@ export function useCombat(config: CombatConfig = {}) {
     handleAbilitiesModalShortcuts,
     handleCombatShortcuts,
     endPlayerTurn,
+    startPlayerTurn,
     enemyTurn,
     endCombat,
     endTraining,

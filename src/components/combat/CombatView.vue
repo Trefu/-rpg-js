@@ -15,8 +15,9 @@ import CombatLogModal from './CombatLogModal.vue'
 import CombatLogPanel from './CombatLogPanel.vue'
 import PlayerHud from './PlayerHud.vue'
 import PlayerStatsPanel from './PlayerStatsPanel.vue'
+import StatusEffectsPanel from './StatusEffectsPanel.vue'
+import EnemyStatusIcons from './EnemyStatusIcons.vue'
 import type { ICharacter, IEnemy } from '@/core/interfaces/ICharacter'
-import StatusBar from './StatusBar.vue'
 import AbilitiesModal from '@/components/ui/AbilitiesModal.vue'
 import type { DefensePhaseResult } from '@/core/defense/types'
 
@@ -83,15 +84,16 @@ const {
   isPlayerInputLocked,
   handleDefensePhaseComplete,
   handleDefenseAllPhasesComplete,
-  closeDefenseChallenge
+  closeDefenseChallenge,
+  startPlayerTurn
 } = useCombat(combatOptions)
 
 const shouldShowStatusBar = computed(() => {
-  return isPlayerTurn.value && !isCombatEnded.value
+  return !isCombatEnded.value
 })
 
 const hasStatusEffects = (character: ICharacter | null) => {
-  return character?.statusEffects && character.statusEffects.length > 0
+  return character?.statusEffects && character.statusEffects.some(e => (e.turns === undefined) || e.turns > 0)
 }
 
 const playerStatusEffects = computed(() => {
@@ -115,10 +117,15 @@ const handleKeyDown = (e: KeyboardEvent) => {
 
 const showLogModal = ref(false)
 const showStatsModal = ref(false)
+const showStatusModal = ref(false)
 
 function onHudItemSelected(id: string) {
   if (id === 'stats') {
     showStatsModal.value = true
+  } else if (id === 'status') {
+    if (playerStatusEffectsCount.value > 0) {
+      showStatusModal.value = true
+    }
   }
 }
 
@@ -136,7 +143,7 @@ const hudOrbitItems = computed(() => [
     icon: statsIcon,
     badge: null as number | string | null,
     active: true,
-    onClick: () => {}
+    onClick: () => { showStatsModal.value = true }
   },
   {
     id: 'status',
@@ -146,7 +153,7 @@ const hudOrbitItems = computed(() => [
     icon: effectsIcon,
     badge: playerStatusEffectsCount.value || null,
     active: playerStatusEffectsCount.value > 0,
-    onClick: () => {}
+    onClick: () => { showStatusModal.value = true }
   }
 ])
 
@@ -191,6 +198,8 @@ onMounted(() => {
     }
   }
 
+  startPlayerTurn()
+
   window.addEventListener('keydown', handleKeyDown)
 })
 
@@ -229,9 +238,7 @@ onUnmounted(() => {
           attacking: attackingEnemyId === enemy.id,
           'target-all': isSelectingTarget && !actionRequiresTarget(selectedAbility) && enemy.isAlive
         }" @click="selectEnemy(enemy)">
-          <div v-if="getEnemyStatusEffects(enemy).length > 0" class="status-bar">
-            <StatusBar :effects="getEnemyStatusEffects(enemy)" />
-          </div>
+          <EnemyStatusIcons v-if="getEnemyStatusEffects(enemy).length > 0" :effects="getEnemyStatusEffects(enemy)" />
           <img :src="getEnemySprite(enemy)" :alt="enemy.name" />
           <div class="enemy-health">
             <div class="health-bar">
@@ -260,9 +267,6 @@ onUnmounted(() => {
           :hit-popups="playerHitPopups"
           @select="onHudItemSelected"
         />
-        <div v-if="playerStatusEffects.length > 0" class="hud-status-bar">
-          <StatusBar :effects="playerStatusEffects" />
-        </div>
       </div>
 
       <div class="combat-log-slot">
@@ -319,6 +323,13 @@ onUnmounted(() => {
       :show="showStatsModal"
       :player="typedPlayer"
       @close="showStatsModal = false"
+    />
+
+    <StatusEffectsPanel
+      :show="showStatusModal"
+      :effects="playerStatusEffects"
+      :owner-name="player?.name"
+      @close="showStatusModal = false"
     />
   </div>
 </template>
