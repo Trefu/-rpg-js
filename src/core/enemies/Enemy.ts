@@ -47,12 +47,24 @@ export abstract class Enemy extends Character implements ICombatant {
   }
 
   public addStatusEffect(effect: IStatusEffect) {
-    // Si ya existe el mismo tipo, refresca duración
+    // Si ya existe el mismo tipo, acumular stacks y daño; refrescar duración al máximo entre ambos.
     const existing = this.statusEffects.find(e => e.type === effect.type)
     if (existing) {
-      existing.turns = effect.turns
+      const incomingStacks = effect.stacks ?? 1
+      const maxStacks = existing.maxStacks ?? effect.maxStacks ?? 99
+      existing.stacks = Math.min(maxStacks, (existing.stacks ?? 1) + incomingStacks)
+      if (typeof effect.damagePerTurn === 'number') {
+        const baseDmg = existing.damagePerTurn ?? effect.damagePerTurn
+        existing.damagePerTurn = baseDmg + effect.damagePerTurn
+      }
+      existing.turns = Math.max(existing.turns, effect.turns)
+      existing.maxDuration = existing.maxDuration ?? effect.maxDuration
     } else {
-      this.statusEffects.push({ ...effect })
+      const copy: IStatusEffect = { ...effect }
+      copy.stacks = effect.stacks ?? 1
+      copy.maxStacks = effect.maxStacks ?? 99
+      copy.maxDuration = effect.maxDuration
+      this.statusEffects.push(copy)
     }
   }
 

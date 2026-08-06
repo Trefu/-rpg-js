@@ -7,6 +7,11 @@ export interface DefenseFailureEffect {
   statusType: string
   duration: number
   damagePerTurn?: number
+  /**
+   * Stacks que se suman al efecto existente cuando ya está activo.
+   * Si se omite, se considera 1 (aplicación normal).
+   */
+  stacks?: number
 }
 
 export const DEFENSE_BAR_WIDTH = 30

@@ -39,6 +39,17 @@ function effectDurationLabel(effect: IStatusEffect): string {
   if (effect.turns === undefined) return ''
   return `${effect.turns} turno${effect.turns === 1 ? '' : 's'}`
 }
+
+function totalDamage(effect: IStatusEffect): number {
+  if (typeof effect.damagePerTurn !== 'number') return 0
+  return effect.damagePerTurn * (effect.stacks ?? 1)
+}
+
+function turnsPercent(effect: IStatusEffect): number {
+  const max = effect.maxDuration ?? Math.max(effect.turns ?? 0, 3)
+  if (!max) return 0
+  return Math.max(0, Math.min(100, ((effect.turns ?? 0) / max) * 100))
+}
 </script>
 
 <template>
@@ -68,6 +79,13 @@ function effectDurationLabel(effect: IStatusEffect): string {
             >
               <div class="status-card-icon">
                 <img :src="effect.icon" :alt="effect.name" />
+                <span
+                  v-if="(effect.stacks ?? 1) > 1"
+                  class="status-card-stacks"
+                  :title="`${effect.stacks} stacks`"
+                >
+                  x{{ effect.stacks }}
+                </span>
               </div>
               <div class="status-card-info">
                 <div class="status-card-head">
@@ -75,9 +93,19 @@ function effectDurationLabel(effect: IStatusEffect): string {
                   <span class="status-card-turns">{{ effectDurationLabel(effect) }}</span>
                 </div>
                 <p class="status-card-desc">{{ effect.description }}</p>
-                <p v-if="typeof effect.damagePerTurn === 'number' && effect.damagePerTurn > 0" class="status-card-meta">
-                  Daño por turno: <b>-{{ effect.damagePerTurn }}</b>
-                </p>
+                <div v-if="typeof effect.damagePerTurn === 'number' && effect.damagePerTurn > 0" class="status-card-meta">
+                  <span>Daño por turno: <b>-{{ totalDamage(effect) }}</b></span>
+                  <span v-if="(effect.stacks ?? 1) > 1" class="status-card-stacks-inline">
+                    ({{ effect.damagePerTurn }} × {{ effect.stacks }})
+                  </span>
+                </div>
+                <div
+                  v-if="effect.maxDuration && effect.turns !== undefined"
+                  class="status-card-bar"
+                  :title="`${effect.turns} / ${effect.maxDuration} turnos`"
+                >
+                  <span class="status-card-bar-fill" :style="{ width: turnsPercent(effect) + '%' }"></span>
+                </div>
               </div>
             </li>
           </ul>
@@ -216,6 +244,13 @@ function effectDurationLabel(effect: IStatusEffect): string {
 .status-card.damage  { border-left-color: #b388ff; background: rgba(179, 136, 255, 0.1); }
 .status-card.stun    { border-left-color: #ffd54f; background: rgba(255, 213, 79, 0.1); }
 
+.status-card-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .status-card-icon img {
   width: 40px;
   height: 40px;
@@ -223,6 +258,26 @@ function effectDurationLabel(effect: IStatusEffect): string {
   border-radius: 6px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.55);
   display: block;
+}
+
+.status-card-stacks {
+  position: absolute;
+  bottom: -4px;
+  right: -6px;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #b388ff, #6a40c4);
+  color: #fff;
+  font-family: 'Courier New', monospace;
+  font-size: 0.7rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 6px rgba(179, 136, 255, 0.6), 0 1px 3px rgba(0, 0, 0, 0.6);
+  border: 1.5px solid #1a1a2e;
 }
 
 .status-card-info {
@@ -269,9 +324,40 @@ function effectDurationLabel(effect: IStatusEffect): string {
   color: #dcc6ff;
   font-size: 0.75rem;
   font-family: 'Courier New', monospace;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.status-card-stacks-inline {
+  color: #b388ff;
+  font-weight: 600;
+  font-size: 0.72rem;
 }
 
 .status-card.buff .status-card-meta { color: #b6f5b6; }
+
+.status-card-bar {
+  margin-top: 0.3rem;
+  height: 6px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.status-card-bar-fill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #ffe066, #ff8a00);
+  transition: width 0.3s ease;
+}
+
+.status-card.buff .status-card-bar-fill { background: linear-gradient(90deg, #66bb6a, #2e7d32); }
+.status-card.stun .status-card-bar-fill { background: linear-gradient(90deg, #ffd54f, #ff6f00); }
+.status-card.damage .status-card-bar-fill { background: linear-gradient(90deg, #b388ff, #6a40c4); }
 
 .status-modal-enter-active,
 .status-modal-leave-active {

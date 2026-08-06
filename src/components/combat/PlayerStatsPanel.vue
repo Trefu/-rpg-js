@@ -106,7 +106,7 @@ function onBackdropClick(e: MouseEvent) {
             <h4 class="section-title">Estado de combate</h4>
             <ul class="stat-grid">
               <li v-for="d in derived" :key="d.key" class="stat-row derived">
-                <span class="stat-icon">{{ d.icon }}</span>
+                <span class="stat-icon"><img :src="d.icon" alt="" /></span>
                 <span class="stat-label">{{ d.label }}</span>
                 <span class="stat-value">{{ d.value }}</span>
               </li>

@@ -8,6 +8,11 @@ import speedIcon from '@/assets/icons/footprint.png'
 import weaknessIcon from '@/assets/icons/anatomy.png'
 import slowIcon from '@/assets/icons/snail.png'
 
+// Duración máxima por defecto para cualquier efecto de daño por tiempo (DoT).
+// Cualquier re-aplicación respetará este tope y acumulará stacks en su lugar.
+export const MAX_DOT_DURATION = 3
+export const DEFAULT_MAX_STACKS = 5
+
 export class StatusEffects {
   // Efectos de aturdimiento
   static readonly STUN: IStatusEffect = {
@@ -34,8 +39,11 @@ export class StatusEffects {
   static readonly BURN: IStatusEffect = {
     type: 'burn',
     name: 'Quemado',
-    description: 'El personaje recibe daño por tiempo.',
-    turns: 3,
+    description: 'El personaje recibe daño por quemadura cada turno.',
+    turns: MAX_DOT_DURATION,
+    maxDuration: MAX_DOT_DURATION,
+    stacks: 1,
+    maxStacks: DEFAULT_MAX_STACKS,
     icon: burnIcon,
     isBuff: false,
     turnLabel: '¡Recibe daño por quemadura!',
@@ -45,8 +53,11 @@ export class StatusEffects {
   static readonly POISON: IStatusEffect = {
     type: 'poison',
     name: 'Envenenado',
-    description: 'El personaje recibe daño por veneno.',
-    turns: 4,
+    description: 'El personaje recibe daño por veneno cada turno. Las reaplicaciones suman stacks y acumulan daño.',
+    turns: MAX_DOT_DURATION,
+    maxDuration: MAX_DOT_DURATION,
+    stacks: 1,
+    maxStacks: DEFAULT_MAX_STACKS,
     icon: poisonIcon,
     isBuff: false,
     turnLabel: '¡Recibe daño por veneno!',

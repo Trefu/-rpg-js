@@ -8,9 +8,21 @@ defineProps<{
 
 <template>
   <div v-if="effects && effects.length" class="enemy-status-icons">
-    <div v-for="effect in effects" :key="effect.type" class="enemy-status-icon">
-      <img :src="effect.icon" :alt="effect.name" :title="`${effect.name} (${effect.turns})`" />
-      <span class="enemy-status-turns">{{ effect.turns }}</span>
+    <div
+      v-for="effect in effects"
+      :key="effect.type"
+      class="enemy-status-icon"
+      :title="`${effect.name} — ${effect.turns ?? 0} turno(s)${(effect.stacks ?? 1) > 1 ? ` · x${effect.stacks} stacks` : ''}`"
+    >
+      <img :src="effect.icon" :alt="effect.name" />
+      <span class="enemy-status-turns">{{ effect.turns ?? 0 }}</span>
+      <span
+        v-if="(effect.stacks ?? 1) > 1"
+        class="enemy-status-stacks"
+        :title="`${effect.stacks} stacks`"
+      >
+        x{{ effect.stacks }}
+      </span>
     </div>
   </div>
 </template>
@@ -61,5 +73,25 @@ defineProps<{
   justify-content: center;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
   border: 1px solid #fff;
+}
+
+.enemy-status-stacks {
+  position: absolute;
+  bottom: -5px;
+  left: -5px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #b388ff, #6a40c4);
+  color: #fff;
+  font-size: 0.55rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 4px rgba(179, 136, 255, 0.6), 0 1px 2px rgba(0, 0, 0, 0.6);
+  border: 1px solid #1a1a2e;
+  font-family: 'Courier New', monospace;
 }
 </style>

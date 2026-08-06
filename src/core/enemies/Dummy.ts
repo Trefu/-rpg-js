@@ -47,8 +47,9 @@ export class Dummy extends Enemy implements IEnemy {
       damageMultiplier: 0.6,
       onFailureEffect: {
         statusType: 'poison',
-        duration: 2,
-        damagePerTurn: 2
+        duration: 3,
+        damagePerTurn: 2,
+        stacks: 1
       }
     },
     {
@@ -60,8 +61,9 @@ export class Dummy extends Enemy implements IEnemy {
       damageMultiplier: 2.0,
       onFailureEffect: {
         statusType: 'burn',
-        duration: 2,
-        damagePerTurn: 2
+        duration: 3,
+        damagePerTurn: 2,
+        stacks: 1
       }
     }
   ]

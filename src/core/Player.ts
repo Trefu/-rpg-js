@@ -121,10 +121,26 @@ export class Player extends Character implements ICombatant, ILevelable, IInvent
   public addStatusEffect(effect: IStatusEffect) {
     const existing = this.statusEffects.find(e => e.type === effect.type)
     if (existing) {
-      existing.turns = effect.turns
+      // Acumular stacks (si los aporta el efecto entrante) y refrescar duración al máximo entre ambos.
+      const incomingStacks = effect.stacks ?? 1
+      const maxStacks = existing.maxStacks ?? effect.maxStacks ?? 99
+      existing.stacks = Math.min(maxStacks, (existing.stacks ?? 1) + incomingStacks)
+      // Sumar daño por turno proporcional a los nuevos stacks (mantiene coherencia con el daño base del template).
+      if (typeof effect.damagePerTurn === 'number') {
+        const baseDmg = existing.damagePerTurn ?? effect.damagePerTurn
+        existing.damagePerTurn = baseDmg + effect.damagePerTurn
+      }
+      existing.turns = Math.max(existing.turns, effect.turns)
+      existing.maxDuration = existing.maxDuration ?? effect.maxDuration
     } else {
-      this.statusEffects.push({ ...effect })
+      const copy: IStatusEffect = { ...effect }
+      copy.stacks = effect.stacks ?? 1
+      copy.maxStacks = effect.maxStacks ?? 99
+      copy.maxDuration = effect.maxDuration
+      this.statusEffects.push(copy)
     }
+    // Forzar reactividad: reemplazar la referencia del array para que Vue/Pinia detecten el cambio.
+    this.statusEffects = [...this.statusEffects]
   }
 
   public hasStatusEffect(type: string): boolean {

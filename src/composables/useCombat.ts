@@ -7,7 +7,7 @@ import type { IAbility } from '@/core/interfaces/IAbility'
 import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
 import type { TimingResultData } from '@/types/timing'
 import { TIMING_MULTIPLIERS } from '@/types/timing'
-import { StatusEffects } from '@/core/StatusEffects'
+import { StatusEffects, MAX_DOT_DURATION } from '@/core/StatusEffects'
 import type {
   DefenseChallengeResult,
   DefensePatternConfig,
@@ -159,16 +159,25 @@ export function useCombat(config: CombatConfig = {}) {
     resolve(result)
   }
 
-  function applyOnFailureEffectToPlayer(p: any, fx: { statusType: string; duration: number; damagePerTurn?: number }) {
+  function applyOnFailureEffectToPlayer(p: any, fx: { statusType: string; duration: number; damagePerTurn?: number; stacks?: number }) {
     const statusType = String(fx.statusType).toLowerCase()
     const template = StatusEffects.getByType(statusType)
     if (!template) return
+
+    const maxDuration = template.maxDuration ?? MAX_DOT_DURATION
+    const incomingDuration = Math.min(Math.max(1, fx.duration), maxDuration)
+
     const effect: IStatusEffect = {
       ...template,
-      turns: fx.duration,
-      damagePerTurn: fx.damagePerTurn ?? template.damagePerTurn
+      turns: incomingDuration,
+      damagePerTurn: fx.damagePerTurn ?? template.damagePerTurn,
+      stacks: fx.stacks ?? 1,
+      maxStacks: template.maxStacks ?? 99,
+      maxDuration
     }
     p.addStatusEffect(effect)
+    // Forzar reactividad: reemplazar la referencia del array para que los computed/templated actualicen.
+    p.statusEffects = [...p.statusEffects]
     addToLog(`¡Sufres el efecto: ${template.name}!`)
     showAnnouncement(`¡${template.name}!`, 'status', 1800)
   }
@@ -290,6 +299,7 @@ export function useCombat(config: CombatConfig = {}) {
     decrementAbilityCooldowns()
     if (typeof player.value?.reduceStatusEffects === 'function') {
       player.value.reduceStatusEffects()
+      player.value.statusEffects = [...player.value.statusEffects]
     }
     if (typeof player.value?.restoreEnergy === 'function') {
       player.value.restoreEnergy(10)
@@ -379,6 +389,8 @@ export function useCombat(config: CombatConfig = {}) {
     if (!player.value) return
     player.value.statusEffects = []
     enemies.value.forEach(e => { e.statusEffects = [] })
+    player.value.statusEffects = [...player.value.statusEffects]
+    enemies.value = enemies.value.map(e => ({ ...e, statusEffects: [...e.statusEffects] }))
     addToLog('Efectos de estado eliminados.')
   }
 
@@ -388,19 +400,23 @@ export function useCombat(config: CombatConfig = {}) {
 
     const active = p.statusEffects.filter(e => e.turns > 0 && typeof e.damagePerTurn === 'number' && (e.damagePerTurn as number) > 0)
     for (const effect of active) {
-      const dmg = effect.damagePerTurn as number
+      const stacks = effect.stacks ?? 1
+      const dmg = (effect.damagePerTurn as number) * stacks
       p.takeDamage(dmg)
       showPlayerHit(dmg)
       audioManager.playHitSound()
       if (effect.turnLabel) {
-        showAnnouncement(effect.turnLabel, 'status', 1800)
-        addToLog(`${effect.name}: recibes ${dmg} de daño.`)
+        const stackSuffix = stacks > 1 ? ` (x${stacks})` : ''
+        showAnnouncement(`${effect.turnLabel}${stackSuffix}`, 'status', 1800)
+        addToLog(`${effect.name}${stackSuffix}: recibes ${dmg} de daño.`)
         await delay(1800)
       }
     }
 
     if (typeof p.reduceStatusEffects === 'function') {
       p.reduceStatusEffects()
+      // Forzar reactividad tras reducción.
+      p.statusEffects = [...p.statusEffects]
     }
   }
 
