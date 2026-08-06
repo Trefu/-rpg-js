@@ -47,15 +47,14 @@ export class Goblin extends Enemy {
   }
 
   public selectAttackPattern(player: ICharacter | null): DefensePatternConfig {
+
     const [normalBite, poisonBite] = this.attackPatterns
     const fallback = normalBite ?? this.attackPatterns[0]
     if (!poisonBite) return fallback
-    // Permitir reaplicar veneno (acumula stacks). Si ya tienes stacks altos, se reduce la probabilidad
-    // para no matar de inmediato al jugador.
-    const playerEffects = (player?.statusEffects ?? []) as Array<{ type: string; stacks?: number }>
-    const poisonStacks = playerEffects.find(e => e.type === 'poison')?.stacks ?? 0
-    const prob = Math.max(0.05, 0.35 - (poisonStacks * 0.1))
-    return Math.random() < prob ? poisonBite : (normalBite ?? fallback)
+    if (player?.hasStatusEffect?.('poison')) {
+      return normalBite ?? fallback
+    }
+    return Math.random() < 0.35 ? poisonBite : (normalBite ?? fallback)
   }
 }
 

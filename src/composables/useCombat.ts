@@ -176,8 +176,6 @@ export function useCombat(config: CombatConfig = {}) {
       maxDuration
     }
     p.addStatusEffect(effect)
-    // Forzar reactividad: reemplazar la referencia del array para que los computed/templated actualicen.
-    p.statusEffects = [...p.statusEffects]
     addToLog(`¡Sufres el efecto: ${template.name}!`)
     showAnnouncement(`¡${template.name}!`, 'status', 1800)
   }
@@ -299,7 +297,6 @@ export function useCombat(config: CombatConfig = {}) {
     decrementAbilityCooldowns()
     if (typeof player.value?.reduceStatusEffects === 'function') {
       player.value.reduceStatusEffects()
-      player.value.statusEffects = [...player.value.statusEffects]
     }
     if (typeof player.value?.restoreEnergy === 'function') {
       player.value.restoreEnergy(10)
@@ -389,8 +386,6 @@ export function useCombat(config: CombatConfig = {}) {
     if (!player.value) return
     player.value.statusEffects = []
     enemies.value.forEach(e => { e.statusEffects = [] })
-    player.value.statusEffects = [...player.value.statusEffects]
-    enemies.value = enemies.value.map(e => ({ ...e, statusEffects: [...e.statusEffects] }))
     addToLog('Efectos de estado eliminados.')
   }
 
@@ -415,8 +410,6 @@ export function useCombat(config: CombatConfig = {}) {
 
     if (typeof p.reduceStatusEffects === 'function') {
       p.reduceStatusEffects()
-      // Forzar reactividad tras reducción.
-      p.statusEffects = [...p.statusEffects]
     }
   }
 

@@ -139,8 +139,6 @@ export class Player extends Character implements ICombatant, ILevelable, IInvent
       copy.maxDuration = effect.maxDuration
       this.statusEffects.push(copy)
     }
-    // Forzar reactividad: reemplazar la referencia del array para que Vue/Pinia detecten el cambio.
-    this.statusEffects = [...this.statusEffects]
   }
 
   public hasStatusEffect(type: string): boolean {
