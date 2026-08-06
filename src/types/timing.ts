@@ -17,13 +17,13 @@ export interface TimingResultData {
 }
 
 export const BASIC_ATTACK_CONFIG: TimingCircleConfig = {
-  shrinkSpeed: 400,
-  criticalZoneSize: 30,
-  outerRadius: 250,
+  shrinkSpeed: 350,
+  criticalZoneSize: 50,
+  outerRadius: 350,
   direction: 'inward',
   color: '#FF5722',
   successWindow: 25,
-  centerDotRadius: 10
+  centerDotRadius: 15
 }
 
 export const TIMING_MULTIPLIERS = {
