@@ -30,9 +30,21 @@ export abstract class Character implements ICharacter {
   public addStatusEffect(effect: IStatusEffect) {
     const existingEffect = this.statusEffects.find(e => e.type === effect.type)
     if (existingEffect) {
-      existingEffect.turns = Math.max(existingEffect.turns, effect.turns)
+      const incomingStacks = effect.stacks ?? 1
+      const maxStacks = existingEffect.maxStacks ?? effect.maxStacks ?? 99
+      const currentStacks = existingEffect.stacks ?? 1
+      existingEffect.stacks = Math.min(maxStacks, currentStacks + incomingStacks)
+      const maxDuration = existingEffect.maxDuration ?? effect.maxDuration ?? existingEffect.turns
+      existingEffect.turns = Math.min(maxDuration, Math.max(existingEffect.turns, effect.turns))
     } else {
-      this.statusEffects.push(effect)
+      const maxStacks = effect.maxStacks ?? 99
+      const stacks = effect.stacks ?? 1
+      const maxDuration = effect.maxDuration ?? effect.turns
+      this.statusEffects.push({
+        ...effect,
+        stacks: Math.min(maxStacks, stacks),
+        turns: Math.min(maxDuration, effect.turns)
+      })
     }
   }
 

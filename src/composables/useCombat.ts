@@ -7,7 +7,7 @@ import type { IAbility } from '@/core/interfaces/IAbility'
 import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
 import type { TimingResultData } from '@/types/timing'
 import { TIMING_MULTIPLIERS } from '@/types/timing'
-import { StatusEffects, MAX_DOT_DURATION } from '@/core/StatusEffects'
+import { StatusEffects, MAX_DOT_DURATION, DEFAULT_MAX_STACKS } from '@/core/StatusEffects'
 import type {
   DefenseChallengeResult,
   DefensePatternConfig,
@@ -159,25 +159,31 @@ export function useCombat(config: CombatConfig = {}) {
     resolve(result)
   }
 
-  function applyOnFailureEffectToPlayer(p: any, fx: { statusType: string; duration: number; damagePerTurn?: number; stacks?: number }) {
+  function applyOnFailureEffectToPlayer(p: any, fx: { statusType: string; duration: number; stacks?: number }) {
     const statusType = String(fx.statusType).toLowerCase()
     const template = StatusEffects.getByType(statusType)
-    if (!template) return
+    if (!template) {
+      console.warn(`[applyOnFailureEffect] Status effect "${fx.statusType}" not found in StatusEffects registry`)
+      return
+    }
 
     const maxDuration = template.maxDuration ?? MAX_DOT_DURATION
     const incomingDuration = Math.min(Math.max(1, fx.duration), maxDuration)
+    const incomingStacks = Math.max(1, fx.stacks ?? 1)
 
     const effect: IStatusEffect = {
       ...template,
       turns: incomingDuration,
-      damagePerTurn: fx.damagePerTurn ?? template.damagePerTurn,
-      stacks: fx.stacks ?? 1,
-      maxStacks: template.maxStacks ?? 99,
+      stacks: incomingStacks,
+      maxStacks: template.maxStacks ?? DEFAULT_MAX_STACKS,
       maxDuration
     }
     p.addStatusEffect(effect)
-    addToLog(`¡Sufres el efecto: ${template.name}!`)
-    showAnnouncement(`¡${template.name}!`, 'status', 1800)
+
+    const newTotal = p.statusEffects.find((e: IStatusEffect) => e.type === template.type)?.stacks ?? incomingStacks
+    const stackLabel = newTotal > 1 ? ` x${newTotal}` : ''
+    addToLog(`¡Sufres el efecto: ${template.name}${stackLabel}!`)
+    showAnnouncement(`¡${template.name}${stackLabel}!`, 'status', 1800)
   }
 
   function closeDefenseChallenge() {

@@ -161,7 +161,7 @@ export class StatusEffects {
     }
   }
 
-  // Método para obtener un efecto por tipo
+  // Método para obtener un efecto por tipo (case-insensitive)
   static getByType(type: string): IStatusEffect | null {
     const effects = [
       this.STUN,
@@ -173,7 +173,7 @@ export class StatusEffects {
       this.WEAKNESS,
       this.SLOW
     ]
-    
-    return effects.find(effect => effect.type === type) || null
+    const target = type.toLowerCase()
+    return effects.find(effect => effect.type === target) || null
   }
 }
