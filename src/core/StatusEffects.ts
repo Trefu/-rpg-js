@@ -1,7 +1,9 @@
+import type { ICharacter } from './interfaces/ICharacter'
 import type { IStatusEffect } from './interfaces/IStatusEffect'
 import stunIcon from '@/assets/icons/ball-glow.png'
 import burnIcon from '@/assets/icons/fire.png'
 import poisonIcon from '@/assets/icons/poison-gas.png'
+import freezeIcon from '@/assets/icons/snowflake-1.png'
 import strengthIcon from '@/assets/icons/muscle-up.png'
 import defenseIcon from '@/assets/icons/shield.png'
 import speedIcon from '@/assets/icons/footprint.png'
@@ -12,6 +14,12 @@ import slowIcon from '@/assets/icons/snail.png'
 // Cualquier re-aplicación respetará este tope y acumulará stacks en su lugar.
 export const MAX_DOT_DURATION = 3
 export const DEFAULT_MAX_STACKS = 5
+
+export interface FailureEffectSpec {
+  statusType: string
+  duration: number
+  stacks?: number
+}
 
 export class StatusEffects {
   // Efectos de aturdimiento
@@ -35,7 +43,8 @@ export class StatusEffects {
     turnLabel: '¡Está aturdido y pierde su turno!'
   }
 
-  // Efectos de daño por tiempo
+  // Efectos de daño por tiempo (DoTs): todos comparten maxDuration + maxStacks
+  // damagePerTurn es propiedad intrínseca del efecto. Los stacks multiplican el DOT real.
   static readonly BURN: IStatusEffect = {
     type: 'burn',
     name: 'Quemado',
@@ -62,6 +71,21 @@ export class StatusEffects {
     isBuff: false,
     turnLabel: '¡Recibe daño por veneno!',
     damagePerTurn: 3
+  }
+
+  static readonly FREEZE: IStatusEffect = {
+    type: 'freeze',
+    name: 'Congelado',
+    description: 'El personaje recibe daño por frío cada turno. Las reaplicaciones suman stacks.',
+    turns: MAX_DOT_DURATION,
+    maxDuration: MAX_DOT_DURATION,
+    stacks: 1,
+    maxStacks: DEFAULT_MAX_STACKS,
+    icon: freezeIcon,
+    isBuff: false,
+    turnLabel: '¡Recibe daño por frío!',
+    damagePerTurn: 2,
+    speedPenalty: -2
   }
 
   // Efectos de buff
@@ -145,6 +169,14 @@ export class StatusEffects {
     }
   }
 
+  static createFreeze(turns: number = 3, damagePerTurn: number = 2): IStatusEffect {
+    return {
+      ...this.FREEZE,
+      turns,
+      damagePerTurn
+    }
+  }
+
   static createStrengthBoost(turns: number = 3, attackBonus: number = 5): IStatusEffect {
     return {
       ...this.STRENGTH_BOOST,
@@ -165,8 +197,10 @@ export class StatusEffects {
   static getByType(type: string): IStatusEffect | null {
     const effects = [
       this.STUN,
+      this.STUN_EXTENDED,
       this.BURN,
       this.POISON,
+      this.FREEZE,
       this.STRENGTH_BOOST,
       this.DEFENSE_BOOST,
       this.SPEED_BOOST,
@@ -176,4 +210,64 @@ export class StatusEffects {
     const target = type.toLowerCase()
     return effects.find(effect => effect.type === target) || null
   }
+
+  static getRegisteredTypes(): string[] {
+    return [
+      this.STUN.type,
+      this.BURN.type,
+      this.POISON.type,
+      this.FREEZE.type,
+      this.STRENGTH_BOOST.type,
+      this.DEFENSE_BOOST.type,
+      this.SPEED_BOOST.type,
+      this.WEAKNESS.type,
+      this.SLOW.type
+    ]
+  }
+}
+
+/**
+ * Aplica un efecto de fallo de defensa al personaje objetivo con validación estricta.
+ *
+ * Reglas:
+ * - `statusType` debe existir en StatusEffects (lanza error si no)
+ * - `duration` se clampa a `maxDuration` del template (no lanza, es un cap defensivo)
+ * - `stacks` debe ser ≥ 1 y ≤ `maxStacks` del template (lanza error si excede)
+ * - `damagePerTurn` SIEMPRE viene del template, no del spec
+ * - Si ya existe el efecto, `Character.addStatusEffect` acumula stacks respetando maxStacks
+ *
+ * @throws si statusType es desconocido o stacks excede maxStacks
+ */
+export function applyFailureEffect(
+  target: { addStatusEffect: (effect: IStatusEffect) => void; statusEffects: IStatusEffect[] },
+  spec: FailureEffectSpec
+): void {
+  const statusType = String(spec.statusType).toLowerCase()
+  const template = StatusEffects.getByType(statusType)
+  if (!template) {
+    throw new Error(
+      `[StatusEffects] Unknown status type "${spec.statusType}". Registered types: ${StatusEffects.getRegisteredTypes().join(', ')}`
+    )
+  }
+
+  const stacks = Math.max(1, spec.stacks ?? 1)
+  const maxStacks = template.maxStacks ?? DEFAULT_MAX_STACKS
+  if (stacks > maxStacks) {
+    throw new Error(
+      `[StatusEffects] "${statusType}" cannot stack above ${maxStacks} (got ${stacks}). ` +
+      `Increase maxStacks in StatusEffects.${statusType.toUpperCase()} template if needed.`
+    )
+  }
+
+  const maxDuration = template.maxDuration ?? MAX_DOT_DURATION
+  const duration = Math.max(1, Math.min(spec.duration, maxDuration))
+
+  const instance: IStatusEffect = {
+    ...template,
+    turns: duration,
+    stacks,
+    maxStacks,
+    maxDuration
+  }
+  target.addStatusEffect(instance)
 }

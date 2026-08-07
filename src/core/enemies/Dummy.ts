@@ -47,7 +47,7 @@ export class Dummy extends Enemy implements IEnemy {
       damageMultiplier: 0.6,
       onFailureEffect: {
         statusType: 'poison',
-        duration: 6,
+        duration: 3,
         stacks: 2
       }
     },
@@ -60,6 +60,19 @@ export class Dummy extends Enemy implements IEnemy {
       damageMultiplier: 2.0,
       onFailureEffect: {
         statusType: 'burn',
+        duration: 3,
+        stacks: 1
+      }
+    },
+    {
+      name: 'Aliento Glacial',
+      phaseCount: 1,
+      waveSpeed: 50,
+      baseSuccessZoneSize: 0.10,
+      baseMaxBlockReduction: 0.5,
+      damageMultiplier: 0.7,
+      onFailureEffect: {
+        statusType: 'freeze',
         duration: 3,
         stacks: 1
       }

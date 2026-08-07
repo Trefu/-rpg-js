@@ -11,7 +11,7 @@ export class Goblin extends Enemy {
       name: 'Mordida',
       phaseCount: 2,
       baseMaxBlockReduction: 0.5,
-      damageMultiplier: 1.0
+      damageMultiplier: 2
     },
     {
       name: 'Mordida venenosa',

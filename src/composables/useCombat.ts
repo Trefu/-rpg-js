@@ -7,7 +7,7 @@ import type { IAbility } from '@/core/interfaces/IAbility'
 import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
 import type { TimingResultData } from '@/types/timing'
 import { TIMING_MULTIPLIERS } from '@/types/timing'
-import { StatusEffects, MAX_DOT_DURATION, DEFAULT_MAX_STACKS } from '@/core/StatusEffects'
+import { StatusEffects, applyFailureEffect } from '@/core/StatusEffects'
 import type {
   DefenseChallengeResult,
   DefensePatternConfig,
@@ -160,28 +160,17 @@ export function useCombat(config: CombatConfig = {}) {
   }
 
   function applyOnFailureEffectToPlayer(p: any, fx: { statusType: string; duration: number; stacks?: number }) {
-    const statusType = String(fx.statusType).toLowerCase()
-    const template = StatusEffects.getByType(statusType)
+    const template = StatusEffects.getByType(fx.statusType)
     if (!template) {
-      console.warn(`[applyOnFailureEffect] Status effect "${fx.statusType}" not found in StatusEffects registry`)
-      return
+      throw new Error(
+        `[useCombat] Attack references unknown status effect "${fx.statusType}". Registered: ${StatusEffects.getRegisteredTypes().join(', ')}`
+      )
     }
 
-    const maxDuration = template.maxDuration ?? MAX_DOT_DURATION
-    const incomingDuration = Math.min(Math.max(1, fx.duration), maxDuration)
-    const incomingStacks = Math.max(1, fx.stacks ?? 1)
+    applyFailureEffect(p, fx)
 
-    const effect: IStatusEffect = {
-      ...template,
-      turns: incomingDuration,
-      stacks: incomingStacks,
-      maxStacks: template.maxStacks ?? DEFAULT_MAX_STACKS,
-      maxDuration
-    }
-    p.addStatusEffect(effect)
-
-    const newTotal = p.statusEffects.find((e: IStatusEffect) => e.type === template.type)?.stacks ?? incomingStacks
-    const stackLabel = newTotal > 1 ? ` x${newTotal}` : ''
+    const applied = p.statusEffects.find((e: IStatusEffect) => e.type === template.type)
+    const stackLabel = (applied?.stacks ?? 1) > 1 ? ` x${applied?.stacks}` : ''
     addToLog(`¡Sufres el efecto: ${template.name}${stackLabel}!`)
     showAnnouncement(`¡${template.name}${stackLabel}!`, 'status', 1800)
   }

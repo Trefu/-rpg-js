@@ -32,9 +32,11 @@ export function getDefenseModifiers(player: PlayerLikeForDefense): DefenseModifi
       modifiers.blockReductionBonus += effect.defenseBonus * 0.05
     }
     if (effect.type === 'speed_boost' && typeof effect.speedBonus === 'number') {
+      // Buff de velocidad → la onda se mueve más lento (más fácil bloquear)
       modifiers.waveSpeedMultiplier -= effect.speedBonus * 0.08
     }
-    if (effect.type === 'speed_penalty' && typeof effect.speedPenalty === 'number') {
+    if (typeof effect.speedPenalty === 'number' && effect.speedPenalty < 0) {
+      // Penalty de velocidad (slow, freeze, etc.) → la onda se mueve más rápido (más difícil)
       modifiers.waveSpeedMultiplier += Math.abs(effect.speedPenalty) * 0.08
     }
   }
