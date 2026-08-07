@@ -51,7 +51,7 @@ const emit = defineEmits<{
 
 .combat-log-modal {
   width: min(560px, 100%);
-  max-height: min(70vh, 640px);
+  max-height: min(70vh, 840px);
   background: linear-gradient(180deg, #131a30 0%, #0a1024 100%);
   border: 1.5px solid rgba(255, 255, 255, 0.85);
   border-radius: 8px;
