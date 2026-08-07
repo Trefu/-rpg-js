@@ -15,6 +15,7 @@ export class Goblin extends Enemy {
     },
     {
       name: 'Mordida venenosa',
+      waveSpeed: 80,
       phaseCount: 1,
       baseMaxBlockReduction: 0.5,
       damageMultiplier: 0.6,
@@ -32,7 +33,7 @@ export class Goblin extends Enemy {
       'Goblin',
       level,
       50 + (level * 10), // Vida base + bonus por nivel
-      8 + (level * 1),   // Ataque base + bonus por nivel
+      16 + (level * 1),   // Ataque base + bonus por nivel
       20 + (level * 5),  // Experiencia base + bonus por nivel
       { min: 10 + (level * 2), max: 15 + (level * 3) }  // Oro base + bonus por nivel
     )

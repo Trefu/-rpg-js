@@ -47,8 +47,8 @@ export class Dummy extends Enemy implements IEnemy {
       damageMultiplier: 0.6,
       onFailureEffect: {
         statusType: 'poison',
-        duration: 3,
-        stacks: 1
+        duration: 6,
+        stacks: 2
       }
     },
     {

@@ -215,20 +215,27 @@ function onTrainingEnded() {
 .training-view {
   display: flex;
   width: 100vw;
-  height: 100vh;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow: hidden;
 }
 
 .combat-wrapper {
   flex: 1;
   min-width: 0;
+  min-height: 0;
   position: relative;
   overflow: hidden;
 }
 
+.combat-wrapper :deep(.combat-view) {
+  height: 100%;
+}
+
 /* Aumentar la UI del jugador y el log solo dentro del training */
 .combat-wrapper :deep(.player-ui) {
-  height: 360px;
+  height: auto;
+  max-height: 100%;
   bottom: 16px;
 }
 
@@ -539,7 +546,8 @@ function onTrainingEnded() {
     width: 300px;
   }
   .combat-wrapper :deep(.player-ui) {
-    height: 320px;
+    height: auto;
+    max-height: 100%;
   }
 }
 
