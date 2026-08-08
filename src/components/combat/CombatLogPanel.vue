@@ -152,7 +152,7 @@ onBeforeUnmount(() => {
 .log-body {
   display: flex;
   flex-direction: column;
-  max-height: 180px;
+  max-height: 280px;
   border-top: 1px solid rgba(76, 175, 80, 0.25);
 }
 
