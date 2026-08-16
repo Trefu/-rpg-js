@@ -2,60 +2,34 @@ import { Enemy } from './Enemy'
 import goblinSprite from '@/assets/sprites/enemies/goblin2.png'
 import type { ICharacter } from '../interfaces/ICharacter'
 import type { DefensePatternConfig } from '../defense/types'
+import { GOBLIN_ATTACKS, GOBLIN_MORDIDA, GOBLIN_MORDIDA_VENENOSA } from '../abilities/EnemyAttacks'
 
 export class Goblin extends Enemy {
-  public delayMs = 1500 // Delay de ataque en milisegundos para el minijuego de combate
+  public delayMs = 1500
   public readonly sprite = goblinSprite
-  public attackPatterns: DefensePatternConfig[] = [
-    {
-      name: 'Mordida',
-      phaseCount: 2,
-      baseMaxBlockReduction: 0.5,
-      damageMultiplier: 2
-    },
-    {
-      name: 'Mordida venenosa',
-      waveSpeed: 60,
-      phaseCount: 1,
-      baseMaxBlockReduction: 0.5,
-      baseSuccessZoneSize: 0.2,
-      damageMultiplier: 0.6,
-      onFailureEffect: {
-        statusType: 'poison',
-        duration: 3,
-        stacks: 1
-      }
-    }
-  ]
+  public attackPatterns: DefensePatternConfig[] = GOBLIN_ATTACKS
 
   constructor(level: number = 1) {
     super(
       `goblin-${Math.random().toString(36).substr(2, 9)}`,
       'Goblin',
       level,
-      50 + (level * 10), // Vida base + bonus por nivel
-      12 + (level * 1),   // Ataque base + bonus por nivel
-      20 + (level * 5),  // Experiencia base + bonus por nivel
-      { min: 10 + (level * 2), max: 15 + (level * 3) }  // Oro base + bonus por nivel
+      50 + (level * 10),
+      12 + (level * 1),
+      20 + (level * 5),
+      { min: 10 + (level * 2), max: 15 + (level * 3) }
     )
   }
 
-  // Sobrescribir el método de ataque para darle un comportamiento específico
   public attack(): number {
     const baseAttack = super.attack()
-    // 20% de probabilidad de hacer un ataque crítico
     return Math.random() < 0.2 ? baseAttack * 1.5 : baseAttack
   }
 
   public selectAttackPattern(player: ICharacter | null): DefensePatternConfig {
-
-    const [normalBite, poisonBite] = this.attackPatterns
-    const fallback = normalBite ?? this.attackPatterns[0]
-    if (!poisonBite) return fallback
     if (player?.hasStatusEffect?.('poison')) {
-      return normalBite ?? fallback
+      return GOBLIN_MORDIDA
     }
-    return Math.random() < 0.35 ? poisonBite : (normalBite ?? fallback)
+    return Math.random() < 0.35 ? GOBLIN_MORDIDA_VENENOSA : GOBLIN_MORDIDA
   }
 }
-

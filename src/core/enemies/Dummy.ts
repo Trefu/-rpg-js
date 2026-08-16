@@ -2,82 +2,88 @@ import { Enemy } from './Enemy'
 import { ICharacter, IEnemy } from '../interfaces/ICharacter'
 import dummySprite from '@/assets/sprites/enemies/dummy.png'
 import type { DefensePatternConfig } from '../defense/types'
+import { ALL_ENEMY_ATTACKS, GOBLIN_MORDIDA, GOBLIN_MORDIDA_VENENOSA, ORC_GOLPE_APLASTANTE, ORC_HACHAZOS_MULTIPLES, WOLF_MORDIDA_FEROZ, WOLF_ZARPAZOS_RAPIDOS } from '../abilities/EnemyAttacks'
+
+export const DUMMY_ATTACKS: DefensePatternConfig[] = [
+  {
+    name: 'Golpe Suave',
+    phaseCount: 1,
+    waveSpeed: 25,
+    baseSuccessZoneSize: 0.18,
+    baseMaxBlockReduction: 0.8,
+    damageMultiplier: 1.0
+  },
+  {
+    name: 'Golpe Rápido',
+    phaseCount: 1,
+    waveSpeed: 55,
+    baseSuccessZoneSize: 0.08,
+    baseMaxBlockReduction: 0.5,
+    damageMultiplier: 0.7
+  },
+  {
+    name: 'Combo Doble',
+    phaseCount: 2,
+    waveSpeed: 35,
+    baseSuccessZoneSize: 0.12,
+    baseMaxBlockReduction: 0.5,
+    damageMultiplier: 1.2
+  },
+  {
+    name: 'Combo Triple',
+    phaseCount: 3,
+    waveSpeed: 45,
+    baseSuccessZoneSize: 0.10,
+    baseMaxBlockReduction: 0.4,
+    damageMultiplier: 1.4
+  },
+  {
+    ...GOBLIN_MORDIDA_VENENOSA,
+    name: 'Mordida Tóxica',
+    damageMultiplier: 0.6,
+    onFailureEffect: {
+      statusType: 'poison',
+      duration: 3,
+      stacks: 2
+    }
+  },
+  {
+    name: 'Aliento de Fuego',
+    phaseCount: 10,
+    waveSpeed: 80,
+    baseSuccessZoneSize: 0.12,
+    baseMaxBlockReduction: 0.5,
+    damageMultiplier: 2.0,
+    onFailureEffect: {
+      statusType: 'burn',
+      duration: 3,
+      stacks: 1
+    }
+  },
+  {
+    name: 'Aliento Glacial',
+    phaseCount: 1,
+    waveSpeed: 50,
+    baseSuccessZoneSize: 0.10,
+    baseMaxBlockReduction: 0.5,
+    damageMultiplier: 0.7,
+    onFailureEffect: {
+      statusType: 'freeze',
+      duration: 3,
+      stacks: 1
+    }
+  },
+  GOBLIN_MORDIDA,
+  WOLF_MORDIDA_FEROZ,
+  WOLF_ZARPAZOS_RAPIDOS,
+  ORC_HACHAZOS_MULTIPLES,
+  ORC_GOLPE_APLASTANTE,
+  ...ALL_ENEMY_ATTACKS
+]
 
 export class Dummy extends Enemy implements IEnemy {
   public readonly sprite = dummySprite
-  public attackPatterns: DefensePatternConfig[] = [
-    {
-      name: 'Golpe Suave',
-      phaseCount: 1,
-      waveSpeed: 25,
-      baseSuccessZoneSize: 0.18,
-      baseMaxBlockReduction: 0.8,
-      damageMultiplier: 1.0
-    },
-    {
-      name: 'Golpe Rápido',
-      phaseCount: 1,
-      waveSpeed: 55,
-      baseSuccessZoneSize: 0.08,
-      baseMaxBlockReduction: 0.5,
-      damageMultiplier: 0.7
-    },
-    {
-      name: 'Combo Doble',
-      phaseCount: 2,
-      waveSpeed: 35,
-      baseSuccessZoneSize: 0.12,
-      baseMaxBlockReduction: 0.5,
-      damageMultiplier: 1.2
-    },
-    {
-      name: 'Combo Triple',
-      phaseCount: 3,
-      waveSpeed: 45,
-      baseSuccessZoneSize: 0.10,
-      baseMaxBlockReduction: 0.4,
-      damageMultiplier: 1.4
-    },
-    {
-      name: 'Mordida Tóxica',
-      phaseCount: 1,
-      waveSpeed: 40,
-      baseSuccessZoneSize: 0.12,
-      baseMaxBlockReduction: 0.5,
-      damageMultiplier: 0.6,
-      onFailureEffect: {
-        statusType: 'poison',
-        duration: 3,
-        stacks: 2
-      }
-    },
-    {
-      name: 'Aliento de Fuego',
-      phaseCount: 10,
-      waveSpeed: 80,
-      baseSuccessZoneSize: 0.12,
-      baseMaxBlockReduction: 0.5,
-      damageMultiplier: 2.0,
-      onFailureEffect: {
-        statusType: 'burn',
-        duration: 3,
-        stacks: 1
-      }
-    },
-    {
-      name: 'Aliento Glacial',
-      phaseCount: 1,
-      waveSpeed: 50,
-      baseSuccessZoneSize: 0.10,
-      baseMaxBlockReduction: 0.5,
-      damageMultiplier: 0.7,
-      onFailureEffect: {
-        statusType: 'freeze',
-        duration: 3,
-        stacks: 1
-      }
-    }
-  ]
+  public attackPatterns: DefensePatternConfig[] = DUMMY_ATTACKS
 
   public forcedPattern: DefensePatternConfig | null = null
   public damageOverride: number | null = null
