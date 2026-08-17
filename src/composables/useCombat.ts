@@ -400,18 +400,54 @@ export function useCombat(config: CombatConfig = {}) {
           isExecutingAction.value = false
           return
         }
-        addToLog('¡Has sido derrotado!')
-        endCombat(false)
-        return
+        // Rotar al siguiente heroe vivo antes de continuar el turno enemigo
+        const rotated = rotateToNextAliveHero()
+        if (!rotated) {
+          addToLog('¡Todos tus heroes han caido!')
+          endCombat(false)
+          return
+        }
+        addToLog(`¡${player.value.name} entra en combate!`)
       }
       await delay(config.isTraining ? 600 : 1500);
     }
 
     isPlayerTurn.value = true
     isExecutingAction.value = false
-    addToLog('Tu turno.')
+    // Si el heroe activo murio durante el turno enemigo, rotar al siguiente heroe vivo.
+    if (!player.value || !player.value.isAlive) {
+      const rotated = rotateToNextAliveHero()
+      if (!rotated) {
+        addToLog('¡Todos tus heroes han caido!')
+        endCombat(false)
+        return
+      }
+      addToLog(`Tu turno. ${gameStore.activeHero?.name} entra en combate.`)
+    } else {
+      addToLog('Tu turno.')
+    }
     showAnnouncement('Tu turno', 'turn', 1400)
     await startPlayerTurn()
+  }
+
+  /**
+   * Rota el activeHero al siguiente slot con un heroe vivo.
+   * @returns true si encontro un heroe vivo, false si todos estan muertos.
+   */
+  function rotateToNextAliveHero(): boolean {
+    const all = gameStore.heroes
+    const currentIdx = gameStore.activeHeroIndex
+    for (let offset = 0; offset < all.length; offset++) {
+      const idx = (currentIdx + offset) % all.length
+      const candidate = all[idx]
+      if (candidate && candidate.isAlive) {
+        if (idx !== currentIdx) {
+          gameStore.setActiveHero(idx)
+        }
+        return true
+      }
+    }
+    return false
   }
 
   function revivePlayer() {

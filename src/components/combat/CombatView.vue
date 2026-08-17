@@ -6,8 +6,6 @@ import { useExpeditionStore } from '@/stores/expedition'
 import { useGameStore } from '@/stores/game'
 import { MAX_HEROES } from '@/stores/game'
 import type { Hero } from '@/core/Hero'
-import StatsIcon from '@/assets/icons/scroll-unfurled.png'
-import EffectsIcon from '@/assets/icons/droplets.png'
 import TargetIcon from '@/assets/icons/crosshair.png'
 import AbilitiesIcon from '@/assets/icons/shield.png'
 import ItemIcon from '@/assets/icons/backpack.png'
@@ -16,9 +14,6 @@ import DefenseChallenge from './DefenseChallenge.vue'
 import AnnouncementBanner from './AnnouncementBanner.vue'
 import CombatLogModal from './CombatLogModal.vue'
 import CombatLogPanel from './CombatLogPanel.vue'
-import PlayerHud from './PlayerHud.vue'
-import PlayerStatsPanel from './PlayerStatsPanel.vue'
-import StatusEffectsPanel from './StatusEffectsPanel.vue'
 import HeroCard from './HeroCard.vue'
 import EnemyCard from './EnemyCard.vue'
 import AbilitiesModal from '@/components/ui/AbilitiesModal.vue'
@@ -47,18 +42,15 @@ if (props.isTraining) {
 }
 
 const {
-  player,
   heroes,
   enemies,
   selectedEnemy,
   selectedAbility,
   combatLog,
-  isCombatEnded,
   isSelectingTarget,
   showTimingOverlay,
   attackingEnemyId,
   enemyHitPopups,
-  playerHitPopups,
   showAbilitiesModal,
   abilityCooldowns,
   announcement,
@@ -88,19 +80,6 @@ const {
   canTargetAllies,
   canTargetEnemies
 } = useCombat(combatOptions)
-
-const shouldShowStatusBar = computed(() => {
-  return !isCombatEnded.value
-})
-
-const playerStatusEffects = computed(() => {
-  if (!shouldShowStatusBar.value || !player.value?.statusEffects) {
-    return []
-  }
-  return player.value.statusEffects.filter(e => (e.turns === undefined) || e.turns > 0)
-})
-
-const playerStatusEffectsCount = computed(() => playerStatusEffects.value.length)
 
 const heroSlots = computed(() => {
   const slots: (Hero | null)[] = []
@@ -147,42 +126,7 @@ watch(() => enemies.value, (newEnemies) => {
 }, { immediate: true })
 
 const showLogModal = ref(false)
-const showStatsModal = ref(false)
-const showStatusModal = ref(false)
 
-function onHudItemSelected(id: string) {
-  if (id === 'stats') {
-    showStatsModal.value = true
-  } else if (id === 'status') {
-    if (playerStatusEffectsCount.value > 0) {
-      showStatusModal.value = true
-    }
-  }
-}
-
-const typedPlayer = computed<Hero | null>(() => {
-  return player.value as Hero | null
-})
-
-const hudOrbitItems = computed(() => [
-  {
-    id: 'stats',
-    label: 'Stats del jugador',
-    icon: StatsIcon,
-    badge: undefined as number | string | undefined,
-    active: true,
-    onClick: () => { showStatsModal.value = true }
-  },
-  {
-    id: 'status',
-    label: playerStatusEffectsCount.value > 0
-      ? `${playerStatusEffectsCount.value} efecto${playerStatusEffectsCount.value === 1 ? '' : 's'} activo${playerStatusEffectsCount.value === 1 ? '' : 's'}`
-      : 'Sin efectos',
-    icon: EffectsIcon,
-    badge: playerStatusEffectsCount.value || undefined,    active: playerStatusEffectsCount.value > 0,
-    onClick: () => { showStatusModal.value = true }
-  }
-])
 const onTimingResultReceived = (result: { result: 'critical' | 'bonus' | 'normal' | 'miss', accuracy: number, timePressed: number }) => {
   handleTimingResult(result)
 }
@@ -299,15 +243,6 @@ onUnmounted(() => {
     </div>
 
     <div class="combat-bottom-bar">
-      <div class="player-hud-slot">
-        <PlayerHud
-          :player="typedPlayer"
-          :orbit-items="hudOrbitItems"
-          :hit-popups="playerHitPopups"
-          @select="onHudItemSelected"
-        />
-      </div>
-
       <div class="combat-log-slot">
         <CombatLogPanel
           :messages="combatLog"
@@ -356,19 +291,6 @@ onUnmounted(() => {
       :show="showLogModal"
       :messages="combatLog"
       @close="showLogModal = false"
-    />
-
-    <PlayerStatsPanel
-      :show="showStatsModal"
-      :player="typedPlayer"
-      @close="showStatsModal = false"
-    />
-
-    <StatusEffectsPanel
-      :show="showStatusModal"
-      :effects="playerStatusEffects"
-      :owner-name="player?.name"
-      @close="showStatusModal = false"
     />
   </div>
 </template>
