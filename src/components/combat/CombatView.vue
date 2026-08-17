@@ -74,6 +74,7 @@ const {
   handleAbilitiesModalShortcuts,
   handleCombatShortcuts,
   selectEnemy,
+  selectAlly,
   selectAction,
   initializeCombat,
   cleanup,
@@ -83,7 +84,9 @@ const {
   handleDefensePhaseComplete,
   handleDefenseAllPhasesComplete,
   closeDefenseChallenge,
-  startPlayerTurn
+  startPlayerTurn,
+  canTargetAllies,
+  canTargetEnemies
 } = useCombat(combatOptions)
 
 const shouldShowStatusBar = computed(() => {
@@ -246,6 +249,8 @@ onUnmounted(() => {
           :hero="hero"
           :index="idx"
           :is-active="!!hero && idx === gameStore.activeHeroIndex"
+          :is-target-selectable="isSelectingTarget && !!hero && hero.isAlive && canTargetAllies(selectedAbility)"
+          @select="(h) => selectAlly(h)"
         />
       </div>
     </div>
@@ -253,7 +258,11 @@ onUnmounted(() => {
     <div class="enemies-column">
       <transition name="target-banner">
         <div v-if="isSelectingTarget && selectedAbility" class="target-banner-wrap">
-          <div v-if="actionRequiresTarget(selectedAbility)" class="target-indicator">
+          <div v-if="canTargetAllies(selectedAbility) && !canTargetEnemies(selectedAbility)" class="target-indicator target-indicator-ally">
+            <p><img :src="TargetIcon" alt="" class="inline-icon" /> Selecciona un aliado para {{ selectedAbility.name.toLowerCase() }}<br>
+              <span class="shortcut-hint">Presiona la <b>tecla</b> del heroe o haz click.</span></p>
+          </div>
+          <div v-else-if="actionRequiresTarget(selectedAbility)" class="target-indicator">
             <p><img :src="TargetIcon" alt="" class="inline-icon" /> Selecciona un objetivo para {{ selectedAbility.name.toLowerCase() }}<br>
               <span class="shortcut-hint">Presiona la <b>tecla</b> del enemigo o haz click.</span></p>
           </div>
@@ -278,11 +287,11 @@ onUnmounted(() => {
             :enemy="enemy"
             :index="idx"
             :is-selected="selectedEnemy?.id === enemy.id"
-            :is-selecting-target="isSelectingTarget"
+            :is-selecting-target="isSelectingTarget && canTargetEnemies(selectedAbility)"
             :is-action-target-required="actionRequiresTarget(selectedAbility)"
             :is-attacking="attackingEnemyId === enemy.id"
             :hit-popups="enemyHitPopups"
-            :show-shortcut="true"
+            :show-shortcut="canTargetEnemies(selectedAbility)"
             @select="selectEnemy"
           />
         </div>

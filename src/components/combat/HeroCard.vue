@@ -6,9 +6,14 @@ interface Props {
   hero: Hero | null
   index: number
   isActive: boolean
+  isTargetSelectable: boolean
 }
 
 const props = defineProps<Props>()
+
+const emit = defineEmits<{
+  (e: 'select', hero: Hero): void
+}>()
 
 const hpPercent = computed(() => {
   if (!props.hero || props.hero.maxHealth <= 0) return 0
@@ -29,10 +34,16 @@ const energyDisplay = computed(() => {
   if (!props.hero) return ''
   return `${props.hero.energy}/${props.hero.maxEnergy}`
 })
+
+function onClick() {
+  if (props.isTargetSelectable && props.hero) {
+    emit('select', props.hero)
+  }
+}
 </script>
 
 <template>
-  <div class="hero-card" :class="{ empty: !hero, active: isActive }">
+  <div class="hero-card" :class="{ empty: !hero, active: isActive, 'target-selectable': isTargetSelectable }" @click="onClick">
     <template v-if="hero">
       <div class="hero-portrait">
         <img :src="hero.sprite" :alt="hero.name" class="hero-sprite" />
@@ -55,6 +66,9 @@ const energyDisplay = computed(() => {
             <span class="bar-value">{{ energyDisplay }}</span>
           </div>
         </div>
+      </div>
+      <div v-if="isTargetSelectable" class="hero-shortcut-badge">
+        <span class="key-cap">{{ index + 1 }}</span>
       </div>
     </template>
     <template v-else>
@@ -87,6 +101,52 @@ const energyDisplay = computed(() => {
   border-style: dashed;
   border-color: rgba(180, 160, 220, 0.18);
   opacity: 0.7;
+}
+
+.hero-card.target-selectable {
+  cursor: pointer;
+  background-color: rgba(120, 200, 255, 0.18);
+  border-color: #82b1ff;
+  border-style: solid;
+  animation: hero-pulse 1.5s infinite;
+}
+
+.hero-card.target-selectable:hover {
+  transform: scale(1.02);
+  box-shadow: 0 0 18px rgba(130, 177, 255, 0.7);
+}
+
+.hero-shortcut-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  z-index: 10;
+}
+
+.hero-shortcut-badge .key-cap {
+  background: linear-gradient(180deg, #cce8ff 0%, #82b1ff 100%);
+  color: #1a1a2e;
+  font-weight: 900;
+  font-size: 0.95rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 5px;
+  border: 2px solid #1a1a2e;
+  border-bottom-width: 3px;
+  box-shadow: 0 2px 0 #4a76b8, 0 2px 4px #000a;
+  min-width: 24px;
+  text-align: center;
+  font-family: 'Courier New', monospace;
+  line-height: 1.1;
+}
+
+.hero-card {
+  position: relative;
+}
+
+@keyframes hero-pulse {
+  0% { box-shadow: 0 0 12px rgba(130, 177, 255, 0.5); }
+  50% { box-shadow: 0 0 22px rgba(130, 177, 255, 0.9); }
+  100% { box-shadow: 0 0 12px rgba(130, 177, 255, 0.5); }
 }
 
 .hero-portrait {

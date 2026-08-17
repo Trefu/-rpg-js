@@ -43,7 +43,7 @@ export function useCombat(config: CombatConfig = {}) {
   const selectedAbility = ref<IAbility | null>(null)
   const audioManager = AudioManager.getInstance()
   const showTimingOverlay = ref(false)
-  const currentAction = ref<{ ability: IAbility, target: IEnemy } | null>(null)
+  const currentAction = ref<{ ability: IAbility, target: any } | null>(null)
   const attackingEnemyId = ref<string | null>(null)
   const combatLogRef = ref<HTMLDivElement | null>(null)
   const enemyHitPopups = ref<{ id: string, value: number, key: number }[]>([])
@@ -223,6 +223,48 @@ export function useCombat(config: CombatConfig = {}) {
     isSelectingTarget.value = true
   }
 
+  /**
+   * Ejecuta la accion directamente si la ability no requiere QTE,
+   * o lanza el QTE si requiereTiming es true (default).
+   */
+  function triggerExecution(_target: any) {
+    const ability = selectedAbility.value
+    if (!ability) return
+
+    if (ability.requiresTiming === false) {
+      // Sin QTE: ejecutar inmediatamente con multiplier=1 y timingResult indefinido
+      executeAbility(1, undefined as any)
+    } else {
+      performTimingChallenge().then((timingResult) => {
+        const multiplier = TIMING_MULTIPLIERS[timingResult as keyof typeof TIMING_MULTIPLIERS]
+        executeAbility(multiplier, timingResult)
+      })
+    }
+  }
+
+  function canTargetEnemies(ability: IAbility | null): boolean {
+    if (!ability) return false
+    const tt = ability.targetType ?? 'enemies-only'
+    return tt === 'all' || tt === 'enemies-only'
+  }
+
+  function canTargetAllies(ability: IAbility | null): boolean {
+    if (!ability) return false
+    const tt = ability.targetType ?? 'enemies-only'
+    return tt === 'all' || tt === 'allies-only'
+  }
+
+  function selectAlly(hero: Hero) {
+    if (!isPlayerTurn.value || !hero.isAlive || isPlayerInputLocked.value) return
+    if (!isSelectingTarget.value || !selectedAbility.value) return
+    if (!canTargetAllies(selectedAbility.value)) {
+      addToLog(`Solo puedes lanzar ${selectedAbility.value.name} sobre enemigos.`)
+      return
+    }
+    currentAction.value = { ability: selectedAbility.value, target: hero }
+    triggerExecution(hero)
+  }
+
   const abilityShortcuts = ['q', 'w', 'e', 'r']
 
   function handleAbilitiesModalShortcuts(e: KeyboardEvent) {
@@ -253,13 +295,24 @@ export function useCombat(config: CombatConfig = {}) {
 
     if (isSelectingTarget.value && ['1', '2', '3', '4', '5'].includes(e.key) && actionRequiresTarget(selectedAbility.value)) {
       const idx = parseInt(e.key, 10) - 1
-      const alive = aliveEnemies.value
-      if (alive[idx]) {
-        selectEnemy(alive[idx])
-        e.preventDefault()
-      } else {
-        addToLog(`No hay enemigo en la posición ${e.key}.`)
-        e.preventDefault()
+      if (canTargetEnemies(selectedAbility.value)) {
+        const alive = aliveEnemies.value
+        if (alive[idx]) {
+          selectEnemy(alive[idx])
+          e.preventDefault()
+        } else {
+          addToLog(`No hay enemigo en la posición ${e.key}.`)
+          e.preventDefault()
+        }
+      } else if (canTargetAllies(selectedAbility.value)) {
+        const aliveAllies = heroes.value.filter(h => h.isAlive)
+        if (aliveAllies[idx]) {
+          selectAlly(aliveAllies[idx])
+          e.preventDefault()
+        } else {
+          addToLog(`No hay aliado en la posición ${e.key}.`)
+          e.preventDefault()
+        }
       }
     }
   }
@@ -514,13 +567,13 @@ export function useCombat(config: CombatConfig = {}) {
     if (!isPlayerTurn.value || !enemy.isAlive || isPlayerInputLocked.value) return
 
     if (isSelectingTarget.value && selectedAbility.value) {
+      if (!canTargetEnemies(selectedAbility.value)) {
+        addToLog(`${selectedAbility.value.name} solo afecta a aliados.`)
+        return
+      }
       selectedEnemy.value = enemy
       currentAction.value = { ability: selectedAbility.value, target: enemy }
-
-      performTimingChallenge().then((timingResult) => {
-        const multiplier = TIMING_MULTIPLIERS[timingResult as keyof typeof TIMING_MULTIPLIERS]
-        executeAbility(multiplier, timingResult)
-      })
+      triggerExecution(enemy)
     }
   }
 
@@ -620,11 +673,14 @@ export function useCombat(config: CombatConfig = {}) {
     addToLog,
     getHealthPercentage,
     selectEnemy,
+    selectAlly,
     selectAction,
     initializeCombat,
     cleanup,
     showEnemyHit,
     showPlayerHit,
+    canTargetEnemies,
+    canTargetAllies,
     actionRequiresTarget,
     handleTimingResult,
     executeAbility,

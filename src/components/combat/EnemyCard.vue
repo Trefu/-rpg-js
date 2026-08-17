@@ -85,7 +85,6 @@ function onClick() {
   transition: all 0.3s ease;
   border-radius: 8px;
   padding: 0.4rem;
-  background: rgba(0, 0, 0, 0.15);
 }
 
 .enemy-card:hover {

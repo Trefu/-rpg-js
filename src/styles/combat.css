@@ -521,6 +521,12 @@
   font-weight: bold;
 }
 
+.target-banner-wrap .target-indicator-ally {
+  background-color: rgba(130, 177, 255, 0.95);
+  color: #0a1530;
+  border: 2px solid #82b1ff;
+}
+
 .shortcut-hint {
   color: #ffe600;
   font-size: 0.95em;

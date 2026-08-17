@@ -28,6 +28,8 @@ export const createBasicAttackAbility = (): IAbility => ({
   type: 'attack',
   cooldown: 0,
   damage: 30,
+  targetType: 'enemies-only',
+  requiresTiming: true,
   execute: async (context: AbilityContext) => {
     const baseDamage = context.caster.attack()
     const multiplier = context.damageMultiplier ?? 1
@@ -48,6 +50,8 @@ export const createStunStrikeAbility = (): IAbility => ({
   type: 'stunStrike',
   cooldown: 3,
   damage: 50,
+  targetType: 'enemies-only',
+  requiresTiming: true,
   execute: async (context: AbilityContext) => {
     const damage = Math.floor(context.caster.attack() * 0.8)
     context.target.takeDamage(damage)
@@ -66,6 +70,8 @@ export const createStealthStrikeAbility = (): IAbility => ({
   type: 'stealthStrike',
   cooldown: 2,
   damage: 70,
+  targetType: 'enemies-only',
+  requiresTiming: true,
   execute: async (context: AbilityContext) => {
     const damage = Math.floor(context.caster.attack() * 1.5)
     context.target.takeDamage(damage)
@@ -84,6 +90,8 @@ export const createFireballAbility = (): IAbility => ({
   type: 'fireball',
   cooldown: 3,
   damage: 90,
+  targetType: 'enemies-only',
+  requiresTiming: true,
   execute: async (context: AbilityContext) => {
     const damage = Math.floor(context.caster.attack() * 1.5)
     context.target.takeDamage(damage)
@@ -103,6 +111,8 @@ export const createWarriorAttackAbility = (): IAbility => ({
   cooldown: 0,
   energyCostOnCrit: 20,
   customCriticalMultiplier: 3.0,
+  targetType: 'enemies-only',
+  requiresTiming: true,
   execute: async (context: AbilityContext) => {
     const caster = context.caster as Hero
     const baseDamage = caster.attack()
@@ -136,16 +146,18 @@ export const createSecondWindAbility = (): IAbility => ({
   description: 'Respiracion profunda: cura 10% de vida maxima y restaura 20 de energia. (Cooldown: 1 turno)',
   type: 'secondWind',
   cooldown: 1,
+  targetType: 'allies-only',
+  requiresTiming: false,
   execute: async (context: AbilityContext) => {
-    const caster = context.caster as Hero
-    if (!caster.isAlive) {
-      context.addToLog('No puedes usar Segundo Aliento estando inconsciente.')
+    const target = context.target as Hero
+    if (!target.isAlive) {
+      context.addToLog('No puedes usar Segundo Aliento en un aliado inconsciente.')
       return
     }
-    const healAmount = Math.floor(caster.maxHealth * 0.10)
-    caster.heal(healAmount)
-    caster.restoreEnergy(20)
-    context.addToLog(`Usaste Segundo Aliento: curas ${healAmount} HP y restauras 20 energia.`)
+    const healAmount = Math.floor(target.maxHealth * 0.10)
+    target.heal(healAmount)
+    target.restoreEnergy(20)
+    context.addToLog(`Usaste Segundo Aliento en ${target.name}: cura ${healAmount} HP y restaura 20 energia.`)
     context.showAnnouncement('Segundo Aliento!', 'info', 1500)
   }
 })
