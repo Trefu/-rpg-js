@@ -143,7 +143,7 @@ export const createWarriorAttackAbility = (): IAbility => ({
 
 export const createSecondWindAbility = (): IAbility => ({
   name: 'Segundo Aliento',
-  description: 'Respiracion profunda: cura 10% de vida maxima y restaura 20 de energia. (Cooldown: 1 turno)',
+  description: 'Cura 20 de vida maxima y restaura 20 de energia.',
   type: 'secondWind',
   cooldown: 1,
   targetType: 'allies-only',
