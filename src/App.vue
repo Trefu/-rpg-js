@@ -6,9 +6,9 @@ import TrainingView from './components/combat/TrainingView.vue'
 import GameUI from './components/ui/GameUI.vue'
 import { useGameStore } from './stores/game'
 import { useExpeditionStore } from './stores/expedition'
-import { Player } from './core/Player'
+import { Warrior } from './core/heroes/Warrior'
 import { AudioManager } from './core/AudioManager'
-import { createBasicAttackAbility } from './core/abilities/Abilities'
+import { createWarriorAttackAbility, createSecondWindAbility } from './core/abilities/Abilities'
 import type { INode } from './core/interfaces/IExpedition'
 
 const gameStore = useGameStore()
@@ -29,9 +29,10 @@ onMounted(() => {
 })
 
 function initGame() {
-  const player = new Player('player-1', 'Héroe', 1, 100, 5, 10)
-  player.learnAbility(createBasicAttackAbility())
-  gameStore.startGame(player)
+  const warrior = new Warrior(1)
+  warrior.learnAbility(createWarriorAttackAbility())
+  warrior.learnAbility(createSecondWindAbility())
+  gameStore.startGame([warrior])
   expeditionStore.startExpedition()
   gameStore.navigateTo('expedition-map')
 }

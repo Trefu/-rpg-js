@@ -270,7 +270,7 @@ defineExpose({ start, stop })
         v-if="feedbackVisible"
         class="timing-feedback"
         :class="feedbackClass"
-        :key="feedbackResult"
+        :key="feedbackResult ?? 'idle'"
       >
         <div class="timing-feedback-text">{{ feedbackLabel }}</div>
       </div>

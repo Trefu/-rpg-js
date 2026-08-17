@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { Player } from '@/core/Player'
+import type { Hero } from '@/core/Hero'
 import statusIcon from '@/assets/icons/heart-drop.png'
 import effectsIcon from '@/assets/icons/droplets.png'
 
@@ -14,7 +14,7 @@ interface HudOrbitItem {
 }
 
 const props = defineProps<{
-  player: Player | null
+  player: Hero | null
   orbitItems: HudOrbitItem[]
   hitPopups: { value: number, key: number }[]
 }>()

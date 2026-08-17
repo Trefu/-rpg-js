@@ -21,5 +21,8 @@ export interface IAbility {
   type: string
   cooldown: number
   damage?: number
+  energyCost?: number
+  energyCostOnCrit?: number
+  customCriticalMultiplier?: number
   execute: (context: AbilityContext) => Promise<void>
 } 

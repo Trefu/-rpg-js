@@ -1,6 +1,6 @@
 import { ref, computed, nextTick } from 'vue'
 import { useGameStore } from '@/stores/game'
-import type { Player } from '@/core/Player'
+import type { Hero } from '@/core/Hero'
 import { AudioManager } from '@/core/AudioManager'
 import type { IEnemy } from '@/core/interfaces/ICharacter'
 import type { IAbility } from '@/core/interfaces/IAbility'
@@ -31,7 +31,8 @@ export interface CombatConfig {
 
 export function useCombat(config: CombatConfig = {}) {
   const gameStore = useGameStore()
-  const player = ref<any>(gameStore.player)
+  const player = computed<Hero | null>(() => gameStore.activeHero)
+  const heroes = computed<Hero[]>(() => gameStore.activeHeroes)
   const enemies = ref<IEnemy[]>([])
   const selectedEnemy = ref<IEnemy | null>(null)
   const combatLog = ref<string[]>([])
@@ -100,7 +101,7 @@ export function useCombat(config: CombatConfig = {}) {
 
   function startDefenseChallenge(enemy: IEnemy, attackDamage: number, preSelectedPattern?: DefensePatternConfig): Promise<DefenseChallengeResult | null> {
     return new Promise((resolve) => {
-      const modifiers = getDefenseModifiers(player.value)
+      const modifiers = getDefenseModifiers(player.value!)
       const selectedPattern = preSelectedPattern ?? enemy.selectAttackPattern(player.value)
       const adjusted = applyModifiersToPattern(selectedPattern, modifiers)
       const zones = pickZonesForPhases(adjusted)
@@ -137,12 +138,12 @@ export function useCombat(config: CombatConfig = {}) {
 
     if (!pattern || !enemy || !resolve) return
 
-    const modifiers = getDefenseModifiers(player.value)
+    const modifiers = getDefenseModifiers(player.value!)
     const result = buildDefenseResult(pattern, results, modifiers, attackDamage)
 
     const finalDamage = Math.max(0, result.totalDamage)
     if (finalDamage > 0) {
-      player.value.takeDamage(finalDamage)
+      player.value!.takeDamage(finalDamage)
       showPlayerHit(finalDamage)
       audioManager.playAttackSound()
       audioManager.playHitSound()
@@ -250,7 +251,7 @@ export function useCombat(config: CombatConfig = {}) {
     if (isCombatEnded.value) return
     if (showAbilitiesModal.value) return
 
-    if (isSelectingTarget.value && ['1', '2', '3'].includes(e.key) && actionRequiresTarget(selectedAbility.value)) {
+    if (isSelectingTarget.value && ['1', '2', '3', '4', '5'].includes(e.key) && actionRequiresTarget(selectedAbility.value)) {
       const idx = parseInt(e.key, 10) - 1
       const alive = aliveEnemies.value
       if (alive[idx]) {
@@ -483,7 +484,7 @@ export function useCombat(config: CombatConfig = {}) {
 
     if (currentAction.value) {
       const { ability, target } = currentAction.value
-      const playerChar = player.value as Player
+      const playerChar = player.value as Hero
 
       if (ability.execute) {
         await ability.execute({
@@ -573,6 +574,7 @@ export function useCombat(config: CombatConfig = {}) {
 
   return {
     player,
+    heroes,
     enemies,
     selectedEnemy,
     combatLog,

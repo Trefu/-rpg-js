@@ -1,5 +1,6 @@
 import type { IAbility } from '@/core/interfaces/IAbility'
 import type { AbilityContext } from '@/core/interfaces/IAbility'
+import type { Hero } from '../Hero'
 
 const TIMING_PREFIX: Record<string, string> = {
   critical: '¡CRÍTICO! Usaste',
@@ -92,5 +93,59 @@ export const createFireballAbility = (): IAbility => ({
       `Lanzaste Bola de Fuego causando ${damage} de daño de fuego.`,
       context.timingResult
     ))
+  }
+})
+
+export const createWarriorAttackAbility = (): IAbility => ({
+  name: 'Ataque de Warrior',
+  description: 'Golpe certero. Un critico hace X3 de dano y consume 20 de energia.',
+  type: 'warriorAttack',
+  cooldown: 0,
+  energyCostOnCrit: 20,
+  customCriticalMultiplier: 3.0,
+  execute: async (context: AbilityContext) => {
+    const caster = context.caster as Hero
+    const baseDamage = caster.attack()
+    let multiplier = context.damageMultiplier ?? 1
+
+    if (context.timingResult === 'critical') {
+      const critCost = 20
+      if (caster.energy < critCost) {
+        context.addToLog('Energia insuficiente para el critico! Solo hara un golpe normal.')
+        multiplier = 1.0
+      } else {
+        caster.spendEnergy(critCost)
+      }
+    }
+
+    const finalDamage = Math.floor(baseDamage * multiplier)
+    context.target.takeDamage(finalDamage)
+    context.showEnemyHit(context.target.id, finalDamage)
+    if (context.timingResult === 'critical' && multiplier > 1) {
+      showCritAnnouncement(context)
+    }
+    context.addToLog(formatAbilityLog(
+      `Usaste Ataque de Warrior causando ${finalDamage} de dano.`,
+      context.timingResult
+    ))
+  }
+})
+
+export const createSecondWindAbility = (): IAbility => ({
+  name: 'Segundo Aliento',
+  description: 'Respiracion profunda: cura 10% de vida maxima y restaura 20 de energia. (Cooldown: 1 turno)',
+  type: 'secondWind',
+  cooldown: 1,
+  execute: async (context: AbilityContext) => {
+    const caster = context.caster as Hero
+    if (!caster.isAlive) {
+      context.addToLog('No puedes usar Segundo Aliento estando inconsciente.')
+      return
+    }
+    const healAmount = Math.floor(caster.maxHealth * 0.10)
+    caster.heal(healAmount)
+    caster.restoreEnergy(20)
+    context.addToLog(`Usaste Segundo Aliento: curas ${healAmount} HP y restauras 20 energia.`)
+    context.showAnnouncement('Segundo Aliento!', 'info', 1500)
   }
 })

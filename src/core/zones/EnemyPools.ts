@@ -63,7 +63,7 @@ export const ZONE_ENEMY_POOLS: Record<string, EnemyPool> = {
 export function getEnemiesForNode(zoneId: string, floor: number, totalFloors: number): IEnemy[] {
   const pool = ZONE_ENEMY_POOLS[zoneId]
   if (!pool) {
-    return [new Goblin(1)]
+    return [new Goblin(1), new Goblin(1), new Goblin(1), new Goblin(1), new Goblin(1)]
   }
 
   let enemyPool: (() => IEnemy)[]
@@ -78,19 +78,13 @@ export function getEnemiesForNode(zoneId: string, floor: number, totalFloors: nu
     enemyPool = pool.mid
   }
 
-  const numEnemies = floor === 1 ? 2 : Math.floor(Math.random() * 2) + 1
+  const numEnemies = 5
   const selectedEnemies: IEnemy[] = []
 
-  if (floor === 1 && numEnemies === 2 && enemyPool.length >= 2) {
-    const shuffledPool = [...enemyPool].sort(() => Math.random() - 0.5)
-    selectedEnemies.push(shuffledPool[0]())
-    selectedEnemies.push(shuffledPool[1]())
-  } else {
-    for (let i = 0; i < numEnemies; i++) {
-      const randomIndex = Math.floor(Math.random() * enemyPool.length)
-      const enemyFactory = enemyPool[randomIndex]
-      selectedEnemies.push(enemyFactory())
-    }
+  for (let i = 0; i < numEnemies; i++) {
+    const randomIndex = Math.floor(Math.random() * enemyPool.length)
+    const enemyFactory = enemyPool[randomIndex]
+    selectedEnemies.push(enemyFactory())
   }
 
   return selectedEnemies

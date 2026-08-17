@@ -35,6 +35,8 @@ const handleModalOverlayClick = (e: MouseEvent) => {
 const getAbilityIcon = (type: string) => {
   const icons: Record<string, string> = {
     attack: '/src/assets/icons/wave-strike.png',
+    warriorAttack: '/src/assets/icons/wave-strike.png',
+    secondWind: '/src/assets/icons/heart-drop.png'
   }
   return icons[type]
 }

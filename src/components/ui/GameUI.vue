@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref } from 'vue'
 import { useGameStore } from '@/stores/game'
 import { storeToRefs } from 'pinia'
@@ -10,13 +10,13 @@ const emit = defineEmits<{
 }>()
 
 const gameStore = useGameStore()
-const { player } = storeToRefs(gameStore)
+const { activeHero } = storeToRefs(gameStore)
 
 const showCharacter = ref(false)
 const isDev = import.meta.env.DEV
 
 const resetGame = () => {
-  if (confirm('¿Estás seguro de que quieres reiniciar el juego? Se perderá todo el progreso.')) {
+  if (confirm('Estas seguro de que quieres reiniciar el juego? Se perdera todo el progreso.')) {
     gameStore.resetGame()
     emit('resetGame')
   }
@@ -27,7 +27,7 @@ const resetGame = () => {
   <div class="game-ui">
     <div class="top-bar">
       <div class="stats">
-        <span class="level">Nivel: {{ player?.level || 1 }}</span>
+        <span class="level">Nivel: {{ activeHero?.level || 1 }}</span>
       </div>
       <div class="actions">
         <AudioControls />
@@ -43,21 +43,21 @@ const resetGame = () => {
       </div>
     </div>
 
-    <div v-if="showCharacter && player" class="character-panel">
-      <h3>Información del Personaje</h3>
+    <div v-if="showCharacter && activeHero" class="character-panel">
+      <h3>Informacion del Personaje</h3>
       <div class="character-info">
         <div class="info-section">
-          <h4>Estadísticas</h4>
+          <h4>Estadisticas</h4>
           <ul>
-            <li>Vida: {{ player.health }}/{{ player.maxHealth }}</li>
-            <li>Defensa: {{ player.defense() }}</li>
-            <li>Velocidad: {{ player.speed }}</li>
+            <li>Vida: {{ activeHero.health }}/{{ activeHero.maxHealth }}</li>
+            <li>Defensa: {{ activeHero.defense() }}</li>
+            <li>Velocidad: {{ activeHero.speed }}</li>
           </ul>
         </div>
         <div class="info-section">
           <h4>Habilidades</h4>
-          <ul v-if="player.abilities.length > 0">
-            <li v-for="ability in player.abilities" :key="ability.type">
+          <ul v-if="activeHero.abilities.length > 0">
+            <li v-for="ability in activeHero.abilities" :key="ability.type">
               {{ ability.name }}
             </li>
           </ul>

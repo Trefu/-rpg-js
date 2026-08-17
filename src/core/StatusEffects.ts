@@ -1,4 +1,3 @@
-import type { ICharacter } from './interfaces/ICharacter'
 import type { IStatusEffect } from './interfaces/IStatusEffect'
 import stunIcon from '@/assets/icons/ball-glow.png'
 import burnIcon from '@/assets/icons/fire.png'
