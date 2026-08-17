@@ -33,16 +33,6 @@ export class StatusEffects {
     turnLabel: '¡Está aturdido y pierde su turno!'
   }
 
-  static readonly STUN_EXTENDED: IStatusEffect = {
-    type: 'stun',
-    name: 'Aturdido Extendido',
-    description: 'El personaje no puede realizar acciones por múltiples turnos.',
-    turns: 2,
-    icon: stunIcon,
-    isBuff: false,
-    turnLabel: '¡Está aturdido y pierde su turno!'
-  }
-
   // Efectos de daño por tiempo (DoTs): todos comparten maxDuration + maxStacks
   // damagePerTurn es propiedad intrínseca del efecto. Los stacks multiplican el DOT real.
   static readonly BURN: IStatusEffect = {
@@ -97,7 +87,6 @@ export class StatusEffects {
     icon: strengthIcon,
     isBuff: true,
     turnLabel: '¡Su fuerza está aumentada!',
-    attackBonus: 5
   }
 
   static readonly DEFENSE_BOOST: IStatusEffect = {
@@ -130,8 +119,7 @@ export class StatusEffects {
     turns: 2,
     icon: weaknessIcon,
     isBuff: false,
-    turnLabel: '¡Está debilitado!',
-    attackPenalty: -3
+    turnLabel: '¡Está debilitado!'
   }
 
   static readonly SLOW: IStatusEffect = {
@@ -145,59 +133,10 @@ export class StatusEffects {
     speedPenalty: -1
   }
 
-  // Métodos de utilidad para crear efectos con duración personalizada
-  static createStun(turns: number = 1): IStatusEffect {
-    return {
-      ...this.STUN,
-      turns
-    }
-  }
-
-  static createBurn(turns: number = 3, damagePerTurn: number = 5): IStatusEffect {
-    return {
-      ...this.BURN,
-      turns,
-      damagePerTurn
-    }
-  }
-
-  static createPoison(turns: number = 4, damagePerTurn: number = 3): IStatusEffect {
-    return {
-      ...this.POISON,
-      turns,
-      damagePerTurn
-    }
-  }
-
-  static createFreeze(turns: number = 3, damagePerTurn: number = 2): IStatusEffect {
-    return {
-      ...this.FREEZE,
-      turns,
-      damagePerTurn
-    }
-  }
-
-  static createStrengthBoost(turns: number = 3, attackBonus: number = 5): IStatusEffect {
-    return {
-      ...this.STRENGTH_BOOST,
-      turns,
-      attackBonus
-    }
-  }
-
-  static createDefenseBoost(turns: number = 3, defenseBonus: number = 3): IStatusEffect {
-    return {
-      ...this.DEFENSE_BOOST,
-      turns,
-      defenseBonus
-    }
-  }
-
   // Método para obtener un efecto por tipo (case-insensitive)
   static getByType(type: string): IStatusEffect | null {
     const effects = [
       this.STUN,
-      this.STUN_EXTENDED,
       this.BURN,
       this.POISON,
       this.FREEZE,

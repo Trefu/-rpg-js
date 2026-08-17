@@ -1,4 +1,3 @@
-import type { IPlayerStats } from '../interfaces/ICharacter'
 import type { IStatusEffect } from '../interfaces/IStatusEffect'
 
 export interface DefenseModifiers {
@@ -20,8 +19,6 @@ export const DEFAULT_DEFENSE_MODIFIERS: DefenseModifiers = {
 export interface PlayerLikeForDefense {
   statusEffects: IStatusEffect[]
   defenseValue: number
-  items?: string[]
-  stats?: IPlayerStats
 }
 
 export function getDefenseModifiers(player: PlayerLikeForDefense): DefenseModifiers {

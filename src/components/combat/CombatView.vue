@@ -80,7 +80,6 @@ const {
   selectAction,
   initializeCombat,
   cleanup,
-  getPointerSpeed,
   actionRequiresTarget,
   handleTimingResult,
   executeAbility,

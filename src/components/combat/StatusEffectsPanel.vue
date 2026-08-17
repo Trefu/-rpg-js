@@ -4,10 +4,6 @@ import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
 import closeIcon from '@/assets/icons/cross-mark.png'
 import sparklesIcon from '@/assets/icons/sparkles.png'
 
-export interface StatusDetail {
-  effect: IStatusEffect
-}
-
 const props = defineProps<{
   show: boolean
   effects: IStatusEffect[]

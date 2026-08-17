@@ -7,7 +7,6 @@ import { BASIC_ATTACK_CONFIG } from '@/types/timing'
 
 const props = defineProps<{
   config?: TimingCircleConfig
-  enabled?: boolean
 }>()
 
 const emit = defineEmits<{

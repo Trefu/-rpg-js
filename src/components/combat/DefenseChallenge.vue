@@ -26,8 +26,6 @@ const waveDirection = ref(1)
 const lastTimestamp = ref(0)
 const phaseOutcome = ref<DefensePhaseOutcome | null>(null)
 const phaseOutcomes = ref<DefensePhaseOutcome[]>([])
-const phaseStarts = ref<number[]>([])
-const timeoutStart = ref(0)
 const timeoutDuration = ref(5000)
 const timeoutKey = ref(0)
 let animationFrame: number | null = null
@@ -83,7 +81,6 @@ function resetForPhase() {
   lastTimestamp.value = 0
   phaseOutcome.value = null
   isActive.value = true
-  timeoutStart.value = performance.now()
   clearPhaseTimeout()
   if (props.pattern) {
     timeoutDuration.value = PHASE_TIMEOUT_MS
@@ -177,7 +174,6 @@ watch(() => props.show, (val) => {
   if (val && props.pattern) {
     phaseResults.value = []
     phaseOutcomes.value = []
-    phaseStarts.value = []
     resetForPhase()
     animationFrame = requestAnimationFrame(animate)
   } else {
@@ -190,7 +186,6 @@ watch(() => props.show, (val) => {
 
 watch(() => props.phaseIndex, (val) => {
   if (props.show && props.pattern && val >= 0 && val < props.pattern.phaseCount) {
-    phaseStarts.value.push(performance.now())
     resetForPhase()
     animationFrame = requestAnimationFrame(animate)
   }
@@ -205,8 +200,6 @@ onUnmounted(() => {
   if (animationFrame) cancelAnimationFrame(animationFrame)
   clearPhaseTimeout()
 })
-
-defineExpose({})
 </script>
 
 <template>

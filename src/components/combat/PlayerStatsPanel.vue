@@ -16,7 +16,7 @@ import sabiduriaIcon from '@/assets/icons/spell-book.png'
 import constitucionIcon from '@/assets/icons/stone-crafting.png'
 import carismaIcon from '@/assets/icons/chat-bubble.png'
 
-export interface PlayerDerivedStat {
+interface PlayerDerivedStat {
   key: string
   label: string
   icon: string

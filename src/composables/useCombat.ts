@@ -2,7 +2,7 @@ import { ref, computed, nextTick } from 'vue'
 import { useGameStore } from '@/stores/game'
 import type { Player } from '@/core/Player'
 import { AudioManager } from '@/core/AudioManager'
-import { IEnemy } from '@/core/interfaces/ICharacter'
+import type { IEnemy } from '@/core/interfaces/ICharacter'
 import type { IAbility } from '@/core/interfaces/IAbility'
 import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
 import type { TimingResultData } from '@/types/timing'
@@ -263,10 +263,6 @@ export function useCombat(config: CombatConfig = {}) {
     }
   }
 
-  function getPointerSpeed() {
-    return player.value?.getPointerSpeed({ action: currentAction.value?.ability.type || '' }) ?? 300
-  }
-
   function showEnemyHit(enemyId: string, value: number) {
     const key = popupKey++
     enemyHitPopups.value.push({ id: enemyId, value, key })
@@ -496,7 +492,6 @@ export function useCombat(config: CombatConfig = {}) {
           addToLog,
           showEnemyHit,
           showAnnouncement: (text, variant, duration) => showAnnouncement(text, variant ?? 'info', duration),
-          endPlayerTurn: () => {},
           performTimingChallenge,
           audioManager,
           damageMultiplier,
@@ -626,7 +621,6 @@ export function useCombat(config: CombatConfig = {}) {
     selectAction,
     initializeCombat,
     cleanup,
-    getPointerSpeed,
     showEnemyHit,
     showPlayerHit,
     actionRequiresTarget,

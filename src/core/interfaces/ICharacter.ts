@@ -57,7 +57,6 @@ export interface IInventory {
 
 export interface IEnemy extends ICombatant {
   getRewards: () => { experience: number; gold: number }
-  delayMs?: number
   baseAttack: number
   experienceReward: number
   goldReward: { min: number; max: number }
@@ -69,5 +68,4 @@ export interface IEnemy extends ICombatant {
   sprite?: string
   attackPatterns: DefensePatternConfig[]
   selectAttackPattern(player: ICharacter | null): DefensePatternConfig
-  weakPointName?: string
 }

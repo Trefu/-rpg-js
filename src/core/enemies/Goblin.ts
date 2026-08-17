@@ -5,7 +5,6 @@ import type { DefensePatternConfig } from '../defense/types'
 import { GOBLIN_ATTACKS, GOBLIN_MORDIDA, GOBLIN_MORDIDA_VENENOSA } from '../abilities/EnemyAttacks'
 
 export class Goblin extends Enemy {
-  public delayMs = 1500
   public readonly sprite = goblinSprite
   public attackPatterns: DefensePatternConfig[] = GOBLIN_ATTACKS
 

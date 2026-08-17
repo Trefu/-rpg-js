@@ -18,12 +18,7 @@ const formatAbilityLog = (
 }
 
 const showCritAnnouncement = (context: AbilityContext) => {
-  const target: any = context.target
-  const weakPoint: string | undefined = target?.weakPointName
-  const text = weakPoint
-    ? `You shot at ${weakPoint}'s Weak Point!`
-    : `¡CRÍTICO!`
-  context.showAnnouncement(text, 'crit', 1800)
+  context.showAnnouncement(`¡CRÍTICO!`, 'crit', 1800)
 }
 
 export const createBasicAttackAbility = (): IAbility => ({

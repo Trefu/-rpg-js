@@ -7,7 +7,6 @@ export abstract class Enemy extends Character implements ICombatant {
   public baseAttack: number
   public readonly experienceReward: number
   public readonly goldReward: { min: number; max: number }
-  public stunTurns: number = 0;
   public statusEffects: IStatusEffect[] = [];
   public attackPatterns: DefensePatternConfig[] = [];
 
@@ -61,11 +60,5 @@ export abstract class Enemy extends Character implements ICombatant {
 
   public isStunned(): boolean {
     return this.hasStatusEffect('stun')
-  }
-
-  public reduceStun(): void {
-    if (this.stunTurns > 0) {
-      this.stunTurns--;
-    }
   }
 }

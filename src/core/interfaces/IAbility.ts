@@ -9,7 +9,6 @@ export interface AbilityContext {
   addToLog: (message: string) => void
   showEnemyHit: (id: string, value: number) => void
   showAnnouncement: (text: string, variant?: 'info' | 'attack' | 'status' | 'turn' | 'crit', duration?: number) => void
-  endPlayerTurn: () => void
   performTimingChallenge: () => Promise<TimingResult>
   audioManager: AudioManager
   damageMultiplier?: number

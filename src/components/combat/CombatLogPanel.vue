@@ -53,8 +53,8 @@ onBeforeUnmount(() => {
       <span v-if="hasMore" class="log-toggle-badge">{{ totalCount }}</span>
     </button>
 
-    <div v-show="expanded" class="log-body">
-      <div class="log-messages" ref="logRef">
+      <div v-show="expanded" class="log-body">
+        <div class="log-messages">
         <p v-if="messages.length === 0" class="log-empty">Sin acciones todavía.</p>
         <div
           v-for="(message, index) in messages"

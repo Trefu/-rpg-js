@@ -13,6 +13,7 @@ export class Player extends Character implements ICombatant, ILevelable, IInvent
   public speed: number
   public energy: number
   public maxEnergy: number
+  public defenseValue: number
   public baseStats: IPlayerStats
 
   constructor(
@@ -42,8 +43,6 @@ export class Player extends Character implements ICombatant, ILevelable, IInvent
       carisma: 10
     }
   }
-
-  public defenseValue: number = 10
 
   public learnAbility(ability: IAbility): void {
     if (!this.abilities.find(a => a.type === ability.type)) {

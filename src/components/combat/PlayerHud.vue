@@ -4,7 +4,7 @@ import type { Player } from '@/core/Player'
 import statusIcon from '@/assets/icons/heart-drop.png'
 import effectsIcon from '@/assets/icons/droplets.png'
 
-export interface HudOrbitItem {
+interface HudOrbitItem {
   id: string
   label: string
   icon: string

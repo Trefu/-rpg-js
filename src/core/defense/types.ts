@@ -46,11 +46,6 @@ export interface DefenseChallengeResult {
   triggeredCounterAttack: boolean
 }
 
-export interface DefenseSuccessZoneCap {
-  start: number
-  end: number
-}
-
 export function clampSuccessZoneSize(size: number): number {
   if (size < 0) return 0
   if (size > 0.5) return 0.5

@@ -1,23 +1,17 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-export type AnnouncementVariant = 'info' | 'attack' | 'status' | 'turn' | 'crit'
+type AnnouncementVariant = 'info' | 'attack' | 'status' | 'turn' | 'crit'
 
 const props = withDefaults(defineProps<{
   text?: string
   visible?: boolean
   variant?: AnnouncementVariant
-  duration?: number
 }>(), {
   text: '',
   visible: false,
-  variant: 'info',
-  duration: 2000
+  variant: 'info'
 })
-
-const emit = defineEmits<{
-  (e: 'hide'): void
-}>()
 
 const variantClass = computed(() => `variant-${props.variant}`)
 </script>
