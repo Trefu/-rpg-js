@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import '@/styles/combat.css'
-import { onMounted, onUnmounted, computed, ref } from 'vue'
+import { onMounted, onUnmounted, computed, ref, watch } from 'vue'
 import { useCombat } from '@/composables/useCombat'
 import { useExpeditionStore } from '@/stores/expedition'
 import { useGameStore } from '@/stores/game'
@@ -106,6 +106,42 @@ const heroSlots = computed(() => {
   }
   return slots
 })
+
+// Distribuye offsets aleatorios para que los enemigos no queden en linea perfectamente.
+// Cada enemigo recibe un offset Y (entre -180 y 180 distribuidos) y X (entre -30 y 30).
+// Tambien se le asigna una celda aleatoria de la grilla 3x2 para evitar que queden en grilla perfecta.
+// Se reasigna cuando cambia la lista de enemigos.
+const enemyPositions = ref<Record<string, { x: number, y: number, col: number, row: number }>>({})
+
+function generateEnemyPositions(enemyList: IEnemy[]) {
+  const positions: Record<string, { x: number, y: number, col: number, row: number }> = {}
+  if (enemyList.length === 0) {
+    enemyPositions.value = positions
+    return
+  }
+  // Celldas disponibles en una grilla 3x2 (5 enemigos, 1 celda vacia)
+  const cols = [1, 2, 3]
+  const rows = [1, 2]
+  const allCells: Array<{ col: number, row: number }> = []
+  cols.forEach(c => rows.forEach(r => allCells.push({ col: c, row: r })))
+  // Mezclar celdas y tomar las primeras N (sin repetir)
+  const shuffled = allCells.sort(() => Math.random() - 0.5).slice(0, enemyList.length)
+
+  enemyList.forEach((enemy, idx) => {
+    const cell = shuffled[idx]
+    positions[enemy.id] = {
+      x: Math.round((Math.random() - 0.5) * 24),
+      y: Math.round((Math.random() - 0.5) * 24),
+      col: cell.col,
+      row: cell.row
+    }
+  })
+  enemyPositions.value = positions
+}
+
+watch(() => enemies.value, (newEnemies) => {
+  generateEnemyPositions(newEnemies)
+}, { immediate: true })
 
 const showLogModal = ref(false)
 const showStatsModal = ref(false)
@@ -228,19 +264,28 @@ onUnmounted(() => {
         </div>
       </transition>
       <div class="enemies-container">
-        <EnemyCard
+        <div
           v-for="(enemy, idx) in enemies"
           :key="enemy.id"
-          :enemy="enemy"
-          :index="idx"
-          :is-selected="selectedEnemy?.id === enemy.id"
-          :is-selecting-target="isSelectingTarget"
-          :is-action-target-required="actionRequiresTarget(selectedAbility)"
-          :is-attacking="attackingEnemyId === enemy.id"
-          :hit-popups="enemyHitPopups"
-          :show-shortcut="true"
-          @select="selectEnemy"
-        />
+          class="enemy-position-wrapper"
+          :style="{
+            '--col': enemyPositions[enemy.id]?.col ?? 0,
+            '--row': enemyPositions[enemy.id]?.row ?? 0,
+            transform: `translate(${enemyPositions[enemy.id]?.x ?? 0}px, ${enemyPositions[enemy.id]?.y ?? 0}px)`
+          }"
+        >
+          <EnemyCard
+            :enemy="enemy"
+            :index="idx"
+            :is-selected="selectedEnemy?.id === enemy.id"
+            :is-selecting-target="isSelectingTarget"
+            :is-action-target-required="actionRequiresTarget(selectedAbility)"
+            :is-attacking="attackingEnemyId === enemy.id"
+            :hit-popups="enemyHitPopups"
+            :show-shortcut="true"
+            @select="selectEnemy"
+          />
+        </div>
       </div>
     </div>
 
