@@ -106,7 +106,7 @@ export const createFireballAbility = (): IAbility => ({
 
 export const createWarriorAttackAbility = (): IAbility => ({
   name: 'Ataque de Warrior',
-  description: 'Golpe certero. Un critico hace X3 de dano y consume 20 de energia.',
+  description: 'Golpe certero. Un critico hace X3 de dano. Requiere 20 de energia para confirmar el critico.',
   type: 'warriorAttack',
   cooldown: 0,
   energyCostOnCrit: 20,
@@ -116,16 +116,12 @@ export const createWarriorAttackAbility = (): IAbility => ({
   execute: async (context: AbilityContext) => {
     const caster = context.caster as Hero
     const baseDamage = caster.attack()
-    let multiplier = context.damageMultiplier ?? 1
+    const multiplier = context.damageMultiplier ?? 1
 
-    if (context.timingResult === 'critical') {
-      const critCost = 20
-      if (caster.energy < critCost) {
-        context.addToLog('Energia insuficiente para el critico! Solo hara un golpe normal.')
-        multiplier = 1.0
-      } else {
-        caster.spendEnergy(critCost)
-      }
+    // El costo de energia (fijo o por critico) ya fue validado y cobrado
+    // antes del QTE en useCombat.ts → triggerExecution().
+    if (context.timingResult === 'critical' && caster.energy >= (context.energySpent ?? 0)) {
+      caster.spendEnergy(context.energySpent ?? 0)
     }
 
     const finalDamage = Math.floor(baseDamage * multiplier)

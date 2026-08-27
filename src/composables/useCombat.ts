@@ -224,20 +224,62 @@ export function useCombat(config: CombatConfig = {}) {
   }
 
   /**
+   * Cancela la accion actual y libera el input del jugador sin consumir turno.
+   */
+  function cancelAction(reasonMessage?: string) {
+    if (reasonMessage) addToLog(reasonMessage)
+    isSelectingTarget.value = false
+    selectedAbility.value = null
+    selectedEnemy.value = null
+    currentAction.value = null
+    isExecutingAction.value = false
+  }
+
+  /**
    * Ejecuta la accion directamente si la ability no requiere QTE,
    * o lanza el QTE si requiereTiming es true (default).
+   *
+   * Validacion de energia:
+   * - energyCost (fijo): se cobra ANTES del QTE. Si no alcanza, cancela sin gastar turno.
+   * - energyCostOnCrit: se cobra solo si el QTE resulto en critico. Se valida tras el QTE,
+   *   pero si falla, cancela la accion (sin aplicar dano) y devuelve la energia del energyCost.
    */
   function triggerExecution(_target: any) {
     const ability = selectedAbility.value
     if (!ability) return
 
+    const caster = player.value as Hero | null
+    if (!caster || !caster.isAlive) {
+      cancelAction('No puedes actuar sin un heroe vivo.')
+      return
+    }
+
+    // Pre-check de costo fijo de energia
+    if (ability.energyCost && ability.energyCost > 0) {
+      if (caster.energy < ability.energyCost) {
+        cancelAction(`Energia insuficiente para ${ability.name} (necesitas ${ability.energyCost}).`)
+        return
+      }
+      caster.spendEnergy(ability.energyCost)
+    }
+
     if (ability.requiresTiming === false) {
-      // Sin QTE: ejecutar inmediatamente con multiplier=1 y timingResult indefinido
-      executeAbility(1, undefined as any)
+      // Sin QTE: ejecutar inmediatamente
+      executeAbility(1, undefined as any, ability.energyCost ?? 0)
     } else {
       performTimingChallenge().then((timingResult) => {
+        // Validar el costo por critico ANTES de ejecutar
+        if (timingResult === 'critical' && ability.energyCostOnCrit && ability.energyCostOnCrit > 0) {
+          if (caster.energy < ability.energyCostOnCrit) {
+            // Devolver la energia fija cobrada, cancelar accion
+            caster.restoreEnergy(ability.energyCost ?? 0)
+            cancelAction(`Energia insuficiente para confirmar el critico (necesitas ${ability.energyCostOnCrit}).`)
+            return
+          }
+          caster.spendEnergy(ability.energyCostOnCrit)
+        }
         const multiplier = TIMING_MULTIPLIERS[timingResult as keyof typeof TIMING_MULTIPLIERS]
-        executeAbility(multiplier, timingResult)
+        executeAbility(multiplier, timingResult, ability.energyCost ?? 0)
       })
     }
   }
@@ -568,7 +610,11 @@ export function useCombat(config: CombatConfig = {}) {
     }
   }
 
-  const executeAbility = async (damageMultiplier: number = 1, timingResult?: TimingResultData['result']) => {
+  const executeAbility = async (
+    damageMultiplier: number = 1,
+    timingResult?: TimingResultData['result'],
+    energySpent: number = 0
+  ) => {
     isExecutingAction.value = true
 
     if (currentAction.value) {
@@ -585,7 +631,8 @@ export function useCombat(config: CombatConfig = {}) {
           performTimingChallenge,
           audioManager,
           damageMultiplier,
-          timingResult
+          timingResult,
+          energySpent
         })
         onAbilityUsed(ability.type, ability.cooldown)
       }

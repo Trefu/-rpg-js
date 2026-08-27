@@ -13,6 +13,11 @@ export interface AbilityContext {
   audioManager: AudioManager
   damageMultiplier?: number
   timingResult?: TimingResult
+  /**
+   * Cantidad de energia que se desconto del caster al validar la accion.
+   * Las abilities pueden cobrar este valor en su execute si la mecanica lo requiere.
+   */
+  energySpent?: number
 }
 
 /**
@@ -29,8 +34,17 @@ export interface IAbility {
   type: string
   cooldown: number
   damage?: number
+  /**
+   * Costo fijo de energia que se cobra ANTES del QTE.
+   * Si el caster no tiene suficiente energia, la accion se cancela antes de gastar el turno.
+   */
   energyCost?: number
+  /**
+   * Costo de energia que se cobra solo si el resultado del QTE es 'critical'.
+   * Validado ANTES de ejecutar; si no alcanza, la accion se cancela.
+   */
   energyCostOnCrit?: number
+  /** Multiplicador custom para dano critico (default global: 2.5). */
   customCriticalMultiplier?: number
   /** Define a que tipo de personajes puede apuntar esta habilidad. Default: 'enemies-only'. */
   targetType?: AbilityTargetType

@@ -164,7 +164,7 @@ onBeforeUnmount(() => {
             <ul v-if="activeEffects.length > 0" class="hero-dropdown-effects">
               <li v-for="effect in activeEffects" :key="effect.type" class="hero-effect-row">
                 <div class="hero-effect-info">
-                  <span class="hero-effect-name">{{ effect.name }}</span>
+                  <span class="hero-effect-name">{{ effect.name }}</span> 
                   <span class="hero-effect-desc">{{ effect.description }}</span>
                 </div>
                 <div class="hero-effect-tags">
@@ -562,13 +562,13 @@ onBeforeUnmount(() => {
 .hero-effect-name {
   color: #ffe066;
   font-weight: 700;
-  font-size: 0.74rem;
+  font-size: 0.96rem;
   text-shadow: 0 1px 2px #000;
 }
 
 .hero-effect-desc {
   color: #ccc;
-  font-size: 0.62rem;
+  font-size: 0.82rem;
   line-height: 1.2;
 }
 
