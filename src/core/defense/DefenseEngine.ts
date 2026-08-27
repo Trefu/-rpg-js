@@ -66,8 +66,10 @@ export function calculateDefenseDamage(
 
 export function isWaveInSuccessZone(waveColumn: number, zone: DefensePhaseZone): boolean {
   if (DEFENSE_BAR_WIDTH <= 0) return false
-  const wavePos = waveColumn / DEFENSE_BAR_WIDTH
-  return wavePos >= zone.successZoneStart && wavePos <= zone.successZoneEnd
+  const clamped = Math.max(0, Math.min(DEFENSE_BAR_WIDTH, waveColumn))
+  const columnIndex = Math.min(DEFENSE_BAR_WIDTH - 1, Math.floor(clamped))
+  const columnCenter = (columnIndex + 0.5) / DEFENSE_BAR_WIDTH
+  return columnCenter >= zone.successZoneStart && columnCenter <= zone.successZoneEnd
 }
 
 export function buildDefenseResult(

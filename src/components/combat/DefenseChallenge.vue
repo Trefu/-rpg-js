@@ -164,8 +164,9 @@ function onKeydown(e: KeyboardEvent) {
   }
 }
 
-function onBarClick(e: MouseEvent) {
+function onPointerDown(e: PointerEvent) {
   if (!isActive.value) return
+  if (e.pointerType === 'mouse' && e.button !== 0) return
   e.preventDefault()
   handleInput()
 }
@@ -203,7 +204,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div v-if="show && pattern" class="defense-overlay" :class="feedbackClass">
+  <div v-if="show && pattern" class="defense-overlay" :class="feedbackClass" @pointerdown="onPointerDown">
     <div class="defense-modal">
       <div class="defense-header">
         <h3>¡DEFENDE!</h3>
@@ -216,14 +217,14 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <div class="defense-bar-wrap" @click="onBarClick">
+      <div class="defense-bar-wrap">
         <div class="defense-bar">
           <div
             v-for="i in barWidth"
             :key="i"
             class="defense-column"
             :class="{
-              success: currentZone && (i - 1) / barWidth >= currentZone.successZoneStart && (i - 1) / barWidth <= currentZone.successZoneEnd,
+              success: currentZone && (i - 0.5) / barWidth >= currentZone.successZoneStart && (i - 0.5) / barWidth <= currentZone.successZoneEnd,
               'under-wave': waveColumn >= i - 1 && waveColumn <= i
             }"
           />

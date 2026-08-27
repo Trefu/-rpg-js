@@ -30,13 +30,6 @@ const emit = defineEmits<{
 
 const gameStore = useGameStore()
 const dummy = ref<Dummy>(new Dummy(gameStore.activeHero?.level ?? 1))
-const dummies = ref<Dummy[]>([
-  new Dummy(gameStore.activeHero?.level ?? 1),
-  new Dummy(gameStore.activeHero?.level ?? 1),
-  new Dummy(gameStore.activeHero?.level ?? 1),
-  new Dummy(gameStore.activeHero?.level ?? 1),
-  new Dummy(gameStore.activeHero?.level ?? 1)
-])
 
 const selectedPatternIndex = ref<number>(-1)
 const damageValue = ref<number>(dummy.value.baseAttack)
@@ -64,22 +57,22 @@ const playerAbilitiesCount = computed(() => gameStore.activeHero?.abilities.leng
 function selectPattern(index: number) {
   selectedPatternIndex.value = index
   if (index < 0) {
-    dummies.value.forEach(d => d.setForcedPattern(null))
+    dummy.value.setForcedPattern(null)
   } else {
     const pattern = patterns.value[index]
-    if (pattern) dummies.value.forEach(d => d.setForcedPattern(pattern))
+    if (pattern) dummy.value.setForcedPattern(pattern)
   }
 }
 
 function applyDamageChange() {
-  dummies.value.forEach(d => d.setDamageOverride(useCustomDamage.value ? damageValue.value : null))
+  dummy.value.setDamageOverride(useCustomDamage.value ? damageValue.value : null)
 }
 
 watch(damageValue, () => applyDamageChange())
 watch(useCustomDamage, () => applyDamageChange())
 
 function resetDummy() {
-  dummies.value.forEach(d => d.reset())
+  dummy.value.reset()
   selectedPatternIndex.value = -1
   damageValue.value = dummy.value.baseAttack
   useCustomDamage.value = false
@@ -117,7 +110,7 @@ function onTrainingEnded() {
   <div class="training-view">
     <div class="combat-wrapper">
       <CombatView
-        :enemy-list="dummies"
+        :enemy-list="[dummy]"
         :is-training="true"
         @training-ended="onTrainingEnded"
       />
