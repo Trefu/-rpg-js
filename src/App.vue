@@ -48,8 +48,7 @@ const handleNodeSelected = (node: INode) => {
 
 const handleCombatEnded = (victory: boolean) => {
   if (victory) {
-    expeditionStore.completeNode(expeditionStore.selectedNod
-    e?.id || '')
+    expeditionStore.completeNode(expeditionStore.selectedNode?.id || '')
     if (expeditionStore.selectedNode?.type === 'boss') {
       expeditionStore.completeExpedition()
     }

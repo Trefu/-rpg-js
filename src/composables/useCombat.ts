@@ -254,10 +254,25 @@ export function useCombat(config: CombatConfig = {}) {
   function selectAbility(ability: IAbility, index: number) {
     console.log(index);
     if (abilityCooldowns.value[ability.type] > 0) return
+    if (!canAffordAbility(ability)) {
+      closeAbilitiesModal()
+      return
+    }
     selectedAbility.value = ability
     closeAbilitiesModal()
     isSelectingTarget.value = true
     showTargetSelectionAnnouncement(ability)
+  }
+
+  function canAffordAbility(ability: IAbility): boolean {
+    const caster = player.value as Hero | null
+    if (!caster) return false
+    const cost = ability.energyCost ?? 0
+    if (cost <= 0) return true
+    if (caster.energy >= cost) return true
+    showAnnouncement(`¡Energia insuficiente! (${caster.energy}/${cost})`, 'status', 1500)
+    addToLog(`Energia insuficiente para ${ability.name} (necesitas ${cost}).`)
+    return false
   }
 
   function showTargetSelectionAnnouncement(ability: IAbility) {
@@ -317,10 +332,10 @@ export function useCombat(config: CombatConfig = {}) {
       return
     }
 
-    // Pre-check de costo fijo de energia
+    // Pre-check de costo fijo de energia (defensa en profundidad;
+    // la alerta real se dispara al seleccionar la habilidad).
     if (ability.energyCost && ability.energyCost > 0) {
       if (caster.energy < ability.energyCost) {
-        showAnnouncement(`¡Energia insuficiente! (${caster.energy}/${ability.energyCost})`, 'status', 1500)
         cancelAction(`Energia insuficiente para ${ability.name} (necesitas ${ability.energyCost}).`)
         return
       }
@@ -337,7 +352,6 @@ export function useCombat(config: CombatConfig = {}) {
           if (caster.energy < ability.energyCostOnCrit) {
             // Devolver la energia fija cobrada, cancelar accion
             caster.restoreEnergy(ability.energyCost ?? 0)
-            showAnnouncement(`¡Energia insuficiente para critico! (${caster.energy}/${ability.energyCostOnCrit})`, 'status', 1500)
             cancelAction(`Energia insuficiente para confirmar el critico (necesitas ${ability.energyCostOnCrit}).`)
             return
           }
@@ -755,6 +769,7 @@ export function useCombat(config: CombatConfig = {}) {
     if (isActionType(action)) {
       const ability = abilities.value.find((a: IAbility) => a.type === action)
       if (ability) {
+        if (!canAffordAbility(ability)) return
         selectedAbility.value = ability
         isSelectingTarget.value = true
         showTargetSelectionAnnouncement(ability)
