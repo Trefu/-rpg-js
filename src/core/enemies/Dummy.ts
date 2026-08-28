@@ -2,40 +2,45 @@ import { Enemy } from './Enemy'
 import { ICharacter, IEnemy } from '../interfaces/ICharacter'
 import dummySprite from '@/assets/sprites/enemies/dummy.png'
 import type { DefensePatternConfig } from '../defense/types'
+import { phase } from '../defense/attackPatterns'
 import { ALL_ENEMY_ATTACKS, GOBLIN_ESPADAZO, GOBLIN_FLECHA_VENENOSA, ORC_GOLPE_APLASTANTE, ORC_HACHAZOS_MULTIPLES, WOLF_MORDIDA_FEROZ, WOLF_ZARPAZOS_RAPIDOS } from '../abilities/EnemyAttacks'
 
 export const DUMMY_ATTACKS: DefensePatternConfig[] = [
   {
     name: 'Golpe Suave',
+    type: 'physical',
     phaseCount: 1,
     waveSpeed: 25,
-    baseSuccessZoneSize: 0.18,
     baseMaxBlockReduction: 0.8,
-    damageMultiplier: 1.0
+    damageMultiplier: 1.0,
+    phases: [phase(5)]
   },
   {
     name: 'Golpe Rápido',
+    type: 'physical',
     phaseCount: 1,
     waveSpeed: 55,
-    baseSuccessZoneSize: 0.08,
     baseMaxBlockReduction: 0.5,
-    damageMultiplier: 0.7
+    damageMultiplier: 0.7,
+    phases: [phase(2)]
   },
   {
     name: 'Combo Doble',
+    type: 'physical',
     phaseCount: 2,
     waveSpeed: 35,
-    baseSuccessZoneSize: 0.12,
     baseMaxBlockReduction: 0.5,
-    damageMultiplier: 1.2
+    damageMultiplier: 1.2,
+    phases: [phase(4), phase(4)]
   },
   {
     name: 'Combo Triple',
+    type: 'physical',
     phaseCount: 3,
     waveSpeed: 45,
-    baseSuccessZoneSize: 0.10,
     baseMaxBlockReduction: 0.4,
-    damageMultiplier: 1.4
+    damageMultiplier: 1.4,
+    phases: [phase(3), phase(3), phase(3)]
   },
   {
     ...GOBLIN_FLECHA_VENENOSA,
@@ -49,11 +54,12 @@ export const DUMMY_ATTACKS: DefensePatternConfig[] = [
   },
   {
     name: 'Aliento de Fuego',
+    type: 'fire',
     phaseCount: 10,
     waveSpeed: 80,
-    baseSuccessZoneSize: 0.12,
     baseMaxBlockReduction: 0.5,
     damageMultiplier: 2.0,
+    phases: Array.from({ length: 10 }, () => phase(4)),
     onFailureEffect: {
       statusType: 'burn',
       duration: 3,
@@ -62,11 +68,12 @@ export const DUMMY_ATTACKS: DefensePatternConfig[] = [
   },
   {
     name: 'Aliento Glacial',
+    type: 'frost',
     phaseCount: 1,
     waveSpeed: 50,
-    baseSuccessZoneSize: 0.10,
     baseMaxBlockReduction: 0.5,
     damageMultiplier: 0.7,
+    phases: [phase(3)],
     onFailureEffect: {
       statusType: 'freeze',
       duration: 3,

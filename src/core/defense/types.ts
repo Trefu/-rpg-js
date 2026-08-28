@@ -1,6 +1,10 @@
 export interface DefensePhaseZone {
-  successZoneStart: number
-  successZoneEnd: number
+  /**
+   * Índices de columna (0-indexed, en [0, DEFENSE_BAR_WIDTH)) que cuentan
+   * como éxito para esta fase. Modelo discreto que coincide con la grilla
+   * visual de la barra de defensa.
+   */
+  successColumns: number[]
 }
 
 export interface DefenseFailureEffect {
@@ -12,6 +16,37 @@ export interface DefenseFailureEffect {
    * Si se omite, se considera 1 (aplicación normal).
    */
   stacks?: number
+}
+
+/**
+ * Tipo elemental del ataque (mock por ahora). Reservado para resistencias
+ * y daño elemental futuro. Mantener alineado con los tipos registrados
+ * en StatusEffects.
+ */
+export type AttackType =
+  | 'physical'
+  | 'fire'
+  | 'frost'
+  | 'poison'
+  | 'shadow'
+  | 'arcane'
+  | 'holy'
+
+/**
+ * Especificación declarativa de UNA fase del patrón.
+ * El motor (pickZonesForPhases) la resuelve a DefensePhaseZone.
+ */
+export interface DefensePhaseSpec {
+  /**
+   * Cantidad de columnas a sortear dentro del margen.
+   * Excluyente con `successColumns`.
+   */
+  columnCount?: number
+  /**
+   * Columnas exactas (0-indexed). Si se define, ignora `columnCount`
+   * y se sortean/empatan cero columnas: el patrón es determinístico.
+   */
+  successColumns?: number[]
 }
 
 /**
@@ -46,12 +81,25 @@ export const DEFAULT_BLOCK_EFFECT: DefenseBlockEffect = {
 
 export interface DefensePatternConfig {
   name?: string
+  /** Tipo elemental del ataque (mock por ahora). */
+  type?: AttackType
   phaseCount: number
   waveSpeed?: number
+  /**
+   * Tamaño por defecto de la zona de éxito en floats [0..1].
+   * Si `phases` está definido, se ignora.
+   */
   baseSuccessZoneSize?: number
   baseMaxBlockReduction: number
   damageMultiplier: number
   seed?: number
+  /**
+   * Specs de zona por fase. Si está definido y tiene `phaseCount`
+   * entradas, tiene prioridad sobre `baseSuccessZoneSize`.
+   * Si se omite, se sortea con `baseSuccessZoneSize` redondeado
+   * a columnas enteras (modo retrocompatible).
+   */
+  phases?: DefensePhaseSpec[]
   onFailureEffect?: DefenseFailureEffect
   /**
    * Efecto de bloqueo por defecto de este patron.

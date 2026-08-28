@@ -2,6 +2,7 @@ import type {
   DefenseChallengeResult,
   DefensePatternConfig,
   DefensePhaseResult,
+  DefensePhaseSpec,
   DefensePhaseZone
 } from './types'
 import {
@@ -11,6 +12,9 @@ import {
   DEFAULT_WAVE_SPEED
 } from './types'
 import type { DefenseModifiers } from './modifiers'
+
+/** Margen (en columnas) a cada lado de la barra donde no se sortea zona. */
+const PHASE_MARGIN_COLUMNS = 2
 
 export function applyModifiersToPattern(
   pattern: DefensePatternConfig,
@@ -30,22 +34,62 @@ export function applyModifiersToPattern(
   }
 }
 
+/**
+ * Resuelve las zonas de éxito por fase del patrón.
+ *
+ * Prioridad:
+ *  1. `pattern.phases` (declaración explícita) — gana siempre.
+ *  2. `pattern.baseSuccessZoneSize` en floats, redondeado a columnas
+ *     enteras (modo retrocompatible).
+ */
 export function pickZonesForPhases(
   pattern: DefensePatternConfig,
   rng: () => number = Math.random
 ): DefensePhaseZone[] {
-  const zones: DefensePhaseZone[] = []
-  const zoneSize = clampSuccessZoneSize(pattern.baseSuccessZoneSize ?? DEFAULT_SUCCESS_ZONE_SIZE)
-  const margin = 0.1
-  const range = 1 - zoneSize - margin * 2
-  for (let i = 0; i < pattern.phaseCount; i++) {
-    const start = margin + rng() * range
-    zones.push({
-      successZoneStart: start,
-      successZoneEnd: start + zoneSize
-    })
+  if (pattern.phases && pattern.phases.length === pattern.phaseCount) {
+    return pattern.phases.map(spec => resolvePhaseSpec(spec, pattern, rng))
   }
-  return zones
+
+  const fallbackColumns = Math.max(
+    1,
+    Math.round((pattern.baseSuccessZoneSize ?? DEFAULT_SUCCESS_ZONE_SIZE) * DEFENSE_BAR_WIDTH)
+  )
+  return Array.from({ length: pattern.phaseCount }, () =>
+    randomZoneOfColumns(fallbackColumns, rng)
+  )
+}
+
+function resolvePhaseSpec(
+  spec: DefensePhaseSpec,
+  pattern: DefensePatternConfig,
+  rng: () => number
+): DefensePhaseZone {
+  if (spec.successColumns && spec.successColumns.length > 0) {
+    return { successColumns: dedupeAndClamp(spec.successColumns) }
+  }
+  const count = spec.columnCount ?? Math.max(
+    1,
+    Math.round((pattern.baseSuccessZoneSize ?? DEFAULT_SUCCESS_ZONE_SIZE) * DEFENSE_BAR_WIDTH)
+  )
+  return randomZoneOfColumns(count, rng)
+}
+
+function randomZoneOfColumns(count: number, rng: () => number): DefensePhaseZone {
+  const safeCount = Math.max(1, Math.min(count, DEFENSE_BAR_WIDTH - PHASE_MARGIN_COLUMNS * 2))
+  const minStart = PHASE_MARGIN_COLUMNS
+  const maxStart = DEFENSE_BAR_WIDTH - safeCount - PHASE_MARGIN_COLUMNS
+  const start = minStart + Math.floor(rng() * (maxStart - minStart + 1))
+  return {
+    successColumns: Array.from({ length: safeCount }, (_, i) => start + i)
+  }
+}
+
+function dedupeAndClamp(cols: number[]): number[] {
+  const set = new Set<number>()
+  for (const c of cols) {
+    if (Number.isInteger(c) && c >= 0 && c < DEFENSE_BAR_WIDTH) set.add(c)
+  }
+  return [...set].sort((a, b) => a - b)
 }
 
 export function calculateDefenseDamage(
@@ -66,10 +110,9 @@ export function calculateDefenseDamage(
 
 export function isWaveInSuccessZone(waveColumn: number, zone: DefensePhaseZone): boolean {
   if (DEFENSE_BAR_WIDTH <= 0) return false
-  const clamped = Math.max(0, Math.min(DEFENSE_BAR_WIDTH, waveColumn))
-  const columnIndex = Math.min(DEFENSE_BAR_WIDTH - 1, Math.floor(clamped))
-  const columnCenter = (columnIndex + 0.5) / DEFENSE_BAR_WIDTH
-  return columnCenter >= zone.successZoneStart && columnCenter <= zone.successZoneEnd
+  const clamped = Math.max(0, Math.min(DEFENSE_BAR_WIDTH - 1, waveColumn))
+  const columnIndex = Math.floor(clamped)
+  return zone.successColumns.includes(columnIndex)
 }
 
 export function buildDefenseResult(

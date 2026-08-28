@@ -223,7 +223,7 @@ onUnmounted(() => {
             :key="i"
             class="defense-column"
             :class="{
-              success: currentZone && (i - 0.5) / barWidth >= currentZone.successZoneStart && (i - 0.5) / barWidth <= currentZone.successZoneEnd,
+              success: !!currentZone && currentZone.successColumns.includes(i - 1),
               'under-wave': waveColumn >= i - 1 && waveColumn <= i
             }"
           />
