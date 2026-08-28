@@ -23,7 +23,7 @@ interface HeroChoice {
 const heroes: HeroChoice[] = [
   {
     id: 'warrior',
-    name: 'Warrior',
+    name: 'Bjorn',
     description: 'Guerrero cuerpo a cuerpo. Tanque con alto daño sostenido y autogestión de energia.',
     sprite: warriorSprite,
     factory: () => Warrior.createStarter()

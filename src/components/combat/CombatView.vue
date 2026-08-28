@@ -6,7 +6,6 @@ import { useExpeditionStore } from '@/stores/expedition'
 import { useGameStore } from '@/stores/game'
 import { MAX_HEROES } from '@/stores/game'
 import type { Hero } from '@/core/Hero'
-import TargetIcon from '@/assets/icons/crosshair.png'
 import AbilitiesIcon from '@/assets/icons/shield.png'
 import ItemIcon from '@/assets/icons/backpack.png'
 import TimingOverlay from './TimingOverlay.vue'
@@ -200,22 +199,6 @@ onUnmounted(() => {
     </div>
 
     <div class="enemies-column">
-      <transition name="target-banner">
-        <div v-if="isSelectingTarget && selectedAbility" class="target-banner-wrap">
-          <div v-if="canTargetAllies(selectedAbility) && !canTargetEnemies(selectedAbility)" class="target-indicator target-indicator-ally">
-            <p><img :src="TargetIcon" alt="" class="inline-icon" /> Selecciona un aliado para {{ selectedAbility.name.toLowerCase() }}<br>
-              <span class="shortcut-hint">Presiona la <b>tecla</b> del heroe o haz click.</span></p>
-          </div>
-          <div v-else-if="actionRequiresTarget(selectedAbility)" class="target-indicator">
-            <p><img :src="TargetIcon" alt="" class="inline-icon" /> Selecciona un objetivo para {{ selectedAbility.name.toLowerCase() }}<br>
-              <span class="shortcut-hint">Presiona la <b>tecla</b> del enemigo o haz click.</span></p>
-          </div>
-          <div v-else class="target-indicator target-all-indicator">
-            <p>Todos los enemigos seran afectados.<br>
-              <span class="shortcut-hint">Presiona <b>[A]</b> para confirmar.</span></p>
-          </div>
-        </div>
-      </transition>
       <div class="enemies-container">
         <div
           v-for="(enemy, idx) in enemies"

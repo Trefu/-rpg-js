@@ -1,5 +1,5 @@
 import { Enemy } from './Enemy'
-import goblinSprite from '@/assets/sprites/enemies/goblin2.png'
+import goblinSprite from '@/assets/sprites/enemies/goblin.png'
 import type { ICharacter } from '../interfaces/ICharacter'
 import type { DefensePatternConfig } from '../defense/types'
 import { GOBLIN_ATTACKS, GOBLIN_MORDIDA, GOBLIN_MORDIDA_VENENOSA } from '../abilities/EnemyAttacks'

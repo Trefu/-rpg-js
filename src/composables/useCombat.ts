@@ -60,14 +60,27 @@ export function useCombat(config: CombatConfig = {}) {
   function showAnnouncement(
     text: string,
     variant: 'info' | 'attack' | 'status' | 'turn' | 'crit' = 'info',
-    duration: number = 2000
+    duration: number = 2000,
+    options: { sticky?: boolean } = {}
   ) {
-    if (announcementTimer) clearTimeout(announcementTimer)
+    if (announcementTimer) {
+      clearTimeout(announcementTimer)
+      announcementTimer = null
+    }
     announcement.value = { text, variant, key: ++announcementKey }
+    if (options.sticky) return
     announcementTimer = setTimeout(() => {
       announcement.value = null
       announcementTimer = null
     }, duration)
+  }
+
+  function clearAnnouncement() {
+    if (announcementTimer) {
+      clearTimeout(announcementTimer)
+      announcementTimer = null
+    }
+    announcement.value = null
   }
 
   const isDefenseActive = ref(false)
@@ -244,6 +257,33 @@ export function useCombat(config: CombatConfig = {}) {
     selectedAbility.value = ability
     closeAbilitiesModal()
     isSelectingTarget.value = true
+    showTargetSelectionAnnouncement(ability)
+  }
+
+  function showTargetSelectionAnnouncement(ability: IAbility) {
+    const name = ability.name.toLowerCase()
+    if (canTargetAllies(ability) && !canTargetEnemies(ability)) {
+      showAnnouncement(
+        `Selecciona un aliado para ${name}.`,
+        'info',
+        0,
+        { sticky: true }
+      )
+    } else if (actionRequiresTarget(ability)) {
+      showAnnouncement(
+        `Selecciona un objetivo para ${name}.`,
+        'info',
+        0,
+        { sticky: true }
+      )
+    } else {
+      showAnnouncement(
+        `Todos los enemigos seran afectados por ${name}. Pulsa [A] para confirmar.`,
+        'info',
+        0,
+        { sticky: true }
+      )
+    }
   }
 
   /**
@@ -280,6 +320,7 @@ export function useCombat(config: CombatConfig = {}) {
     // Pre-check de costo fijo de energia
     if (ability.energyCost && ability.energyCost > 0) {
       if (caster.energy < ability.energyCost) {
+        showAnnouncement(`¡Energia insuficiente! (${caster.energy}/${ability.energyCost})`, 'status', 1500)
         cancelAction(`Energia insuficiente para ${ability.name} (necesitas ${ability.energyCost}).`)
         return
       }
@@ -296,6 +337,7 @@ export function useCombat(config: CombatConfig = {}) {
           if (caster.energy < ability.energyCostOnCrit) {
             // Devolver la energia fija cobrada, cancelar accion
             caster.restoreEnergy(ability.energyCost ?? 0)
+            showAnnouncement(`¡Energia insuficiente para critico! (${caster.energy}/${ability.energyCostOnCrit})`, 'status', 1500)
             cancelAction(`Energia insuficiente para confirmar el critico (necesitas ${ability.energyCostOnCrit}).`)
             return
           }
@@ -673,6 +715,7 @@ export function useCombat(config: CombatConfig = {}) {
     selectedAbility.value = null
     selectedEnemy.value = null
     currentAction.value = null
+    clearAnnouncement()
 
     endPlayerTurn()
   }
@@ -714,7 +757,7 @@ export function useCombat(config: CombatConfig = {}) {
       if (ability) {
         selectedAbility.value = ability
         isSelectingTarget.value = true
-        addToLog(`Selecciona un objetivo para ${action.toLowerCase()}.`)
+        showTargetSelectionAnnouncement(ability)
       }
       return
     }
@@ -760,6 +803,7 @@ export function useCombat(config: CombatConfig = {}) {
     timingEffect,
     announcement,
     showAnnouncement,
+    clearAnnouncement,
     abilities,
     aliveEnemies,
     abilityShortcuts,
