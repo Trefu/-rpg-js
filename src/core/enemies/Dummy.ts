@@ -2,7 +2,7 @@ import { Enemy } from './Enemy'
 import { ICharacter, IEnemy } from '../interfaces/ICharacter'
 import dummySprite from '@/assets/sprites/enemies/dummy.png'
 import type { DefensePatternConfig } from '../defense/types'
-import { ALL_ENEMY_ATTACKS, GOBLIN_MORDIDA, GOBLIN_MORDIDA_VENENOSA, ORC_GOLPE_APLASTANTE, ORC_HACHAZOS_MULTIPLES, WOLF_MORDIDA_FEROZ, WOLF_ZARPAZOS_RAPIDOS } from '../abilities/EnemyAttacks'
+import { ALL_ENEMY_ATTACKS, GOBLIN_ESPADAZO, GOBLIN_FLECHA_VENENOSA, ORC_GOLPE_APLASTANTE, ORC_HACHAZOS_MULTIPLES, WOLF_MORDIDA_FEROZ, WOLF_ZARPAZOS_RAPIDOS } from '../abilities/EnemyAttacks'
 
 export const DUMMY_ATTACKS: DefensePatternConfig[] = [
   {
@@ -38,7 +38,7 @@ export const DUMMY_ATTACKS: DefensePatternConfig[] = [
     damageMultiplier: 1.4
   },
   {
-    ...GOBLIN_MORDIDA_VENENOSA,
+    ...GOBLIN_FLECHA_VENENOSA,
     name: 'Mordida Tóxica',
     damageMultiplier: 0.6,
     onFailureEffect: {
@@ -73,7 +73,7 @@ export const DUMMY_ATTACKS: DefensePatternConfig[] = [
       stacks: 1
     }
   },
-  GOBLIN_MORDIDA,
+  GOBLIN_ESPADAZO,
   WOLF_MORDIDA_FEROZ,
   WOLF_ZARPAZOS_RAPIDOS,
   ORC_HACHAZOS_MULTIPLES,

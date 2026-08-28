@@ -17,6 +17,11 @@ export const useExpeditionStore = defineStore('expedition', {
 
   actions: {
     startExpedition(zoneId: ZoneId = DEFAULT_ZONE) {
+      const UNLOCKED_ZONE_IDS: ZoneId[] = ['mountain-peak']
+      if (!UNLOCKED_ZONE_IDS.includes(zoneId)) {
+        console.warn(`[expedition] zone "${zoneId}" is locked. Falling back to ${DEFAULT_ZONE}.`)
+        zoneId = DEFAULT_ZONE
+      }
       try {
         const { generateExpeditionNodes } = useExpeditionGenerator()
         const nodes = generateExpeditionNodes(zoneId)

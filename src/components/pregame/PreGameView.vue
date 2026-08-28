@@ -11,6 +11,11 @@ const emit = defineEmits<{
 }>()
 
 const zones = listZones()
+const UNLOCKED_ZONE_IDS: ZoneId[] = ['mountain-peak']
+
+function isZoneUnlocked(id: ZoneId): boolean {
+  return UNLOCKED_ZONE_IDS.includes(id)
+}
 
 interface HeroChoice {
   id: 'warrior'
@@ -53,6 +58,7 @@ function selectHero(id: HeroChoice['id']) {
 }
 
 function selectZone(id: ZoneId) {
+  if (!isZoneUnlocked(id)) return
   selectedZoneId.value = id
 }
 </script>
@@ -91,7 +97,8 @@ function selectZone(id: ZoneId) {
             v-for="zone in zones"
             :key="zone.id"
             class="card"
-            :class="{ selected: zone.id === selectedZoneId }"
+            :class="{ selected: zone.id === selectedZoneId, locked: !isZoneUnlocked(zone.id) }"
+            :aria-disabled="!isZoneUnlocked(zone.id)"
             @click="selectZone(zone.id)"
           >
             <div class="card__body">
@@ -99,6 +106,7 @@ function selectZone(id: ZoneId) {
               <p>{{ zone.description }}</p>
               <span class="badge" :class="`badge--${zone.difficulty}`">{{ zone.difficulty }}</span>
               <small>Nivel minimo: {{ zone.minLevel }}</small>
+              <span v-if="!isZoneUnlocked(zone.id)" class="locked-badge">Bloqueado</span>
             </div>
           </li>
         </ul>
@@ -186,6 +194,30 @@ function selectZone(id: ZoneId) {
 .card.selected {
   border-color: #4CAF50;
   background: rgba(76, 175, 80, 0.12);
+}
+
+.card.locked {
+  cursor: not-allowed;
+  opacity: 0.55;
+  filter: grayscale(0.6);
+}
+
+.card.locked:hover {
+  border-color: rgba(255, 255, 255, 0.08);
+  transform: none;
+}
+
+.locked-badge {
+  display: inline-block;
+  margin-top: 0.5rem;
+  margin-left: 0.5rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: rgba(158, 158, 158, 0.25);
+  color: #bdbdbd;
 }
 
 .card__sprite {

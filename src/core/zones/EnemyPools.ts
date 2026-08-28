@@ -1,4 +1,6 @@
 import { Goblin } from '../enemies/Goblin'
+import { GoblinArcher } from '../enemies/GoblinArcher'
+import { GoblinWarlock } from '../enemies/GoblinWarlock'
 import { Orc } from '../enemies/Orc'
 import { Wolf } from '../enemies/Wolf'
 import { Bandit } from '../enemies/Bandit'
@@ -33,17 +35,27 @@ export const ZONE_ENEMY_POOLS: Record<ZoneId, ZoneEnemyConfig> = {
     displayName: 'Monte Pico',
     pools: {
       intro: [
-        () => new Goblin(1)
+        () => new Goblin(1),
+        () => new GoblinArcher(1),
+        () => new GoblinWarlock(1)
       ],
       early: [
         () => new Goblin(1),
         () => new Goblin(2),
+        () => new GoblinArcher(1),
+        () => new GoblinArcher(2),
+        () => new GoblinWarlock(1),
+        () => new GoblinWarlock(2),
         () => new Wolf(2),
         () => new Bandit(2)
       ],
       mid: [
         () => new Goblin(2),
         () => new Goblin(3),
+        () => new GoblinArcher(2),
+        () => new GoblinArcher(3),
+        () => new GoblinWarlock(2),
+        () => new GoblinWarlock(3),
         () => new Wolf(2),
         () => new Wolf(3),
         () => new Bandit(2),
@@ -53,6 +65,10 @@ export const ZONE_ENEMY_POOLS: Record<ZoneId, ZoneEnemyConfig> = {
       late: [
         () => new Goblin(3),
         () => new Goblin(4),
+        () => new GoblinArcher(3),
+        () => new GoblinArcher(4),
+        () => new GoblinWarlock(3),
+        () => new GoblinWarlock(4),
         () => new Wolf(3),
         () => new Wolf(4),
         () => new Bandit(3),
@@ -64,7 +80,7 @@ export const ZONE_ENEMY_POOLS: Record<ZoneId, ZoneEnemyConfig> = {
       ]
     },
     enemyCountPerTier: {
-      intro: [1, 1],
+      intro: [2, 2],
       early: [1, 2],
       mid: [2, 3],
       late: [3, 4],

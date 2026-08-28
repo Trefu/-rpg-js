@@ -116,8 +116,8 @@ function onClick() {
 }
 
 .enemy-sprite-img {
-  width: 92px;
-  height: 92px;
+  width: 240px;
+  height: 240px;
   object-fit: contain;
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
   display: block;
