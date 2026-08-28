@@ -19,6 +19,7 @@ import {
   buildDefenseResult,
   pickZonesForPhases
 } from '@/core/defense/DefenseEngine'
+import { DEFAULT_BLOCK_EFFECT } from '@/core/defense/types'
 import { getDefenseModifiers } from '@/core/defense/modifiers'
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
@@ -142,14 +143,36 @@ export function useCombat(config: CombatConfig = {}) {
     const result = buildDefenseResult(pattern, results, modifiers, attackDamage)
 
     const finalDamage = Math.max(0, result.totalDamage)
+    const blockedFraction = attackDamage > 0
+      ? Math.max(0, Math.min(1, 1 - (finalDamage / attackDamage)))
+      : (finalDamage === 0 ? 1 : 0)
+    const blockPercent = Math.round(blockedFraction * 100)
+
+    const blockEffect = modifiers.blockEffectOverride
+      ?? pattern.onBlockEffect
+      ?? DEFAULT_BLOCK_EFFECT
+    const extraEffects = modifiers.additionalBlockEffects ?? []
+    const effectLabels = [blockEffect.label, ...extraEffects.map(e => e.label)]
+    const effectLabelText = effectLabels.length > 1
+      ? effectLabels.join(' + ')
+      : effectLabels[0]
+
+    const blockLog = blockedFraction >= 1
+      ? `¡Bloqueaste el ataque por completo (${effectLabelText})!`
+      : blockedFraction > 0
+        ? `Bloqueaste ${blockPercent}% del dano (${effectLabelText}).`
+        : ''
+
     if (finalDamage > 0) {
       player.value!.takeDamage(finalDamage)
       showPlayerHit(finalDamage)
       audioManager.playAttackSound()
       audioManager.playHitSound()
-      addToLog(`Recibes ${finalDamage} de daño.`)
+      addToLog(blockLog
+        ? `${blockLog} Recibes ${finalDamage} de dano.`
+        : `Recibes ${finalDamage} de dano.`)
     } else {
-      addToLog(`¡Bloqueaste el ataque completamente!`)
+      addToLog(blockLog || `¡Bloqueaste el ataque!`)
       audioManager.playBonusSound()
     }
 
@@ -386,7 +409,15 @@ export function useCombat(config: CombatConfig = {}) {
       player.value.reduceStatusEffects()
     }
     if (typeof player.value?.restoreEnergy === 'function') {
-      player.value.restoreEnergy(10)
+      const regen = typeof player.value.getTurnEndEnergyRegen === 'function'
+        ? player.value.getTurnEndEnergyRegen()
+        : 0
+      if (regen > 0) {
+        const restored = player.value.restoreEnergy(regen)
+        if (restored > 0) {
+          addToLog(`Recuperaste ${restored} de energia (fin de turno).`)
+        }
+      }
     }
     setTimeout(enemyTurn, config.isTraining ? 1000 : 2000)
   }

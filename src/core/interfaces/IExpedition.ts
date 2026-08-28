@@ -5,6 +5,7 @@ export interface IZone {
   background: string
   difficulty: 'easy' | 'medium' | 'hard'
   minLevel: number
+  enabled?: boolean
   enemies: string[]
   rewards: {
     experience: number

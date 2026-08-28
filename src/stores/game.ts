@@ -1,7 +1,10 @@
 import { defineStore } from 'pinia'
 import type { Hero } from '../core/Hero'
+import { Warrior } from '@/core/heroes/Warrior'
+import { useExpeditionStore } from './expedition'
+import { DEFAULT_ZONE, type ZoneId } from '@/core/zones/EnemyPools'
 
-export type GameLocation = 'expedition-map' | 'combat' | 'shop' | 'city' | 'training'
+export type GameLocation = 'pre-game' | 'expedition-map' | 'combat' | 'shop' | 'city' | 'training'
 
 export const MAX_HEROES = 3
 
@@ -19,7 +22,7 @@ export const useGameStore = defineStore('game', {
     heroes: Array.from({ length: MAX_HEROES }, () => null),
     activeHeroIndex: 0,
     isGameStarted: false,
-    currentLocation: 'city',
+    currentLocation: 'pre-game',
     gold: 0,
     experience: 0
   }),
@@ -55,11 +58,18 @@ export const useGameStore = defineStore('game', {
       this.currentLocation = location
     },
 
+    beginRun({ zoneId = DEFAULT_ZONE }: { zoneId?: ZoneId } = {}) {
+      this.startGame([Warrior.createStarter()])
+      const expeditionStore = useExpeditionStore()
+      expeditionStore.startExpedition(zoneId)
+      this.navigateTo('expedition-map')
+    },
+
     resetGame() {
       this.heroes = Array.from({ length: MAX_HEROES }, () => null)
       this.activeHeroIndex = 0
       this.isGameStarted = false
-      this.currentLocation = 'city'
+      this.currentLocation = 'pre-game'
       this.gold = 0
       this.experience = 0
     }

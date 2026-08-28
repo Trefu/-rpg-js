@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import type { IExpedition, INode } from '@/core/interfaces/IExpedition'
 import { useExpeditionGenerator } from '@/composables/useExpeditionGenerator'
+import { DEFAULT_ZONE, type ZoneId } from '@/core/zones/EnemyPools'
+import { getZone } from '@/core/zones/Zones'
 
 interface ExpeditionState {
   currentExpedition: IExpedition | null
@@ -14,15 +16,16 @@ export const useExpeditionStore = defineStore('expedition', {
   }),
 
   actions: {
-    startExpedition() {
+    startExpedition(zoneId: ZoneId = DEFAULT_ZONE) {
       try {
         const { generateExpeditionNodes } = useExpeditionGenerator()
-        const nodes = generateExpeditionNodes()
+        const nodes = generateExpeditionNodes(zoneId)
+        const zone = getZone(zoneId)
 
         const startNode = nodes.find(node => node.id === 'start') || null
 
         this.currentExpedition = {
-          zone: { id: 'expedition', name: 'Expedicion', description: '', background: '', difficulty: 'medium', minLevel: 1, enemies: [], rewards: { experience: 0, gold: 0 } },
+          zone,
           nodes,
           currentNode: startNode,
           completed: false
@@ -75,4 +78,4 @@ export const useExpeditionStore = defineStore('expedition', {
       return state.currentExpedition !== null
     }
   }
-}) 
+})

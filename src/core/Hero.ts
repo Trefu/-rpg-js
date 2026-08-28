@@ -1,12 +1,13 @@
 import { Character } from './Character'
 import type { IAbility } from './interfaces/IAbility'
 import type { IStatusEffect } from './interfaces/IStatusEffect'
-import type { IPlayerStats } from './interfaces/ICharacter'
+import type { ICombatant, IInventory, ILevelable, IPlayerStats } from './interfaces/ICharacter'
 
-export class Hero extends Character {
+export class Hero extends Character implements ICombatant, ILevelable, IInventory {
   public experience: number
   public experienceToNextLevel: number
   public gold: number
+  public items: string[]
   public abilities: IAbility[]
   public statusEffects: IStatusEffect[] = []
   public speed: number
@@ -16,6 +17,11 @@ export class Hero extends Character {
   public baseStats: IPlayerStats
   public baseAttack: number
   public sprite: string
+  /**
+   * Regen pasiva de energia al final del turno del jugador.
+   * Por defecto 0; clases, perks o equipo pueden modificarlo.
+   */
+  public passiveEnergyRegen: number = 0
 
   constructor(
     id: string,
@@ -31,6 +37,7 @@ export class Hero extends Character {
     this.experience = 0
     this.experienceToNextLevel = 100
     this.gold = 0
+    this.items = []
     this.abilities = []
     this.defenseValue = defense
     this.speed = speed
@@ -94,12 +101,40 @@ export class Hero extends Character {
     return true
   }
 
-  public restoreEnergy(amount: number): void {
+  public restoreEnergy(amount: number): number {
+    const before = this.energy
     this.energy = Math.min(this.maxEnergy, this.energy + amount)
+    return this.energy - before
+  }
+
+  /**
+   * Cuanta energia recupera este heroe al final de su turno.
+   * Default: usa `passiveEnergyRegen`. Subclases o perks pueden override
+   * para condiciones dinamicas (e.g. "regenera segun HP perdido").
+   */
+  public getTurnEndEnergyRegen(): number {
+    return this.passiveEnergyRegen
   }
 
   public addGold(amount: number): void {
     this.gold += amount
+  }
+
+  public spendGold(amount: number): boolean {
+    if (this.gold < amount) return false
+    this.gold -= amount
+    return true
+  }
+
+  public addItem(item: string): void {
+    this.items.push(item)
+  }
+
+  public removeItem(item: string): void {
+    const index = this.items.indexOf(item)
+    if (index > -1) {
+      this.items.splice(index, 1)
+    }
   }
 
   public addStatusEffect(effect: IStatusEffect) {

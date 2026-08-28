@@ -105,11 +105,11 @@ export const createFireballAbility = (): IAbility => ({
 })
 
 export const createWarriorAttackAbility = (): IAbility => ({
-  name: 'Ataque de Warrior',
-  description: 'Golpe certero. Un critico hace X3 de dano. Requiere 20 de energia para confirmar el critico.',
+  name: 'Tajo Devastador',
+  description: 'Un tajo certero que siempre cuesta 20 de energia. Un critico inflige X3 de dano.',
   type: 'warriorAttack',
   cooldown: 0,
-  energyCostOnCrit: 20,
+  energyCost: 20,
   customCriticalMultiplier: 3.0,
   targetType: 'enemies-only',
   requiresTiming: true,
@@ -118,12 +118,6 @@ export const createWarriorAttackAbility = (): IAbility => ({
     const baseDamage = caster.attack()
     const multiplier = context.damageMultiplier ?? 1
 
-    // El costo de energia (fijo o por critico) ya fue validado y cobrado
-    // antes del QTE en useCombat.ts → triggerExecution().
-    if (context.timingResult === 'critical' && caster.energy >= (context.energySpent ?? 0)) {
-      caster.spendEnergy(context.energySpent ?? 0)
-    }
-
     const finalDamage = Math.floor(baseDamage * multiplier)
     context.target.takeDamage(finalDamage)
     context.showEnemyHit(context.target.id, finalDamage)
@@ -131,7 +125,7 @@ export const createWarriorAttackAbility = (): IAbility => ({
       showCritAnnouncement(context)
     }
     context.addToLog(formatAbilityLog(
-      `Usaste Ataque de Warrior causando ${finalDamage} de dano.`,
+      `Usaste Tajo Devastador causando ${finalDamage} de dano.`,
       context.timingResult
     ))
   }
@@ -152,8 +146,10 @@ export const createSecondWindAbility = (): IAbility => ({
     }
     const healAmount = Math.floor(target.maxHealth * 0.10)
     target.heal(healAmount)
-    target.restoreEnergy(20)
-    context.addToLog(`Usaste Segundo Aliento en ${target.name}: cura ${healAmount} HP y restaura 20 energia.`)
+    const restoredEnergy = target.restoreEnergy(20)
+    context.addToLog(
+      `Usaste Segundo Aliento en ${target.name}: cura ${healAmount} HP y restaura ${restoredEnergy} energia.`
+    )
     context.showAnnouncement('Segundo Aliento!', 'info', 1500)
   }
 })
