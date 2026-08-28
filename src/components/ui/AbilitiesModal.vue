@@ -2,6 +2,9 @@
 import type { IAbility } from '@/core/interfaces/IAbility'
 import closeIcon from '@/assets/icons/cross-mark.png'
 import hourglassIcon from '@/assets/icons/hourglass.png'
+import skillsIcon from '@/assets/icons/skills.png'
+import waveStrikeIcon from '@/assets/icons/wave-strike.png'
+import heartDropIcon from '@/assets/icons/heart-drop.png'
 
 interface Props {
   show: boolean
@@ -34,9 +37,9 @@ const handleModalOverlayClick = (e: MouseEvent) => {
 
 const getAbilityIcon = (type: string) => {
   const icons: Record<string, string> = {
-    attack: '/src/assets/icons/wave-strike.png',
-    warriorAttack: '/src/assets/icons/wave-strike.png',
-    secondWind: '/src/assets/icons/heart-drop.png'
+    attack: waveStrikeIcon,
+    warriorAttack: waveStrikeIcon,
+    secondWind: heartDropIcon
   }
   return icons[type]
 }
@@ -47,7 +50,7 @@ const getAbilityIcon = (type: string) => {
     <div v-if="show" class="modal-overlay" @mousedown="handleModalOverlayClick">
       <div class="modal abilities-modal">
         <div class="modal-header">
-          <img src="/src/assets/icons/skills.png" class="modal-main-icon" alt="Habilidades" />
+          <img :src="skillsIcon" class="modal-main-icon" alt="Habilidades" />
           <h2>Habilidades</h2>
           <button class="modal-close-btn" @click="closeModal" title="Cerrar"><img :src="closeIcon" alt="" class="close-icon" /></button>
         </div>
