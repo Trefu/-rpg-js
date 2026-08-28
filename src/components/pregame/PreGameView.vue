@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import type { IZone } from '@/core/interfaces/IExpedition'
 import type { ZoneId } from '@/core/zones/EnemyPools'
 import { Warrior } from '@/core/heroes/Warrior'
-import { isZoneEnabled, listZones } from '@/core/zones/Zones'
+import { listZones } from '@/core/zones/Zones'
 import warriorSprite from '@/assets/sprites/heroes/warrior.png'
 
 const emit = defineEmits<{
@@ -11,7 +11,6 @@ const emit = defineEmits<{
 }>()
 
 const zones = listZones()
-const availableZones = zones.filter(isZoneEnabled)
 
 interface HeroChoice {
   id: 'warrior'
@@ -24,15 +23,15 @@ interface HeroChoice {
 const heroes: HeroChoice[] = [
   {
     id: 'warrior',
-    name: 'Bjorn',
-    description: 'Guerrero cuerpo a cuerpo. Tanque con alto dano sostenido y autogestion de energia.',
+    name: 'Warrior',
+    description: 'Guerrero cuerpo a cuerpo. Tanque con alto daño sostenido y autogestión de energia.',
     sprite: warriorSprite,
     factory: () => Warrior.createStarter()
   }
 ]
 
 const selectedHeroId = ref<HeroChoice['id']>('warrior')
-const selectedZoneId = ref<ZoneId | null>(availableZones[0]?.id ?? null)
+const selectedZoneId = ref<ZoneId | null>(zones[0]?.id ?? null)
 
 const selectedHero = computed(() => heroes.find(h => h.id === selectedHeroId.value) ?? null)
 const selectedZone = computed<IZone | null>(() => {
@@ -54,8 +53,6 @@ function selectHero(id: HeroChoice['id']) {
 }
 
 function selectZone(id: ZoneId) {
-  const zone = zones.find(z => z.id === id)
-  if (!zone || !isZoneEnabled(zone)) return
   selectedZoneId.value = id
 }
 </script>
@@ -94,10 +91,7 @@ function selectZone(id: ZoneId) {
             v-for="zone in zones"
             :key="zone.id"
             class="card"
-            :class="{
-              selected: zone.id === selectedZoneId,
-              disabled: !isZoneEnabled(zone)
-            }"
+            :class="{ selected: zone.id === selectedZoneId }"
             @click="selectZone(zone.id)"
           >
             <div class="card__body">
@@ -105,7 +99,6 @@ function selectZone(id: ZoneId) {
               <p>{{ zone.description }}</p>
               <span class="badge" :class="`badge--${zone.difficulty}`">{{ zone.difficulty }}</span>
               <small>Nivel minimo: {{ zone.minLevel }}</small>
-              <span v-if="!isZoneEnabled(zone)" class="locked-badge">Pronto</span>
             </div>
           </li>
         </ul>
@@ -193,30 +186,6 @@ function selectZone(id: ZoneId) {
 .card.selected {
   border-color: #4CAF50;
   background: rgba(76, 175, 80, 0.12);
-}
-
-.card.disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-  filter: grayscale(0.6);
-}
-
-.card.disabled:hover {
-  transform: none;
-  border-color: rgba(255, 255, 255, 0.08);
-}
-
-.locked-badge {
-  display: inline-block;
-  margin-left: 0.5rem;
-  padding: 0.1rem 0.5rem;
-  border-radius: 999px;
-  font-size: 0.65rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .card__sprite {
