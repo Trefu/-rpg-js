@@ -30,8 +30,8 @@ const center = computed(() => size.value / 2)
 
 const outerRadius = computed(() => config.value.outerRadius)
 const innerRadius = computed(() => timingCircle.value?.getCurrentRadius() ?? config.value.outerRadius)
-const criticalRadius = computed(() => config.value.criticalZoneSize)
-const centerDotRadius = computed(() => config.value.centerDotRadius)
+const bonusRadius = computed(() => config.value.bonusZoneSize)
+const criticalRadius = computed(() => config.value.criticalRadius)
 
 const FEEDBACK_DURATION_MS = 750
 
@@ -170,7 +170,7 @@ defineExpose({ start, stop })
   <div class="timing-challenge" :class="feedbackClass">
     <svg :width="size" :height="size" :viewBox="`0 0 ${size} ${size}`">
       <defs>
-        <radialGradient id="criticalGradient" cx="50%" cy="50%" r="50%">
+        <radialGradient id="bonusGradient" cx="50%" cy="50%" r="50%">
           <stop offset="0%" stop-color="#FF5722" stop-opacity="0.8"/>
           <stop offset="100%" stop-color="#FF5722" stop-opacity="0.4"/>
         </radialGradient>
@@ -204,8 +204,8 @@ defineExpose({ start, stop })
       <circle
         :cx="center"
         :cy="center"
-        :r="criticalRadius"
-        :fill="'url(#criticalGradient)'"
+        :r="bonusRadius"
+        :fill="'url(#bonusGradient)'"
       />
 
       <circle
@@ -259,7 +259,7 @@ defineExpose({ start, stop })
       <circle
         :cx="center"
         :cy="center"
-        :r="centerDotRadius"
+        :r="criticalRadius"
         fill="#FFD700"
         opacity="0.95"
       />

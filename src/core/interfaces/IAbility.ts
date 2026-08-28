@@ -11,7 +11,6 @@ export interface AbilityContext {
   showAnnouncement: (text: string, variant?: 'info' | 'attack' | 'status' | 'turn' | 'crit', duration?: number) => void
   performTimingChallenge: () => Promise<TimingResult>
   audioManager: AudioManager
-  damageMultiplier?: number
   timingResult?: TimingResult
   /**
    * Cantidad de energia que se desconto del caster al validar la accion.

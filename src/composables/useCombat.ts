@@ -6,7 +6,6 @@ import type { IEnemy } from '@/core/interfaces/ICharacter'
 import type { IAbility } from '@/core/interfaces/IAbility'
 import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
 import type { TimingResultData } from '@/types/timing'
-import { TIMING_MULTIPLIERS } from '@/types/timing'
 import { StatusEffects, applyFailureEffect } from '@/core/StatusEffects'
 import type {
   DefenseChallengeResult,
@@ -344,7 +343,7 @@ export function useCombat(config: CombatConfig = {}) {
 
     if (ability.requiresTiming === false) {
       // Sin QTE: ejecutar inmediatamente
-      executeAbility(1, undefined as any, ability.energyCost ?? 0)
+      executeAbility(undefined as any, ability.energyCost ?? 0)
     } else {
       performTimingChallenge().then((timingResult) => {
         // Validar el costo por critico ANTES de ejecutar
@@ -357,8 +356,7 @@ export function useCombat(config: CombatConfig = {}) {
           }
           caster.spendEnergy(ability.energyCostOnCrit)
         }
-        const multiplier = TIMING_MULTIPLIERS[timingResult as keyof typeof TIMING_MULTIPLIERS]
-        executeAbility(multiplier, timingResult, ability.energyCost ?? 0)
+        executeAbility(timingResult, ability.energyCost ?? 0)
       })
     }
   }
@@ -698,7 +696,6 @@ export function useCombat(config: CombatConfig = {}) {
   }
 
   const executeAbility = async (
-    damageMultiplier: number = 1,
     timingResult?: TimingResultData['result'],
     energySpent: number = 0
   ) => {
@@ -717,7 +714,6 @@ export function useCombat(config: CombatConfig = {}) {
           showAnnouncement: (text, variant, duration) => showAnnouncement(text, variant ?? 'info', duration),
           performTimingChallenge,
           audioManager,
-          damageMultiplier,
           timingResult,
           energySpent
         })

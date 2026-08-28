@@ -3,7 +3,7 @@ import type { TimingCircleConfig, TimingResult, TimingResultData } from '@/types
 export class TimingCircle {
   outerRadius: number
   innerRadius: number
-  criticalRadius: number
+  bonusRadius: number
   shrinkSpeed: number
   isShrinking: boolean
   config: TimingCircleConfig
@@ -13,7 +13,7 @@ export class TimingCircle {
     this.config = config
     this.outerRadius = config.outerRadius
     this.innerRadius = config.outerRadius
-    this.criticalRadius = config.criticalZoneSize
+    this.bonusRadius = config.bonusZoneSize
     this.shrinkSpeed = config.shrinkSpeed
     this.isShrinking = false
     this.startTime = null
@@ -46,22 +46,22 @@ export class TimingCircle {
     const hitRadius = playerRadius ?? this.innerRadius
     const timePressed = this.startTime ? performance.now() - this.startTime : 0
 
-    const centerDotRadius = this.config.centerDotRadius
-    const criticalRadius = this.criticalRadius
+    const criticalRadius = this.config.criticalRadius
+    const bonusRadius = this.bonusRadius
     const outerRadius = this.outerRadius
 
     let result: TimingResult
     let accuracy: number
 
-    if (hitRadius <= centerDotRadius) {
+    if (hitRadius <= criticalRadius) {
       result = 'critical'
       accuracy = 100
-    } else if (hitRadius <= criticalRadius) {
-      const bonusRange = criticalRadius - centerDotRadius
-      accuracy = 100 - ((hitRadius - centerDotRadius) / bonusRange) * 20
+    } else if (hitRadius <= bonusRadius) {
+      const bonusRange = bonusRadius - criticalRadius
+      accuracy = 100 - ((hitRadius - criticalRadius) / bonusRange) * 20
       result = 'bonus'
     } else if (hitRadius <= outerRadius) {
-      accuracy = 100 - ((hitRadius - criticalRadius) / (outerRadius - criticalRadius)) * 100
+      accuracy = 100 - ((hitRadius - bonusRadius) / (outerRadius - bonusRadius)) * 100
       result = 'normal'
     } else {
       result = 'miss'

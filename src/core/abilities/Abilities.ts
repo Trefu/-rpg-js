@@ -1,12 +1,19 @@
 import type { IAbility } from '@/core/interfaces/IAbility'
-import type { AbilityContext } from '@/core/interfaces/IAbility'
+import type { AbilityContext, TimingResult } from '@/core/interfaces/IAbility'
 import type { Hero } from '../Hero'
 
-const TIMING_PREFIX: Record<string, string> = {
+const TIMING_PREFIX: Record<TimingResult, string> = {
   critical: '¡CRÍTICO! Usaste',
   bonus: '¡BONUS! Usaste',
   normal: 'Usaste',
   miss: 'Fallaste al usar'
+}
+
+const BASIC_ATTACK_TIMING_SCALING: Record<TimingResult, number> = {
+  critical: 2.5,
+  bonus: 1.5,
+  normal: 1.0,
+  miss: 0.25
 }
 
 const formatAbilityLog = (
@@ -32,14 +39,15 @@ export const createBasicAttackAbility = (): IAbility => ({
   requiresTiming: true,
   execute: async (context: AbilityContext) => {
     const baseDamage = context.caster.attack()
-    const multiplier = context.damageMultiplier ?? 1
+    const timingResult: TimingResult = context.timingResult ?? 'normal'
+    const multiplier = BASIC_ATTACK_TIMING_SCALING[timingResult]
     const finalDamage = Math.floor(baseDamage * multiplier)
     context.target.takeDamage(finalDamage)
     context.showEnemyHit(context.target.id, finalDamage)
-    if (context.timingResult === 'critical') showCritAnnouncement(context)
+    if (timingResult === 'critical') showCritAnnouncement(context)
     context.addToLog(formatAbilityLog(
       `Usaste Ataque Básico causando ${finalDamage} de daño.`,
-      context.timingResult
+      timingResult
     ))
   }
 })
@@ -104,29 +112,34 @@ export const createFireballAbility = (): IAbility => ({
   }
 })
 
-export const createWarriorAttackAbility = (): IAbility => ({
+export const createWarriorAttackAbility = (customCriticalMultiplier: number = 3.0): IAbility => ({
   name: 'Tajo Devastador',
-  description: 'Un tajo certero que siempre cuesta 20 de energia. Un critico inflige X3 de dano.',
+  description: `Un tajo certero que siempre cuesta 20 de energia. Un critico inflige X${customCriticalMultiplier} de dano.`,
   type: 'warriorAttack',
   cooldown: 0,
   energyCost: 20,
-  customCriticalMultiplier: 3.0,
+  customCriticalMultiplier,
   targetType: 'enemies-only',
   requiresTiming: true,
   execute: async (context: AbilityContext) => {
     const caster = context.caster as Hero
     const baseDamage = caster.attack()
-    const multiplier = context.damageMultiplier ?? 1
+    const timingResult: TimingResult = context.timingResult ?? 'normal'
+
+    const multiplier =
+      timingResult === 'critical'
+        ? customCriticalMultiplier
+        : BASIC_ATTACK_TIMING_SCALING[timingResult]
 
     const finalDamage = Math.floor(baseDamage * multiplier)
     context.target.takeDamage(finalDamage)
     context.showEnemyHit(context.target.id, finalDamage)
-    if (context.timingResult === 'critical' && multiplier > 1) {
+    if (timingResult === 'critical' && multiplier > 1) {
       showCritAnnouncement(context)
     }
     context.addToLog(formatAbilityLog(
       `Usaste Tajo Devastador causando ${finalDamage} de dano.`,
-      context.timingResult
+      timingResult
     ))
   }
 })
