@@ -267,7 +267,7 @@ export function useCombat(config: CombatConfig = {}) {
   }
 
   function onAbilityUsed(type: string, cooldown: number) {
-    if (cooldown > 0) abilityCooldowns.value[type] = cooldown
+    if (cooldown > 0) abilityCooldowns.value[type] = cooldown + 1
   }
 
   function openAbilitiesModal() {
