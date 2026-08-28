@@ -4,7 +4,7 @@ export class TimingCircle {
   outerRadius: number
   innerRadius: number
   bonusRadius: number
-  shrinkSpeed: number
+  shrinkPerMs: number
   isShrinking: boolean
   config: TimingCircleConfig
   startTime: number | null
@@ -14,7 +14,7 @@ export class TimingCircle {
     this.outerRadius = config.outerRadius
     this.innerRadius = config.outerRadius
     this.bonusRadius = config.bonusZoneSize
-    this.shrinkSpeed = config.shrinkSpeed
+    this.shrinkPerMs = config.outerRadius / config.closeDurationMs
     this.isShrinking = false
     this.startTime = null
   }
@@ -33,15 +33,29 @@ export class TimingCircle {
     return this.innerRadius
   }
 
+  /**
+   * Avanza el radio hasta el momento actual usando tiempo absoluto.
+   * Asi no se acumula drift por deltas de RAF y la deteccion coincide
+   * exactamente con la posicion visual en el instante del input.
+   */
+  syncToNow(): void {
+    if (!this.isShrinking || this.startTime === null) return
+    const elapsed = performance.now() - this.startTime
+    this.innerRadius = Math.max(0, this.outerRadius - this.shrinkPerMs * elapsed)
+  }
+
   update(deltaMs: number): void {
     if (!this.isShrinking) return
-
-    const shrinkPerMs = this.shrinkSpeed / 1000
-    this.innerRadius = Math.max(0, this.innerRadius - shrinkPerMs * deltaMs)
+    this.syncToNow()
   }
 
   checkHit(playerRadius?: number): TimingResultData {
     this.stopShrinking()
+
+    if (playerRadius === undefined && this.startTime !== null) {
+      const elapsed = performance.now() - this.startTime
+      this.innerRadius = Math.max(0, this.outerRadius - this.shrinkPerMs * elapsed)
+    }
 
     const hitRadius = playerRadius ?? this.innerRadius
     const timePressed = this.startTime ? performance.now() - this.startTime : 0

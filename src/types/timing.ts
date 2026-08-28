@@ -1,7 +1,7 @@
 export type TimingResult = 'critical' | 'bonus' | 'normal' | 'miss'
 
 export interface TimingCircleConfig {
-  shrinkSpeed: number
+  closeDurationMs: number
   bonusZoneSize: number
   outerRadius: number
   direction: 'inward' | 'outward'
@@ -17,7 +17,7 @@ export interface TimingResultData {
 }
 
 export const BASIC_ATTACK_CONFIG: TimingCircleConfig = {
-  shrinkSpeed: 350,
+  closeDurationMs: 1000,
   bonusZoneSize: 50,
   outerRadius: 350,
   direction: 'inward',

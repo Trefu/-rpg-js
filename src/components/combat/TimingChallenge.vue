@@ -19,6 +19,7 @@ const config = computed(() => props.config ?? defaultConfig)
 const timingCircle = ref<TimingCircle | null>(null)
 const isActive = ref(false)
 const lastTimestamp = ref(0)
+const rootEl = ref<HTMLDivElement | null>(null)
 let animationFrame: number | null = null
 let feedbackTimeout: number | null = null
 
@@ -96,23 +97,23 @@ const handleInput = () => {
 const onKeydown = (e: KeyboardEvent) => {
   if (e.code === 'Space' && isActive.value) {
     e.preventDefault()
+    e.stopPropagation()
     handleInput()
   }
 }
 
-const onWindowClick = (e: MouseEvent) => {
+const onPointerDown = (e: PointerEvent) => {
   if (!isActive.value) return
   e.preventDefault()
+  e.stopPropagation()
   handleInput()
 }
 
 function animate(now: number) {
   if (!isActive.value || !timingCircle.value) return
 
-  const delta = lastTimestamp.value ? now - lastTimestamp.value : 16
   lastTimestamp.value = now
-
-  timingCircle.value.update(delta)
+  timingCircle.value.update(0)
 
   if (timingCircle.value.getCurrentRadius() <= 0) {
     const timePressed = timingCircle.value.startTime ? performance.now() - timingCircle.value.startTime : 0
@@ -153,12 +154,12 @@ function stop() {
 
 onMounted(() => {
   window.addEventListener('keydown', onKeydown)
-  window.addEventListener('click', onWindowClick)
+  rootEl.value?.addEventListener('pointerdown', onPointerDown)
 })
 
 onUnmounted(() => {
   window.removeEventListener('keydown', onKeydown)
-  window.removeEventListener('click', onWindowClick)
+  rootEl.value?.removeEventListener('pointerdown', onPointerDown)
   if (animationFrame) cancelAnimationFrame(animationFrame)
   clearFeedback()
 })
@@ -167,7 +168,7 @@ defineExpose({ start, stop })
 </script>
 
 <template>
-  <div class="timing-challenge" :class="feedbackClass">
+  <div ref="rootEl" class="timing-challenge" :class="feedbackClass">
     <svg :width="size" :height="size" :viewBox="`0 0 ${size} ${size}`">
       <defs>
         <radialGradient id="bonusGradient" cx="50%" cy="50%" r="50%">
@@ -214,47 +215,9 @@ defineExpose({ start, stop })
         :r="innerRadius"
         fill="none"
         :stroke="config.color"
-        stroke-width="6"
+        stroke-width="3"
+        stroke-linecap="round"
       />
-
-      <g v-if="innerRadius < outerRadius && innerRadius > criticalRadius">
-        <line
-          :x1="center"
-          :y1="center - outerRadius"
-          :x2="center"
-          :y2="center - innerRadius"
-          :stroke="config.color"
-          stroke-width="3"
-          opacity="0.6"
-        />
-        <line
-          :x1="center"
-          :y1="center + outerRadius"
-          :x2="center"
-          :y2="center + innerRadius"
-          :stroke="config.color"
-          stroke-width="3"
-          opacity="0.6"
-        />
-        <line
-          :x1="center - outerRadius"
-          :y1="center"
-          :x2="center - innerRadius"
-          :y2="center"
-          :stroke="config.color"
-          stroke-width="3"
-          opacity="0.6"
-        />
-        <line
-          :x1="center + outerRadius"
-          :y1="center"
-          :x2="center + innerRadius"
-          :y2="center"
-          :stroke="config.color"
-          stroke-width="3"
-          opacity="0.6"
-        />
-      </g>
 
       <circle
         :cx="center"
