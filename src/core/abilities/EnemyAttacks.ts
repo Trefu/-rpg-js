@@ -1,5 +1,5 @@
 import type { DefensePatternConfig } from '../defense/types'
-import { phase } from '../defense/attackPatterns'
+import { fixedPhase, phase } from '../defense/attackPatterns'
 
 export const GOBLIN_ESPADAZO: DefensePatternConfig = {
   name: 'Espadazo',
@@ -7,7 +7,7 @@ export const GOBLIN_ESPADAZO: DefensePatternConfig = {
   phaseCount: 2,
   baseMaxBlockReduction: 0.5,
   damageMultiplier: 2,
-  phases: [phase(3), phase(3)]
+  phases: [fixedPhase(2,3,4), fixedPhase(2,3,4)]
 }
 
 export const GOBLIN_FLECHA_VENENOSA: DefensePatternConfig = {
@@ -43,10 +43,15 @@ export const WOLF_MORDIDA_FEROZ: DefensePatternConfig = {
   name: 'Mordida feroz',
   type: 'physical',
   phaseCount: 5,
-  waveSpeed: 40,
   baseMaxBlockReduction: 0.5,
   damageMultiplier: 0.8,
-  phases: [phase(3), phase(3), phase(3), phase(3), phase(3)]
+  phases: [
+    { ...phase(3), waveSpeed: 30 },
+    { ...phase(3), waveSpeed: 35 },
+    { ...phase(3), waveSpeed: 40 },
+    { ...phase(3), waveSpeed: 45 },
+    { ...phase(3), waveSpeed: 50 }
+  ]
 }
 
 export const WOLF_ZARPAZOS_RAPIDOS: DefensePatternConfig = {

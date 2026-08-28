@@ -22,6 +22,12 @@ const emit = defineEmits<{
 
 const isActive = ref(false)
 const waveColumn = ref(0)
+
+const waveSpeed = computed(() =>
+  currentZone.value?.waveSpeed
+    ?? props.pattern?.waveSpeed
+    ?? DEFAULT_WAVE_SPEED
+)
 const waveDirection = ref(1)
 const lastTimestamp = ref(0)
 const phaseOutcome = ref<DefensePhaseOutcome | null>(null)
@@ -139,8 +145,7 @@ function animate(now: number) {
   if (!isActive.value || !props.pattern) return
   const delta = lastTimestamp.value ? now - lastTimestamp.value : 16
   lastTimestamp.value = now
-  const waveSpeed = props.pattern.waveSpeed ?? DEFAULT_WAVE_SPEED
-  waveColumn.value += (delta / 1000) * waveSpeed * waveDirection.value
+  waveColumn.value += (delta / 1000) * waveSpeed.value * waveDirection.value
   if (waveColumn.value >= barWidth) {
     waveColumn.value = barWidth
     waveDirection.value = -1

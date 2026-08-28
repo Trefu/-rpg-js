@@ -26,11 +26,17 @@ export function applyModifiersToPattern(
   const baseWaveSpeed = pattern.waveSpeed ?? DEFAULT_WAVE_SPEED
   const waveSpeed = baseWaveSpeed * modifiers.waveSpeedMultiplier
 
+  const phases = pattern.phases?.map(spec => {
+    if (spec.waveSpeed === undefined) return spec
+    return { ...spec, waveSpeed: spec.waveSpeed * modifiers.waveSpeedMultiplier }
+  })
+
   return {
     ...pattern,
     phaseCount,
     baseSuccessZoneSize: successZoneSize,
-    waveSpeed
+    waveSpeed,
+    phases
   }
 }
 
@@ -46,26 +52,33 @@ export function pickZonesForPhases(
   pattern: DefensePatternConfig,
   rng: () => number = Math.random
 ): DefensePhaseZone[] {
+  const patternWaveSpeed = pattern.waveSpeed ?? DEFAULT_WAVE_SPEED
+
   if (pattern.phases && pattern.phases.length === pattern.phaseCount) {
-    return pattern.phases.map(spec => resolvePhaseSpec(spec, pattern, rng))
+    return pattern.phases.map(spec => {
+      const cols = resolveSpecColumns(spec, pattern, rng)
+      const waveSpeed = spec.waveSpeed ?? patternWaveSpeed
+      return { successColumns: cols, waveSpeed }
+    })
   }
 
   const fallbackColumns = Math.max(
     1,
     Math.round((pattern.baseSuccessZoneSize ?? DEFAULT_SUCCESS_ZONE_SIZE) * DEFENSE_BAR_WIDTH)
   )
-  return Array.from({ length: pattern.phaseCount }, () =>
-    randomZoneOfColumns(fallbackColumns, rng)
-  )
+  return Array.from({ length: pattern.phaseCount }, () => ({
+    successColumns: randomZoneOfColumns(fallbackColumns, rng),
+    waveSpeed: patternWaveSpeed
+  }))
 }
 
-function resolvePhaseSpec(
+function resolveSpecColumns(
   spec: DefensePhaseSpec,
   pattern: DefensePatternConfig,
   rng: () => number
-): DefensePhaseZone {
+): number[] {
   if (spec.successColumns && spec.successColumns.length > 0) {
-    return { successColumns: dedupeAndClamp(spec.successColumns) }
+    return dedupeAndClamp(spec.successColumns)
   }
   const count = spec.columnCount ?? Math.max(
     1,
@@ -74,14 +87,12 @@ function resolvePhaseSpec(
   return randomZoneOfColumns(count, rng)
 }
 
-function randomZoneOfColumns(count: number, rng: () => number): DefensePhaseZone {
+function randomZoneOfColumns(count: number, rng: () => number): number[] {
   const safeCount = Math.max(1, Math.min(count, DEFENSE_BAR_WIDTH - PHASE_MARGIN_COLUMNS * 2))
   const minStart = PHASE_MARGIN_COLUMNS
   const maxStart = DEFENSE_BAR_WIDTH - safeCount - PHASE_MARGIN_COLUMNS
   const start = minStart + Math.floor(rng() * (maxStart - minStart + 1))
-  return {
-    successColumns: Array.from({ length: safeCount }, (_, i) => start + i)
-  }
+  return Array.from({ length: safeCount }, (_, i) => start + i)
 }
 
 function dedupeAndClamp(cols: number[]): number[] {

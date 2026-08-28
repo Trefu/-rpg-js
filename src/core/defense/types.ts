@@ -5,6 +5,12 @@ export interface DefensePhaseZone {
    * visual de la barra de defensa.
    */
   successColumns: number[]
+  /**
+   * Velocidad efectiva de la onda en esta fase (columnas/segundo).
+   * Ya incluye los modificadores del jugador aplicados por `applyModifiersToPattern`.
+   * Si la fase no define `waveSpeed`, se hereda del patrón.
+   */
+  waveSpeed: number
 }
 
 export interface DefenseFailureEffect {
@@ -47,6 +53,11 @@ export interface DefensePhaseSpec {
    * y se sortean/empatan cero columnas: el patrón es determinístico.
    */
   successColumns?: number[]
+  /**
+   * Velocidad de la onda para esta fase (columnas/segundo).
+   * Si se omite, se hereda del patrón (`DefensePatternConfig.waveSpeed`).
+   */
+  waveSpeed?: number
 }
 
 /**
