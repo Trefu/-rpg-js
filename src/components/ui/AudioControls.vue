@@ -7,8 +7,8 @@ import musicIcon from '@/assets/icons/musical-notes.png'
 
 const audioManager = AudioManager.getInstance()
 const isMuted = ref(false)
-const musicVolume = ref(0.1)
-const sfxVolume = ref(0.5)
+const musicVolume = ref()
+const sfxVolume = ref()
 const showControls = ref(false)
 const panelRef = ref<HTMLElement | null>(null)
 

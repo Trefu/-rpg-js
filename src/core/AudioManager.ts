@@ -1,12 +1,14 @@
 import { Howl, Howler } from 'howler'
 
-type MountainTrack = 'combat' | 'boss'
+type MusicTrack = 'menu' | 'combat' | 'boss'
 type SfxName = 'attack' | 'hit' | 'victory' | 'crit' | 'bonus'
 
-const MUSIC_SRC: Record<MountainTrack, string> = {
-    combat: '/assets/music/mountain_ost_boss.mp3',
-    boss: '/assets/music/mountain_ost_boss.mp3'
-}
+const MENU_SRC = '/assets/music/menu_ost.mp3'
+const COMBAT_SOURCES = [
+    '/assets/music/mountain_ost_1.mp3',
+    '/assets/music/mountain_ost_2.mp3'
+]
+const BOSS_SRC = '/assets/music/mountain_ost_boss.mp3'
 
 const SFX_SRC: Record<SfxName, string> = {
     attack: '/assets/sounds/Stab 4-1.wav',
@@ -16,12 +18,19 @@ const SFX_SRC: Record<SfxName, string> = {
     bonus: '/assets/sounds/Explosion Medium 2-1.wav'
 }
 
+interface CombatPool {
+    howls: Howl[]
+    currentIndex: number
+}
+
 export class AudioManager {
     private static instance: AudioManager
-    private currentMusic: MountainTrack | null = null
-    private mountainMusic: Partial<Record<MountainTrack, Howl>> = {}
+    private currentMusic: MusicTrack | null = null
+    private menuHowl: Howl | null = null
+    private bossHowl: Howl | null = null
+    private combatPool: CombatPool = { howls: [], currentIndex: 0 }
     private soundEffects: Partial<Record<SfxName, Howl>> = {}
-    private musicVolume: number = 0.0
+    private musicVolume: number = 0.2
     private sfxVolume: number = 1
     private isMuted: boolean = false
     private unlocked: boolean = false
@@ -50,15 +59,37 @@ export class AudioManager {
         window.addEventListener('touchstart', unlock)
     }
 
-    private getMusic(track: MountainTrack): Howl {
-        if (!this.mountainMusic[track]) {
-            this.mountainMusic[track] = new Howl({
-                src: [MUSIC_SRC[track]],
+    private getMenuHowl(): Howl {
+        if (!this.menuHowl) {
+            this.menuHowl = new Howl({
+                src: [MENU_SRC],
                 loop: true,
                 volume: this.musicVolume
             })
         }
-        return this.mountainMusic[track]!
+        return this.menuHowl
+    }
+
+    private getBossHowl(): Howl {
+        if (!this.bossHowl) {
+            this.bossHowl = new Howl({
+                src: [BOSS_SRC],
+                loop: true,
+                volume: this.musicVolume
+            })
+        }
+        return this.bossHowl
+    }
+
+    private getCombatHowls(): Howl[] {
+        if (this.combatPool.howls.length === 0) {
+            this.combatPool.howls = COMBAT_SOURCES.map(src => new Howl({
+                src: [src],
+                loop: true,
+                volume: this.musicVolume
+            }))
+        }
+        return this.combatPool.howls
     }
 
     private getSfx(name: SfxName): Howl {
@@ -80,46 +111,50 @@ export class AudioManager {
         if (!howl.playing()) howl.play()
     }
 
-    public playMountainExploration(): void {
-        this.playTrack('exploration')
+    public playMenuMusic(): void {
+        this.stopCurrentHowl()
+        this.currentMusic = 'menu'
+        this.tryPlay(this.getMenuHowl())
     }
 
     public playMountainCombat(): void {
-        this.playTrack('combat')
+        const pool = this.getCombatHowls()
+        const index = Math.floor(Math.random() * pool.length)
+        this.stopCurrentHowl()
+        this.combatPool.currentIndex = index
+        this.currentMusic = 'combat'
+        this.tryPlay(pool[index])
     }
 
     public playMountainBoss(): void {
-        this.playTrack('boss')
+        this.stopCurrentHowl()
+        this.currentMusic = 'boss'
+        this.tryPlay(this.getBossHowl())
     }
 
-    private playTrack(track: MountainTrack): void {
-        if (this.currentMusic && this.currentMusic !== track) {
-            const prev = this.mountainMusic[this.currentMusic]
-            if (prev) prev.stop()
-        }
-        this.currentMusic = track
-        this.tryPlay(this.getMusic(track))
+    private stopCurrentHowl(): void {
+        if (!this.currentMusic) return
+        let howl: Howl | undefined
+        if (this.currentMusic === 'menu') howl = this.menuHowl ?? undefined
+        else if (this.currentMusic === 'boss') howl = this.bossHowl ?? undefined
+        else if (this.currentMusic === 'combat') howl = this.combatPool.howls[this.combatPool.currentIndex]
+        if (howl) howl.stop()
     }
 
     public stopCurrentMusic(): void {
-        if (this.currentMusic) {
-            const howl = this.mountainMusic[this.currentMusic]
-            if (howl) howl.stop()
-            this.currentMusic = null
-        }
+        this.stopCurrentHowl()
+        this.currentMusic = null
     }
 
     public pauseMusic(): void {
-        if (this.currentMusic) {
-            const howl = this.mountainMusic[this.currentMusic]
-            if (howl) howl.pause()
-        }
+        this.stopCurrentHowl()
     }
 
     public resumeMusic(): void {
-        if (this.currentMusic) {
-            this.tryPlay(this.mountainMusic[this.currentMusic]!)
-        }
+        if (!this.currentMusic) return
+        if (this.currentMusic === 'menu') this.tryPlay(this.getMenuHowl())
+        else if (this.currentMusic === 'boss') this.tryPlay(this.getBossHowl())
+        else if (this.currentMusic === 'combat') this.tryPlay(this.combatPool.howls[this.combatPool.currentIndex])
     }
 
     public playAttackSound(): void {
@@ -144,9 +179,9 @@ export class AudioManager {
 
     public setMusicVolume(volume: number): void {
         this.musicVolume = Math.max(0, Math.min(1, volume))
-        Object.values(this.mountainMusic).forEach(music => {
-            music.volume(this.musicVolume)
-        })
+        if (this.menuHowl) this.menuHowl.volume(this.musicVolume)
+        if (this.bossHowl) this.bossHowl.volume(this.musicVolume)
+        this.combatPool.howls.forEach(h => h.volume(this.musicVolume))
     }
 
     public setSFXVolume(volume: number): void {
@@ -175,7 +210,9 @@ export class AudioManager {
 
     public destroy(): void {
         this.stopCurrentMusic()
-        Object.values(this.mountainMusic).forEach(music => music.unload())
+        this.menuHowl?.unload()
+        this.bossHowl?.unload()
+        this.combatPool.howls.forEach(h => h.unload())
         Object.values(this.soundEffects).forEach(sound => sound.unload())
     }
 }

@@ -17,10 +17,10 @@ const currentView = computed(() => gameStore.currentLocation)
 const audioManager = AudioManager.getInstance()
 
 watch(currentView, (newView) => {
-  if (newView === 'expedition-map') {
-    audioManager.playMountainExploration()
-  } else if (newView === 'city' || newView === 'shop') {
+  if (newView === 'combat' || newView === 'shop') {
     audioManager.stopCurrentMusic()
+  } else {
+    audioManager.playMenuMusic()
   }
 })
 
