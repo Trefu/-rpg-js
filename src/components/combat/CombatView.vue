@@ -1,28 +1,24 @@
 <script setup lang="ts">
 import '@/styles/combat.css'
-import { onMounted, onUnmounted, computed, ref } from 'vue'
+import { onMounted, onUnmounted, computed, ref, watch } from 'vue'
 import { useCombat } from '@/composables/useCombat'
 import { useExpeditionStore } from '@/stores/expedition'
 import { useGameStore } from '@/stores/game'
-import { Player } from '@/core/Player'
-import goblinSprite from '@/assets/sprites/enemies/goblin.png'
-import statsIcon from '@/assets/icons/scroll-unfurled.png'
-import effectsIcon from '@/assets/icons/droplets.png'
-import targetIcon from '@/assets/icons/crosshair.png'
-import abilitiesIcon from '@/assets/icons/shield.png'
-import itemIcon from '@/assets/icons/backpack.png'
+import { MAX_HEROES } from '@/stores/game'
+import type { Hero } from '@/core/Hero'
+import TargetIcon from '@/assets/icons/crosshair.png'
+import AbilitiesIcon from '@/assets/icons/shield.png'
+import ItemIcon from '@/assets/icons/backpack.png'
 import TimingOverlay from './TimingOverlay.vue'
 import DefenseChallenge from './DefenseChallenge.vue'
 import AnnouncementBanner from './AnnouncementBanner.vue'
 import CombatLogModal from './CombatLogModal.vue'
 import CombatLogPanel from './CombatLogPanel.vue'
-import PlayerHud from './PlayerHud.vue'
-import PlayerStatsPanel from './PlayerStatsPanel.vue'
-import StatusEffectsPanel from './StatusEffectsPanel.vue'
-import EnemyStatusIcons from './EnemyStatusIcons.vue'
-import type { ICharacter, IEnemy } from '@/core/interfaces/ICharacter'
+import HeroCard from './HeroCard.vue'
+import EnemyCard from './EnemyCard.vue'
 import AbilitiesModal from '@/components/ui/AbilitiesModal.vue'
 import type { DefensePhaseResult } from '@/core/defense/types'
+import type { IEnemy } from '@/core/interfaces/ICharacter'
 
 const props = defineProps<{
   enemyList?: IEnemy[]
@@ -46,25 +42,19 @@ if (props.isTraining) {
 }
 
 const {
-  player,
+  heroes,
   enemies,
   selectedEnemy,
   selectedAbility,
   combatLog,
-  isPlayerTurn,
-  isCombatEnded,
   isSelectingTarget,
   showTimingOverlay,
   attackingEnemyId,
-  combatLogRef,
   enemyHitPopups,
-  playerHitPopups,
   showAbilitiesModal,
   abilityCooldowns,
-  timingEffect,
   announcement,
   abilities,
-  aliveEnemies,
   abilityShortcuts,
   isDefenseActive,
   defensePattern,
@@ -75,96 +65,67 @@ const {
   selectAbility,
   handleAbilitiesModalShortcuts,
   handleCombatShortcuts,
-  getHealthPercentage,
   selectEnemy,
+  selectAlly,
   selectAction,
   initializeCombat,
   cleanup,
   actionRequiresTarget,
   handleTimingResult,
-  executeAbility,
   isPlayerInputLocked,
   handleDefensePhaseComplete,
   handleDefenseAllPhasesComplete,
   closeDefenseChallenge,
-  startPlayerTurn
+  startPlayerTurn,
+  canTargetAllies,
+  canTargetEnemies
 } = useCombat(combatOptions)
 
-const shouldShowStatusBar = computed(() => {
-  return !isCombatEnded.value
+const heroSlots = computed(() => {
+  const slots: (Hero | null)[] = []
+  for (let i = 0; i < MAX_HEROES; i++) {
+    slots.push(heroes.value[i] ?? null)
+  }
+  return slots
 })
 
-const hasStatusEffects = (character: ICharacter | null) => {
-  return character?.statusEffects && character.statusEffects.some(e => (e.turns === undefined) || e.turns > 0)
-}
+// Distribuye offsets aleatorios para que los enemigos no queden en linea perfectamente.
+// Cada enemigo recibe un offset Y (entre -180 y 180 distribuidos) y X (entre -30 y 30).
+// Tambien se le asigna una celda aleatoria de la grilla 3x2 para evitar que queden en grilla perfecta.
+// Se reasigna cuando cambia la lista de enemigos.
+const enemyPositions = ref<Record<string, { x: number, y: number, col: number, row: number }>>({})
 
-const playerStatusEffects = computed(() => {
-  if (!shouldShowStatusBar.value || !hasStatusEffects(player.value)) {
-    return []
+function generateEnemyPositions(enemyList: IEnemy[]) {
+  const positions: Record<string, { x: number, y: number, col: number, row: number }> = {}
+  if (enemyList.length === 0) {
+    enemyPositions.value = positions
+    return
   }
-  return player.value?.statusEffects || []
-})
+  // Celldas disponibles en una grilla 3x2 (5 enemigos, 1 celda vacia)
+  const cols = [1, 2, 3]
+  const rows = [1, 2]
+  const allCells: Array<{ col: number, row: number }> = []
+  cols.forEach(c => rows.forEach(r => allCells.push({ col: c, row: r })))
+  // Mezclar celdas y tomar las primeras N (sin repetir)
+  const shuffled = allCells.sort(() => Math.random() - 0.5).slice(0, enemyList.length)
 
-const getEnemyStatusEffects = (enemy: ICharacter) => {
-  if (!hasStatusEffects(enemy)) {
-    return []
-  }
-  return enemy.statusEffects || []
+  enemyList.forEach((enemy, idx) => {
+    const cell = shuffled[idx]
+    positions[enemy.id] = {
+      x: Math.round((Math.random() - 0.5) * 24),
+      y: Math.round((Math.random() - 0.5) * 24),
+      col: cell.col,
+      row: cell.row
+    }
+  })
+  enemyPositions.value = positions
 }
 
-const handleKeyDown = (e: KeyboardEvent) => {
-  handleCombatShortcuts(e)
-  handleAbilitiesModalShortcuts(e)
-}
+watch(() => enemies.value, (newEnemies) => {
+  generateEnemyPositions(newEnemies)
+}, { immediate: true })
 
 const showLogModal = ref(false)
-const showStatsModal = ref(false)
-const showStatusModal = ref(false)
-
-function onHudItemSelected(id: string) {
-  if (id === 'stats') {
-    showStatsModal.value = true
-  } else if (id === 'status') {
-    if (playerStatusEffectsCount.value > 0) {
-      showStatusModal.value = true
-    }
-  }
-}
-
-const typedPlayer = computed<Player | null>(() => {
-  const p = player.value as unknown
-  return p instanceof Player ? p : null
-})
-
-const playerStatusEffectsCount = computed(() => playerStatusEffects.value.length)
-
-const hudOrbitItems = computed(() => [
-  {
-    id: 'stats',
-    label: 'Stats del jugador',
-    icon: statsIcon,
-    badge: null as number | string | null,
-    active: true,
-    onClick: () => { showStatsModal.value = true }
-  },
-  {
-    id: 'status',
-    label: playerStatusEffectsCount.value > 0
-      ? `${playerStatusEffectsCount.value} efecto${playerStatusEffectsCount.value === 1 ? '' : 's'} activo${playerStatusEffectsCount.value === 1 ? '' : 's'}`
-      : 'Sin efectos',
-    icon: effectsIcon,
-    badge: playerStatusEffectsCount.value || null,
-    active: playerStatusEffectsCount.value > 0,
-    onClick: () => { showStatusModal.value = true }
-  }
-])
-
-const getEnemySprite = (enemy: any) => {
-  if (enemy.sprite) {
-    return enemy.sprite
-  }
-  return goblinSprite
-}
 
 const onTimingResultReceived = (result: { result: 'critical' | 'bonus' | 'normal' | 'miss', accuracy: number, timePressed: number }) => {
   handleTimingResult(result)
@@ -186,6 +147,11 @@ const handleAbilitySelect = (ability: any, index: number) => {
   selectAbility(ability, index)
 }
 
+const handleKeyDown = (e: KeyboardEvent) => {
+  handleCombatShortcuts(e)
+  handleAbilitiesModalShortcuts(e)
+}
+
 onMounted(() => {
   if (props.enemyList && props.enemyList.length > 0) {
     initializeCombat(props.enemyList)
@@ -194,7 +160,7 @@ onMounted(() => {
     if (currentNode && currentNode.enemies && currentNode.enemies.length > 0) {
       initializeCombat(currentNode.enemies)
     } else {
-      console.error('CombatView: No se encontraron enemigos en el nodo de expedición actual. Volviendo al mapa.')
+      console.error('CombatView: No se encontraron enemigos en el nodo de expedicion actual. Volviendo al mapa.')
       gameStore.navigateTo('expedition-map')
       return
     }
@@ -219,58 +185,64 @@ onUnmounted(() => {
       :variant="(announcement?.variant as any) || 'info'"
     />
 
-    <div class="enemies-area">
+    <div class="heroes-column">
+      <div class="heroes-container">
+        <HeroCard
+          v-for="(hero, idx) in heroSlots"
+          :key="idx"
+          :hero="hero"
+          :index="idx"
+          :is-active="!!hero && idx === gameStore.activeHeroIndex"
+          :is-target-selectable="isSelectingTarget && !!hero && hero.isAlive && canTargetAllies(selectedAbility)"
+          @select="(h) => selectAlly(h)"
+        />
+      </div>
+    </div>
+
+    <div class="enemies-column">
       <transition name="target-banner">
         <div v-if="isSelectingTarget && selectedAbility" class="target-banner-wrap">
-          <div v-if="actionRequiresTarget(selectedAbility)" class="target-indicator">
-            <p><img :src="targetIcon" alt="" class="inline-icon" /> Selecciona un objetivo para {{ selectedAbility.name.toLowerCase() }}<br>
+          <div v-if="canTargetAllies(selectedAbility) && !canTargetEnemies(selectedAbility)" class="target-indicator target-indicator-ally">
+            <p><img :src="TargetIcon" alt="" class="inline-icon" /> Selecciona un aliado para {{ selectedAbility.name.toLowerCase() }}<br>
+              <span class="shortcut-hint">Presiona la <b>tecla</b> del heroe o haz click.</span></p>
+          </div>
+          <div v-else-if="actionRequiresTarget(selectedAbility)" class="target-indicator">
+            <p><img :src="TargetIcon" alt="" class="inline-icon" /> Selecciona un objetivo para {{ selectedAbility.name.toLowerCase() }}<br>
               <span class="shortcut-hint">Presiona la <b>tecla</b> del enemigo o haz click.</span></p>
           </div>
           <div v-else class="target-indicator target-all-indicator">
-            <p>Todos los enemigos serán afectados.<br>
+            <p>Todos los enemigos seran afectados.<br>
               <span class="shortcut-hint">Presiona <b>[A]</b> para confirmar.</span></p>
           </div>
         </div>
       </transition>
       <div class="enemies-container">
-        <div v-for="enemy in enemies" :key="enemy.id" class="enemy-sprite" :class="{
-          selected: selectedEnemy?.id === enemy.id,
-          dead: !enemy.isAlive,
-          'target-selectable': isSelectingTarget && enemy.isAlive && actionRequiresTarget(selectedAbility),
-          attacking: attackingEnemyId === enemy.id,
-          'target-all': isSelectingTarget && !actionRequiresTarget(selectedAbility) && enemy.isAlive
-        }" @click="selectEnemy(enemy)">
-          <EnemyStatusIcons v-if="getEnemyStatusEffects(enemy).length > 0" :effects="getEnemyStatusEffects(enemy)" />
-          <img :src="getEnemySprite(enemy)" :alt="enemy.name" />
-          <div class="enemy-health">
-            <div class="health-bar">
-              <div class="health-fill" :style="{ width: `${getHealthPercentage(enemy.health, enemy.maxHealth)}%` }">
-              </div>
-            </div>
-          </div>
-          <transition-group name="hit-popup" tag="div">
-            <div v-for="popup in enemyHitPopups.filter(p => p.id === enemy.id)" :key="popup.key" class="hit-popup">
-              -{{ popup.value }}
-            </div>
-          </transition-group>
-          <div v-if="isSelectingTarget && actionRequiresTarget(selectedAbility) && enemy.isAlive" class="enemy-shortcut-badge">
-            <span class="key-cap">{{ aliveEnemies.findIndex(e => e.id === enemy.id) + 1 }}</span>
-            <span class="enemy-name-badge">{{ enemy.name }}</span>
-          </div>
+        <div
+          v-for="(enemy, idx) in enemies"
+          :key="enemy.id"
+          class="enemy-position-wrapper"
+          :style="{
+            '--col': enemyPositions[enemy.id]?.col ?? 0,
+            '--row': enemyPositions[enemy.id]?.row ?? 0,
+            transform: `translate(${enemyPositions[enemy.id]?.x ?? 0}px, ${enemyPositions[enemy.id]?.y ?? 0}px)`
+          }"
+        >
+          <EnemyCard
+            :enemy="enemy"
+            :index="idx"
+            :is-selected="selectedEnemy?.id === enemy.id"
+            :is-selecting-target="isSelectingTarget && canTargetEnemies(selectedAbility)"
+            :is-action-target-required="actionRequiresTarget(selectedAbility)"
+            :is-attacking="attackingEnemyId === enemy.id"
+            :hit-popups="enemyHitPopups"
+            :show-shortcut="canTargetEnemies(selectedAbility)"
+            @select="selectEnemy"
+          />
         </div>
       </div>
     </div>
 
-    <div class="player-ui">
-      <div class="player-hud-slot">
-        <PlayerHud
-          :player="typedPlayer"
-          :orbit-items="hudOrbitItems"
-          :hit-popups="playerHitPopups"
-          @select="onHudItemSelected"
-        />
-      </div>
-
+    <div class="combat-bottom-bar">
       <div class="combat-log-slot">
         <CombatLogPanel
           :messages="combatLog"
@@ -281,10 +253,10 @@ onUnmounted(() => {
       <div class="actions-area">
         <div class="action-buttons">
           <button class="action-btn" :disabled="isPlayerInputLocked" @click="openAbilitiesModal">
-            <img :src="abilitiesIcon" alt="" class="btn-icon" /> Habilidades <span class="shortcut-badge">[A]</span>
+            <img :src="AbilitiesIcon" alt="" class="btn-icon" /> Habilidades <span class="shortcut-badge">[A]</span>
           </button>
           <button class="action-btn item" :disabled="isPlayerInputLocked" @click="selectAction('Objeto')">
-            <img :src="itemIcon" alt="" class="btn-icon" /> Objeto
+            <img :src="ItemIcon" alt="" class="btn-icon" /> Objeto
           </button>
         </div>
       </div>
@@ -319,19 +291,6 @@ onUnmounted(() => {
       :show="showLogModal"
       :messages="combatLog"
       @close="showLogModal = false"
-    />
-
-    <PlayerStatsPanel
-      :show="showStatsModal"
-      :player="typedPlayer"
-      @close="showStatsModal = false"
-    />
-
-    <StatusEffectsPanel
-      :show="showStatusModal"
-      :effects="playerStatusEffects"
-      :owner-name="player?.name"
-      @close="showStatusModal = false"
     />
   </div>
 </template>

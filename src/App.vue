@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { computed, onMounted, watch } from 'vue'
+import { computed, watch } from 'vue'
 import ExpeditionMap from './components/expedition/ExpeditionMap.vue'
 import CombatView from './components/combat/CombatView.vue'
 import TrainingView from './components/combat/TrainingView.vue'
+import PreGameView from './components/pregame/PreGameView.vue'
 import GameUI from './components/ui/GameUI.vue'
 import { useGameStore } from './stores/game'
 import { useExpeditionStore } from './stores/expedition'
-import { Player } from './core/Player'
 import { AudioManager } from './core/AudioManager'
-import { createBasicAttackAbility } from './core/abilities/Abilities'
+import type { ZoneId } from './core/zones/EnemyPools'
 import type { INode } from './core/interfaces/IExpedition'
 
 const gameStore = useGameStore()
@@ -24,22 +24,13 @@ watch(currentView, (newView) => {
   }
 })
 
-onMounted(() => {
-  initGame()
-})
-
-function initGame() {
-  const player = new Player('player-1', 'Héroe', 1, 100, 5, 10)
-  player.learnAbility(createBasicAttackAbility())
-  gameStore.startGame(player)
-  expeditionStore.startExpedition()
-  gameStore.navigateTo('expedition-map')
-}
-
 const handleResetGame = () => {
   gameStore.resetGame()
   expeditionStore.resetExpedition()
-  initGame()
+}
+
+const handleStartRun = (payload: { zoneId: ZoneId }) => {
+  gameStore.beginRun(payload)
 }
 
 const handleNodeSelected = (node: INode) => {
@@ -73,6 +64,8 @@ const handleTrainingEnded = () => {
 <template>
   <div class="app">
     <GameUI @reset-game="handleResetGame" />
+
+    <PreGameView v-if="currentView === 'pre-game'" @start="handleStartRun" />
 
     <ExpeditionMap v-if="currentView === 'expedition-map'" @node-selected="handleNodeSelected" />
 

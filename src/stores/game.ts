@@ -1,10 +1,16 @@
 import { defineStore } from 'pinia'
-import type { Player } from '../core/Player'
+import type { Hero } from '../core/Hero'
+import { Warrior } from '@/core/heroes/Warrior'
+import { useExpeditionStore } from './expedition'
+import { DEFAULT_ZONE, type ZoneId } from '@/core/zones/EnemyPools'
 
-export type GameLocation = 'expedition-map' | 'combat' | 'shop' | 'city' | 'training'
+export type GameLocation = 'pre-game' | 'expedition-map' | 'combat' | 'shop' | 'city' | 'training'
+
+export const MAX_HEROES = 3
 
 interface GameState {
-  player: Player | null
+  heroes: Array<Hero | null>
+  activeHeroIndex: number
   isGameStarted: boolean
   currentLocation: GameLocation
   gold: number
@@ -13,28 +19,57 @@ interface GameState {
 
 export const useGameStore = defineStore('game', {
   state: (): GameState => ({
-    player: null,
+    heroes: Array.from({ length: MAX_HEROES }, () => null),
+    activeHeroIndex: 0,
     isGameStarted: false,
-    currentLocation: 'city',
+    currentLocation: 'pre-game',
     gold: 0,
     experience: 0
   }),
 
+  getters: {
+    activeHero(state): Hero | null {
+      return (state.heroes[state.activeHeroIndex] ?? null) as Hero | null
+    },
+    activeHeroes(state): Hero[] {
+      return state.heroes.filter((h): h is Hero => h !== null) as Hero[]
+    }
+  },
+
   actions: {
-    startGame(player: Player) {
-      this.player = player
+    startGame(heroes: Hero[]) {
+      const slots: (Hero | null)[] = []
+      for (let i = 0; i < MAX_HEROES; i++) {
+        slots.push(heroes[i] ?? null)
+      }
+      this.heroes = slots
+      this.activeHeroIndex = 0
       this.isGameStarted = true
       this.currentLocation = 'city'
+    },
+
+    setActiveHero(index: number) {
+      if (index < 0 || index >= MAX_HEROES) return
+      if (this.heroes[index] === null) return
+      this.activeHeroIndex = index
     },
 
     navigateTo(location: GameLocation) {
       this.currentLocation = location
     },
 
+    beginRun({ zoneId = DEFAULT_ZONE }: { zoneId?: ZoneId } = {}) {
+      this.startGame([Warrior.createStarter()])
+      const expeditionStore = useExpeditionStore()
+      expeditionStore.startExpedition(zoneId)
+      this.navigateTo('expedition-map')
+    },
+
     resetGame() {
-      this.player = null
+      this.heroes = Array.from({ length: MAX_HEROES }, () => null)
+      this.activeHeroIndex = 0
       this.isGameStarted = false
-      this.currentLocation = 'city'
+      this.currentLocation = 'pre-game'
       this.gold = 0
       this.experience = 0
     }

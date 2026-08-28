@@ -1,9 +1,9 @@
 import { Character } from './Character'
-import { ICombatant, ILevelable, IInventory, IPlayerStats } from './interfaces/ICharacter'
-import { IStatusEffect } from './interfaces/IStatusEffect'
 import type { IAbility } from './interfaces/IAbility'
+import type { IStatusEffect } from './interfaces/IStatusEffect'
+import type { ICombatant, IInventory, ILevelable, IPlayerStats } from './interfaces/ICharacter'
 
-export class Player extends Character implements ICombatant, ILevelable, IInventory {
+export class Hero extends Character implements ICombatant, ILevelable, IInventory {
   public experience: number
   public experienceToNextLevel: number
   public gold: number
@@ -15,6 +15,13 @@ export class Player extends Character implements ICombatant, ILevelable, IInvent
   public maxEnergy: number
   public defenseValue: number
   public baseStats: IPlayerStats
+  public baseAttack: number
+  public sprite: string
+  /**
+   * Regen pasiva de energia al final del turno del jugador.
+   * Por defecto 0; clases, perks o equipo pueden modificarlo.
+   */
+  public passiveEnergyRegen: number = 0
 
   constructor(
     id: string,
@@ -22,7 +29,9 @@ export class Player extends Character implements ICombatant, ILevelable, IInvent
     level: number = 1,
     maxHealth: number = 100,
     defense: number = 10,
-    speed: number = 10
+    speed: number = 10,
+    baseAttack: number = 10,
+    sprite: string = ''
   ) {
     super(id, name, level, maxHealth)
     this.experience = 0
@@ -34,6 +43,8 @@ export class Player extends Character implements ICombatant, ILevelable, IInvent
     this.speed = speed
     this.maxEnergy = 50
     this.energy = 50
+    this.baseAttack = baseAttack
+    this.sprite = sprite
     this.baseStats = {
       fuerza: 10,
       destreza: 10,
@@ -52,7 +63,7 @@ export class Player extends Character implements ICombatant, ILevelable, IInvent
 
   public attack(): number {
     if (!this.isAlive) return 0
-    return 10 + (this.level * 2)
+    return this.baseAttack + (this.level * 2)
   }
 
   public defense(): number {
@@ -90,8 +101,29 @@ export class Player extends Character implements ICombatant, ILevelable, IInvent
     return true
   }
 
-  public restoreEnergy(amount: number): void {
+  public restoreEnergy(amount: number): number {
+    const before = this.energy
     this.energy = Math.min(this.maxEnergy, this.energy + amount)
+    return this.energy - before
+  }
+
+  /**
+   * Cuanta energia recupera este heroe al final de su turno.
+   * Default: usa `passiveEnergyRegen`. Subclases o perks pueden override
+   * para condiciones dinamicas (e.g. "regenera segun HP perdido").
+   */
+  public getTurnEndEnergyRegen(): number {
+    return this.passiveEnergyRegen
+  }
+
+  public addGold(amount: number): void {
+    this.gold += amount
+  }
+
+  public spendGold(amount: number): boolean {
+    if (this.gold < amount) return false
+    this.gold -= amount
+    return true
   }
 
   public addItem(item: string): void {
@@ -105,26 +137,12 @@ export class Player extends Character implements ICombatant, ILevelable, IInvent
     }
   }
 
-  public addGold(amount: number): void {
-    this.gold += amount
-  }
-
-  public spendGold(amount: number): boolean {
-    if (this.gold >= amount) {
-      this.gold -= amount
-      return true
-    }
-    return false
-  }
-
   public addStatusEffect(effect: IStatusEffect) {
     const existing = this.statusEffects.find(e => e.type === effect.type)
     if (existing) {
-      // Acumular stacks (si los aporta el efecto entrante) y refrescar duración al máximo entre ambos.
       const incomingStacks = effect.stacks ?? 1
       const maxStacks = existing.maxStacks ?? effect.maxStacks ?? 99
       existing.stacks = Math.min(maxStacks, (existing.stacks ?? 1) + incomingStacks)
-      // Sumar daño por turno proporcional a los nuevos stacks (mantiene coherencia con el daño base del template).
       if (typeof effect.damagePerTurn === 'number') {
         const baseDmg = existing.damagePerTurn ?? effect.damagePerTurn
         existing.damagePerTurn = baseDmg + effect.damagePerTurn

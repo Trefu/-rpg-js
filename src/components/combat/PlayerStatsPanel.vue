@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { IPlayerStats } from '@/core/interfaces/ICharacter'
-import type { Player } from '@/core/Player'
+import type { Hero } from '@/core/Hero'
 import heartIcon from '@/assets/icons/heart-drop.png'
 import energyIcon from '@/assets/icons/bolt-drop.png'
 import attackIcon from '@/assets/icons/crossed-swords.png'
@@ -26,7 +26,7 @@ interface PlayerDerivedStat {
 
 const props = defineProps<{
   show: boolean
-  player: Player | null
+  player: Hero | null
 }>()
 
 const emit = defineEmits<{

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useGameStore } from '@/stores/game'
-import { useCombat } from '@/composables/useCombat'
 import { Dummy } from '@/core/enemies/Dummy'
 import { StatusEffects } from '@/core/StatusEffects'
 import hammerIcon from '@/assets/icons/hammer-drop.png'
@@ -30,7 +29,7 @@ const emit = defineEmits<{
 }>()
 
 const gameStore = useGameStore()
-const dummy = ref<Dummy>(new Dummy(gameStore.player?.level ?? 1))
+const dummy = ref<Dummy>(new Dummy(gameStore.activeHero?.level ?? 1))
 
 const selectedPatternIndex = ref<number>(-1)
 const damageValue = ref<number>(dummy.value.baseAttack)
@@ -53,7 +52,7 @@ const currentForcedLabel = computed(() => {
   return patterns.value[selectedPatternIndex.value]?.name ?? 'Aleatorio'
 })
 
-const playerAbilitiesCount = computed(() => gameStore.player?.abilities.length ?? 0)
+const playerAbilitiesCount = computed(() => gameStore.activeHero?.abilities.length ?? 0)
 
 function selectPattern(index: number) {
   selectedPatternIndex.value = index
@@ -80,7 +79,7 @@ function resetDummy() {
 }
 
 function applyStatusToPlayer(type: 'stun' | 'burn' | 'poison' | 'defense_boost' | 'speed_boost' | 'weakness' | 'slow' | 'strength_boost') {
-  const p = gameStore.player
+  const p = gameStore.activeHero
   if (!p) return
   const template = StatusEffects.getByType(type)
   if (!template) return
@@ -89,7 +88,7 @@ function applyStatusToPlayer(type: 'stun' | 'burn' | 'poison' | 'defense_boost' 
 }
 
 function learnAbility(abilityType: 'attack' | 'stunStrike' | 'stealthStrike' | 'fireball') {
-  const p = gameStore.player
+  const p = gameStore.activeHero
   if (!p) return
   if (p.abilities.find(a => a.type === abilityType)) return
   let ability
@@ -165,8 +164,8 @@ function onTrainingEnded() {
         <section class="panel-section">
           <h3><img :src="personIcon" alt="" class="inline-icon" /> Jugador</h3>
           <div class="button-grid two-col">
-            <button class="action-btn" @click="gameStore.player && (gameStore.player.health = gameStore.player.maxHealth)"><img :src="heartIcon" alt="" class="btn-icon" /> Curar</button>
-            <button class="action-btn" @click="gameStore.player && (gameStore.player.statusEffects = [])"><img :src="broomIcon" alt="" class="btn-icon" /> Limpiar efectos</button>
+            <button class="action-btn" @click="gameStore.activeHero && (gameStore.activeHero.health = gameStore.activeHero.maxHealth)"><img :src="heartIcon" alt="" class="btn-icon" /> Curar</button>
+            <button class="action-btn" @click="gameStore.activeHero && (gameStore.activeHero.statusEffects = [])"><img :src="broomIcon" alt="" class="btn-icon" /> Limpiar efectos</button>
           </div>
         </section>
 
@@ -174,10 +173,10 @@ function onTrainingEnded() {
           <h3><img :src="sparklesIcon" alt="" class="inline-icon" /> Habilidades</h3>
           <p class="section-hint">Aprende habilidades para probarlas ({{ playerAbilitiesCount }}/4)</p>
           <div class="button-grid two-col">
-            <button class="action-btn small" :disabled="!gameStore.player || !!gameStore.player.abilities.find(a => a.type === 'attack')" @click="learnAbility('attack')">Ataque</button>
-            <button class="action-btn small" :disabled="!gameStore.player || !!gameStore.player.abilities.find(a => a.type === 'stunStrike')" @click="learnAbility('stunStrike')">Aturdidor</button>
-            <button class="action-btn small" :disabled="!gameStore.player || !!gameStore.player.abilities.find(a => a.type === 'stealthStrike')" @click="learnAbility('stealthStrike')">Sigiloso</button>
-            <button class="action-btn small" :disabled="!gameStore.player || !!gameStore.player.abilities.find(a => a.type === 'fireball')" @click="learnAbility('fireball')">Bola de Fuego</button>
+            <button class="action-btn small" :disabled="!gameStore.activeHero || !!gameStore.activeHero.abilities.find(a => a.type === 'attack')" @click="learnAbility('attack')">Ataque</button>
+            <button class="action-btn small" :disabled="!gameStore.activeHero || !!gameStore.activeHero.abilities.find(a => a.type === 'stunStrike')" @click="learnAbility('stunStrike')">Aturdidor</button>
+            <button class="action-btn small" :disabled="!gameStore.activeHero || !!gameStore.activeHero.abilities.find(a => a.type === 'stealthStrike')" @click="learnAbility('stealthStrike')">Sigiloso</button>
+            <button class="action-btn small" :disabled="!gameStore.activeHero || !!gameStore.activeHero.abilities.find(a => a.type === 'fireball')" @click="learnAbility('fireball')">Bola de Fuego</button>
           </div>
         </section>
 

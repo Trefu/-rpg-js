@@ -1,6 +1,6 @@
 import { ref, computed, nextTick } from 'vue'
 import { useGameStore } from '@/stores/game'
-import type { Player } from '@/core/Player'
+import type { Hero } from '@/core/Hero'
 import { AudioManager } from '@/core/AudioManager'
 import type { IEnemy } from '@/core/interfaces/ICharacter'
 import type { IAbility } from '@/core/interfaces/IAbility'
@@ -19,6 +19,7 @@ import {
   buildDefenseResult,
   pickZonesForPhases
 } from '@/core/defense/DefenseEngine'
+import { DEFAULT_BLOCK_EFFECT } from '@/core/defense/types'
 import { getDefenseModifiers } from '@/core/defense/modifiers'
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
@@ -31,7 +32,8 @@ export interface CombatConfig {
 
 export function useCombat(config: CombatConfig = {}) {
   const gameStore = useGameStore()
-  const player = ref<any>(gameStore.player)
+  const player = computed<Hero | null>(() => gameStore.activeHero)
+  const heroes = computed<Hero[]>(() => gameStore.activeHeroes)
   const enemies = ref<IEnemy[]>([])
   const selectedEnemy = ref<IEnemy | null>(null)
   const combatLog = ref<string[]>([])
@@ -42,7 +44,7 @@ export function useCombat(config: CombatConfig = {}) {
   const selectedAbility = ref<IAbility | null>(null)
   const audioManager = AudioManager.getInstance()
   const showTimingOverlay = ref(false)
-  const currentAction = ref<{ ability: IAbility, target: IEnemy } | null>(null)
+  const currentAction = ref<{ ability: IAbility, target: any } | null>(null)
   const attackingEnemyId = ref<string | null>(null)
   const combatLogRef = ref<HTMLDivElement | null>(null)
   const enemyHitPopups = ref<{ id: string, value: number, key: number }[]>([])
@@ -100,7 +102,7 @@ export function useCombat(config: CombatConfig = {}) {
 
   function startDefenseChallenge(enemy: IEnemy, attackDamage: number, preSelectedPattern?: DefensePatternConfig): Promise<DefenseChallengeResult | null> {
     return new Promise((resolve) => {
-      const modifiers = getDefenseModifiers(player.value)
+      const modifiers = getDefenseModifiers(player.value!)
       const selectedPattern = preSelectedPattern ?? enemy.selectAttackPattern(player.value)
       const adjusted = applyModifiersToPattern(selectedPattern, modifiers)
       const zones = pickZonesForPhases(adjusted)
@@ -137,18 +139,40 @@ export function useCombat(config: CombatConfig = {}) {
 
     if (!pattern || !enemy || !resolve) return
 
-    const modifiers = getDefenseModifiers(player.value)
+    const modifiers = getDefenseModifiers(player.value!)
     const result = buildDefenseResult(pattern, results, modifiers, attackDamage)
 
     const finalDamage = Math.max(0, result.totalDamage)
+    const blockedFraction = attackDamage > 0
+      ? Math.max(0, Math.min(1, 1 - (finalDamage / attackDamage)))
+      : (finalDamage === 0 ? 1 : 0)
+    const blockPercent = Math.round(blockedFraction * 100)
+
+    const blockEffect = modifiers.blockEffectOverride
+      ?? pattern.onBlockEffect
+      ?? DEFAULT_BLOCK_EFFECT
+    const extraEffects = modifiers.additionalBlockEffects ?? []
+    const effectLabels = [blockEffect.label, ...extraEffects.map(e => e.label)]
+    const effectLabelText = effectLabels.length > 1
+      ? effectLabels.join(' + ')
+      : effectLabels[0]
+
+    const blockLog = blockedFraction >= 1
+      ? `¡Bloqueaste el ataque por completo (${effectLabelText})!`
+      : blockedFraction > 0
+        ? `Bloqueaste ${blockPercent}% del dano (${effectLabelText}).`
+        : ''
+
     if (finalDamage > 0) {
-      player.value.takeDamage(finalDamage)
+      player.value!.takeDamage(finalDamage)
       showPlayerHit(finalDamage)
       audioManager.playAttackSound()
       audioManager.playHitSound()
-      addToLog(`Recibes ${finalDamage} de daño.`)
+      addToLog(blockLog
+        ? `${blockLog} Recibes ${finalDamage} de dano.`
+        : `Recibes ${finalDamage} de dano.`)
     } else {
-      addToLog(`¡Bloqueaste el ataque completamente!`)
+      addToLog(blockLog || `¡Bloqueaste el ataque!`)
       audioManager.playBonusSound()
     }
 
@@ -222,6 +246,90 @@ export function useCombat(config: CombatConfig = {}) {
     isSelectingTarget.value = true
   }
 
+  /**
+   * Cancela la accion actual y libera el input del jugador sin consumir turno.
+   */
+  function cancelAction(reasonMessage?: string) {
+    if (reasonMessage) addToLog(reasonMessage)
+    isSelectingTarget.value = false
+    selectedAbility.value = null
+    selectedEnemy.value = null
+    currentAction.value = null
+    isExecutingAction.value = false
+  }
+
+  /**
+   * Ejecuta la accion directamente si la ability no requiere QTE,
+   * o lanza el QTE si requiereTiming es true (default).
+   *
+   * Validacion de energia:
+   * - energyCost (fijo): se cobra ANTES del QTE. Si no alcanza, cancela sin gastar turno.
+   * - energyCostOnCrit: se cobra solo si el QTE resulto en critico. Se valida tras el QTE,
+   *   pero si falla, cancela la accion (sin aplicar dano) y devuelve la energia del energyCost.
+   */
+  function triggerExecution(_target: any) {
+    const ability = selectedAbility.value
+    if (!ability) return
+
+    const caster = player.value as Hero | null
+    if (!caster || !caster.isAlive) {
+      cancelAction('No puedes actuar sin un heroe vivo.')
+      return
+    }
+
+    // Pre-check de costo fijo de energia
+    if (ability.energyCost && ability.energyCost > 0) {
+      if (caster.energy < ability.energyCost) {
+        cancelAction(`Energia insuficiente para ${ability.name} (necesitas ${ability.energyCost}).`)
+        return
+      }
+      caster.spendEnergy(ability.energyCost)
+    }
+
+    if (ability.requiresTiming === false) {
+      // Sin QTE: ejecutar inmediatamente
+      executeAbility(1, undefined as any, ability.energyCost ?? 0)
+    } else {
+      performTimingChallenge().then((timingResult) => {
+        // Validar el costo por critico ANTES de ejecutar
+        if (timingResult === 'critical' && ability.energyCostOnCrit && ability.energyCostOnCrit > 0) {
+          if (caster.energy < ability.energyCostOnCrit) {
+            // Devolver la energia fija cobrada, cancelar accion
+            caster.restoreEnergy(ability.energyCost ?? 0)
+            cancelAction(`Energia insuficiente para confirmar el critico (necesitas ${ability.energyCostOnCrit}).`)
+            return
+          }
+          caster.spendEnergy(ability.energyCostOnCrit)
+        }
+        const multiplier = TIMING_MULTIPLIERS[timingResult as keyof typeof TIMING_MULTIPLIERS]
+        executeAbility(multiplier, timingResult, ability.energyCost ?? 0)
+      })
+    }
+  }
+
+  function canTargetEnemies(ability: IAbility | null): boolean {
+    if (!ability) return false
+    const tt = ability.targetType ?? 'enemies-only'
+    return tt === 'all' || tt === 'enemies-only'
+  }
+
+  function canTargetAllies(ability: IAbility | null): boolean {
+    if (!ability) return false
+    const tt = ability.targetType ?? 'enemies-only'
+    return tt === 'all' || tt === 'allies-only'
+  }
+
+  function selectAlly(hero: Hero) {
+    if (!isPlayerTurn.value || !hero.isAlive || isPlayerInputLocked.value) return
+    if (!isSelectingTarget.value || !selectedAbility.value) return
+    if (!canTargetAllies(selectedAbility.value)) {
+      addToLog(`Solo puedes lanzar ${selectedAbility.value.name} sobre enemigos.`)
+      return
+    }
+    currentAction.value = { ability: selectedAbility.value, target: hero }
+    triggerExecution(hero)
+  }
+
   const abilityShortcuts = ['q', 'w', 'e', 'r']
 
   function handleAbilitiesModalShortcuts(e: KeyboardEvent) {
@@ -250,15 +358,26 @@ export function useCombat(config: CombatConfig = {}) {
     if (isCombatEnded.value) return
     if (showAbilitiesModal.value) return
 
-    if (isSelectingTarget.value && ['1', '2', '3'].includes(e.key) && actionRequiresTarget(selectedAbility.value)) {
+    if (isSelectingTarget.value && ['1', '2', '3', '4', '5'].includes(e.key) && actionRequiresTarget(selectedAbility.value)) {
       const idx = parseInt(e.key, 10) - 1
-      const alive = aliveEnemies.value
-      if (alive[idx]) {
-        selectEnemy(alive[idx])
-        e.preventDefault()
-      } else {
-        addToLog(`No hay enemigo en la posición ${e.key}.`)
-        e.preventDefault()
+      if (canTargetEnemies(selectedAbility.value)) {
+        const alive = aliveEnemies.value
+        if (alive[idx]) {
+          selectEnemy(alive[idx])
+          e.preventDefault()
+        } else {
+          addToLog(`No hay enemigo en la posición ${e.key}.`)
+          e.preventDefault()
+        }
+      } else if (canTargetAllies(selectedAbility.value)) {
+        const aliveAllies = heroes.value.filter(h => h.isAlive)
+        if (aliveAllies[idx]) {
+          selectAlly(aliveAllies[idx])
+          e.preventDefault()
+        } else {
+          addToLog(`No hay aliado en la posición ${e.key}.`)
+          e.preventDefault()
+        }
       }
     }
   }
@@ -290,7 +409,15 @@ export function useCombat(config: CombatConfig = {}) {
       player.value.reduceStatusEffects()
     }
     if (typeof player.value?.restoreEnergy === 'function') {
-      player.value.restoreEnergy(10)
+      const regen = typeof player.value.getTurnEndEnergyRegen === 'function'
+        ? player.value.getTurnEndEnergyRegen()
+        : 0
+      if (regen > 0) {
+        const restored = player.value.restoreEnergy(regen)
+        if (restored > 0) {
+          addToLog(`Recuperaste ${restored} de energia (fin de turno).`)
+        }
+      }
     }
     setTimeout(enemyTurn, config.isTraining ? 1000 : 2000)
   }
@@ -346,18 +473,54 @@ export function useCombat(config: CombatConfig = {}) {
           isExecutingAction.value = false
           return
         }
-        addToLog('¡Has sido derrotado!')
-        endCombat(false)
-        return
+        // Rotar al siguiente heroe vivo antes de continuar el turno enemigo
+        const rotated = rotateToNextAliveHero()
+        if (!rotated) {
+          addToLog('¡Todos tus heroes han caido!')
+          endCombat(false)
+          return
+        }
+        addToLog(`¡${player.value.name} entra en combate!`)
       }
       await delay(config.isTraining ? 600 : 1500);
     }
 
     isPlayerTurn.value = true
     isExecutingAction.value = false
-    addToLog('Tu turno.')
+    // Si el heroe activo murio durante el turno enemigo, rotar al siguiente heroe vivo.
+    if (!player.value || !player.value.isAlive) {
+      const rotated = rotateToNextAliveHero()
+      if (!rotated) {
+        addToLog('¡Todos tus heroes han caido!')
+        endCombat(false)
+        return
+      }
+      addToLog(`Tu turno. ${gameStore.activeHero?.name} entra en combate.`)
+    } else {
+      addToLog('Tu turno.')
+    }
     showAnnouncement('Tu turno', 'turn', 1400)
     await startPlayerTurn()
+  }
+
+  /**
+   * Rota el activeHero al siguiente slot con un heroe vivo.
+   * @returns true si encontro un heroe vivo, false si todos estan muertos.
+   */
+  function rotateToNextAliveHero(): boolean {
+    const all = gameStore.heroes
+    const currentIdx = gameStore.activeHeroIndex
+    for (let offset = 0; offset < all.length; offset++) {
+      const idx = (currentIdx + offset) % all.length
+      const candidate = all[idx]
+      if (candidate && candidate.isAlive) {
+        if (idx !== currentIdx) {
+          gameStore.setActiveHero(idx)
+        }
+        return true
+      }
+    }
+    return false
   }
 
   function revivePlayer() {
@@ -478,12 +641,16 @@ export function useCombat(config: CombatConfig = {}) {
     }
   }
 
-  const executeAbility = async (damageMultiplier: number = 1, timingResult?: TimingResultData['result']) => {
+  const executeAbility = async (
+    damageMultiplier: number = 1,
+    timingResult?: TimingResultData['result'],
+    energySpent: number = 0
+  ) => {
     isExecutingAction.value = true
 
     if (currentAction.value) {
       const { ability, target } = currentAction.value
-      const playerChar = player.value as Player
+      const playerChar = player.value as Hero
 
       if (ability.execute) {
         await ability.execute({
@@ -495,7 +662,8 @@ export function useCombat(config: CombatConfig = {}) {
           performTimingChallenge,
           audioManager,
           damageMultiplier,
-          timingResult
+          timingResult,
+          energySpent
         })
         onAbilityUsed(ability.type, ability.cooldown)
       }
@@ -513,13 +681,13 @@ export function useCombat(config: CombatConfig = {}) {
     if (!isPlayerTurn.value || !enemy.isAlive || isPlayerInputLocked.value) return
 
     if (isSelectingTarget.value && selectedAbility.value) {
+      if (!canTargetEnemies(selectedAbility.value)) {
+        addToLog(`${selectedAbility.value.name} solo afecta a aliados.`)
+        return
+      }
       selectedEnemy.value = enemy
       currentAction.value = { ability: selectedAbility.value, target: enemy }
-
-      performTimingChallenge().then((timingResult) => {
-        const multiplier = TIMING_MULTIPLIERS[timingResult as keyof typeof TIMING_MULTIPLIERS]
-        executeAbility(multiplier, timingResult)
-      })
+      triggerExecution(enemy)
     }
   }
 
@@ -573,6 +741,7 @@ export function useCombat(config: CombatConfig = {}) {
 
   return {
     player,
+    heroes,
     enemies,
     selectedEnemy,
     combatLog,
@@ -618,11 +787,14 @@ export function useCombat(config: CombatConfig = {}) {
     addToLog,
     getHealthPercentage,
     selectEnemy,
+    selectAlly,
     selectAction,
     initializeCombat,
     cleanup,
     showEnemyHit,
     showPlayerHit,
+    canTargetEnemies,
+    canTargetAllies,
     actionRequiresTarget,
     handleTimingResult,
     executeAbility,

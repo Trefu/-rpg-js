@@ -1,4 +1,5 @@
 import type { IStatusEffect } from '../interfaces/IStatusEffect'
+import type { DefenseBlockEffect } from './types'
 
 export interface DefenseModifiers {
   waveSpeedMultiplier: number
@@ -6,6 +7,16 @@ export interface DefenseModifiers {
   phaseCountReduction: number
   blockReductionBonus: number
   counterAttackFraction: number
+  /**
+   * Efecto de bloqueo sobreescrito por perks/equipo/clase.
+   * Si esta presente, reemplaza al `onBlockEffect` del patron.
+   */
+  blockEffectOverride?: DefenseBlockEffect
+  /**
+   * Efectos de bloqueo extra que se suman al efecto del patron
+   * (ej. "parry" sobre "damage_reduction").
+   */
+  additionalBlockEffects?: DefenseBlockEffect[]
 }
 
 export const DEFAULT_DEFENSE_MODIFIERS: DefenseModifiers = {

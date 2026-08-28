@@ -1,5 +1,5 @@
 import type { INode } from '@/core/interfaces/IExpedition'
-import { getEnemiesForNode } from '@/core/zones/EnemyPools'
+import { DEFAULT_ZONE, getEnemiesForNode, type ZoneId } from '@/core/zones/EnemyPools'
 
 interface GeneratorConfig {
   minNodesBeforeBoss: number
@@ -30,11 +30,11 @@ function pickNodeType(): INode['type'] {
   return 'combat'
 }
 
-function buildRows(): INode[][] {
+function buildRows(zoneId: ZoneId): INode[][] {
   const rows: INode[][] = []
   const totalNodes = CONFIG.minNodesBeforeBoss + 2
 
-  const startNode = createNode('start', 'combat', { x: 50, y: 5 }, getEnemiesForNode('mountain-peak', 1, totalNodes))
+  const startNode = createNode('start', 'combat', { x: 50, y: 5 }, getEnemiesForNode(zoneId, 1, totalNodes))
   rows.push([startNode])
 
   for (let row = 0; row < CONFIG.minNodesBeforeBoss; row++) {
@@ -46,7 +46,7 @@ function buildRows(): INode[][] {
       const baseX = pathsCount === 1 ? 50 : 15 + (p * 70 / (pathsCount - 1))
       const x = baseX + (Math.random() * 6 - 3)
       const type = pickNodeType()
-      const enemies = type === 'combat' ? getEnemiesForNode('mountain-peak', row + 2, totalNodes) : []
+      const enemies = type === 'combat' ? getEnemiesForNode(zoneId, row + 2, totalNodes) : []
       const nodeId = pathsCount > 1 ? `node-${row}-${p}` : `node-${row}`
       const node = createNode(nodeId, type, { x, y }, enemies)
       rowNodes.push(node)
@@ -55,7 +55,7 @@ function buildRows(): INode[][] {
     rows.push(rowNodes)
   }
 
-  const bossNode = createNode('boss', 'boss', { x: 50, y: 95 }, getEnemiesForNode('mountain-peak', totalNodes, totalNodes))
+  const bossNode = createNode('boss', 'boss', { x: 50, y: 95 }, getEnemiesForNode(zoneId, totalNodes, totalNodes))
   rows.push([bossNode])
 
   return rows
@@ -190,23 +190,23 @@ function attachConnections(rows: INode[][], childrenOf: Map<string, Set<string>>
   return allNodes
 }
 
-function generateLinearFallback(): INode[] {
+function generateLinearFallback(zoneId: ZoneId): INode[] {
   const rows: INode[][] = []
   const totalNodes = CONFIG.minNodesBeforeBoss + 2
 
-  const startNode = createNode('start', 'combat', { x: 50, y: 5 }, getEnemiesForNode('mountain-peak', 1, totalNodes))
+  const startNode = createNode('start', 'combat', { x: 50, y: 5 }, getEnemiesForNode(zoneId, 1, totalNodes))
   rows.push([startNode])
 
   let prev = startNode
   for (let row = 0; row < CONFIG.minNodesBeforeBoss; row++) {
     const y = 15 + (row * 80) / CONFIG.minNodesBeforeBoss
-    const node = createNode(`node-${row}`, 'combat', { x: 50, y }, getEnemiesForNode('mountain-peak', row + 2, totalNodes))
+    const node = createNode(`node-${row}`, 'combat', { x: 50, y }, getEnemiesForNode(zoneId, row + 2, totalNodes))
     rows.push([node])
     prev.connections = [node.id]
     prev = node
   }
 
-  const bossNode = createNode('boss', 'boss', { x: 50, y: 95 }, getEnemiesForNode('mountain-peak', totalNodes, totalNodes))
+  const bossNode = createNode('boss', 'boss', { x: 50, y: 95 }, getEnemiesForNode(zoneId, totalNodes, totalNodes))
   rows.push([bossNode])
   prev.connections = [bossNode.id]
 
@@ -214,9 +214,9 @@ function generateLinearFallback(): INode[] {
 }
 
 export function useExpeditionGenerator() {
-  function generateExpeditionNodes(): INode[] {
+  function generateExpeditionNodes(zoneId: ZoneId = DEFAULT_ZONE): INode[] {
     for (let attempt = 0; attempt < CONFIG.maxRetries; attempt++) {
-      const rows = buildRows()
+      const rows = buildRows(zoneId)
       const childrenOf = connectByReverseBFS(rows)
       const result = validateConnectivity(rows, childrenOf)
       if (result.ok) {
@@ -225,7 +225,7 @@ export function useExpeditionGenerator() {
     }
 
     console.warn('[useExpeditionGenerator] Exhausted retries, falling back to linear layout')
-    return generateLinearFallback()
+    return generateLinearFallback(zoneId)
   }
 
   return {

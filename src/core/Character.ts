@@ -12,6 +12,10 @@ export abstract class Character implements ICharacter {
 
   abstract attack(): number
 
+  public hasStatusEffect(type: string): boolean {
+    return this.statusEffects.some(e => e.type === type && e.turns > 0)
+  }
+
   constructor(
     id: string,
     name: string,

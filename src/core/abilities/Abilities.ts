@@ -1,5 +1,6 @@
 import type { IAbility } from '@/core/interfaces/IAbility'
 import type { AbilityContext } from '@/core/interfaces/IAbility'
+import type { Hero } from '../Hero'
 
 const TIMING_PREFIX: Record<string, string> = {
   critical: '¡CRÍTICO! Usaste',
@@ -27,6 +28,8 @@ export const createBasicAttackAbility = (): IAbility => ({
   type: 'attack',
   cooldown: 0,
   damage: 30,
+  targetType: 'enemies-only',
+  requiresTiming: true,
   execute: async (context: AbilityContext) => {
     const baseDamage = context.caster.attack()
     const multiplier = context.damageMultiplier ?? 1
@@ -47,6 +50,8 @@ export const createStunStrikeAbility = (): IAbility => ({
   type: 'stunStrike',
   cooldown: 3,
   damage: 50,
+  targetType: 'enemies-only',
+  requiresTiming: true,
   execute: async (context: AbilityContext) => {
     const damage = Math.floor(context.caster.attack() * 0.8)
     context.target.takeDamage(damage)
@@ -65,6 +70,8 @@ export const createStealthStrikeAbility = (): IAbility => ({
   type: 'stealthStrike',
   cooldown: 2,
   damage: 70,
+  targetType: 'enemies-only',
+  requiresTiming: true,
   execute: async (context: AbilityContext) => {
     const damage = Math.floor(context.caster.attack() * 1.5)
     context.target.takeDamage(damage)
@@ -83,6 +90,8 @@ export const createFireballAbility = (): IAbility => ({
   type: 'fireball',
   cooldown: 3,
   damage: 90,
+  targetType: 'enemies-only',
+  requiresTiming: true,
   execute: async (context: AbilityContext) => {
     const damage = Math.floor(context.caster.attack() * 1.5)
     context.target.takeDamage(damage)
@@ -92,5 +101,55 @@ export const createFireballAbility = (): IAbility => ({
       `Lanzaste Bola de Fuego causando ${damage} de daño de fuego.`,
       context.timingResult
     ))
+  }
+})
+
+export const createWarriorAttackAbility = (): IAbility => ({
+  name: 'Tajo Devastador',
+  description: 'Un tajo certero que siempre cuesta 20 de energia. Un critico inflige X3 de dano.',
+  type: 'warriorAttack',
+  cooldown: 0,
+  energyCost: 20,
+  customCriticalMultiplier: 3.0,
+  targetType: 'enemies-only',
+  requiresTiming: true,
+  execute: async (context: AbilityContext) => {
+    const caster = context.caster as Hero
+    const baseDamage = caster.attack()
+    const multiplier = context.damageMultiplier ?? 1
+
+    const finalDamage = Math.floor(baseDamage * multiplier)
+    context.target.takeDamage(finalDamage)
+    context.showEnemyHit(context.target.id, finalDamage)
+    if (context.timingResult === 'critical' && multiplier > 1) {
+      showCritAnnouncement(context)
+    }
+    context.addToLog(formatAbilityLog(
+      `Usaste Tajo Devastador causando ${finalDamage} de dano.`,
+      context.timingResult
+    ))
+  }
+})
+
+export const createSecondWindAbility = (): IAbility => ({
+  name: 'Segundo Aliento',
+  description: 'Cura 20 de vida maxima y restaura 20 de energia.',
+  type: 'secondWind',
+  cooldown: 1,
+  targetType: 'allies-only',
+  requiresTiming: false,
+  execute: async (context: AbilityContext) => {
+    const target = context.target as Hero
+    if (!target.isAlive) {
+      context.addToLog('No puedes usar Segundo Aliento en un aliado inconsciente.')
+      return
+    }
+    const healAmount = Math.floor(target.maxHealth * 0.10)
+    target.heal(healAmount)
+    const restoredEnergy = target.restoreEnergy(20)
+    context.addToLog(
+      `Usaste Segundo Aliento en ${target.name}: cura ${healAmount} HP y restaura ${restoredEnergy} energia.`
+    )
+    context.showAnnouncement('Segundo Aliento!', 'info', 1500)
   }
 })

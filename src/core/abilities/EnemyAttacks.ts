@@ -9,7 +9,6 @@ export const GOBLIN_MORDIDA: DefensePatternConfig = {
 
 export const GOBLIN_MORDIDA_VENENOSA: DefensePatternConfig = {
   name: 'Mordida venenosa',
-  phaseSpeed: 60,
   waveSpeed: 60,
   phaseCount: 1,
   baseMaxBlockReduction: 0.5,

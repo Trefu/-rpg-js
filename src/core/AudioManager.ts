@@ -22,7 +22,7 @@ export class AudioManager {
   private currentMusic: MountainTrack | null = null
   private mountainMusic: Partial<Record<MountainTrack, Howl>> = {}
   private soundEffects: Partial<Record<SfxName, Howl>> = {}
-  private musicVolume: number = 0.1
+  private musicVolume: number = 0.0
   private sfxVolume: number = 1
   private isMuted: boolean = false
   private unlocked: boolean = false
