@@ -32,6 +32,9 @@ function effectAccent(effect: IStatusEffect): string {
 }
 
 function effectDurationLabel(effect: IStatusEffect): string {
+  if (typeof effect.charges === 'number') {
+    return `${effect.charges} carga${effect.charges === 1 ? '' : 's'}`
+  }
   if (effect.turns === undefined) return ''
   return `${effect.turns} turno${effect.turns === 1 ? '' : 's'}`
 }
@@ -42,9 +45,24 @@ function totalDamage(effect: IStatusEffect): number {
 }
 
 function turnsPercent(effect: IStatusEffect): number {
+  if (typeof effect.charges === 'number') {
+    const max = effect.maxCharges && effect.maxCharges > 0 ? effect.maxCharges : 5
+    return Math.max(0, Math.min(100, (effect.charges / max) * 100))
+  }
   const max = effect.maxDuration ?? Math.max(effect.turns ?? 0, 3)
   if (!max) return 0
   return Math.max(0, Math.min(100, ((effect.turns ?? 0) / max) * 100))
+}
+
+function isChargeBased(effect: IStatusEffect): boolean {
+  return typeof effect.charges === 'number'
+}
+
+function progressTitle(effect: IStatusEffect): string {
+  if (isChargeBased(effect)) {
+    return `${effect.charges} / ${effect.maxCharges ?? effect.charges} cargas`
+  }
+  return `${effect.turns} / ${effect.maxDuration} turnos`
 }
 </script>
 
@@ -96,9 +114,9 @@ function turnsPercent(effect: IStatusEffect): number {
                   </span>
                 </div>
                 <div
-                  v-if="effect.maxDuration && effect.turns !== undefined"
+                  v-if="isChargeBased(effect) || (effect.maxDuration && effect.turns !== undefined)"
                   class="status-card-bar"
-                  :title="`${effect.turns} / ${effect.maxDuration} turnos`"
+                  :title="progressTitle(effect)"
                 >
                   <span class="status-card-bar-fill" :style="{ width: turnsPercent(effect) + '%' }"></span>
                 </div>

@@ -130,10 +130,39 @@ export function useCombat(config: CombatConfig = {}) {
     })
   }
 
-  function handleDefensePhaseComplete(_result: DefensePhaseResult) {
+  function handleDefensePhaseComplete(result: DefensePhaseResult) {
+    // Dispara los hooks `onBlock` una vez por cada fase acertada del QTE.
+    // Asi, una fase que entra en el area de exito consume 1 carga del buff.
+    if (result.outcome === 'success') {
+      processPlayerOnBlockHooks(1)
+    }
     if (defensePhaseIndex.value < (defensePattern.value?.phaseCount ?? 1) - 1) {
       defensePhaseIndex.value++
     }
+  }
+
+  /**
+   * Itera los efectos de estado del jugador con `onBlock` + `charges`,
+   * los dispara, y elimina los que se quedan sin cargas.
+   * Llamado una vez por cada fase del QTE en la que el jugador acierta
+   * el area de exito (no por ataque entero).
+   */
+  function processPlayerOnBlockHooks(blockedFraction: number) {
+    const p = player.value
+    if (!p) return
+    const consumed: string[] = []
+    for (const effect of p.statusEffects) {
+      if (typeof effect.onBlock !== 'function') continue
+      if (typeof effect.charges === 'number' && effect.charges <= 0) continue
+      effect.onBlock(p, blockedFraction)
+      if (typeof effect.charges === 'number') {
+        effect.charges -= 1
+        if (effect.charges <= 0) consumed.push(effect.type)
+      }
+    }
+    if (consumed.length === 0) return
+    for (const type of consumed) p.removeStatusEffect(type)
+    addToLog(`¡${consumed.join(', ')} se consumieron tras agotar sus cargas!`)
   }
 
   function handleDefenseAllPhasesComplete(results: DefensePhaseResult[]) {

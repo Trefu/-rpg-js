@@ -1,6 +1,7 @@
 import type { IAbility } from '@/core/interfaces/IAbility'
 import type { AbilityContext, TimingResult } from '@/core/interfaces/IAbility'
 import type { Hero } from '../Hero'
+import { StatusEffects } from '../StatusEffects'
 
 const TIMING_PREFIX: Record<TimingResult, string> = {
   critical: '¡CRÍTICO! Usaste',
@@ -146,22 +147,39 @@ export const createWarriorAttackAbility = (customCriticalMultiplier: number = 3.
 
 export const createSecondWindAbility = (): IAbility => ({
   name: 'Segundo Aliento',
-  description: 'Cura 20 de vida maxima y restaura 20 de energia.',
+  description: 'Cura 20% de vida maxima y aplica el buff Segundo Aliento: cada bloqueo siguiente restaura 2% de la energia maxima (5 bloqueos).',
   type: 'secondWind',
   cooldown: 1,
   targetType: 'allies-only',
   requiresTiming: false,
   execute: async (context: AbilityContext) => {
-    const target = context.target as Hero
-    if (!target.isAlive) {
-      context.addToLog('No puedes usar Segundo Aliento en un aliado inconsciente.')
+    const caster = context.caster as Hero
+    if (!caster.isAlive) {
+      context.addToLog('No puedes usar Segundo Aliento estando inconsciente.')
       return
     }
-    const healAmount = Math.floor(target.maxHealth * 0.10)
-    target.heal(healAmount)
-    const restoredEnergy = target.restoreEnergy(20)
+    const healAmount = Math.floor(caster.maxHealth * 0.20)
+    caster.heal(healAmount)
+
+    const buffTemplate = StatusEffects.SECOND_WIND
+    const maxCharges = buffTemplate.maxCharges ?? buffTemplate.charges ?? 5
+    const existing = caster.statusEffects.find(e => e.type === buffTemplate.type)
+    if (existing) {
+      existing.charges = maxCharges
+      existing.maxCharges = maxCharges
+      existing.turns = Infinity
+      existing.onBlock = buffTemplate.onBlock
+    } else {
+      caster.addStatusEffect({
+        ...buffTemplate,
+        charges: maxCharges,
+        maxCharges,
+        turns: Infinity
+      })
+    }
+
     context.addToLog(
-      `Usaste Segundo Aliento en ${target.name}: cura ${healAmount} HP y restaura ${restoredEnergy} energia.`
+      `Usaste Segundo Aliento: cura ${healAmount} HP y activa el buff (${maxCharges} cargas).`
     )
     context.showAnnouncement('Segundo Aliento!', 'info', 1500)
   }

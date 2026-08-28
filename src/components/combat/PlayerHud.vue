@@ -153,7 +153,8 @@ onBeforeUnmount(() => {
               </div>
               <div class="hud-effect-tags">
                 <span v-if="effect.stacks && effect.stacks > 1" class="effect-tag stack">x{{ effect.stacks }}</span>
-                <span v-if="effect.turns !== undefined" class="effect-tag turns">{{ effect.turns }}t</span>
+                <span v-if="typeof effect.charges === 'number'" class="effect-tag charges">{{ effect.charges }}/{{ effect.maxCharges ?? effect.charges }}c</span>
+                <span v-else-if="effect.turns !== undefined" class="effect-tag turns">{{ effect.turns }}t</span>
               </div>
             </li>
           </ul>
@@ -507,6 +508,11 @@ onBeforeUnmount(() => {
 .effect-tag.turns {
   background: rgba(64, 196, 255, 0.25);
   color: #82b1ff;
+}
+
+.effect-tag.charges {
+  background: rgba(102, 187, 106, 0.25);
+  color: #b6f5b6;
 }
 
 .hud-dropdown-empty {

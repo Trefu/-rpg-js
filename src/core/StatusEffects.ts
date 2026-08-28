@@ -1,4 +1,5 @@
 import type { IStatusEffect } from './interfaces/IStatusEffect'
+import type { Hero } from './Hero'
 import stunIcon from '@/assets/icons/ball-glow.png'
 import burnIcon from '@/assets/icons/fire.png'
 import poisonIcon from '@/assets/icons/poison-gas.png'
@@ -8,6 +9,7 @@ import defenseIcon from '@/assets/icons/shield.png'
 import speedIcon from '@/assets/icons/footprint.png'
 import weaknessIcon from '@/assets/icons/anatomy.png'
 import slowIcon from '@/assets/icons/snail.png'
+import secondWindIcon from '@/assets/icons/wind-slap.png'
 
 // Duración máxima por defecto para cualquier efecto de daño por tiempo (DoT).
 // Cualquier re-aplicación respetará este tope y acumulará stacks en su lugar.
@@ -110,6 +112,43 @@ export class StatusEffects {
     speedBonus: 2
   }
 
+  static readonly SECOND_WIND: IStatusEffect = {
+    type: 'second_wind',
+    name: 'Segundo Aliento',
+    description: 'Cada bloqueo restaura 10% de la energia maxima. Se consume tras 5 bloqueos.',
+    turns: Infinity,
+    charges: 5,
+    maxCharges: 5,
+    icon: secondWindIcon,
+    isBuff: true,
+    turnLabel: '¡Su segundo aliento lo mantiene en pie!',
+    onBlock: (target, _blockedFraction) => {
+      const hero = target as Hero
+      const restore = Math.floor(hero.maxEnergy * 0.1)
+      hero.restoreEnergy(restore)
+    }
+  }
+
+  // Ejemplo: bloquea y se cura HP en funcion del dano bloqueado. Sin cargos
+  // (mientras dure `turns`, se mantiene). Solo se activa si `blockedFraction >= 1`.
+  static readonly VAMPIRE_SHIELD: IStatusEffect = {
+    type: 'vampire_shield',
+    name: 'Escudo Vampírico',
+    description: 'Cada bloqueo completo absorbe 30% del dano bloqueado como vida.',
+    turns: 3,
+    icon: secondWindIcon,
+    isBuff: true,
+    turnLabel: '¡Su escudo vampírico le roba vida al enemigo!',
+    onBlock: (target, blockedFraction) => {
+      if (blockedFraction < 1) return
+      const hero = target as Hero
+      // El dano bloqueado exacto no llega al hook; estimamos con maxHealth * factor.
+      // Si necesitas el valor exacto, hay que extender el hook para recibirlo.
+      const heal = Math.floor(hero.maxHealth * 0.05 * blockedFraction)
+      hero.heal(heal)
+    }
+  }
+
   // Efectos de debuff
   static readonly WEAKNESS: IStatusEffect = {
     type: 'weakness',
@@ -143,7 +182,9 @@ export class StatusEffects {
       this.DEFENSE_BOOST,
       this.SPEED_BOOST,
       this.WEAKNESS,
-      this.SLOW
+      this.SLOW,
+      this.SECOND_WIND,
+      this.VAMPIRE_SHIELD
     ]
     const target = type.toLowerCase()
     return effects.find(effect => effect.type === target) || null
@@ -159,7 +200,9 @@ export class StatusEffects {
       this.DEFENSE_BOOST.type,
       this.SPEED_BOOST.type,
       this.WEAKNESS.type,
-      this.SLOW.type
+      this.SLOW.type,
+      this.SECOND_WIND.type,
+      this.VAMPIRE_SHIELD.type
     ]
   }
 }

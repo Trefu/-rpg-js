@@ -128,10 +128,9 @@ function handleInput() {
 
 function finalizePhase(result: DefensePhaseResult) {
   setTimeout(() => {
+    emit('phase-complete', result)
     if (isLastPhase.value) {
       emit('all-phases-complete', phaseResults.value)
-    } else {
-      emit('phase-complete', result)
     }
   }, FEEDBACK_DURATION_MS)
 }

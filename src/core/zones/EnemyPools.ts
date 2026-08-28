@@ -81,7 +81,7 @@ export const ZONE_ENEMY_POOLS: Record<ZoneId, ZoneEnemyConfig> = {
     },
     enemyCountPerTier: {
       intro: [2, 2],
-      early: [1, 2],
+      early: [2, 2],
       mid: [2, 3],
       late: [3, 4],
       boss: [1, 1]

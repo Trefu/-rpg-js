@@ -163,7 +163,12 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
   }
 
   public reduceStatusEffects() {
-    this.statusEffects.forEach(e => e.turns--)
+    // Los efectos basados en cargas (charges) se gobiernan por su propio
+    // mecanismo de consumo (processPlayerOnBlockHooks), nunca por turnos.
+    this.statusEffects.forEach(e => {
+      if (typeof e.charges === 'number') return
+      e.turns--
+    })
     this.removeExpiredStatusEffects()
   }
 
