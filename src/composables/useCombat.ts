@@ -597,6 +597,16 @@ export function useCombat(config: CombatConfig = {}) {
     addToLog('Efectos de estado eliminados.')
   }
 
+  function restoreAllEnergy() {
+    if (!player.value) return
+    const p = player.value as Hero
+    if (typeof p.maxEnergy !== 'number' || typeof p.restoreEnergy !== 'function') return
+    const restored = p.restoreEnergy(p.maxEnergy)
+    if (restored > 0) {
+      addToLog(`Energía restaurada (+${restored}).`)
+    }
+  }
+
   async function applyPlayerStatusTick() {
     const p = player.value
     if (!p || !Array.isArray(p.statusEffects) || p.statusEffects.length === 0) return
@@ -636,6 +646,9 @@ export function useCombat(config: CombatConfig = {}) {
   function endCombat(victory: boolean) {
     isCombatEnded.value = true
 
+    clearAllStatusEffects()
+    restoreAllEnergy()
+
     if (victory) {
       audioManager.playVictorySound()
       addToLog('¡Victoria! Has completado el combate.')
@@ -652,6 +665,8 @@ export function useCombat(config: CombatConfig = {}) {
 
   function endTraining() {
     isCombatEnded.value = true
+    clearAllStatusEffects()
+    restoreAllEnergy()
     addToLog('Entrenamiento terminado.')
     setTimeout(() => {
       if (config.onTrainingEnd) {
