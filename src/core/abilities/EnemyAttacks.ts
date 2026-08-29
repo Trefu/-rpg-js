@@ -20,7 +20,7 @@ export const GOBLIN_FLECHA_VENENOSA: DefensePatternConfig = {
   onFailureEffect: {
     statusType: 'poison',
     duration: 3,
-    stacks: 1
+    stacks: 5
   }
 }
 
