@@ -27,6 +27,8 @@ const hpPercent = computed(() => {
   return Math.max(0, (props.enemy.health / props.enemy.maxHealth) * 100)
 })
 
+const hpLabel = computed(() => `${props.enemy.health}/${props.enemy.maxHealth}`)
+
 const sprite = computed(() => props.enemy.sprite ?? goblinSprite)
 
 const statusEffects = computed<IStatusEffect[]>(() => {
@@ -70,12 +72,13 @@ function onClick() {
     'target-all': isTargetAll,
     'mobile-layout': isMobileLayout
   }" @click="onClick">
+    <div v-if="!isDead" class="enemy-name-top">{{ enemy.name }}</div>
     <EnemyStatusIcons v-if="statusEffects.length > 0" :effects="statusEffects" />
     <img :src="sprite" :alt="enemy.name" class="enemy-sprite-img" />
-    <div v-if="isMobileLayout && !isDead" class="enemy-mobile-name">{{ enemy.name }}</div>
     <div class="enemy-health">
       <div class="health-bar">
         <div class="health-fill" :style="{ width: `${hpPercent}%` }"></div>
+        <span class="health-text">{{ hpLabel }}</span>
       </div>
     </div>
     <transition-group name="hit-popup" tag="div" class="hit-popups-container">
@@ -85,7 +88,6 @@ function onClick() {
     </transition-group>
     <div v-if="showAlwaysShortcut" class="enemy-shortcut-badge">
       <span class="key-cap">{{ index + 1 }}</span>
-      <span v-if="!isMobileLayout" class="enemy-name-badge">{{ enemy.name }}</span>
     </div>
   </div>
 </template>
@@ -136,21 +138,7 @@ function onClick() {
 }
 
 .enemy-mobile-name {
-  font-size: 0.7rem;
-  color: #fff;
-  text-align: center;
-  font-weight: 600;
-  text-shadow: 0 1px 3px #000;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-  padding: 0 4px;
   display: none;
-}
-
-.enemy-card.mobile-layout .enemy-mobile-name {
-  display: block;
 }
 
 .enemy-card.mobile-layout .enemy-shortcut-badge {
@@ -167,6 +155,22 @@ function onClick() {
   padding: 0.15rem 0.5rem;
 }
 
+.enemy-name-top {
+  display: block;
+  font-family: 'Georgia', serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #ffe066;
+  text-align: center;
+  text-shadow: 0 1px 3px #000a, 0 0 6px rgba(0, 0, 0, 0.6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 240px;
+  padding: 0.1rem 0.4rem;
+  margin-bottom: 0.15rem;
+}
+
 .enemy-health {
   margin-top: 0.4rem;
   width: 100%;
@@ -176,8 +180,9 @@ function onClick() {
 }
 
 .health-bar {
+  position: relative;
   width: 100%;
-  height: 10px;
+  height: 16px;
   background-color: #1a1a1a;
   border-radius: 4px;
   overflow: hidden;
@@ -185,8 +190,24 @@ function onClick() {
 
 .health-fill {
   height: 100%;
-  background-color: #4CAF50;
+  background: linear-gradient(180deg, #66bb6a 0%, #2e7d32 100%);
   transition: width 0.3s ease;
+}
+
+.health-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Courier New', monospace;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 1px 2px #000, 0 0 4px #000a;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+  line-height: 1;
 }
 
 .hit-popups-container {
@@ -247,11 +268,7 @@ function onClick() {
 }
 
 .enemy-shortcut-badge .enemy-name-badge {
-  color: #fff;
-  font-size: 0.8rem;
-  text-shadow: 0 1px 3px #000a;
-  font-weight: 600;
-  padding-right: 0.2rem;
+  display: none;
 }
 
 @keyframes pulse {

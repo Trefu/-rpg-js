@@ -10,11 +10,14 @@ const props = defineProps<{
   enemies: IEnemy[]
   aliveIndexByEnemyId: Record<string, number>
   isPlayerTurn: boolean
+  isSelectingTarget?: boolean
+  canTargetAllies?: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'rotateHero'): void
   (e: 'selectEnemy', enemy: IEnemy): void
+  (e: 'selectAlly', hero: Hero): void
 }>()
 
 const heroSlots = computed<(Hero | null)[]>(() => {
@@ -42,14 +45,45 @@ const energyDisplay = computed(() =>
 
 const aliveEnemies = computed(() => props.enemies.filter(e => e.isAlive))
 
+const aliveAllies = computed(() => props.heroes.filter(h => h.isAlive))
+
+const allyIndexByHeroId = computed<Record<string, number>>(() => {
+  const map: Record<string, number> = {}
+  aliveAllies.value.forEach((h, idx) => { map[h.id] = idx })
+  return map
+})
+
 function enemyHpPercent(e: IEnemy) {
   if (e.maxHealth <= 0) return 0
   return Math.max(0, (e.health / e.maxHealth) * 100)
 }
 
+function heroHpPercent(h: Hero) {
+  if (h.maxHealth <= 0) return 0
+  return Math.max(0, (h.health / h.maxHealth) * 100)
+}
+
 const showEnemyPreview = ref(false)
+const showAllyPreview = ref(false)
 function toggleEnemyPreview() {
   showEnemyPreview.value = !showEnemyPreview.value
+  if (showEnemyPreview.value) showAllyPreview.value = false
+}
+function toggleAllyPreview() {
+  showAllyPreview.value = !showAllyPreview.value
+  if (showAllyPreview.value) showEnemyPreview.value = false
+}
+
+const isAllyTargeting = computed(
+  () => !!props.isSelectingTarget && !!props.canTargetAllies
+)
+
+function onHeroPortraitClick() {
+  if (isAllyTargeting.value) {
+    toggleAllyPreview()
+    return
+  }
+  if (props.heroes.length > 1) emit('rotateHero')
 }
 </script>
 
@@ -57,14 +91,17 @@ function toggleEnemyPreview() {
   <div v-if="player" class="mobile-hud">
     <button
       class="mobile-hud-hero"
+      :class="{ 'mobile-hud-hero-targeting': isAllyTargeting }"
       type="button"
-      :title="heroSlots.length > 1 ? 'Cambiar héroe' : ''"
-      @click="heroSlots.length > 1 && emit('rotateHero')"
+      :title="isAllyTargeting ? 'Seleccionar aliado' : (heroSlots.length > 1 ? 'Cambiar héroe' : '')"
+      @click="onHeroPortraitClick"
     >
       <img v-if="player.sprite" :src="player.sprite" :alt="player.name" class="mobile-hud-portrait" />
       <div class="mobile-hud-info">
         <div class="mobile-hud-name">
-          <span class="mobile-hud-name-text">{{ player.name }}</span>
+          <span class="mobile-hud-name-text">
+            {{ isAllyTargeting ? 'Seleccionar aliado' : player.name }}
+          </span>
           <span class="mobile-hud-level">Nv {{ player.level }}</span>
         </div>
         <div class="mobile-hud-bar">
@@ -106,6 +143,28 @@ function toggleEnemyPreview() {
             <div class="mobile-hud-enemy-bar-fill" :style="{ width: `${enemyHpPercent(enemy)}%` }"></div>
           </div>
           <span class="mobile-hud-enemy-hp">{{ enemy.health }}/{{ enemy.maxHealth }}</span>
+        </button>
+      </div>
+    </transition>
+
+    <transition name="enemy-preview">
+      <div v-if="showAllyPreview && isAllyTargeting" class="mobile-hud-enemy-preview mobile-hud-ally-preview">
+        <button
+          v-for="(hero, idx) in heroes"
+          :key="hero?.id ?? `empty-${idx}`"
+          type="button"
+          class="mobile-hud-enemy-row"
+          :class="{ dead: !hero || !hero.isAlive }"
+          :disabled="!hero || !hero.isAlive"
+          @click="hero && hero.isAlive && emit('selectAlly', hero)"
+        >
+          <span class="mobile-hud-enemy-key">{{ allyIndexByHeroId[hero?.id ?? ''] ?? '—' }}</span>
+          <img v-if="hero?.sprite" :src="hero.sprite" :alt="hero.name" class="mobile-hud-enemy-sprite" />
+          <span class="mobile-hud-enemy-name">{{ hero?.name ?? '—' }}</span>
+          <div class="mobile-hud-enemy-bar" v-if="hero">
+            <div class="mobile-hud-enemy-bar-fill" :style="{ width: `${heroHpPercent(hero)}%` }"></div>
+          </div>
+          <span class="mobile-hud-enemy-hp" v-if="hero">{{ hero.health }}/{{ hero.maxHealth }}</span>
         </button>
       </div>
     </transition>
@@ -270,6 +329,21 @@ function toggleEnemyPreview() {
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
   max-height: 60vh;
   overflow-y: auto;
+}
+
+.mobile-hud-ally-preview {
+  border-color: rgba(102, 255, 178, 0.55);
+}
+
+.mobile-hud-hero-targeting {
+  border-color: rgba(102, 255, 178, 0.85) !important;
+  box-shadow: 0 0 0 2px rgba(102, 255, 178, 0.35);
+  animation: mobile-hud-targeting-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes mobile-hud-targeting-pulse {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(102, 255, 178, 0.35); }
+  50% { box-shadow: 0 0 0 4px rgba(102, 255, 178, 0.55); }
 }
 
 .mobile-hud-enemy-row {

@@ -262,8 +262,11 @@ onUnmounted(() => {
       :enemies="enemies"
       :alive-index-by-enemy-id="aliveIndexByEnemyId"
       :is-player-turn="isPlayerTurn"
+      :is-selecting-target="isSelectingTarget"
+      :can-target-allies="canTargetAllies(selectedAbility)"
       @rotate-hero="rotateHero"
       @select-enemy="selectEnemy"
+      @select-ally="selectAlly"
     />
 
     <div class="enemies-column">

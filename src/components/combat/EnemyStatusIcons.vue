@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
 import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
 import { getEffectDescription } from '@/core/interfaces/IStatusEffect'
 
@@ -9,15 +9,125 @@ const props = defineProps<{
 
 const infoEffect = ref<IStatusEffect | null>(null)
 const containerEl = ref<HTMLElement | null>(null)
+const iconEls = ref<HTMLElement[]>([])
 
 const infoDescription = computed(() => {
   if (!infoEffect.value) return ''
   return getEffectDescription(infoEffect.value, 'enemy')
 })
 
-function showEffectInfo(effect: IStatusEffect, event: Event) {
+interface PopupLayout {
+  side: 'left' | 'right' | 'center'
+  /** Coordenadas del popup en px CSS relativos al viewport (position: fixed). */
+  left: number
+  top: number
+  maxWidth: number
+  /** Posición X (px CSS) de la flecha, relativa al borde izquierdo del popup. */
+  arrowLeft: number
+}
+
+const DEFAULT_MAX = 320
+const EDGE = 12
+
+/**
+ * Resuelve la geometría del popup. Se calcula con position: fixed en
+ * coordenadas de viewport para escapar del stacking context del icono
+ * (que es el problema cuando hay varios enemigos en pantalla).
+ */
+function computeLayout(): PopupLayout | null {
+  if (!infoEffect.value) return null
+  if (typeof window === 'undefined') return null
+  const idx = props.effects.findIndex(e => e.type === infoEffect.value!.type)
+  const el = iconEls.value[idx]
+  if (!el) return null
+  const rect = el.getBoundingClientRect()
+  const vw = window.innerWidth
+  const vh = window.innerHeight
+  const center = rect.left + rect.width / 2
+  const halfDefault = DEFAULT_MAX / 2
+  const rightSpace = vw - rect.right - EDGE
+  const leftSpace = rect.left - EDGE
+
+  let side: 'left' | 'right' | 'center'
+  let maxWidth: number
+  if (center - halfDefault < EDGE) {
+    side = 'left'
+    maxWidth = Math.max(180, Math.min(DEFAULT_MAX, rightSpace))
+  } else if (center + halfDefault > vw - EDGE) {
+    side = 'right'
+    maxWidth = Math.max(180, Math.min(DEFAULT_MAX, leftSpace))
+  } else {
+    side = 'center'
+    maxWidth = Math.min(DEFAULT_MAX, leftSpace + rightSpace)
+  }
+
+  // Posición del popup (fixed)
+  let popupLeft: number
+  if (side === 'left') {
+    popupLeft = rect.left
+  } else if (side === 'right') {
+    popupLeft = rect.right - maxWidth
+  } else {
+    popupLeft = center - maxWidth / 2
+  }
+  const popupTop = rect.bottom + 8
+
+  // Si no hay espacio debajo, lo colocamos arriba del icono
+  // (estimamos 180px de alto para el popup; si no entra, subimos)
+  const ESTIMATED_POPUP_HEIGHT = 180
+  let top = popupTop
+  if (top + ESTIMATED_POPUP_HEIGHT > vh - EDGE) {
+    top = Math.max(EDGE, rect.top - ESTIMATED_POPUP_HEIGHT - 8)
+  }
+
+  // Posición X de la flecha (relativa al popup)
+  const arrowLeft = Math.max(10, Math.min(maxWidth - 10, center - popupLeft))
+
+  return {
+    side,
+    left: Math.round(popupLeft),
+    top: Math.round(top),
+    maxWidth: Math.floor(maxWidth),
+    arrowLeft: Math.round(arrowLeft)
+  }
+}
+
+const popupStyle = computed(() => {
+  const layout = computeLayout()
+  if (!layout) return {}
+  return {
+    position: 'fixed',
+    left: `${layout.left}px`,
+    top: `${layout.top}px`,
+    maxWidth: `${layout.maxWidth}px`,
+    width: 'auto'
+  }
+})
+
+const popupArrowStyle = computed(() => {
+  const layout = computeLayout()
+  if (!layout) return {}
+  if (layout.side === 'center') return null
+  // Solo mostramos la flecha en flush-left/right cerca del icono
+  return {
+    left: `${layout.arrowLeft}px`,
+    right: 'auto',
+    transform: 'translateX(-50%) rotate(45deg)'
+  }
+})
+
+const showPopupArrow = computed(() => {
+  const layout = computeLayout()
+  if (!layout) return false
+  return layout.side !== 'center'
+})
+
+async function showEffectInfo(effect: IStatusEffect, event: Event) {
   event.stopPropagation()
   infoEffect.value = infoEffect.value?.type === effect.type ? null : effect
+  if (infoEffect.value) {
+    await nextTick()
+  }
 }
 
 function closeInfo() {
@@ -27,19 +137,31 @@ function closeInfo() {
 function onDocClick(e: MouseEvent | TouchEvent) {
   if (!infoEffect.value) return
   const target = e.target as Node
-  if (containerEl.value && !containerEl.value.contains(target)) {
-    closeInfo()
-  }
+  // Como el popup esta teletransportado a body, no podemos preguntar por
+  // `containerEl.contains(target)`. Comprobamos si el click fue sobre el
+  // propio popup o el contenedor de iconos.
+  const popupEl = document.querySelector('.esi-info-popup')
+  if (popupEl && (popupEl === target || popupEl.contains(target))) return
+  if (containerEl.value && containerEl.value.contains(target)) return
+  closeInfo()
 }
 
 function onKey(e: KeyboardEvent) {
   if (e.key === 'Escape') closeInfo()
 }
 
+function onResize() {
+  if (infoEffect.value) {
+    // Forzar re-evaluacion de popupStyle (depende de getBoundingClientRect).
+    infoEffect.value = { ...infoEffect.value }
+  }
+}
+
 if (typeof window !== 'undefined') {
   window.addEventListener('click', onDocClick)
   window.addEventListener('touchstart', onDocClick)
   window.addEventListener('keydown', onKey)
+  window.addEventListener('resize', onResize)
 }
 
 onBeforeUnmount(() => {
@@ -47,6 +169,7 @@ onBeforeUnmount(() => {
     window.removeEventListener('click', onDocClick)
     window.removeEventListener('touchstart', onDocClick)
     window.removeEventListener('keydown', onKey)
+    window.removeEventListener('resize', onResize)
   }
 })
 
@@ -69,6 +192,7 @@ function effectTagline(e: IStatusEffect): string {
     <div
       v-for="effect in effects"
       :key="effect.type"
+      ref="iconEls"
       class="enemy-status-icon"
       :class="{ 'is-info-open': infoEffect?.type === effect.type }"
       :title="`${effect.name} — ${effect.turns ?? 0} turno(s)${(effect.stacks ?? 1) > 1 ? ` · x${effect.stacks} stacks` : ''}`"
@@ -91,37 +215,47 @@ function effectTagline(e: IStatusEffect): string {
 
       <transition name="esi-info">
         <div
-          v-if="infoEffect && infoEffect.type === effect.type"
-          class="esi-info-popup"
-          role="dialog"
-          :aria-label="`Info de ${effect.name}`"
-          @click.stop
-        >
-          <header class="esi-info-header">
-            <img :src="effect.icon" :alt="effect.name" class="esi-info-icon" />
-            <div class="esi-info-titles">
-              <span class="esi-info-name">{{ effect.name }}</span>
-              <span class="esi-info-tag">{{ effectTagline(effect) }}</span>
-            </div>
-            <button
-              type="button"
-              class="esi-info-close"
-              aria-label="Cerrar"
-              @click.stop="closeInfo"
-            >✕</button>
-          </header>
-          <p v-if="infoDescription" class="esi-info-desc">{{ infoDescription }}</p>
-          <p v-else class="esi-info-desc esi-info-desc-empty">Sin descripción disponible.</p>
-        </div>
+          v-if="false"
+        ></div>
       </transition>
     </div>
   </div>
+
+  <Teleport to="body">
+    <transition name="esi-info">
+      <div
+        v-if="infoEffect"
+        class="esi-info-popup"
+        role="dialog"
+        :aria-label="`Info de ${infoEffect.name}`"
+        :style="popupStyle"
+        @click.stop
+      >
+        <header class="esi-info-header">
+          <img :src="infoEffect.icon" :alt="infoEffect.name" class="esi-info-icon" />
+          <div class="esi-info-titles">
+            <span class="esi-info-name">{{ infoEffect.name }}</span>
+            <span class="esi-info-tag">{{ effectTagline(infoEffect) }}</span>
+          </div>
+          <button
+            type="button"
+            class="esi-info-close"
+            aria-label="Cerrar"
+            @click.stop="closeInfo"
+          >✕</button>
+        </header>
+        <p v-if="infoDescription" class="esi-info-desc">{{ infoDescription }}</p>
+        <p v-else class="esi-info-desc esi-info-desc-empty">Sin descripción disponible.</p>
+        <span v-if="showPopupArrow" class="esi-info-arrow" :style="popupArrowStyle"></span>
+      </div>
+    </transition>
+  </Teleport>
 </template>
 
 <style scoped>
 .enemy-status-icons {
   position: absolute;
-  top: 4px;
+  top: 28px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -200,12 +334,8 @@ function effectTagline(e: IStatusEffect): string {
 }
 
 .esi-info-popup {
-  position: fixed;
-  left: 50%;
-  bottom: 24px;
-  transform: translateX(-50%);
-  z-index: 60;
-  width: min(320px, calc(100vw - 24px));
+  /* position, left, top, max-width se aplican inline desde popupStyle */
+  z-index: 9999;
   background: linear-gradient(145deg, #1e2035 0%, #23243a 100%);
   border: 1.5px solid rgba(255, 230, 102, 0.55);
   border-radius: 12px;
@@ -219,17 +349,17 @@ function effectTagline(e: IStatusEffect): string {
 }
 
 .esi-info-popup::before {
-  content: '';
+  display: none;
+}
+
+.esi-info-arrow {
   position: absolute;
   top: -6px;
-  left: 50%;
-  transform: translateX(-50%) rotate(45deg);
   width: 10px;
   height: 10px;
   background: linear-gradient(145deg, #1e2035 0%, #23243a 100%);
   border-top: 1.5px solid rgba(255, 230, 102, 0.55);
   border-left: 1.5px solid rgba(255, 230, 102, 0.55);
-  display: none;
 }
 
 .esi-info-header {
@@ -312,23 +442,6 @@ function effectTagline(e: IStatusEffect): string {
 .esi-info-enter-from,
 .esi-info-leave-to {
   opacity: 0;
-  transform: translateX(-50%) translateY(8px);
-}
-
-@media (min-width: 600px) {
-  .esi-info-popup {
-    position: absolute;
-    top: calc(100% + 8px);
-    bottom: auto;
-    width: max-content;
-    max-width: min(280px, calc(100vw - 32px));
-  }
-  .esi-info-popup::before {
-    display: block;
-  }
-  .esi-info-enter-from,
-  .esi-info-leave-to {
-    transform: translateX(-50%) translateY(-4px);
-  }
+  transform: translateY(-4px);
 }
 </style>

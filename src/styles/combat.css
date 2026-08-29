@@ -122,6 +122,7 @@
 .enemy-health {
   position: absolute;
   bottom: -10px;
+  z-index: 1;
   left: 50%;
   transform: translateX(-50%);
   width: 100px;
@@ -668,7 +669,7 @@
     grid-area: field;
     position: fixed;
     left: 12px;
-    bottom: 96px;
+    top: 86px;
     z-index: 20;
   }
 }
