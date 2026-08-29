@@ -43,11 +43,11 @@ export const WOLF_MORDIDA_FEROZ: DefensePatternConfig = {
   baseMaxBlockReduction: 0.5,
   damageMultiplier: 0.8,
   phases: [
-    { ...phase(3), waveSpeed: 30 },
-    { ...phase(3), waveSpeed: 35 },
-    { ...phase(3), waveSpeed: 40 },
-    { ...phase(3), waveSpeed: 45 },
-    { ...phase(3), waveSpeed: 50 }
+    phase(3, { waveSpeed: 30 }),
+    phase(3, { waveSpeed: 35 }),
+    phase(3, { waveSpeed: 40 }),
+    phase(3, { waveSpeed: 45 }),
+    phase(3, { waveSpeed: 50 })
   ]
 }
 

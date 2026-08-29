@@ -3,12 +3,18 @@ import { DEFENSE_BAR_WIDTH } from './types'
 
 /**
  * Fase con N columnas aleatorias dentro del margen de la barra.
+ * El segundo argumento opcional permite override por fase (ej. `waveSpeed`
+ * creciente para combos que se aceleran).
  *
  * @example
- *   phases: [phase(3), phase(5)] // 3 columnas en fase 1, 5 en fase 2
+ *   phases: [phase(3), phase(5)]                                  // básico
+ *   phases: [phase(3, { waveSpeed: 30 }), phase(3, { waveSpeed: 50 })] // acelerado
  */
-export function phase(columnCount: number): DefensePhaseSpec {
-  return { columnCount }
+export function phase(
+  columnCount: number,
+  overrides?: Pick<DefensePhaseSpec, 'waveSpeed' | 'successColumns'>
+): DefensePhaseSpec {
+  return { columnCount, ...overrides }
 }
 
 /**
