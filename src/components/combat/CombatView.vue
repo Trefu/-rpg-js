@@ -6,6 +6,7 @@ import { useExpeditionStore } from '@/stores/expedition'
 import { useGameStore } from '@/stores/game'
 import { MAX_HEROES } from '@/stores/game'
 import type { Hero } from '@/core/Hero'
+import type { IAbility } from '@/core/interfaces/IAbility'
 import AbilitiesIcon from '@/assets/icons/shield.png'
 import ItemIcon from '@/assets/icons/backpack.png'
 import TimingOverlay from './TimingOverlay.vue'
@@ -13,11 +14,15 @@ import DefenseChallenge from './DefenseChallenge.vue'
 import AnnouncementBanner from './AnnouncementBanner.vue'
 import CombatLogModal from './CombatLogModal.vue'
 import CombatLogPanel from './CombatLogPanel.vue'
+import CombatLogFab from './CombatLogFab.vue'
 import HeroCard from './HeroCard.vue'
 import EnemyCard from './EnemyCard.vue'
+import MobileCombatHud from './MobileCombatHud.vue'
+import MobileActionBar from './MobileActionBar.vue'
 import AbilitiesModal from '@/components/ui/AbilitiesModal.vue'
 import type { DefensePhaseResult } from '@/core/defense/types'
 import type { IEnemy } from '@/core/interfaces/ICharacter'
+import { useMediaQuery } from '@/composables/useMediaQuery'
 
 const props = defineProps<{
   enemyList?: IEnemy[]
@@ -41,12 +46,14 @@ if (props.isTraining) {
 }
 
 const {
+  player,
   heroes,
   enemies,
   selectedEnemy,
   selectedAbility,
   combatLog,
   isSelectingTarget,
+  isPlayerTurn,
   showTimingOverlay,
   attackingEnemyId,
   enemyHitPopups,
@@ -79,6 +86,33 @@ const {
   canTargetAllies,
   canTargetEnemies
 } = useCombat(combatOptions)
+
+const isMobile = useMediaQuery('(max-width: 720px)')
+
+function rotateHero() {
+  const slots = gameStore.heroes
+  const total = slots.length
+  if (total <= 1) return
+  for (let off = 1; off <= total; off++) {
+    const idx = (gameStore.activeHeroIndex + off) % total
+    if (slots[idx] && slots[idx]!.isAlive) {
+      gameStore.setActiveHero(idx)
+      return
+    }
+  }
+}
+
+function onMobileAbility(ability: IAbility, index: number) {
+  selectAbility(ability, index)
+}
+
+function onMobileAttack() {
+  selectAction('attack')
+}
+
+function onMobileObject() {
+  selectAction('Objeto')
+}
 
 const heroSlots = computed(() => {
   const slots: (Hero | null)[] = []
@@ -212,7 +246,7 @@ onUnmounted(() => {
       :variant="(announcement?.variant as any) || 'info'"
     />
 
-    <div class="heroes-column">
+    <div v-if="!isMobile" class="heroes-column">
       <div class="heroes-container">
         <HeroCard
           v-for="(hero, idx) in heroSlots"
@@ -225,6 +259,18 @@ onUnmounted(() => {
         />
       </div>
     </div>
+
+    <MobileCombatHud
+      v-if="isMobile"
+      class="mobile-top-hud"
+      :player="player"
+      :heroes="heroes"
+      :enemies="enemies"
+      :alive-index-by-enemy-id="aliveIndexByEnemyId"
+      :is-player-turn="isPlayerTurn"
+      @rotate-hero="rotateHero"
+      @select-enemy="selectEnemy"
+    />
 
     <div class="enemies-column">
       <div class="enemies-container">
@@ -253,7 +299,7 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <div class="combat-bottom-bar">
+    <div v-if="!isMobile" class="combat-bottom-bar">
       <div class="combat-log-slot">
         <CombatLogPanel
           :messages="combatLog"
@@ -272,6 +318,25 @@ onUnmounted(() => {
         </div>
       </div>
     </div>
+
+    <MobileActionBar
+      v-if="isMobile"
+      class="mobile-action-bar"
+      :abilities="abilities"
+      :ability-cooldowns="abilityCooldowns"
+      :player-energy="player?.energy ?? 0"
+      :is-player-input-locked="isPlayerInputLocked"
+      @attack="onMobileAttack"
+      @select-ability="onMobileAbility"
+      @object="onMobileObject"
+    />
+
+    <CombatLogFab
+      v-if="isMobile"
+      class="combat-log-fab"
+      :messages="combatLog"
+      @open-full="showLogModal = true"
+    />
 
     <TimingOverlay
       :show="showTimingOverlay"

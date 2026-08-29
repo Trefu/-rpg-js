@@ -226,21 +226,12 @@ onBeforeUnmount(() => {
   font-size: 0.66rem;
 }
 
+/* En mobile el panel de log queda oculto: el acceso se hace via FAB
+   (CombatLogFab.vue) que abre un bottom sheet. */
 @media (max-width: 720px) {
   .combat-log-panel {
-    position: fixed;
-    left: 8px;
-    right: 8px;
-    bottom: 8px;
-    max-height: 60vh;
-    z-index: 40;
+    display: none !important;
   }
-
-  .log-body { max-height: calc(60vh - 80px); }
-  .log-toggle { padding: 0.55rem 0.7rem; font-size: 0.85rem; }
-  .log-preview { max-height: 36px; }
-  .log-message { font-size: 0.72rem; }
-  .log-preview-line { font-size: 0.7rem; }
 }
 
 @media (min-width: 721px) {

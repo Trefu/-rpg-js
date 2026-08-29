@@ -1,0 +1,352 @@
+<script setup lang="ts">
+import { computed, ref } from 'vue'
+import type { Hero } from '@/core/Hero'
+import type { IEnemy } from '@/core/interfaces/ICharacter'
+import { MAX_HEROES } from '@/stores/game'
+
+const props = defineProps<{
+  player: Hero | null
+  heroes: Hero[]
+  enemies: IEnemy[]
+  aliveIndexByEnemyId: Record<string, number>
+  isPlayerTurn: boolean
+}>()
+
+const emit = defineEmits<{
+  (e: 'rotateHero'): void
+  (e: 'selectEnemy', enemy: IEnemy): void
+}>()
+
+const heroSlots = computed<(Hero | null)[]>(() => {
+  const slots: (Hero | null)[] = []
+  for (let i = 0; i < MAX_HEROES; i++) slots.push(props.heroes[i] ?? null)
+  return slots
+})
+
+const hpPercent = computed(() => {
+  if (!props.player || props.player.maxHealth <= 0) return 0
+  return Math.max(0, (props.player.health / props.player.maxHealth) * 100)
+})
+
+const energyPercent = computed(() => {
+  if (!props.player || !props.player.maxEnergy) return 0
+  return Math.max(0, (props.player.energy / props.player.maxEnergy) * 100)
+})
+
+const hpDisplay = computed(() =>
+  props.player ? `${props.player.health}/${props.player.maxHealth}` : ''
+)
+const energyDisplay = computed(() =>
+  props.player ? `${props.player.energy}/${props.player.maxEnergy}` : ''
+)
+
+const aliveEnemies = computed(() => props.enemies.filter(e => e.isAlive))
+
+function enemyHpPercent(e: IEnemy) {
+  if (e.maxHealth <= 0) return 0
+  return Math.max(0, (e.health / e.maxHealth) * 100)
+}
+
+const showEnemyPreview = ref(false)
+function toggleEnemyPreview() {
+  showEnemyPreview.value = !showEnemyPreview.value
+}
+</script>
+
+<template>
+  <div v-if="player" class="mobile-hud">
+    <button
+      class="mobile-hud-hero"
+      type="button"
+      :title="heroSlots.length > 1 ? 'Cambiar héroe' : ''"
+      @click="heroSlots.length > 1 && emit('rotateHero')"
+    >
+      <img v-if="player.sprite" :src="player.sprite" :alt="player.name" class="mobile-hud-portrait" />
+      <div class="mobile-hud-info">
+        <div class="mobile-hud-name">
+          <span class="mobile-hud-name-text">{{ player.name }}</span>
+          <span class="mobile-hud-level">Nv {{ player.level }}</span>
+        </div>
+        <div class="mobile-hud-bar">
+          <div class="mobile-hud-bar-fill hp" :style="{ width: `${hpPercent}%` }"></div>
+          <span class="mobile-hud-bar-value">❤️ {{ hpDisplay }}</span>
+        </div>
+        <div class="mobile-hud-bar">
+          <div class="mobile-hud-bar-fill energy" :style="{ width: `${energyPercent}%` }"></div>
+          <span class="mobile-hud-bar-value">⚡ {{ energyDisplay }}</span>
+        </div>
+      </div>
+    </button>
+
+    <button
+      class="mobile-hud-enemies"
+      type="button"
+      @click="toggleEnemyPreview"
+      :aria-expanded="showEnemyPreview"
+    >
+      <span class="mobile-hud-enemies-count">{{ aliveEnemies.length }}</span>
+      <span class="mobile-hud-enemies-icon" aria-hidden="true">👹</span>
+      <span class="mobile-hud-enemies-label">enemigos</span>
+    </button>
+
+    <transition name="enemy-preview">
+      <div v-if="showEnemyPreview" class="mobile-hud-enemy-preview">
+        <button
+          v-for="(enemy, idx) in enemies"
+          :key="enemy.id"
+          type="button"
+          class="mobile-hud-enemy-row"
+          :class="{ dead: !enemy.isAlive }"
+          @click="enemy.isAlive && emit('selectEnemy', enemy)"
+        >
+          <span class="mobile-hud-enemy-key">{{ idx + 1 }}</span>
+          <img v-if="enemy.sprite" :src="enemy.sprite" :alt="enemy.name" class="mobile-hud-enemy-sprite" />
+          <span class="mobile-hud-enemy-name">{{ enemy.name }}</span>
+          <div class="mobile-hud-enemy-bar">
+            <div class="mobile-hud-enemy-bar-fill" :style="{ width: `${enemyHpPercent(enemy)}%` }"></div>
+          </div>
+          <span class="mobile-hud-enemy-hp">{{ enemy.health }}/{{ enemy.maxHealth }}</span>
+        </button>
+      </div>
+    </transition>
+  </div>
+</template>
+
+<style scoped>
+.mobile-hud {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem 0.5rem 3.25rem;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.55) 100%);
+  border-bottom: 1px solid rgba(255, 230, 102, 0.35);
+  backdrop-filter: blur(6px);
+}
+
+.mobile-hud-hero {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 8px;
+  border: 1.5px solid rgba(255, 230, 102, 0.35);
+  background: linear-gradient(145deg, #2a1f4a 0%, #1a1230 100%);
+  color: #fff;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+
+.mobile-hud-portrait {
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex-shrink: 0;
+  image-rendering: pixelated;
+  background: #000;
+}
+
+.mobile-hud-info {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.mobile-hud-name {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.mobile-hud-name-text {
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mobile-hud-level {
+  font-size: 0.6rem;
+  color: #b6f5b6;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+.mobile-hud-bar {
+  position: relative;
+  height: 12px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.mobile-hud-bar-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.mobile-hud-bar-fill.hp {
+  background: linear-gradient(90deg, #ff6b6b, #ff3a3a);
+}
+
+.mobile-hud-bar-fill.energy {
+  background: linear-gradient(90deg, #40c4ff, #82b1ff);
+}
+
+.mobile-hud-bar-value {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Courier New', monospace;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 2px #000;
+  pointer-events: none;
+}
+
+.mobile-hud-enemies {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  border: 1.5px solid rgba(255, 80, 80, 0.55);
+  background: linear-gradient(145deg, #2a0e0e 0%, #180606 100%);
+  color: #fff;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.mobile-hud-enemies-count {
+  font-family: 'Courier New', monospace;
+  font-size: 1.1rem;
+  font-weight: 900;
+  color: #ffe066;
+  line-height: 1;
+}
+
+.mobile-hud-enemies-icon {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.mobile-hud-enemies-label {
+  font-size: 0.55rem;
+  letter-spacing: 0.04em;
+  color: #ff9a9a;
+  text-transform: uppercase;
+}
+
+.mobile-hud-enemy-preview {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0.5rem;
+  right: 0.5rem;
+  background: linear-gradient(145deg, #1e2035 0%, #23243a 100%);
+  border: 1.5px solid rgba(255, 230, 102, 0.45);
+  border-radius: 10px;
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  z-index: 25;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.mobile-hud-enemy-row {
+  display: grid;
+  grid-template-columns: 18px 32px 1fr 1fr auto;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.4);
+  color: #fff;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.mobile-hud-enemy-row.dead {
+  opacity: 0.4;
+  cursor: default;
+  filter: grayscale(0.8);
+}
+
+.mobile-hud-enemy-key {
+  font-family: 'Courier New', monospace;
+  font-size: 0.75rem;
+  font-weight: 900;
+  color: #ffe066;
+  background: rgba(255, 230, 0, 0.12);
+  border: 1px solid rgba(255, 230, 0, 0.4);
+  border-radius: 4px;
+  text-align: center;
+  padding: 1px 0;
+}
+
+.mobile-hud-enemy-sprite {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 4px;
+}
+
+.mobile-hud-enemy-name {
+  font-size: 0.72rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mobile-hud-enemy-bar {
+  height: 8px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.mobile-hud-enemy-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #66bb6a, #43a047);
+  transition: width 0.3s ease;
+}
+
+.mobile-hud-enemy-hp {
+  font-family: 'Courier New', monospace;
+  font-size: 0.65rem;
+  color: #fff;
+}
+
+.enemy-preview-enter-active,
+.enemy-preview-leave-active {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.enemy-preview-enter-from,
+.enemy-preview-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+</style>

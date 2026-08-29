@@ -3,6 +3,7 @@
 .combat-view {
   width: 100%;
   height: 100vh;
+  height: 100dvh;
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
   position: relative;
   overflow: hidden;
@@ -72,14 +73,6 @@
     grid-template-columns: repeat(2, 1fr);
     grid-template-rows: repeat(3, 1fr);
     max-width: 480px;
-  }
-}
-
-@media (max-width: 600px) {
-  .enemies-container {
-    grid-template-columns: 1fr;
-    grid-template-rows: repeat(5, 1fr);
-    max-width: 180px;
   }
 }
 
@@ -180,26 +173,23 @@
   width: 220px;
 }
 
-@media (max-width: 720px) {
-  .combat-view {
-    grid-template-columns: minmax(160px, 35%) 1fr;
+@media (min-width: 721px) {
+  .mobile-top-hud,
+  .mobile-action-bar,
+  .combat-log-fab {
+    display: none !important;
   }
-  .combat-bottom-bar {
-    left: 8px;
-    right: 8px;
-    bottom: 0;
-    padding: 0.5rem 0.5rem;
-    flex-direction: row;
-    align-items: flex-end;
-    gap: 0.5rem;
-  }
-  .actions-area {
-    width: auto;
-    flex: 0 0 auto;
-  }
-  .combat-log-slot { flex: 1 1 auto; min-width: 0; }
-  .player-hud-slot { flex: 0 0 auto; }
 }
+
+@media (max-width: 720px) {
+  .announcement-banner {
+    top: 84px;
+  }
+  .announcement-frame {
+    max-width: 92vw;
+  }
+}
+
 
 .action-buttons {
   display: flex;
@@ -657,4 +647,88 @@
   object-fit: contain;
   margin-right: 0.5rem;
   filter: drop-shadow(0 2px 6px #000a);
-} 
+}
+
+/* ============================================================
+   MOBILE LAYOUT (max-width: 720px)
+   Stack vertical de 3 zonas sticky:
+     [top-hud] campo de batalla [action-bar]
+   Reemplaza heroes-column + combat-bottom-bar del desktop.
+   ============================================================ */
+@media (max-width: 720px) {
+  .combat-view {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto;
+    grid-template-areas:
+      "hud"
+      "field"
+      "actions";
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  .heroes-column,
+  .combat-bottom-bar {
+    display: none !important;
+  }
+
+  .mobile-top-hud {
+    grid-area: hud;
+    z-index: 5;
+  }
+
+  .enemies-column {
+    grid-area: field;
+    padding: 0.5rem 0.75rem 1rem;
+    align-items: stretch;
+  }
+
+  .enemies-container {
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: auto;
+    gap: 0.75rem;
+    max-width: 100%;
+    width: 100%;
+    height: auto;
+    align-content: center;
+  }
+
+  /* Sprite de enemigo responsivo y proporcionado al ancho del viewport. */
+  .enemy-sprite-img {
+    width: clamp(72px, 22vw, 140px) !important;
+    height: auto !important;
+    aspect-ratio: 1 / 1;
+    margin: 0 auto;
+  }
+
+  .enemy-card {
+    padding: 0.25rem;
+    min-height: 44px;
+  }
+
+  .enemy-health {
+    width: 90%;
+    margin: 0.25rem auto 0;
+  }
+
+  .enemy-shortcut-badge {
+    bottom: -22px;
+  }
+  .enemy-shortcut-badge .enemy-name-badge {
+    font-size: 0.65rem;
+  }
+
+  .mobile-action-bar {
+    grid-area: actions;
+    z-index: 5;
+  }
+
+  .combat-log-fab {
+    grid-area: field;
+    position: fixed;
+    right: 12px;
+    bottom: 96px;
+    z-index: 20;
+  }
+}
