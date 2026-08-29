@@ -6,7 +6,7 @@ export const GOBLIN_ESPADAZO: DefensePatternConfig = {
   type: 'physical',
   baseMaxBlockReduction: 0.5,
   damageMultiplier: 2,
-  phases: [fixedPhase(1,2,3,4,5), fixedPhase(1,2,3,4,5)]
+  phases: [fixedPhase(1,2,3,4,5)]
 }
 
 export const GOBLIN_FLECHA_VENENOSA: DefensePatternConfig = {
@@ -28,7 +28,7 @@ export const GOBLIN_ASCUA: DefensePatternConfig = {
   type: 'fire',
   baseMaxBlockReduction: 0.5,
   damageMultiplier: 0.7,
-  phases: [phase(5), phase(5)],
+  phases: [phase(5)],
   onFailureEffect: {
     statusType: 'burn',
     stacks: 12
@@ -42,10 +42,8 @@ export const WOLF_MORDIDA_FEROZ: DefensePatternConfig = {
   damageMultiplier: 0.8,
   phases: [
     phase(3, { waveSpeed: 30 }),
-    phase(3, { waveSpeed: 35 }),
-    phase(3, { waveSpeed: 40 }),
-    phase(3, { waveSpeed: 45 }),
-    phase(3, { waveSpeed: 50 })
+    phase(3, { waveSpeed: 60 }),
+    phase(3, { waveSpeed: 120 })
   ]
 }
 
