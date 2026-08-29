@@ -119,16 +119,25 @@ function generateEnemyPositions(enemyList: IEnemy[]) {
     enemyPositions.value = positions
     return
   }
-  // Celldas disponibles en una grilla 3x2 (5 enemigos, 1 celda vacia)
-  const cols = [1, 2, 3]
-  const rows = [1, 2]
-  const allCells: Array<{ col: number, row: number }> = []
-  cols.forEach(c => rows.forEach(r => allCells.push({ col: c, row: r })))
-  // Mezclar celdas y tomar las primeras N (sin repetir)
-  const shuffled = allCells.sort(() => Math.random() - 0.5).slice(0, enemyList.length)
 
-  enemyList.forEach((enemy, idx) => {
-    const cell = shuffled[idx]
+  // Orden de colocacion: primero los enemigos vivos (respetando el orden de la
+  // lista, que es el mismo que usa aliveIndexByEnemyId para asignar hotkeys),
+  // luego los muertos. Asi el enemigo con hotkey 1 cae arriba-izquierda,
+  // el 2 arriba-centro, etc.
+  const orderedEnemies: IEnemy[] = []
+  enemyList.forEach((e) => { if (e.isAlive) orderedEnemies.push(e) })
+  enemyList.forEach((e) => { if (!e.isAlive) orderedEnemies.push(e) })
+
+  // Recorrer la grilla 3x2 en orden de lectura: fila superior izq->der, luego fila inferior.
+  const cellOrder: Array<{ col: number, row: number }> = []
+  for (let row = 1; row <= 2; row++) {
+    for (let col = 1; col <= 3; col++) {
+      cellOrder.push({ col, row })
+    }
+  }
+
+  orderedEnemies.forEach((enemy, idx) => {
+    const cell = cellOrder[idx] ?? cellOrder[cellOrder.length - 1]
     positions[enemy.id] = {
       x: Math.round((Math.random() - 0.5) * 24),
       y: Math.round((Math.random() - 0.5) * 24),

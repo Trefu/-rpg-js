@@ -80,7 +80,7 @@ export const ZONE_ENEMY_POOLS: Record<ZoneId, ZoneEnemyConfig> = {
       ]
     },
     enemyCountPerTier: {
-      intro: [2, 2],
+      intro: [5, 5],
       early: [2, 2],
       mid: [2, 3],
       late: [3, 4],
@@ -92,7 +92,7 @@ export const ZONE_ENEMY_POOLS: Record<ZoneId, ZoneEnemyConfig> = {
     displayName: 'Castillo Olvidado',
     pools: {
       intro: [
-        () => new Goblin(2)
+        () => new Goblin(5)
       ],
       early: [
         () => new Goblin(2),
