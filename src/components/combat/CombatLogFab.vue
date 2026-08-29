@@ -30,17 +30,11 @@ function close() {
 
 <template>
   <div class="log-fab-wrap">
-    <transition name="log-last">
-      <div v-if="!open && messages.length > 0" class="log-fab-preview">
-        {{ lastMessage }}
-      </div>
-    </transition>
-
     <button
       type="button"
       class="log-fab"
       :aria-expanded="open"
-      :title="open ? 'Cerrar registro' : 'Abrir registro'"
+      :title="open ? 'Cerrar registro' : `Registro (${totalCount})`"
       @click="toggle"
     >
       <img v-if="!open" :src="scrollIcon" alt="" class="log-fab-icon" />

@@ -160,4 +160,29 @@ const variantClass = computed(() => `variant-${props.variant}`)
   opacity: 0;
   transform: translateX(-50%) translateY(-10px);
 }
+
+@media (max-width: 720px) {
+  .announcement-banner {
+    top: auto;
+    bottom: calc(80px + env(safe-area-inset-bottom) + 56px);
+  }
+  .announcement-frame {
+    min-width: 0;
+    padding: 0.35rem 0.9rem;
+    border-width: 1px;
+  }
+  .announcement-frame::before,
+  .announcement-frame::after {
+    width: 6px;
+    height: 6px;
+  }
+  .announcement-frame::before { left: -3px; }
+  .announcement-frame::after  { right: -3px; }
+  .announcement-text {
+    font-size: 0.78rem;
+  }
+  .variant-crit .announcement-text {
+    font-size: 0.9rem;
+  }
+}
 </style>

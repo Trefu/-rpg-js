@@ -181,15 +181,6 @@
   }
 }
 
-@media (max-width: 720px) {
-  .announcement-banner {
-    top: 84px;
-  }
-  .announcement-frame {
-    max-width: 92vw;
-  }
-}
-
 
 .action-buttons {
   display: flex;

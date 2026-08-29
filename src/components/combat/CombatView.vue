@@ -209,6 +209,7 @@ const handleAbilitySelect = (ability: any, index: number) => {
 }
 
 const handleKeyDown = (e: KeyboardEvent) => {
+  if (isMobile.value) return
   handleCombatShortcuts(e)
   handleAbilitiesModalShortcuts(e)
 }

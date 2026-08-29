@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { IAbility } from '@/core/interfaces/IAbility'
-import attackIcon from '@/assets/icons/wave-strike.png'
+import { getAbilityIcon } from '@/core/abilities/abilityIcons'
 import backpackIcon from '@/assets/icons/backpack.png'
 
 const props = defineProps<{
@@ -16,6 +16,8 @@ const emit = defineEmits<{
   (e: 'selectAbility', ability: IAbility, index: number): void
   (e: 'object'): void
 }>()
+
+const attackIcon = computed(() => getAbilityIcon('attack'))
 
 const slots = computed(() => {
   const list: Array<
@@ -33,6 +35,10 @@ const slots = computed(() => {
   list.push({ kind: 'object' })
   return list
 })
+
+function iconFor(type: string) {
+  return getAbilityIcon(type)
+}
 
 function cooldownOf(type: string) {
   return props.abilityCooldowns[type] ?? 0
@@ -60,6 +66,12 @@ function onAbilityClick(ability: IAbility, index: number) {
   if (!isAffordable(ability)) return
   emit('selectAbility', ability, index)
 }
+
+function shortLabel(name: string, max = 5): string {
+  const first = name.trim().split(/\s+/)[0] ?? name
+  if (first.length <= max) return first.toUpperCase()
+  return first.slice(0, max - 1).toUpperCase() + '.'
+}
 </script>
 
 <template>
@@ -86,14 +98,8 @@ function onAbilityClick(ability: IAbility, index: number) {
       </template>
 
       <template v-else-if="slot.kind === 'ability'">
-        <img
-          v-if="slot.ability.type === 'attack' || slot.ability.type === 'warriorAttack' || slot.ability.type === 'warriorVerticalSlash' || slot.ability.type === 'warriorDevastatingStrike'"
-          :src="attackIcon"
-          :alt="slot.ability.name"
-          class="mab-icon"
-        />
-        <span v-else class="mab-letter">{{ (slot.ability.name || '?').charAt(0).toUpperCase() }}</span>
-        <span class="mab-label">{{ slot.ability.name }}</span>
+        <img :src="iconFor(slot.ability.type)" :alt="slot.ability.name" class="mab-icon" />
+        <span class="mab-label" :title="slot.ability.name">{{ shortLabel(slot.ability.name) }}</span>
         <span v-if="cooldownOf(slot.ability.type) > 0" class="mab-cooldown">
           {{ cooldownOf(slot.ability.type) }}
         </span>
@@ -186,14 +192,6 @@ function onAbilityClick(ability: IAbility, index: number) {
   height: 24px;
   object-fit: contain;
   filter: drop-shadow(0 1px 2px #000a);
-}
-
-.mab-letter {
-  font-family: 'Courier New', monospace;
-  font-size: 0.95rem;
-  font-weight: 900;
-  color: #ffe066;
-  line-height: 1;
 }
 
 .mab-label {

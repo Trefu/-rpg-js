@@ -46,6 +46,18 @@ const isTargetAll = computed(() => {
 
 const myHitPopups = computed(() => props.hitPopups.filter(p => p.id === props.enemy.id))
 
+const isMobileLayout = computed(() => {
+  if (typeof window === 'undefined') return false
+  return window.matchMedia('(max-width: 720px)').matches
+})
+
+const showAlwaysShortcut = computed(() =>
+  !isDead.value && props.index >= 0 && (
+    (isMobileLayout.value && props.enemy.isAlive) ||
+    (props.showShortcut && isTargetSelectable.value)
+  )
+)
+
 function onClick() {
   emit('select', props.enemy)
 }
@@ -57,10 +69,12 @@ function onClick() {
     dead: isDead,
     attacking: isAttacking,
     'target-selectable': isTargetSelectable,
-    'target-all': isTargetAll
+    'target-all': isTargetAll,
+    'mobile-layout': isMobileLayout
   }" @click="onClick">
     <EnemyStatusIcons v-if="statusEffects.length > 0" :effects="statusEffects" />
     <img :src="sprite" :alt="enemy.name" class="enemy-sprite-img" />
+    <div v-if="isMobileLayout && !isDead" class="enemy-mobile-name">{{ enemy.name }}</div>
     <div class="enemy-health">
       <div class="health-bar">
         <div class="health-fill" :style="{ width: `${hpPercent}%` }"></div>
@@ -71,9 +85,9 @@ function onClick() {
         -{{ popup.value }}
       </div>
     </transition-group>
-    <div v-if="showShortcut && isTargetSelectable && !isDead && index >= 0" class="enemy-shortcut-badge">
+    <div v-if="showAlwaysShortcut" class="enemy-shortcut-badge">
       <span class="key-cap">{{ index + 1 }}</span>
-      <span class="enemy-name-badge">{{ enemy.name }}</span>
+      <span v-if="!isMobileLayout" class="enemy-name-badge">{{ enemy.name }}</span>
     </div>
   </div>
 </template>
@@ -121,6 +135,38 @@ function onClick() {
   object-fit: contain;
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
   display: block;
+}
+
+.enemy-mobile-name {
+  font-size: 0.7rem;
+  color: #fff;
+  text-align: center;
+  font-weight: 600;
+  text-shadow: 0 1px 3px #000;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  padding: 0 4px;
+  display: none;
+}
+
+.enemy-card.mobile-layout .enemy-mobile-name {
+  display: block;
+}
+
+.enemy-card.mobile-layout .enemy-shortcut-badge {
+  top: 2px;
+  left: 2px;
+  right: auto;
+  bottom: auto;
+  transform: none;
+}
+
+.enemy-card.mobile-layout .enemy-shortcut-badge .key-cap {
+  min-width: 26px;
+  font-size: 0.8rem;
+  padding: 0.15rem 0.5rem;
 }
 
 .enemy-health {

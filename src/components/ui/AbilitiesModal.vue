@@ -3,8 +3,7 @@ import type { IAbility } from '@/core/interfaces/IAbility'
 import closeIcon from '@/assets/icons/cross-mark.png'
 import hourglassIcon from '@/assets/icons/hourglass.png'
 import skillsIcon from '@/assets/icons/skills.png'
-import waveStrikeIcon from '@/assets/icons/wave-strike.png'
-import heartDropIcon from '@/assets/icons/heart-drop.png'
+import { getAbilityIcon } from '@/core/abilities/abilityIcons'
 
 interface Props {
   show: boolean
@@ -33,17 +32,6 @@ const handleModalOverlayClick = (e: MouseEvent) => {
   if ((e.target as HTMLElement).classList.contains('modal-overlay')) {
     closeModal()
   }
-}
-
-const getAbilityIcon = (type: string) => {
-  const icons: Record<string, string> = {
-    attack: waveStrikeIcon,
-    warriorAttack: waveStrikeIcon,
-    warriorVerticalSlash: waveStrikeIcon,
-    warriorDevastatingStrike: waveStrikeIcon,
-    secondWind: heartDropIcon
-  }
-  return icons[type]
 }
 </script>
 
