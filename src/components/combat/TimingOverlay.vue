@@ -27,12 +27,16 @@ watch(() => props.show, (newShow) => {
 const handleResult = (result: TimingResultData) => {
   emit('result', result)
 }
+
+const onOverlayPointerDown = () => {
+  timingChallengeRef.value?.handleInput()
+}
 </script>
 
 <template>
   <transition name="timing-overlay">
-    <div v-if="show" class="timing-overlay" @click.self="$emit('close')">
-      <div class="timing-overlay-content">
+    <div v-if="show" class="timing-overlay" @pointerdown="onOverlayPointerDown">
+      <div class="timing-overlay-content" @pointerdown.stop="onOverlayPointerDown">
         <TimingChallenge
           ref="timingChallengeRef"
           :config="config ?? BASIC_ATTACK_CONFIG"

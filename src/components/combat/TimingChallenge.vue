@@ -101,11 +101,6 @@ const onKeydown = (e: KeyboardEvent) => {
   }
 }
 
-const onPointerDown = () => {
-  if (!isActive.value) return
-  handleInput()
-}
-
 function animate() {
   if (!isActive.value || !timingCircle.value) return
 
@@ -164,11 +159,11 @@ onUnmounted(() => {
   clearFeedback()
 })
 
-defineExpose({ start, stop })
+defineExpose({ start, stop, handleInput })
 </script>
 
 <template>
-  <div class="timing-challenge" :class="feedbackClass" @pointerdown="onPointerDown">
+  <div class="timing-challenge" :class="feedbackClass">
     <svg :width="size" :height="size" :viewBox="`0 0 ${size} ${size}`">
       <defs>
         <radialGradient id="bonusGradient" cx="50%" cy="50%" r="50%">
