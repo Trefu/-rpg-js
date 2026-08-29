@@ -1,6 +1,6 @@
 # RPG JS
 
-A Vue 3 + TypeScript RPG game with turn-based combat and timing mini-games.
+A Vue 3 + TypeScript RPG game with turn-based combat.
 
 ## Tech Stack
 
@@ -39,8 +39,8 @@ src/
 ## Game Features
 
 ### Combat System
-- Turn-based combat with timing mini-game
-- Critical and bonus hit zones on timing circle
+- Turn-based combat with probabilistic critical hits
+- Defense mini-game (timing wave/bar) when blocking enemy attacks
 - Status effects (stun, damage over time, etc.)
 - Enemy AI with attack patterns
 
@@ -72,7 +72,7 @@ npm run preview  # Preview production build
 - **A** - Open abilities modal
 - **Q/W/E/R** - Quick ability cast
 - **1/2/3** - Target enemy
-- **Click** - Timing circle input
+- **Click/Space** - Confirm during defense mini-game
 
 ### Navigation
 - Click nodes on the expedition map to advance
