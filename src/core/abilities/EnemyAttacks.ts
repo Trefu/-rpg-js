@@ -76,33 +76,78 @@ export const ORC_GOLPE_APLASTANTE: DefensePatternConfig = {
   phases: [phase(3), phase(3)]
 }
 
-export const GOBLIN_ATTACKS: DefensePatternConfig[] = [
-  GOBLIN_ESPADAZO,
-  GOBLIN_FLECHA_VENENOSA
-]
+export const GOLPE_SUAVE: DefensePatternConfig = {
+  name: 'Golpe Suave',
+  type: 'physical',
+  waveSpeed: 25,
+  baseMaxBlockReduction: 0.8,
+  damageMultiplier: 1.0,
+  phases: [phase(5)]
+}
 
-export const GOBLIN_ARCHER_ATTACKS: DefensePatternConfig[] = [
-  GOBLIN_FLECHA_VENENOSA
-]
+export const GOLPE_RAPIDO: DefensePatternConfig = {
+  name: 'Golpe Rápido',
+  type: 'physical',
+  waveSpeed: 55,
+  baseMaxBlockReduction: 0.5,
+  damageMultiplier: 0.7,
+  phases: [phase(2)]
+}
 
-export const GOBLIN_WARLOCK_ATTACKS: DefensePatternConfig[] = [
-  GOBLIN_ASCUA
-]
+export const COMBO_DOBLE: DefensePatternConfig = {
+  name: 'Combo Doble',
+  type: 'physical',
+  waveSpeed: 35,
+  baseMaxBlockReduction: 0.5,
+  damageMultiplier: 1.2,
+  phases: [phase(4), phase(4)]
+}
 
-export const WOLF_ATTACKS: DefensePatternConfig[] = [
-  WOLF_MORDIDA_FEROZ,
-  WOLF_ZARPAZOS_RAPIDOS
-]
+export const COMBO_TRIPLE: DefensePatternConfig = {
+  name: 'Combo Triple',
+  type: 'physical',
+  waveSpeed: 45,
+  baseMaxBlockReduction: 0.4,
+  damageMultiplier: 1.4,
+  phases: [phase(3), phase(3), phase(3)]
+}
 
-export const ORC_ATTACKS: DefensePatternConfig[] = [
-  ORC_HACHAZOS_MULTIPLES,
-  ORC_GOLPE_APLASTANTE
-]
+export const MORDIDA_TOXICA: DefensePatternConfig = {
+  ...GOBLIN_FLECHA_VENENOSA,
+  name: 'Mordida Tóxica',
+  damageMultiplier: 0.6,
+  onFailureEffect: {
+    statusType: 'poison',
+    duration: 3,
+    stacks: 2
+  }
+}
 
-export const ALL_ENEMY_ATTACKS: DefensePatternConfig[] = [
-  ...GOBLIN_ATTACKS,
-  ...GOBLIN_ARCHER_ATTACKS,
-  ...GOBLIN_WARLOCK_ATTACKS,
-  ...WOLF_ATTACKS,
-  ...ORC_ATTACKS
-]
+export const ALIENTO_DE_FUEGO: DefensePatternConfig = {
+  name: 'Aliento de Fuego',
+  type: 'fire',
+  waveSpeed: 80,
+  baseMaxBlockReduction: 0.5,
+  damageMultiplier: 2.0,
+  phases: Array.from({ length: 10 }, () => phase(4)),
+  onFailureEffect: {
+    statusType: 'burn',
+    duration: 3,
+    stacks: 1
+  }
+}
+
+export const ALIENTO_GLACIAL: DefensePatternConfig = {
+  name: 'Aliento Glacial',
+  type: 'frost',
+  waveSpeed: 50,
+  baseMaxBlockReduction: 0.5,
+  damageMultiplier: 0.7,
+  phases: [phase(3)],
+  onFailureEffect: {
+    statusType: 'freeze',
+    duration: 3,
+    stacks: 1
+  }
+}
+

@@ -2,89 +2,41 @@ import { Enemy } from './Enemy'
 import { ICharacter, IEnemy } from '../interfaces/ICharacter'
 import dummySprite from '@/assets/sprites/enemies/dummy.png'
 import type { DefensePatternConfig } from '../defense/types'
-import { phase } from '../defense/attackPatterns'
-import { ALL_ENEMY_ATTACKS, GOBLIN_ESPADAZO, GOBLIN_FLECHA_VENENOSA, ORC_GOLPE_APLASTANTE, ORC_HACHAZOS_MULTIPLES, WOLF_MORDIDA_FEROZ, WOLF_ZARPAZOS_RAPIDOS } from '../abilities/EnemyAttacks'
-
-export const DUMMY_ATTACKS: DefensePatternConfig[] = [
-  {
-    name: 'Golpe Suave',
-    type: 'physical',
-    waveSpeed: 25,
-    baseMaxBlockReduction: 0.8,
-    damageMultiplier: 1.0,
-    phases: [phase(5)]
-  },
-  {
-    name: 'Golpe Rápido',
-    type: 'physical',
-    waveSpeed: 55,
-    baseMaxBlockReduction: 0.5,
-    damageMultiplier: 0.7,
-    phases: [phase(2)]
-  },
-  {
-    name: 'Combo Doble',
-    type: 'physical',
-    waveSpeed: 35,
-    baseMaxBlockReduction: 0.5,
-    damageMultiplier: 1.2,
-    phases: [phase(4), phase(4)]
-  },
-  {
-    name: 'Combo Triple',
-    type: 'physical',
-    waveSpeed: 45,
-    baseMaxBlockReduction: 0.4,
-    damageMultiplier: 1.4,
-    phases: [phase(3), phase(3), phase(3)]
-  },
-  {
-    ...GOBLIN_FLECHA_VENENOSA,
-    name: 'Mordida Tóxica',
-    damageMultiplier: 0.6,
-    onFailureEffect: {
-      statusType: 'poison',
-      duration: 3,
-      stacks: 2
-    }
-  },
-  {
-    name: 'Aliento de Fuego',
-    type: 'fire',
-    waveSpeed: 80,
-    baseMaxBlockReduction: 0.5,
-    damageMultiplier: 2.0,
-    phases: Array.from({ length: 10 }, () => phase(4)),
-    onFailureEffect: {
-      statusType: 'burn',
-      duration: 3,
-      stacks: 1
-    }
-  },
-  {
-    name: 'Aliento Glacial',
-    type: 'frost',
-    waveSpeed: 50,
-    baseMaxBlockReduction: 0.5,
-    damageMultiplier: 0.7,
-    phases: [phase(3)],
-    onFailureEffect: {
-      statusType: 'freeze',
-      duration: 3,
-      stacks: 1
-    }
-  },
+import {
   GOBLIN_ESPADAZO,
+  GOBLIN_FLECHA_VENENOSA,
+  GOBLIN_ASCUA,
   WOLF_MORDIDA_FEROZ,
   WOLF_ZARPAZOS_RAPIDOS,
   ORC_HACHAZOS_MULTIPLES,
   ORC_GOLPE_APLASTANTE,
-  ...ALL_ENEMY_ATTACKS
-]
+  GOLPE_SUAVE,
+  GOLPE_RAPIDO,
+  COMBO_DOBLE,
+  COMBO_TRIPLE,
+  MORDIDA_TOXICA,
+  ALIENTO_DE_FUEGO,
+  ALIENTO_GLACIAL
+} from '../abilities/EnemyAttacks'
 
 export class Dummy extends Enemy implements IEnemy {
   public readonly sprite = dummySprite
-  public attackPatterns: DefensePatternConfig[] = DUMMY_ATTACKS
+  public attackPatterns: DefensePatternConfig[] = [
+    GOBLIN_ESPADAZO,
+    GOBLIN_FLECHA_VENENOSA,
+    GOBLIN_ASCUA,
+    WOLF_MORDIDA_FEROZ,
+    WOLF_ZARPAZOS_RAPIDOS,
+    ORC_HACHAZOS_MULTIPLES,
+    ORC_GOLPE_APLASTANTE,
+    GOLPE_SUAVE,
+    GOLPE_RAPIDO,
+    COMBO_DOBLE,
+    COMBO_TRIPLE,
+    MORDIDA_TOXICA,
+    ALIENTO_DE_FUEGO,
+    ALIENTO_GLACIAL
+  ]
 
   public forcedPattern: DefensePatternConfig | null = null
   public damageOverride: number | null = null
