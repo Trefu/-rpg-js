@@ -67,6 +67,7 @@ const {
   openAbilitiesModal,
   closeAbilitiesModal,
   selectAbility,
+  cancelAction,
   handleAbilitiesModalShortcuts,
   handleCombatShortcuts,
   selectEnemy,
@@ -109,6 +110,14 @@ function onMobileAttack() {
 
 function onMobileObject() {
   selectAction('Objeto')
+}
+
+const canCancelSelectedAbility = computed(() => {
+  return isSelectingTarget.value && !!selectedAbility.value && actionRequiresTarget(selectedAbility.value)
+})
+
+function onCancelAbility() {
+  cancelAction()
 }
 
 const heroSlots = computed(() => {
@@ -312,6 +321,13 @@ onUnmounted(() => {
           <button class="action-btn item" :disabled="isPlayerInputLocked" @click="selectAction('Objeto')">
             <img :src="ItemIcon" alt="" class="btn-icon" /> Objeto
           </button>
+          <button
+            v-if="canCancelSelectedAbility"
+            class="action-btn cancel"
+            @click="onCancelAbility"
+          >
+            ✕ Cancelar <span class="shortcut-badge">[Esc]</span>
+          </button>
         </div>
       </div>
     </div>
@@ -323,9 +339,12 @@ onUnmounted(() => {
       :ability-cooldowns="abilityCooldowns"
       :player-energy="player?.energy ?? 0"
       :is-player-input-locked="isPlayerInputLocked"
+      :selected-ability="selectedAbility"
+      :is-selecting-target="isSelectingTarget"
       @attack="onMobileAttack"
       @select-ability="onMobileAbility"
       @object="onMobileObject"
+      @cancel="onCancelAbility"
     />
 
     <CombatLogFab

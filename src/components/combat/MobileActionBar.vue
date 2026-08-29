@@ -11,12 +11,15 @@ const props = defineProps<{
   abilityCooldowns: Record<string, number>
   playerEnergy: number
   isPlayerInputLocked: boolean
+  selectedAbility: IAbility | null
+  isSelectingTarget: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'attack'): void
   (e: 'selectAbility', ability: IAbility, index: number): void
   (e: 'object'): void
+  (e: 'cancel'): void
 }>()
 
 const attackIcon = computed(() => getAbilityIcon('attack'))
@@ -100,7 +103,15 @@ function onAbilityClick(ability: IAbility, index: number) {
   if (props.isPlayerInputLocked) return
   if (isOnCooldown(ability)) return
   if (!isAffordable(ability)) return
+  if (props.isSelectingTarget && props.selectedAbility?.type === ability.type) {
+    emit('cancel')
+    return
+  }
   emit('selectAbility', ability, index)
+}
+
+function isSelectedForTarget(ability: IAbility): boolean {
+  return props.isSelectingTarget && props.selectedAbility?.type === ability.type
 }
 
 function shortLabel(name: string, max = 5): string {
@@ -124,7 +135,8 @@ function shortLabel(name: string, max = 5): string {
         'mab-no-energy': slot.kind === 'ability' && abilityState(slot.ability, slot.index) === 'no-energy',
         'mab-empty': slot.kind === 'empty',
         'mab-disabled': isPlayerInputLocked,
-        'mab-info-open': slot.kind === 'ability' && infoAbility?.type === slot.ability.type
+        'mab-info-open': slot.kind === 'ability' && infoAbility?.type === slot.ability.type,
+        'mab-selected': slot.kind === 'ability' && isSelectedForTarget(slot.ability)
       }"
       :disabled="isPlayerInputLocked || slot.kind === 'empty'"
       @click="slot.kind === 'attack' && emit('attack'); slot.kind === 'object' && emit('object'); slot.kind === 'ability' && onAbilityClick(slot.ability, slot.index)"
@@ -145,6 +157,9 @@ function shortLabel(name: string, max = 5): string {
         <span class="mab-label" :title="slot.ability.name">{{ shortLabel(slot.ability.name) }}</span>
         <span v-if="cooldownOf(slot.ability.type) > 0" class="mab-cooldown">
           {{ cooldownOf(slot.ability.type) }}
+        </span>
+        <span v-else-if="isSelectedForTarget(slot.ability)" class="mab-cancel-hint" aria-hidden="true">
+          ✕ Toca para cancelar
         </span>
       </template>
 
@@ -479,6 +494,40 @@ function shortLabel(name: string, max = 5): string {
 .mab-info-open {
   outline: 2px solid rgba(255, 230, 102, 0.75);
   outline-offset: 1px;
+}
+
+.mab-selected {
+  border-color: #ffe066;
+  box-shadow:
+    0 0 0 2px rgba(255, 224, 102, 0.85) inset,
+    0 0 14px rgba(255, 224, 102, 0.65);
+  animation: mab-selected-pulse 1.2s ease-in-out infinite;
+}
+
+.mab-selected .mab-label {
+  color: #ffe066;
+}
+
+@keyframes mab-selected-pulse {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(255, 224, 102, 0.85) inset, 0 0 10px rgba(255, 224, 102, 0.55); }
+  50%      { box-shadow: 0 0 0 2px rgba(255, 224, 102, 1)    inset, 0 0 20px rgba(255, 224, 102, 0.85); }
+}
+
+.mab-cancel-hint {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  background: rgba(0, 0, 0, 0.85);
+  color: #ffe066;
+  font-family: 'Courier New', monospace;
+  font-size: 0.55rem;
+  font-weight: 900;
+  border-radius: 6px;
+  padding: 1px 4px;
+  border: 1px solid rgba(255, 224, 102, 0.5);
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+  pointer-events: none;
 }
 
 .mab-info-enter-active,

@@ -438,6 +438,12 @@ export function useCombat(config: CombatConfig = {}) {
     if (isCombatEnded.value) return
     if (showAbilitiesModal.value) return
 
+    if (e.key === 'Escape' && isSelectingTarget.value && selectedAbility.value && actionRequiresTarget(selectedAbility.value)) {
+      cancelAction()
+      e.preventDefault()
+      return
+    }
+
     if (isSelectingTarget.value && ['1', '2', '3', '4', '5'].includes(e.key) && actionRequiresTarget(selectedAbility.value)) {
       const idx = parseInt(e.key, 10) - 1
       if (canTargetEnemies(selectedAbility.value)) {
@@ -850,6 +856,7 @@ export function useCombat(config: CombatConfig = {}) {
     openAbilitiesModal,
     closeAbilitiesModal,
     selectAbility,
+    cancelAction,
     handleAbilitiesModalShortcuts,
     handleCombatShortcuts,
     endPlayerTurn,

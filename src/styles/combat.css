@@ -214,6 +214,24 @@
   border-color: #1976d2;
 }
 
+.action-btn.cancel {
+  background-color: #2a2a2a;
+  border-color: #f44336;
+  color: #ffb3b3;
+  animation: cancel-pulse 1.4s ease-in-out infinite;
+}
+
+.action-btn.cancel:hover:not(:disabled) {
+  background-color: #3a2020;
+  border-color: #ff6b6b;
+  color: #fff;
+}
+
+@keyframes cancel-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.55); }
+  50% { box-shadow: 0 0 0 8px rgba(244, 67, 54, 0); }
+}
+
 .action-btn:hover:not(:disabled) {
   transform: scale(1.05);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
