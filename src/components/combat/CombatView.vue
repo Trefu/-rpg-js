@@ -9,7 +9,6 @@ import type { Hero } from '@/core/Hero'
 import type { IAbility } from '@/core/interfaces/IAbility'
 import AbilitiesIcon from '@/assets/icons/shield.png'
 import ItemIcon from '@/assets/icons/backpack.png'
-import TimingOverlay from './TimingOverlay.vue'
 import DefenseChallenge from './DefenseChallenge.vue'
 import AnnouncementBanner from './AnnouncementBanner.vue'
 import CombatLogModal from './CombatLogModal.vue'
@@ -54,7 +53,6 @@ const {
   combatLog,
   isSelectingTarget,
   isPlayerTurn,
-  showTimingOverlay,
   attackingEnemyId,
   enemyHitPopups,
   showAbilitiesModal,
@@ -77,7 +75,6 @@ const {
   initializeCombat,
   cleanup,
   actionRequiresTarget,
-  handleTimingResult,
   isPlayerInputLocked,
   handleDefensePhaseComplete,
   handleDefenseAllPhasesComplete,
@@ -187,10 +184,6 @@ watch(() => enemies.value, (newEnemies) => {
 }, { immediate: true })
 
 const showLogModal = ref(false)
-
-const onTimingResultReceived = (result: { result: 'critical' | 'bonus' | 'normal' | 'miss', accuracy: number, timePressed: number }) => {
-  handleTimingResult(result)
-}
 
 const onDefensePhaseComplete = (result: DefensePhaseResult) => {
   handleDefensePhaseComplete(result)
@@ -337,12 +330,6 @@ onUnmounted(() => {
       class="combat-log-fab"
       :messages="combatLog"
       @open-full="showLogModal = true"
-    />
-
-    <TimingOverlay
-      :show="showTimingOverlay"
-      @result="onTimingResultReceived"
-      @close="() => {}"
     />
 
     <DefenseChallenge

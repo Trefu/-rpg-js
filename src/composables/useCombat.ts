@@ -5,7 +5,6 @@ import { AudioManager } from '@/core/AudioManager'
 import type { IEnemy } from '@/core/interfaces/ICharacter'
 import type { IAbility } from '@/core/interfaces/IAbility'
 import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
-import type { TimingResultData } from '@/types/timing'
 import { StatusEffects, applyFailureEffect } from '@/core/StatusEffects'
 import type {
   DefenseChallengeResult,
@@ -49,7 +48,6 @@ export function useCombat(config: CombatConfig = {}) {
   const isSelectingTarget = ref(false)
   const selectedAbility = ref<IAbility | null>(null)
   const audioManager = AudioManager.getInstance()
-  const showTimingOverlay = ref(false)
   const currentAction = ref<{ ability: IAbility, target: any } | null>(null)
   const attackingEnemyId = ref<string | null>(null)
   const combatLogRef = ref<HTMLDivElement | null>(null)
@@ -57,7 +55,6 @@ export function useCombat(config: CombatConfig = {}) {
   const playerHitPopups = ref<{ value: number, key: number }[]>([])
   const showAbilitiesModal = ref(false)
   const abilityCooldowns = ref<{ [type: string]: number }>({})
-  const timingEffect = ref('')
 
   const announcement = ref<{ text: string, variant: string, key: number } | null>(null)
   let announcementKey = 0
@@ -100,8 +97,6 @@ export function useCombat(config: CombatConfig = {}) {
   let pendingDefenseEnemy: IEnemy | null = null
   let popupKey = 0
 
-  const timingResultCallback = ref<((result: TimingResultData) => void) | null>(null)
-
   const abilities = computed(() => {
     if (player.value?.abilities) {
       return player.value.abilities
@@ -115,7 +110,6 @@ export function useCombat(config: CombatConfig = {}) {
     return !isPlayerTurn.value ||
            isCombatEnded.value ||
            isExecutingAction.value ||
-           showTimingOverlay.value ||
            isDefenseActive.value
   })
 
@@ -138,7 +132,7 @@ export function useCombat(config: CombatConfig = {}) {
   }
 
   function handleDefensePhaseComplete(result: DefensePhaseResult) {
-    // Dispara los hooks `onBlock` una vez por cada fase acertada del QTE.
+    // Dispara los hooks `onBlock` una vez por cada fase acertada del desafio de defensa.
     // Asi, una fase que entra en el area de exito consume 1 carga del buff.
     if (result.outcome === 'success') {
       processPlayerOnBlockHooks(1)
@@ -151,8 +145,8 @@ export function useCombat(config: CombatConfig = {}) {
   /**
    * Itera los efectos de estado del jugador con `onBlock` + `charges`,
    * los dispara, y elimina los que se quedan sin cargas.
-   * Llamado una vez por cada fase del QTE en la que el jugador acierta
-   * el area de exito (no por ataque entero).
+   * Llamado una vez por cada fase del desafio de defensa en la que el jugador
+   * acierta el area de exito (no por ataque entero).
    */
   function processPlayerOnBlockHooks(blockedFraction: number) {
     const p = player.value
@@ -221,7 +215,6 @@ export function useCombat(config: CombatConfig = {}) {
         : `Recibes ${finalDamage} de dano.`)
     } else {
       addToLog(blockLog || `¡Bloqueaste el ataque!`)
-      audioManager.playBonusSound()
     }
 
     if (result.appliedOnFailureEffect && pattern.onFailureEffect) {
@@ -231,7 +224,7 @@ export function useCombat(config: CombatConfig = {}) {
     resolve(result)
   }
 
-  function applyOnFailureEffectToPlayer(p: any, fx: { statusType: string; stacks?: number; critical?: boolean }) {
+  function applyOnFailureEffectToPlayer(p: any, fx: { statusType: string; stacks?: number }) {
     const template = StatusEffects.getByType(fx.statusType)
     if (!template) {
       throw new Error(
@@ -278,7 +271,7 @@ export function useCombat(config: CombatConfig = {}) {
   }
 
   function openAbilitiesModal() {
-    if (!isPlayerTurn.value || isCombatEnded.value || showTimingOverlay.value || isExecutingAction.value) return
+    if (!isPlayerTurn.value || isCombatEnded.value || isExecutingAction.value) return
     showAbilitiesModal.value = true
   }
 
@@ -349,13 +342,10 @@ export function useCombat(config: CombatConfig = {}) {
   }
 
   /**
-   * Ejecuta la accion directamente si la ability no requiere QTE,
-   * o lanza el QTE si requiereTiming es true (default).
+   * Ejecuta la accion directamente.
    *
    * Validacion de energia:
-   * - energyCost (fijo): se cobra ANTES del QTE. Si no alcanza, cancela sin gastar turno.
-   * - energyCostOnCrit: se cobra solo si el QTE resulto en critico. Se valida tras el QTE,
-   *   pero si falla, cancela la accion (sin aplicar dano) y devuelve la energia del energyCost.
+   * - energyCost (fijo): se cobra antes de ejecutar. Si no alcanza, cancela sin gastar turno.
    */
   function triggerExecution(_target: any) {
     const ability = selectedAbility.value
@@ -367,8 +357,6 @@ export function useCombat(config: CombatConfig = {}) {
       return
     }
 
-    // Pre-check de costo fijo de energia (defensa en profundidad;
-    // la alerta real se dispara al seleccionar la habilidad).
     if (ability.energyCost && ability.energyCost > 0) {
       if (caster.energy < ability.energyCost) {
         cancelAction(`Energia insuficiente para ${ability.name} (necesitas ${ability.energyCost}).`)
@@ -377,24 +365,7 @@ export function useCombat(config: CombatConfig = {}) {
       caster.spendEnergy(ability.energyCost)
     }
 
-    if (ability.requiresTiming === false) {
-      // Sin QTE: ejecutar inmediatamente
-      executeAbility(undefined as any, ability.energyCost ?? 0)
-    } else {
-      performTimingChallenge().then((timingResult) => {
-        // Validar el costo por critico ANTES de ejecutar
-        if (timingResult === 'critical' && ability.energyCostOnCrit && ability.energyCostOnCrit > 0) {
-          if (caster.energy < ability.energyCostOnCrit) {
-            // Devolver la energia fija cobrada, cancelar accion
-            caster.restoreEnergy(ability.energyCost ?? 0)
-            cancelAction(`Energia insuficiente para confirmar el critico (necesitas ${ability.energyCostOnCrit}).`)
-            return
-          }
-          caster.spendEnergy(ability.energyCostOnCrit)
-        }
-        executeAbility(timingResult, ability.energyCost ?? 0)
-      })
-    }
+    executeAbility(ability.energyCost ?? 0)
   }
 
   function canTargetEnemies(ability: IAbility | null): boolean {
@@ -424,7 +395,7 @@ export function useCombat(config: CombatConfig = {}) {
 
   function handleAbilitiesModalShortcuts(e: KeyboardEvent) {
     if (!showAbilitiesModal.value) {
-      if (e.key.toLowerCase() === 'a' && isPlayerTurn.value && !showTimingOverlay.value && !isExecutingAction.value) {
+      if (e.key.toLowerCase() === 'a' && isPlayerTurn.value && !isExecutingAction.value) {
         openAbilitiesModal()
         e.preventDefault()
       }
@@ -724,27 +695,7 @@ export function useCombat(config: CombatConfig = {}) {
     return Math.max(0, (current / max) * 100)
   }
 
-  const performTimingChallenge = (): Promise<TimingResultData['result']> => {
-    return new Promise((resolve) => {
-      const handleResult = (result: TimingResultData) => {
-        showTimingOverlay.value = false
-        timingResultCallback.value = null
-        resolve(result.result)
-      }
-
-      timingResultCallback.value = handleResult
-      showTimingOverlay.value = true
-    })
-  }
-
-  const handleTimingResult = (result: TimingResultData) => {
-    if (timingResultCallback.value) {
-      timingResultCallback.value(result)
-    }
-  }
-
   const executeAbility = async (
-    timingResult?: TimingResultData['result'],
     energySpent: number = 0
   ) => {
     isExecutingAction.value = true
@@ -752,6 +703,7 @@ export function useCombat(config: CombatConfig = {}) {
     if (currentAction.value) {
       const { ability, target } = currentAction.value
       const playerChar = player.value as Hero
+      const animationDelay = ability.animationDurationMs ?? 1500
 
       if (ability.execute) {
         await ability.execute({
@@ -760,9 +712,8 @@ export function useCombat(config: CombatConfig = {}) {
           addToLog,
           showEnemyHit,
           showAnnouncement: (text, variant, duration) => showAnnouncement(text, variant ?? 'info', duration),
-          performTimingChallenge,
           audioManager,
-          timingResult,
+          animationDelay,
           energySpent
         })
         onAbilityUsed(ability.type, ability.cooldown)
@@ -851,7 +802,6 @@ export function useCombat(config: CombatConfig = {}) {
     isCombatEnded,
     isSelectingTarget,
     selectedAbility,
-    showTimingOverlay,
     currentAction,
     attackingEnemyId,
     combatLogRef,
@@ -859,7 +809,6 @@ export function useCombat(config: CombatConfig = {}) {
     playerHitPopups,
     showAbilitiesModal,
     abilityCooldowns,
-    timingEffect,
     announcement,
     showAnnouncement,
     clearAnnouncement,
@@ -899,7 +848,6 @@ export function useCombat(config: CombatConfig = {}) {
     canTargetEnemies,
     canTargetAllies,
     actionRequiresTarget,
-    handleTimingResult,
     executeAbility,
     revivePlayer,
     healPlayerToFull,

@@ -15,7 +15,6 @@ export interface DefensePhaseZone {
 
 export interface DefenseFailureEffect {
   statusType: string
-  critical?: boolean
   stacks?: number
 }
 

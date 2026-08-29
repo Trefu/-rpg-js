@@ -1,7 +1,7 @@
 import { Howl, Howler } from 'howler'
 
 type MusicTrack = 'menu' | 'combat' | 'boss'
-type SfxName = 'attack' | 'hit' | 'victory' | 'crit' | 'bonus'
+type SfxName = 'attack' | 'hit' | 'victory'
 
 const MENU_SRC = '/assets/music/menu_ost.mp3'
 const COMBAT_SOURCES = [
@@ -13,9 +13,7 @@ const BOSS_SRC = '/assets/music/mountain_ost_boss.mp3'
 const SFX_SRC: Record<SfxName, string> = {
     attack: '/assets/sounds/Stab 4-1.wav',
     hit: '/assets/sounds/Hit Generic 2-1.wav',
-    victory: '/assets/sounds/Special Collectible 26-1.wav',
-    crit: '/assets/sounds/Explosion Large 1-1.wav',
-    bonus: '/assets/sounds/Explosion Medium 2-1.wav'
+    victory: '/assets/sounds/Special Collectible 26-1.wav'
 }
 
 interface CombatPool {
@@ -167,14 +165,6 @@ export class AudioManager {
 
     public playVictorySound(): void {
         this.tryPlay(this.getSfx('victory'))
-    }
-
-    public playCritSound(): void {
-        this.tryPlay(this.getSfx('crit'))
-    }
-
-    public playBonusSound(): void {
-        this.tryPlay(this.getSfx('bonus'))
     }
 
     public setMusicVolume(volume: number): void {

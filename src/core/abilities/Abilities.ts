@@ -1,33 +1,30 @@
 import type { IAbility } from '@/core/interfaces/IAbility'
-import type { AbilityContext, TimingResult } from '@/core/interfaces/IAbility'
+import type { AbilityContext } from '@/core/interfaces/IAbility'
 import type { Hero } from '../Hero'
 import { StatusEffects } from '../StatusEffects'
 
-const TIMING_PREFIX: Record<TimingResult, string> = {
-  critical: '¡CRÍTICO! Usaste',
-  bonus: '¡BONUS! Usaste',
-  normal: 'Usaste',
-  miss: 'Fallaste al usar'
-}
-
-const BASIC_ATTACK_TIMING_SCALING: Record<TimingResult, number> = {
-  critical: 2.0,
-  bonus: 1.5,
-  normal: 1.0,
-  miss: 0.25
-}
-
-const formatAbilityLog = (
-  baseMessage: string,
-  timingResult: AbilityContext['timingResult']
-): string => {
-  if (!timingResult) return baseMessage
-  const prefix = TIMING_PREFIX[timingResult] ?? 'Usaste'
-  return baseMessage.replace(/^Usaste|^Lanzaste|^Fallaste al usar/, prefix)
-}
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
 const showCritAnnouncement = (context: AbilityContext) => {
   context.showAnnouncement(`¡CRÍTICO!`, 'crit', 1800)
+}
+
+const rollAndApplyDamage = (
+  caster: Hero,
+  rawDamage: number
+): { finalDamage: number, isCrit: boolean } => {
+  const baseDamage = Math.floor(rawDamage)
+  if (baseDamage <= 0) return { finalDamage: 0, isCrit: false }
+  const isCrit = caster.rollCrit()
+  const finalDamage = isCrit
+    ? Math.floor(baseDamage * caster.critDamageMultiplier)
+    : baseDamage
+  return { finalDamage, isCrit }
+}
+
+const buildAttackLog = (abilityName: string, damage: number, isCrit: boolean): string => {
+  const base = `Usaste ${abilityName} causando ${damage} de daño.`
+  return isCrit ? `¡CRÍTICO! ${base}` : base
 }
 
 export const createBasicAttackAbility = (): IAbility => ({
@@ -35,21 +32,18 @@ export const createBasicAttackAbility = (): IAbility => ({
   description: 'Un ataque simple con daño bajo',
   type: 'attack',
   cooldown: 0,
-  damage: 30,
   targetType: 'enemies-only',
-  requiresTiming: true,
   execute: async (context: AbilityContext) => {
-    const baseDamage = context.caster.attack()
-    const timingResult: TimingResult = context.timingResult ?? 'normal'
-    const multiplier = BASIC_ATTACK_TIMING_SCALING[timingResult]
-    const finalDamage = Math.floor(baseDamage * multiplier)
-    context.target.takeDamage(finalDamage)
-    context.showEnemyHit(context.target.id, finalDamage)
-    if (timingResult === 'critical') showCritAnnouncement(context)
-    context.addToLog(formatAbilityLog(
-      `Usaste Ataque Básico causando ${finalDamage} de daño.`,
-      timingResult
-    ))
+    const caster = context.caster as Hero
+    const { finalDamage, isCrit } = rollAndApplyDamage(caster, caster.attack())
+    if (finalDamage > 0) {
+      context.target.takeDamage(finalDamage)
+      context.showEnemyHit(context.target.id, finalDamage)
+      context.audioManager.playAttackSound()
+    }
+    if (isCrit) showCritAnnouncement(context)
+    context.addToLog(buildAttackLog('Ataque Básico', finalDamage, isCrit))
+    await sleep(context.animationDelay)
   }
 })
 
@@ -58,18 +52,18 @@ export const createStunStrikeAbility = (): IAbility => ({
   description: 'Un golpe que puede aturdir al enemigo',
   type: 'stunStrike',
   cooldown: 3,
-  damage: 50,
   targetType: 'enemies-only',
-  requiresTiming: true,
   execute: async (context: AbilityContext) => {
-    const damage = Math.floor(context.caster.attack() * 0.8)
-    context.target.takeDamage(damage)
-    context.showEnemyHit(context.target.id, damage)
-    if (context.timingResult === 'critical') showCritAnnouncement(context)
-    context.addToLog(formatAbilityLog(
-      `Usaste Golpe Aturdidor causando ${damage} de daño.`,
-      context.timingResult
-    ))
+    const caster = context.caster as Hero
+    const { finalDamage, isCrit } = rollAndApplyDamage(caster, caster.attack() * 0.8)
+    if (finalDamage > 0) {
+      context.target.takeDamage(finalDamage)
+      context.showEnemyHit(context.target.id, finalDamage)
+      context.audioManager.playAttackSound()
+    }
+    if (isCrit) showCritAnnouncement(context)
+    context.addToLog(buildAttackLog('Golpe Aturdidor', finalDamage, isCrit))
+    await sleep(context.animationDelay)
   }
 })
 
@@ -78,18 +72,18 @@ export const createStealthStrikeAbility = (): IAbility => ({
   description: 'Ataque furtivo que hace más daño',
   type: 'stealthStrike',
   cooldown: 2,
-  damage: 70,
   targetType: 'enemies-only',
-  requiresTiming: true,
   execute: async (context: AbilityContext) => {
-    const damage = Math.floor(context.caster.attack() * 1.5)
-    context.target.takeDamage(damage)
-    context.showEnemyHit(context.target.id, damage)
-    if (context.timingResult === 'critical') showCritAnnouncement(context)
-    context.addToLog(formatAbilityLog(
-      `Usaste Golpe Sigiloso causando ${damage} de daño.`,
-      context.timingResult
-    ))
+    const caster = context.caster as Hero
+    const { finalDamage, isCrit } = rollAndApplyDamage(caster, caster.attack() * 1.5)
+    if (finalDamage > 0) {
+      context.target.takeDamage(finalDamage)
+      context.showEnemyHit(context.target.id, finalDamage)
+      context.audioManager.playAttackSound()
+    }
+    if (isCrit) showCritAnnouncement(context)
+    context.addToLog(buildAttackLog('Golpe Sigiloso', finalDamage, isCrit))
+    await sleep(context.animationDelay)
   }
 })
 
@@ -98,89 +92,83 @@ export const createFireballAbility = (): IAbility => ({
   description: 'Hechizo de fuego que causa daño mágico',
   type: 'fireball',
   cooldown: 3,
-  damage: 90,
   targetType: 'enemies-only',
-  requiresTiming: true,
   execute: async (context: AbilityContext) => {
-    const damage = Math.floor(context.caster.attack() * 1.5)
-    context.target.takeDamage(damage)
-    context.showEnemyHit(context.target.id, damage)
-    if (context.timingResult === 'critical') showCritAnnouncement(context)
-    context.addToLog(formatAbilityLog(
-      `Lanzaste Bola de Fuego causando ${damage} de daño de fuego.`,
-      context.timingResult
-    ))
+    const caster = context.caster as Hero
+    const { finalDamage, isCrit } = rollAndApplyDamage(caster, caster.attack() * 1.5)
+    if (finalDamage > 0) {
+      context.target.takeDamage(finalDamage)
+      context.showEnemyHit(context.target.id, finalDamage)
+      context.audioManager.playAttackSound()
+    }
+    if (isCrit) showCritAnnouncement(context)
+    context.addToLog(buildAttackLog('Bola de Fuego', finalDamage, isCrit))
+    await sleep(context.animationDelay)
   }
 })
 
-export const createWarriorAttackAbility = (customCriticalMultiplier: number = 3.0): IAbility => ({
+export const createWarriorAttackAbility = (): IAbility => ({
   name: 'Tajo Devastador',
-  description: `Un tajo certero que siempre cuesta 20 de energia. Un critico inflige X${customCriticalMultiplier} de dano.`,
+  description: 'Un tajo certero que siempre cuesta 20 de energia.',
   type: 'warriorDevastatingStrike',
   cooldown: 0,
   energyCost: 20,
-  customCriticalMultiplier,
   targetType: 'enemies-only',
-  requiresTiming: true,
   execute: async (context: AbilityContext) => {
     const caster = context.caster as Hero
-    const baseDamage = caster.attack()
-    const timingResult: TimingResult = context.timingResult ?? 'normal'
-
-    const multiplier =
-      timingResult === 'critical'
-        ? customCriticalMultiplier
-        : BASIC_ATTACK_TIMING_SCALING[timingResult]
-
-    const finalDamage = Math.floor(baseDamage * multiplier)
-    context.target.takeDamage(finalDamage)
-    context.showEnemyHit(context.target.id, finalDamage)
-    if (timingResult === 'critical' && multiplier > 1) {
-      showCritAnnouncement(context)
+    const { finalDamage, isCrit } = rollAndApplyDamage(caster, caster.attack())
+    if (finalDamage > 0) {
+      context.target.takeDamage(finalDamage)
+      context.showEnemyHit(context.target.id, finalDamage)
+      context.audioManager.playAttackSound()
     }
-    context.addToLog(formatAbilityLog(
-      `Usaste Tajo Devastador causando ${finalDamage} de dano.`,
-      timingResult
-    ))
+    if (isCrit) showCritAnnouncement(context)
+    context.addToLog(buildAttackLog('Tajo Devastador', finalDamage, isCrit))
+    await sleep(context.animationDelay)
   }
 })
 
 export const createWarriorBasicAttackAbility = (): IAbility => ({
   name: 'Corte Vertical',
-  description: 'Tres tajos verticales encadenados tras un unico desafio de timing. Cuesta energia, hace triple de dano y golpea 3 veces con su propia animacion.',
+  description: 'Tres tajos verticales encadenados. Cuesta energia, hace triple de dano y golpea 3 veces con su propia animacion.',
   type: 'warriorVerticalSlash',
   cooldown: 0,
   energyCost: 30,
   targetType: 'enemies-only',
-  requiresTiming: true,
+  animationDurationMs: 800,
   execute: async (context: AbilityContext) => {
     const caster = context.caster as Hero
     const target = context.target
     const baseDamage = caster.attack()
-    const timingResult: TimingResult = context.timingResult ?? 'normal'
-    const timingMultiplier = BASIC_ATTACK_TIMING_SCALING[timingResult]
     const strikes = 3
     const damageMultiplier = 3
     const strikeDelay = 550
 
     context.addToLog(`Usaste Corte Vertical: una rafaga de ${strikes} tajos.`)
-    if (timingResult === 'critical') showCritAnnouncement(context)
+    context.audioManager.playAttackSound()
 
+    let crit = false
     for (let strikeIndex = 0; strikeIndex < strikes; strikeIndex++) {
-      const finalDamage = Math.floor(baseDamage * timingMultiplier * damageMultiplier)
+      const isCrit = caster.rollCrit()
+      if (isCrit) crit = true
+      const perStrike = Math.floor(baseDamage * damageMultiplier)
+      const finalDamage = isCrit
+        ? Math.floor(perStrike * caster.critDamageMultiplier)
+        : perStrike
       target.takeDamage(finalDamage)
       context.showEnemyHit(target.id, finalDamage)
       context.showAnnouncement(`¡Tajo ${strikeIndex + 1}/${strikes}!`, 'attack', 650)
-
-      context.addToLog(formatAbilityLog(
-        `Corte Vertical (${strikeIndex + 1}/${strikes}) inflige ${finalDamage} de dano.`,
-        timingResult
-      ))
+      context.addToLog(
+        (isCrit ? '¡CRÍTICO! ' : '') +
+        `Corte Vertical (${strikeIndex + 1}/${strikes}) inflige ${finalDamage} de dano.`
+      )
 
       if (strikeIndex < strikes - 1) {
-        await new Promise(resolve => setTimeout(resolve, strikeDelay))
+        await sleep(strikeDelay)
       }
     }
+    if (crit) showCritAnnouncement(context)
+    await sleep(context.animationDelay)
   }
 })
 
@@ -190,7 +178,7 @@ export const createSecondWindAbility = (): IAbility => ({
   type: 'secondWind',
   cooldown: 1,
   targetType: 'allies-only',
-  requiresTiming: false,
+  animationDurationMs: 1200,
   execute: async (context: AbilityContext) => {
     const caster = context.caster as Hero
     if (!caster.isAlive) {
@@ -221,5 +209,6 @@ export const createSecondWindAbility = (): IAbility => ({
       `Usaste Segundo Aliento: cura ${healAmount} HP y activa el buff (${maxCharges} cargas).`
     )
     context.showAnnouncement('Segundo Aliento!', 'info', 1500)
+    await sleep(context.animationDelay)
   }
 })

@@ -17,6 +17,8 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
   public defenseValue: number
   public baseStats: IPlayerStats
   public baseAttack: number
+  public critChance: number
+  public critDamageMultiplier: number
   public sprite: string
   /**
    * Regen pasiva de energia al final del turno del jugador.
@@ -45,6 +47,8 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
     this.maxEnergy = 50
     this.energy = 50
     this.baseAttack = baseAttack
+    this.critChance = 0.05
+    this.critDamageMultiplier = 2.0
     this.sprite = sprite
     this.baseStats = {
       fuerza: 10,
@@ -71,6 +75,15 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
 
   public defense(): number {
     return this.defenseValue + (this.level * 1)
+  }
+
+  /**
+   * Tirada probabilistica de critico del heroe.
+   * `critChance` esta en [0, 1] (default 0.05 = 5%).
+   */
+  public rollCrit(): boolean {
+    if (!this.isAlive) return false
+    return Math.random() < this.critChance
   }
 
   public gainExperience(amount: number): void {

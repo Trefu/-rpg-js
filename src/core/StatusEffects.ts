@@ -13,13 +13,10 @@ import secondWindIcon from '@/assets/icons/wind-slap.png'
 
 // Duración base por defecto para cualquier efecto de daño por tiempo (DoT).
 export const MAX_DOT_DURATION = 3
-// Turnos extra que se suman cuando el efecto se aplica con un golpe crítico.
-export const CRITICAL_HIT_BONUS_TURNS = 2
 export const DEFAULT_MAX_STACKS = 999
 
 export interface FailureEffectSpec {
   statusType: string
-  critical?: boolean
   stacks?: number
 }
 
@@ -227,13 +224,10 @@ export function applyFailureEffect(
   }
 
   const maxDuration = template.maxDuration ?? MAX_DOT_DURATION
-  const duration = spec.critical
-    ? maxDuration + CRITICAL_HIT_BONUS_TURNS
-    : maxDuration
 
   const instance: IStatusEffect = {
     ...template,
-    turns: duration,
+    turns: maxDuration,
     stacks,
     maxStacks,
     maxDuration

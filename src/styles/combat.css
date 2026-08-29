@@ -333,57 +333,6 @@
   }
 }
 
-.timing-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(10, 10, 20, 0.85);
-  z-index: 3000;
-  pointer-events: none;
-}
-
-.timing-overlay.crit {
-  box-shadow: 0 0 80px 20px #ffe60099;
-  animation: crit-glow 0.5s;
-}
-
-.timing-overlay.bonus {
-  box-shadow: 0 0 60px 10px #ff333399;
-  animation: bonus-glow 0.5s;
-}
-
-@keyframes crit-glow {
-  0% {
-    box-shadow: 0 0 0 0 #ffe60000;
-  }
-
-  50% {
-    box-shadow: 0 0 80px 40px #ffe600cc;
-  }
-
-  100% {
-    box-shadow: 0 0 0 0 #ffe60000;
-  }
-}
-
-@keyframes bonus-glow {
-  0% {
-    box-shadow: 0 0 0 0 #ff333300;
-  }
-
-  50% {
-    box-shadow: 0 0 60px 30px #ff3333cc;
-  }
-
-  100% {
-    box-shadow: 0 0 0 0 #ff333300;
-  }
-}
-
 @keyframes attack-glow {
   0% {
     box-shadow: 0 0 8px 2px #ff3333, 0 0 0 4px #ff3333 inset;
