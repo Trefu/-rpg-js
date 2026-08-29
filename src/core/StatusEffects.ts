@@ -11,15 +11,21 @@ import weaknessIcon from '@/assets/icons/anatomy.png'
 import slowIcon from '@/assets/icons/snail.png'
 import secondWindIcon from '@/assets/icons/wind-slap.png'
 
-// Duración máxima por defecto para cualquier efecto de daño por tiempo (DoT).
-// Cualquier re-aplicación respetará este tope y acumulará stacks en su lugar.
+// Duración base por defecto para cualquier efecto de daño por tiempo (DoT).
 export const MAX_DOT_DURATION = 3
+// Turnos extra que se suman cuando el efecto se aplica con un golpe crítico.
+export const CRITICAL_HIT_BONUS_TURNS = 2
 export const DEFAULT_MAX_STACKS = 5
 
 export interface FailureEffectSpec {
   statusType: string
   duration: number
   stacks?: number
+  /**
+   * Si el golpe que origina este efecto es crítico, se suman
+   * `CRITICAL_HIT_BONUS_TURNS` turnos extra a la duración base.
+   */
+  critical?: boolean
 }
 
 export class StatusEffects {
@@ -35,39 +41,37 @@ export class StatusEffects {
   }
 
   // Efectos de daño por tiempo (DoTs): todos comparten maxDuration + maxStacks
-  // damagePerTurn es propiedad intrínseca del efecto. Los stacks multiplican el DOT real.
+  // Cada stack = 1 de daño fijo por turno. Las reaplicaciones suman stacks, nunca turnos.
   static readonly BURN: IStatusEffect = {
     type: 'burn',
     name: 'Quemado',
-    description: 'El personaje recibe daño por quemadura cada turno.',
+    description: 'El personaje recibe daño por quemadura cada turno (1 por stack). Las reaplicaciones suman stacks.',
     turns: MAX_DOT_DURATION,
     maxDuration: MAX_DOT_DURATION,
     stacks: 1,
     maxStacks: DEFAULT_MAX_STACKS,
     icon: burnIcon,
     isBuff: false,
-    turnLabel: '¡Recibe daño por quemadura!',
-    damagePerTurn: 5
+    turnLabel: '¡Recibe daño por quemadura!'
   }
 
   static readonly POISON: IStatusEffect = {
     type: 'poison',
     name: 'Envenenado',
-    description: 'El personaje recibe daño por veneno cada turno. Las reaplicaciones suman stacks y acumulan daño.',
+    description: 'El personaje recibe daño por veneno cada turno (1 por stack). Las reaplicaciones suman stacks, nunca turnos.',
     turns: MAX_DOT_DURATION,
     maxDuration: MAX_DOT_DURATION,
     stacks: 1,
     maxStacks: DEFAULT_MAX_STACKS,
     icon: poisonIcon,
     isBuff: false,
-    turnLabel: '¡Recibe daño por veneno!',
-    damagePerTurn: 3
+    turnLabel: '¡Recibe daño por veneno!'
   }
 
   static readonly FREEZE: IStatusEffect = {
     type: 'freeze',
     name: 'Congelado',
-    description: 'El personaje recibe daño por frío cada turno. Las reaplicaciones suman stacks.',
+    description: 'El personaje recibe daño por frío cada turno (1 por stack). Las reaplicaciones suman stacks, nunca turnos.',
     turns: MAX_DOT_DURATION,
     maxDuration: MAX_DOT_DURATION,
     stacks: 1,
@@ -75,7 +79,6 @@ export class StatusEffects {
     icon: freezeIcon,
     isBuff: false,
     turnLabel: '¡Recibe daño por frío!',
-    damagePerTurn: 2,
     speedPenalty: -2
   }
 
@@ -213,9 +216,11 @@ export class StatusEffects {
  * Reglas:
  * - `statusType` debe existir en StatusEffects (lanza error si no)
  * - `duration` se clampa a `maxDuration` del template (no lanza, es un cap defensivo)
+ * - Si `critical` es true, se suman `CRITICAL_HIT_BONUS_TURNS` a la duración (clamp a maxDuration)
  * - `stacks` debe ser ≥ 1 y ≤ `maxStacks` del template (lanza error si excede)
- * - `damagePerTurn` SIEMPRE viene del template, no del spec
+ * - Cada stack representa 1 de daño fijo por turno (no se usa damagePerTurn)
  * - Si ya existe el efecto, `Character.addStatusEffect` acumula stacks respetando maxStacks
+ *   y NO modifica los turnos restantes (regla explícita del modelo)
  *
  * @throws si statusType es desconocido o stacks excede maxStacks
  */
@@ -241,7 +246,10 @@ export function applyFailureEffect(
   }
 
   const maxDuration = template.maxDuration ?? MAX_DOT_DURATION
-  const duration = Math.max(1, Math.min(spec.duration, maxDuration))
+  const baseDuration = Math.max(1, Math.min(spec.duration, maxDuration))
+  const duration = spec.critical
+    ? Math.min(maxDuration, baseDuration + CRITICAL_HIT_BONUS_TURNS)
+    : baseDuration
 
   const instance: IStatusEffect = {
     ...template,

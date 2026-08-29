@@ -23,6 +23,13 @@ import { getDefenseModifiers } from '@/core/defense/modifiers'
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
+// Tipos de estado que infligen daño por turno. Cada stack = 1 de daño fijo.
+const DO_STATUS_TYPES: Set<string> = new Set([
+  StatusEffects.BURN.type,
+  StatusEffects.POISON.type,
+  StatusEffects.FREEZE.type
+])
+
 export interface CombatConfig {
   isTraining?: boolean
   onCombatEnd?: (victory: boolean) => void
@@ -224,7 +231,7 @@ export function useCombat(config: CombatConfig = {}) {
     resolve(result)
   }
 
-  function applyOnFailureEffectToPlayer(p: any, fx: { statusType: string; duration: number; stacks?: number }) {
+  function applyOnFailureEffectToPlayer(p: any, fx: { statusType: string; duration: number; stacks?: number; critical?: boolean }) {
     const template = StatusEffects.getByType(fx.statusType)
     if (!template) {
       throw new Error(
@@ -488,9 +495,6 @@ export function useCombat(config: CombatConfig = {}) {
   function endPlayerTurn() {
     isPlayerTurn.value = false
     decrementAbilityCooldowns()
-    if (typeof player.value?.reduceStatusEffects === 'function') {
-      player.value.reduceStatusEffects()
-    }
     if (typeof player.value?.restoreEnergy === 'function') {
       const regen = typeof player.value.getTurnEndEnergyRegen === 'function'
         ? player.value.getTurnEndEnergyRegen()
@@ -640,10 +644,10 @@ export function useCombat(config: CombatConfig = {}) {
     const p = player.value
     if (!p || !Array.isArray(p.statusEffects) || p.statusEffects.length === 0) return
 
-    const active = p.statusEffects.filter(e => e.turns > 0 && typeof e.damagePerTurn === 'number' && (e.damagePerTurn as number) > 0)
+    const active = p.statusEffects.filter(e => e.turns > 0 && DO_STATUS_TYPES.has(e.type))
     for (const effect of active) {
       const stacks = effect.stacks ?? 1
-      const dmg = (effect.damagePerTurn as number) * stacks
+      const dmg = stacks
       p.takeDamage(dmg)
       showPlayerHit(dmg)
       audioManager.playHitSound()

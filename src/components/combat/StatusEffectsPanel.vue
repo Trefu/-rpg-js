@@ -24,9 +24,11 @@ function onBackdropClick(e: MouseEvent) {
   if (e.target === e.currentTarget) emit('close')
 }
 
+const DAMAGE_STATUS_TYPES = new Set(['burn', 'poison', 'freeze'])
+
 function effectAccent(effect: IStatusEffect): string {
   if (effect.isBuff) return 'buff'
-  if (typeof effect.damagePerTurn === 'number' && effect.damagePerTurn > 0) return 'damage'
+  if (DAMAGE_STATUS_TYPES.has(effect.type)) return 'damage'
   if (effect.type === 'stun') return 'stun'
   return 'debuff'
 }
@@ -40,8 +42,8 @@ function effectDurationLabel(effect: IStatusEffect): string {
 }
 
 function totalDamage(effect: IStatusEffect): number {
-  if (typeof effect.damagePerTurn !== 'number') return 0
-  return effect.damagePerTurn * (effect.stacks ?? 1)
+  if (!DAMAGE_STATUS_TYPES.has(effect.type)) return 0
+  return effect.stacks ?? 1
 }
 
 function turnsPercent(effect: IStatusEffect): number {
@@ -107,10 +109,10 @@ function progressTitle(effect: IStatusEffect): string {
                   <span class="status-card-turns">{{ effectDurationLabel(effect) }}</span>
                 </div>
                 <p class="status-card-desc">{{ effect.description }}</p>
-                <div v-if="typeof effect.damagePerTurn === 'number' && effect.damagePerTurn > 0" class="status-card-meta">
+                <div v-if="DAMAGE_STATUS_TYPES.has(effect.type)" class="status-card-meta">
                   <span>Daño por turno: <b>-{{ totalDamage(effect) }}</b></span>
                   <span v-if="(effect.stacks ?? 1) > 1" class="status-card-stacks-inline">
-                    ({{ effect.damagePerTurn }} × {{ effect.stacks }})
+                    ({{ effect.stacks }} stacks)
                   </span>
                 </div>
                 <div

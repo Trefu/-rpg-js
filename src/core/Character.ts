@@ -38,8 +38,6 @@ export abstract class Character implements ICharacter {
       const maxStacks = existingEffect.maxStacks ?? effect.maxStacks ?? 99
       const currentStacks = existingEffect.stacks ?? 1
       existingEffect.stacks = Math.min(maxStacks, currentStacks + incomingStacks)
-      const maxDuration = existingEffect.maxDuration ?? effect.maxDuration ?? existingEffect.turns
-      existingEffect.turns = Math.min(maxDuration, Math.max(existingEffect.turns, effect.turns))
     } else {
       const maxStacks = effect.maxStacks ?? 99
       const stacks = effect.stacks ?? 1

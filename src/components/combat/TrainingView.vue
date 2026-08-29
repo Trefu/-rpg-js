@@ -20,9 +20,65 @@ import {
   createStealthStrikeAbility,
   createFireballAbility
 } from '@/core/abilities/Abilities'
+import {
+  GOBLIN_ESPADAZO,
+  GOBLIN_FLECHA_VENENOSA,
+  GOBLIN_ASCUA,
+  WOLF_MORDIDA_FEROZ,
+  WOLF_ZARPAZOS_RAPIDOS,
+  ORC_HACHAZOS_MULTIPLES,
+  ORC_GOLPE_APLASTANTE,
+  GOLPE_SUAVE,
+  GOLPE_RAPIDO,
+  COMBO_DOBLE,
+  COMBO_TRIPLE,
+  MORDIDA_TOXICA,
+  ALIENTO_DE_FUEGO,
+  ALIENTO_GLACIAL
+} from '@/core/abilities/EnemyAttacks'
 import CombatView from './CombatView.vue'
 import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
 import type { DefensePatternConfig } from '@/core/defense/types'
+
+const ALL_DUMMY_PATTERNS: DefensePatternConfig[] = [
+  GOBLIN_ESPADAZO,
+  GOBLIN_FLECHA_VENENOSA,
+  GOBLIN_ASCUA,
+  WOLF_MORDIDA_FEROZ,
+  WOLF_ZARPAZOS_RAPIDOS,
+  ORC_HACHAZOS_MULTIPLES,
+  ORC_GOLPE_APLASTANTE,
+  GOLPE_SUAVE,
+  GOLPE_RAPIDO,
+  COMBO_DOBLE,
+  COMBO_TRIPLE,
+  MORDIDA_TOXICA,
+  ALIENTO_DE_FUEGO,
+  ALIENTO_GLACIAL
+]
+
+function describePattern(p: DefensePatternConfig): string {
+  const speed = p.waveSpeed ?? 30
+  const speedLabel = speed <= 30 ? 'lenta' : speed <= 45 ? 'media' : 'alta'
+  const phases = p.phases?.length ?? 1
+  const phaseLabel = phases === 1 ? '1 fase' : `${phases} fases`
+  const zoneLabel = p.baseSuccessZoneSize !== undefined
+    ? `zona ${Math.round(p.baseSuccessZoneSize * 100)}%`
+    : (p.phases?.some(ph => ph.columnCount !== undefined)
+        ? `zona ${p.phases.find(ph => ph.columnCount !== undefined)?.columnCount} col`
+        : (p.phases?.some(ph => ph.successColumns !== undefined) ? 'zona fija' : 'zona amplia'))
+  const dmg = `x${p.damageMultiplier.toFixed(1)}`
+  const effect = p.onFailureEffect
+    ? `, aplica ${p.onFailureEffect.statusType} al fallar`
+    : ''
+  return `${phaseLabel}, velocidad ${speedLabel}, ${zoneLabel}, ${dmg}${effect}`
+}
+
+const ATTACK_PATTERN_LABELS: Array<{ label: string; description: string }> =
+  ALL_DUMMY_PATTERNS.map(p => ({
+    label: p.name ?? 'Ataque',
+    description: describePattern(p)
+  }))
 
 const emit = defineEmits<{
   (e: 'trainingEnded'): void
@@ -36,20 +92,10 @@ const damageValue = ref<number>(dummy.value.baseAttack)
 const useCustomDamage = ref<boolean>(false)
 const panelCollapsed = ref<boolean>(false)
 
-const ATTACK_PATTERN_LABELS: Array<{ label: string; description: string }> = [
-  { label: 'Aleatorio', description: 'El dummy elige uno de sus ataques al azar' },
-  { label: 'Golpe Suave', description: '1 fase, velocidad lenta, zona amplia' },
-  { label: 'Golpe Rápido', description: '1 fase, velocidad alta, zona pequeña' },
-  { label: 'Combo Doble', description: '2 fases, velocidad media' },
-  { label: 'Combo Triple', description: '3 fases, velocidad alta' },
-  { label: 'Mordida Tóxica', description: '1 fase, aplica veneno al fallar' },
-  { label: 'Aliento de Fuego', description: '1 fase, aplica quemadura al fallar' }
-]
-
-const patterns = computed<DefensePatternConfig[]>(() => dummy.value.attackPatterns)
+const patterns = computed<DefensePatternConfig[]>(() => ALL_DUMMY_PATTERNS)
 const currentForcedLabel = computed(() => {
   if (selectedPatternIndex.value < 0) return 'Aleatorio'
-  return patterns.value[selectedPatternIndex.value]?.name ?? 'Aleatorio'
+  return ALL_DUMMY_PATTERNS[selectedPatternIndex.value]?.name ?? 'Aleatorio'
 })
 
 const playerAbilitiesCount = computed(() => gameStore.activeHero?.abilities.length ?? 0)
@@ -130,13 +176,21 @@ function onTrainingEnded() {
         <section class="panel-section">
           <h3><img :src="robotIcon" alt="" class="inline-icon" /> Ataques del Dummy</h3>
           <p class="section-hint">El dummy usará el ataque seleccionado en su próximo turno.</p>
-          <div class="pattern-grid">
+          <div class="pattern-scroll">
+            <button
+              class="pattern-btn random-btn"
+              :class="{ active: selectedPatternIndex === -1 }"
+              @click="selectPattern(-1)"
+            >
+              <span class="pattern-label">Aleatorio</span>
+              <span class="pattern-desc">El dummy elige uno de sus ataques al azar</span>
+            </button>
             <button
               v-for="(item, idx) in ATTACK_PATTERN_LABELS"
               :key="idx"
               class="pattern-btn"
-              :class="{ active: selectedPatternIndex === idx - 1 }"
-              @click="selectPattern(idx - 1)"
+              :class="{ active: selectedPatternIndex === idx }"
+              @click="selectPattern(idx)"
             >
               <span class="pattern-label">{{ item.label }}</span>
               <span class="pattern-desc">{{ item.description }}</span>
@@ -359,6 +413,33 @@ function onTrainingEnded() {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
+}
+
+.pattern-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 260px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.pattern-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.pattern-scroll::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 3px;
+}
+
+.pattern-scroll::-webkit-scrollbar-thumb {
+  background: #4CAF50;
+  border-radius: 3px;
+}
+
+.random-btn {
+  border-style: dashed;
 }
 
 .pattern-btn {

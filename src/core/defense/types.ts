@@ -16,10 +16,15 @@ export interface DefensePhaseZone {
 export interface DefenseFailureEffect {
   statusType: string
   duration: number
-  damagePerTurn?: number
+  /**
+   * Si el golpe que origina este efecto es crítico, se suman
+   * turnos extra a la duración base (definido en StatusEffects).
+   */
+  critical?: boolean
   /**
    * Stacks que se suman al efecto existente cuando ya está activo.
    * Si se omite, se considera 1 (aplicación normal).
+   * Cada stack = 1 de daño fijo por turno.
    */
   stacks?: number
 }

@@ -143,11 +143,6 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
       const incomingStacks = effect.stacks ?? 1
       const maxStacks = existing.maxStacks ?? effect.maxStacks ?? 99
       existing.stacks = Math.min(maxStacks, (existing.stacks ?? 1) + incomingStacks)
-      if (typeof effect.damagePerTurn === 'number') {
-        const baseDmg = existing.damagePerTurn ?? effect.damagePerTurn
-        existing.damagePerTurn = baseDmg + effect.damagePerTurn
-      }
-      existing.turns = Math.max(existing.turns, effect.turns)
       existing.maxDuration = existing.maxDuration ?? effect.maxDuration
     } else {
       const copy: IStatusEffect = { ...effect }
