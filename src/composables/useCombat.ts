@@ -345,14 +345,19 @@ export function useCombat(config: CombatConfig = {}) {
 
   /**
    * Cancela la accion actual y libera el input del jugador sin consumir turno.
+   * Solo cancela habilidades en modo de seleccion de objetivo. Las auto-cast
+   * (requiresTarget === false) ya se ejecutaron y no se ven afectadas.
    */
   function cancelAction(reasonMessage?: string) {
+    if (!isSelectingTarget.value && !selectedAbility.value) return
+    if (selectedAbility.value && !actionRequiresTarget(selectedAbility.value)) return
     if (reasonMessage) addToLog(reasonMessage)
     isSelectingTarget.value = false
     selectedAbility.value = null
     selectedEnemy.value = null
     currentAction.value = null
     isExecutingAction.value = false
+    clearAnnouncement()
   }
 
   /**

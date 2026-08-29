@@ -29,10 +29,13 @@ const slots = computed(() => {
     | { kind: 'empty' }
   > = []
   list.push({ kind: 'attack' })
+  const filtered = props.abilities.filter(a => a.type !== 'attack')
   for (let i = 0; i < 4; i++) {
-    const ab = props.abilities[i]
-    if (ab) list.push({ kind: 'ability', ability: ab, index: i })
-    else list.push({ kind: 'empty' })
+    const ab = filtered[i]
+    if (ab) {
+      const originalIndex = props.abilities.indexOf(ab)
+      list.push({ kind: 'ability', ability: ab, index: originalIndex })
+    } else list.push({ kind: 'empty' })
   }
   list.push({ kind: 'object' })
   return list
