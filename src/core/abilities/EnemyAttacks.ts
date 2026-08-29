@@ -31,7 +31,7 @@ export const GOBLIN_ASCUA: DefensePatternConfig = {
   phases: [phase(5), phase(5)],
   onFailureEffect: {
     statusType: 'burn',
-    stacks: 3
+    stacks: 12
   }
 }
 
@@ -110,26 +110,16 @@ export const COMBO_TRIPLE: DefensePatternConfig = {
   phases: [phase(3), phase(3), phase(3)]
 }
 
-export const MORDIDA_TOXICA: DefensePatternConfig = {
-  ...GOBLIN_FLECHA_VENENOSA,
-  name: 'Mordida Tóxica',
-  damageMultiplier: 0.6,
-  onFailureEffect: {
-    statusType: 'poison',
-    stacks: 2
-  }
-}
-
 export const ALIENTO_DE_FUEGO: DefensePatternConfig = {
   name: 'Aliento de Fuego',
   type: 'fire',
   waveSpeed: 80,
   baseMaxBlockReduction: 0.5,
   damageMultiplier: 2.0,
-  phases: Array.from({ length: 10 }, () => phase(4)),
+  phases: Array.from({ length: 10 }, () => phase(6)),
   onFailureEffect: {
     statusType: 'burn',
-    stacks: 1
+    stacks: 30
   }
 }
 
