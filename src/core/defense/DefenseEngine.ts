@@ -26,6 +26,11 @@ export function applyModifiersToPattern(
   const baseWaveSpeed = pattern.waveSpeed ?? DEFAULT_WAVE_SPEED
   const waveSpeed = baseWaveSpeed * modifiers.waveSpeedMultiplier
 
+  // TODO: cuando las stats del enemigo (speed, etc.) afecten la dificultad,
+  // agregar un pipeline paralelo `applyEnemyModifiersToPattern` o extender
+  // DefenseModifiers con campos como enemyWaveSpeedMultiplier y aplicarlos acá.
+  // TODO: si en el futuro una stat afecta la cantidad de columnas de éxito,
+  // sumar `columnCountBonus` a DefenseModifiers y aplicarlo en `resolveSpecColumns`.
   const phases = pattern.phases?.map(spec => {
     if (spec.waveSpeed === undefined) return spec
     return { ...spec, waveSpeed: spec.waveSpeed * modifiers.waveSpeedMultiplier }
