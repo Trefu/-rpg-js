@@ -71,7 +71,7 @@ function onClick() {
         -{{ popup.value }}
       </div>
     </transition-group>
-    <div v-if="showShortcut && isTargetSelectable && !isDead" class="enemy-shortcut-badge">
+    <div v-if="showShortcut && isTargetSelectable && !isDead && index >= 0" class="enemy-shortcut-badge">
       <span class="key-cap">{{ index + 1 }}</span>
       <span class="enemy-name-badge">{{ enemy.name }}</span>
     </div>

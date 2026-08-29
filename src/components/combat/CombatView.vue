@@ -88,6 +88,25 @@ const heroSlots = computed(() => {
   return slots
 })
 
+// Mapea cada enemigo vivo a su posicion dentro de aliveEnemies (su hotkey).
+// Los enemigos muertos quedan fuera del mapa (-1) para que no muestren hotkey
+// y para que el handler de teclado y el HUD esten sincronizados.
+const aliveIndexByEnemyId = computed<Record<string, number>>(() => {
+  const map: Record<string, number> = {}
+  enemies.value.forEach((enemy) => {
+    if (!enemy.isAlive) {
+      map[enemy.id] = -1
+    }
+  })
+  let aliveIdx = 0
+  enemies.value.forEach((enemy) => {
+    if (enemy.isAlive) {
+      map[enemy.id] = aliveIdx++
+    }
+  })
+  return map
+})
+
 // Distribuye offsets aleatorios para que los enemigos no queden en linea perfectamente.
 // Cada enemigo recibe un offset Y (entre -180 y 180 distribuidos) y X (entre -30 y 30).
 // Tambien se le asigna una celda aleatoria de la grilla 3x2 para evitar que queden en grilla perfecta.
@@ -201,7 +220,7 @@ onUnmounted(() => {
     <div class="enemies-column">
       <div class="enemies-container">
         <div
-          v-for="(enemy, idx) in enemies"
+          v-for="enemy in enemies"
           :key="enemy.id"
           class="enemy-position-wrapper"
           :style="{
@@ -212,7 +231,7 @@ onUnmounted(() => {
         >
           <EnemyCard
             :enemy="enemy"
-            :index="idx"
+            :index="aliveIndexByEnemyId[enemy.id] ?? -1"
             :is-selected="selectedEnemy?.id === enemy.id"
             :is-selecting-target="isSelectingTarget && canTargetEnemies(selectedAbility)"
             :is-action-target-required="actionRequiresTarget(selectedAbility)"
