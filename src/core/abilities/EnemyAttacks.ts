@@ -12,15 +12,14 @@ export const GOBLIN_ESPADAZO: DefensePatternConfig = {
 export const GOBLIN_FLECHA_VENENOSA: DefensePatternConfig = {
   name: 'Flecha venenosa',
   type: 'physical',
-  waveSpeed: 60,
+  waveSpeed: 70,
   baseMaxBlockReduction: 0.5,
   baseSuccessZoneSize: 0.2,
   damageMultiplier: 0.6,
-  phases: [phase(7), phase(7)],
+  phases: [phase(9)],
   onFailureEffect: {
     statusType: 'poison',
-    duration: 3,
-    stacks: 5
+    stacks: 10
   }
 }
 
@@ -32,7 +31,6 @@ export const GOBLIN_ASCUA: DefensePatternConfig = {
   phases: [phase(5), phase(5)],
   onFailureEffect: {
     statusType: 'burn',
-    duration: 3,
     stacks: 3
   }
 }
@@ -118,7 +116,6 @@ export const MORDIDA_TOXICA: DefensePatternConfig = {
   damageMultiplier: 0.6,
   onFailureEffect: {
     statusType: 'poison',
-    duration: 3,
     stacks: 2
   }
 }
@@ -132,7 +129,6 @@ export const ALIENTO_DE_FUEGO: DefensePatternConfig = {
   phases: Array.from({ length: 10 }, () => phase(4)),
   onFailureEffect: {
     statusType: 'burn',
-    duration: 3,
     stacks: 1
   }
 }
@@ -146,7 +142,6 @@ export const ALIENTO_GLACIAL: DefensePatternConfig = {
   phases: [phase(3)],
   onFailureEffect: {
     statusType: 'freeze',
-    duration: 3,
     stacks: 1
   }
 }

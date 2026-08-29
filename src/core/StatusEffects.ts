@@ -15,17 +15,12 @@ import secondWindIcon from '@/assets/icons/wind-slap.png'
 export const MAX_DOT_DURATION = 3
 // Turnos extra que se suman cuando el efecto se aplica con un golpe crítico.
 export const CRITICAL_HIT_BONUS_TURNS = 2
-export const DEFAULT_MAX_STACKS = 5
+export const DEFAULT_MAX_STACKS = 999
 
 export interface FailureEffectSpec {
   statusType: string
-  duration: number
-  stacks?: number
-  /**
-   * Si el golpe que origina este efecto es crítico, se suman
-   * `CRITICAL_HIT_BONUS_TURNS` turnos extra a la duración base.
-   */
   critical?: boolean
+  stacks?: number
 }
 
 export class StatusEffects {
@@ -210,20 +205,6 @@ export class StatusEffects {
   }
 }
 
-/**
- * Aplica un efecto de fallo de defensa al personaje objetivo con validación estricta.
- *
- * Reglas:
- * - `statusType` debe existir en StatusEffects (lanza error si no)
- * - `duration` se clampa a `maxDuration` del template (no lanza, es un cap defensivo)
- * - Si `critical` es true, se suman `CRITICAL_HIT_BONUS_TURNS` a la duración (clamp a maxDuration)
- * - `stacks` debe ser ≥ 1 y ≤ `maxStacks` del template (lanza error si excede)
- * - Cada stack representa 1 de daño fijo por turno (no se usa damagePerTurn)
- * - Si ya existe el efecto, `Character.addStatusEffect` acumula stacks respetando maxStacks
- *   y NO modifica los turnos restantes (regla explícita del modelo)
- *
- * @throws si statusType es desconocido o stacks excede maxStacks
- */
 export function applyFailureEffect(
   target: { addStatusEffect: (effect: IStatusEffect) => void; statusEffects: IStatusEffect[] },
   spec: FailureEffectSpec
@@ -246,10 +227,9 @@ export function applyFailureEffect(
   }
 
   const maxDuration = template.maxDuration ?? MAX_DOT_DURATION
-  const baseDuration = Math.max(1, Math.min(spec.duration, maxDuration))
   const duration = spec.critical
-    ? Math.min(maxDuration, baseDuration + CRITICAL_HIT_BONUS_TURNS)
-    : baseDuration
+    ? maxDuration + CRITICAL_HIT_BONUS_TURNS
+    : maxDuration
 
   const instance: IStatusEffect = {
     ...template,

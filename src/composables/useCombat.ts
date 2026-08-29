@@ -231,7 +231,7 @@ export function useCombat(config: CombatConfig = {}) {
     resolve(result)
   }
 
-  function applyOnFailureEffectToPlayer(p: any, fx: { statusType: string; duration: number; stacks?: number; critical?: boolean }) {
+  function applyOnFailureEffectToPlayer(p: any, fx: { statusType: string; stacks?: number; critical?: boolean }) {
     const template = StatusEffects.getByType(fx.statusType)
     if (!template) {
       throw new Error(
