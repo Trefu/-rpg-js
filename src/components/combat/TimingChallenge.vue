@@ -18,8 +18,7 @@ const config = computed(() => props.config ?? defaultConfig)
 
 const timingCircle = ref<TimingCircle | null>(null)
 const isActive = ref(false)
-const lastTimestamp = ref(0)
-const rootEl = ref<HTMLDivElement | null>(null)
+const shrinkingCircleEl = ref<SVGCircleElement | null>(null)
 let animationFrame: number | null = null
 let feedbackTimeout: number | null = null
 
@@ -30,9 +29,9 @@ const size = computed(() => (config.value.outerRadius + 20) * 2)
 const center = computed(() => size.value / 2)
 
 const outerRadius = computed(() => config.value.outerRadius)
-const innerRadius = computed(() => timingCircle.value?.getCurrentRadius() ?? config.value.outerRadius)
 const bonusRadius = computed(() => config.value.bonusZoneSize)
 const criticalRadius = computed(() => config.value.criticalRadius)
+const strokeColor = computed(() => config.value.color)
 
 const FEEDBACK_DURATION_MS = 750
 
@@ -102,20 +101,21 @@ const onKeydown = (e: KeyboardEvent) => {
   }
 }
 
-const onPointerDown = (e: PointerEvent) => {
+const onPointerDown = () => {
   if (!isActive.value) return
-  e.preventDefault()
-  e.stopPropagation()
   handleInput()
 }
 
-function animate(now: number) {
+function animate() {
   if (!isActive.value || !timingCircle.value) return
 
-  lastTimestamp.value = now
   timingCircle.value.update(0)
+  const radius = timingCircle.value.getCurrentRadius()
+  if (shrinkingCircleEl.value) {
+    shrinkingCircleEl.value.setAttribute('r', String(radius))
+  }
 
-  if (timingCircle.value.getCurrentRadius() <= 0) {
+  if (radius <= 0) {
     const timePressed = timingCircle.value.startTime ? performance.now() - timingCircle.value.startTime : 0
     const result: TimingResultData = {
       result: 'miss',
@@ -142,7 +142,9 @@ function start() {
 
   timingCircle.value.startShrinking()
   isActive.value = true
-  lastTimestamp.value = 0
+  if (shrinkingCircleEl.value) {
+    shrinkingCircleEl.value.setAttribute('r', String(timingCircle.value.getCurrentRadius()))
+  }
   animationFrame = requestAnimationFrame(animate)
 }
 
@@ -154,12 +156,10 @@ function stop() {
 
 onMounted(() => {
   window.addEventListener('keydown', onKeydown)
-  rootEl.value?.addEventListener('pointerdown', onPointerDown)
 })
 
 onUnmounted(() => {
   window.removeEventListener('keydown', onKeydown)
-  rootEl.value?.removeEventListener('pointerdown', onPointerDown)
   if (animationFrame) cancelAnimationFrame(animationFrame)
   clearFeedback()
 })
@@ -168,7 +168,7 @@ defineExpose({ start, stop })
 </script>
 
 <template>
-  <div ref="rootEl" class="timing-challenge" :class="feedbackClass">
+  <div class="timing-challenge" :class="feedbackClass" @pointerdown="onPointerDown">
     <svg :width="size" :height="size" :viewBox="`0 0 ${size} ${size}`">
       <defs>
         <radialGradient id="bonusGradient" cx="50%" cy="50%" r="50%">
@@ -210,11 +210,12 @@ defineExpose({ start, stop })
       />
 
       <circle
+        ref="shrinkingCircleEl"
         :cx="center"
         :cy="center"
-        :r="innerRadius"
+        :r="outerRadius"
         fill="none"
-        :stroke="config.color"
+        :stroke="strokeColor"
         stroke-width="3"
         stroke-linecap="round"
       />
