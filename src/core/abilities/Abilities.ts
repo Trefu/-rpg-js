@@ -147,24 +147,40 @@ export const createWarriorAttackAbility = (customCriticalMultiplier: number = 3.
 
 export const createWarriorBasicAttackAbility = (): IAbility => ({
   name: 'Corte Vertical',
-  description: 'Un tajo vertical basico. No cuesta energia y hace dano normal.',
+  description: 'Tres tajos verticales encadenados tras un unico desafio de timing. Cuesta energia, hace triple de dano y golpea 3 veces con su propia animacion.',
   type: 'warriorVerticalSlash',
   cooldown: 0,
+  energyCost: 30,
   targetType: 'enemies-only',
   requiresTiming: true,
   execute: async (context: AbilityContext) => {
     const caster = context.caster as Hero
+    const target = context.target
     const baseDamage = caster.attack()
     const timingResult: TimingResult = context.timingResult ?? 'normal'
-    const multiplier = BASIC_ATTACK_TIMING_SCALING[timingResult]
-    const finalDamage = Math.floor(baseDamage * multiplier)
-    context.target.takeDamage(finalDamage)
-    context.showEnemyHit(context.target.id, finalDamage)
+    const timingMultiplier = BASIC_ATTACK_TIMING_SCALING[timingResult]
+    const strikes = 3
+    const damageMultiplier = 3
+    const strikeDelay = 550
+
+    context.addToLog(`Usaste Corte Vertical: una rafaga de ${strikes} tajos.`)
     if (timingResult === 'critical') showCritAnnouncement(context)
-    context.addToLog(formatAbilityLog(
-      `Usaste Corte Vertical causando ${finalDamage} de dano.`,
-      timingResult
-    ))
+
+    for (let strikeIndex = 0; strikeIndex < strikes; strikeIndex++) {
+      const finalDamage = Math.floor(baseDamage * timingMultiplier * damageMultiplier)
+      target.takeDamage(finalDamage)
+      context.showEnemyHit(target.id, finalDamage)
+      context.showAnnouncement(`¡Tajo ${strikeIndex + 1}/${strikes}!`, 'attack', 650)
+
+      context.addToLog(formatAbilityLog(
+        `Corte Vertical (${strikeIndex + 1}/${strikes}) inflige ${finalDamage} de dano.`,
+        timingResult
+      ))
+
+      if (strikeIndex < strikes - 1) {
+        await new Promise(resolve => setTimeout(resolve, strikeDelay))
+      }
+    }
   }
 })
 
