@@ -94,7 +94,6 @@ export interface DefensePatternConfig {
   name?: string
   /** Tipo elemental del ataque (mock por ahora). */
   type?: AttackType
-  phaseCount: number
   waveSpeed?: number
   /**
    * Tamaño por defecto de la zona de éxito en floats [0..1].
@@ -105,10 +104,10 @@ export interface DefensePatternConfig {
   damageMultiplier: number
   seed?: number
   /**
-   * Specs de zona por fase. Si está definido y tiene `phaseCount`
-   * entradas, tiene prioridad sobre `baseSuccessZoneSize`.
+   * Specs de zona por fase. La cantidad de fases del patrón se
+   * deriva de `phases.length`.
    * Si se omite, se sortea con `baseSuccessZoneSize` redondeado
-   * a columnas enteras (modo retrocompatible).
+   * a columnas enteras (modo retrocompatible, 1 fase).
    */
   phases?: DefensePhaseSpec[]
   onFailureEffect?: DefenseFailureEffect

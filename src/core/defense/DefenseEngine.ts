@@ -20,9 +20,9 @@ export function applyModifiersToPattern(
   pattern: DefensePatternConfig,
   modifiers: DefenseModifiers
 ): DefensePatternConfig {
-  const phaseCount = Math.max(1, pattern.phaseCount - Math.floor(modifiers.phaseCountReduction))
   const baseSuccessZoneSize = pattern.baseSuccessZoneSize ?? DEFAULT_SUCCESS_ZONE_SIZE
   const successZoneSize = clampSuccessZoneSize(baseSuccessZoneSize + modifiers.successZoneSizeBonus)
+
   const baseWaveSpeed = pattern.waveSpeed ?? DEFAULT_WAVE_SPEED
   const waveSpeed = baseWaveSpeed * modifiers.waveSpeedMultiplier
 
@@ -33,7 +33,6 @@ export function applyModifiersToPattern(
 
   return {
     ...pattern,
-    phaseCount,
     baseSuccessZoneSize: successZoneSize,
     waveSpeed,
     phases
@@ -54,7 +53,7 @@ export function pickZonesForPhases(
 ): DefensePhaseZone[] {
   const patternWaveSpeed = pattern.waveSpeed ?? DEFAULT_WAVE_SPEED
 
-  if (pattern.phases && pattern.phases.length === pattern.phaseCount) {
+  if (pattern.phases && pattern.phases.length > 0) {
     return pattern.phases.map(spec => {
       const cols = resolveSpecColumns(spec, pattern, rng)
       const waveSpeed = spec.waveSpeed ?? patternWaveSpeed
@@ -66,10 +65,7 @@ export function pickZonesForPhases(
     1,
     Math.round((pattern.baseSuccessZoneSize ?? DEFAULT_SUCCESS_ZONE_SIZE) * DEFENSE_BAR_WIDTH)
   )
-  return Array.from({ length: pattern.phaseCount }, () => ({
-    successColumns: randomZoneOfColumns(fallbackColumns, rng),
-    waveSpeed: patternWaveSpeed
-  }))
+  return [{ successColumns: randomZoneOfColumns(fallbackColumns, rng), waveSpeed: patternWaveSpeed }]
 }
 
 function resolveSpecColumns(
@@ -109,7 +105,7 @@ export function calculateDefenseDamage(
   modifiers: DefenseModifiers,
   attackDamage: number
 ): number {
-  const phaseCount = pattern.phaseCount
+  const phaseCount = pattern.phases?.length ?? 1
   if (phaseCount <= 0) return 0
   const maxBlock = Math.max(0, Math.min(1, pattern.baseMaxBlockReduction + modifiers.blockReductionBonus))
   const perPhaseBlock = maxBlock / phaseCount

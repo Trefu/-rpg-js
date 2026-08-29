@@ -9,7 +9,6 @@ export const DUMMY_ATTACKS: DefensePatternConfig[] = [
   {
     name: 'Golpe Suave',
     type: 'physical',
-    phaseCount: 1,
     waveSpeed: 25,
     baseMaxBlockReduction: 0.8,
     damageMultiplier: 1.0,
@@ -18,7 +17,6 @@ export const DUMMY_ATTACKS: DefensePatternConfig[] = [
   {
     name: 'Golpe Rápido',
     type: 'physical',
-    phaseCount: 1,
     waveSpeed: 55,
     baseMaxBlockReduction: 0.5,
     damageMultiplier: 0.7,
@@ -27,7 +25,6 @@ export const DUMMY_ATTACKS: DefensePatternConfig[] = [
   {
     name: 'Combo Doble',
     type: 'physical',
-    phaseCount: 2,
     waveSpeed: 35,
     baseMaxBlockReduction: 0.5,
     damageMultiplier: 1.2,
@@ -36,7 +33,6 @@ export const DUMMY_ATTACKS: DefensePatternConfig[] = [
   {
     name: 'Combo Triple',
     type: 'physical',
-    phaseCount: 3,
     waveSpeed: 45,
     baseMaxBlockReduction: 0.4,
     damageMultiplier: 1.4,
@@ -55,7 +51,6 @@ export const DUMMY_ATTACKS: DefensePatternConfig[] = [
   {
     name: 'Aliento de Fuego',
     type: 'fire',
-    phaseCount: 10,
     waveSpeed: 80,
     baseMaxBlockReduction: 0.5,
     damageMultiplier: 2.0,
@@ -69,7 +64,6 @@ export const DUMMY_ATTACKS: DefensePatternConfig[] = [
   {
     name: 'Aliento Glacial',
     type: 'frost',
-    phaseCount: 1,
     waveSpeed: 50,
     baseMaxBlockReduction: 0.5,
     damageMultiplier: 0.7,

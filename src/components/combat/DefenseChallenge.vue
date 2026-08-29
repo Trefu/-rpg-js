@@ -66,9 +66,9 @@ const feedbackLabel = computed(() => {
   }
 })
 
-const isLastPhase = computed(() => props.phaseIndex >= (props.pattern?.phaseCount ?? 1) - 1)
+const isLastPhase = computed(() => props.phaseIndex >= (props.pattern?.phases?.length ?? 1) - 1)
 
-const phaseHeader = computed(() => `Fase ${props.phaseIndex + 1} / ${props.pattern?.phaseCount ?? 1}`)
+const phaseHeader = computed(() => `Fase ${props.phaseIndex + 1} / ${props.pattern?.phases?.length ?? 1}`)
 
 function clearPhaseTimeout() {
   if (phaseTimeoutHandle !== null) {
@@ -190,7 +190,7 @@ watch(() => props.show, (val) => {
 })
 
 watch(() => props.phaseIndex, (val) => {
-  if (props.show && props.pattern && val >= 0 && val < props.pattern.phaseCount) {
+  if (props.show && props.pattern && val >= 0 && val < (props.pattern.phases?.length ?? 1)) {
     resetForPhase()
     animationFrame = requestAnimationFrame(animate)
   }
@@ -250,7 +250,7 @@ onUnmounted(() => {
           {{ i + 1 }}
         </div>
         <div class="phase-dot pending"
-          v-for="i in (pattern.phaseCount - phaseOutcomes.length)"
+          v-for="i in ((pattern.phases?.length ?? 1) - phaseOutcomes.length)"
           :key="`p-${i}`">
           ·
         </div>

@@ -136,7 +136,7 @@ export function useCombat(config: CombatConfig = {}) {
     if (result.outcome === 'success') {
       processPlayerOnBlockHooks(1)
     }
-    if (defensePhaseIndex.value < (defensePattern.value?.phaseCount ?? 1) - 1) {
+    if (defensePhaseIndex.value < (defensePattern.value?.phases?.length ?? 1) - 1) {
       defensePhaseIndex.value++
     }
   }
