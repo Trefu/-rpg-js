@@ -8,14 +8,14 @@ export class Wolf extends Enemy {
   public attackPatterns: DefensePatternConfig[] = [WOLF_MORDIDA_FEROZ, WOLF_ZARPAZOS_RAPIDOS]
 
   constructor(level: number = 1) {
-    super(
-      `wolf-${Math.random().toString(36).substr(2, 9)}`,
-      'Lobo',
+    super({
+      id: `wolf-${Math.random().toString(36).substr(2, 9)}`,
+      name: 'Lobo',
       level,
-      45 + (level * 8),
-      13 + (level * 1),
-      15 + (level * 4),
-      { min: 8 + (level * 2), max: 14 + (level * 3) }
-    )
+      maxHealth: 45 + (level * 8),
+      baseAttack: 13 + (level * 1),
+      experienceReward: 15 + (level * 4),
+      goldReward: { min: 8 + (level * 2), max: 14 + (level * 3) }
+    })
   }
 }

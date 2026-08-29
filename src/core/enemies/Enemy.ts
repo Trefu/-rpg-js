@@ -3,6 +3,16 @@ import { ICharacter, ICombatant } from '../interfaces/ICharacter'
 import type { IStatusEffect } from '../interfaces/IStatusEffect'
 import type { DefensePatternConfig } from '../defense/types'
 
+export interface EnemyOptions {
+  id: string
+  name: string
+  level?: number
+  maxHealth: number
+  baseAttack: number
+  experienceReward: number
+  goldReward: { min: number; max: number }
+}
+
 export abstract class Enemy extends Character implements ICombatant {
   public baseAttack: number
   public readonly experienceReward: number
@@ -10,24 +20,16 @@ export abstract class Enemy extends Character implements ICombatant {
   public statusEffects: IStatusEffect[] = [];
   public attackPatterns: DefensePatternConfig[] = [];
 
-  constructor(
-    id: string,
-    name: string,
-    level: number,
-    maxHealth: number,
-    baseAttack: number,
-    experienceReward: number,
-    goldReward: { min: number; max: number }
-  ) {
-    super(id, name, level, maxHealth)
-    this.baseAttack = baseAttack
-    this.experienceReward = experienceReward
-    this.goldReward = goldReward
+  constructor(opts: EnemyOptions) {
+    super(opts.id, opts.name, opts.level ?? 1, opts.maxHealth)
+    this.baseAttack = opts.baseAttack
+    this.experienceReward = opts.experienceReward
+    this.goldReward = opts.goldReward
   }
 
   public attack(): number {
     if (!this.isAlive) return 0
-    return this.baseAttack + (this.level * 1.5)
+    return this.baseAttack
   }
 
   public selectAttackPattern(_player: ICharacter | null): DefensePatternConfig {

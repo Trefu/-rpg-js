@@ -8,14 +8,14 @@ export class GoblinWarlock extends Enemy {
   public attackPatterns: DefensePatternConfig[] = [GOBLIN_ASCUA]
 
   constructor(level: number = 1) {
-    super(
-      `goblin-warlock-${Math.random().toString(36).substr(2, 9)}`,
-      'Goblin Warlock',
+    super({
+      id: `goblin-warlock-${Math.random().toString(36).substr(2, 9)}`,
+      name: 'Goblin Warlock',
       level,
-      45 + (level * 9),
-      11 + (level * 1),
-      24 + (level * 5),
-      { min: 14 + (level * 2), max: 20 + (level * 3) }
-    )
+      maxHealth: 45 + (level * 9),
+      baseAttack: 11 + (level * 1),
+      experienceReward: 24 + (level * 5),
+      goldReward: { min: 14 + (level * 2), max: 20 + (level * 3) }
+    })
   }
 }

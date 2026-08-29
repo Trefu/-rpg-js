@@ -8,14 +8,14 @@ export class Bandit extends Enemy {
   public attackPatterns: DefensePatternConfig[] = [GOBLIN_ESPADAZO, GOBLIN_FLECHA_VENENOSA]
 
   constructor(level: number = 1) {
-    super(
-      `bandit-${Math.random().toString(36).substr(2, 9)}`,
-      'Bandido',
+    super({
+      id: `bandit-${Math.random().toString(36).substr(2, 9)}`,
+      name: 'Bandido',
       level,
-      55 + (level * 9),
-      14 + (level * 1),
-      18 + (level * 4),
-      { min: 18 + (level * 3), max: 28 + (level * 4) }
-    )
+      maxHealth: 55 + (level * 9),
+      baseAttack: 14 + (level * 1),
+      experienceReward: 18 + (level * 4),
+      goldReward: { min: 18 + (level * 3), max: 28 + (level * 4) }
+    })
   }
 }

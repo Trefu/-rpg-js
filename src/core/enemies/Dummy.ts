@@ -42,15 +42,15 @@ export class Dummy extends Enemy implements IEnemy {
   public damageOverride: number | null = null
 
   constructor(level: number = 1) {
-    super(
-      `dummy-${Date.now()}-${Math.random()}`,
-      'Dummy de Entrenamiento',
+    super({
+      id: `dummy-${Date.now()}-${Math.random()}`,
+      name: 'Dummy de Entrenamiento',
       level,
-      1000,
-      8,
-      0,
-      { min: 0, max: 0 }
-    )
+      maxHealth: 1000,
+      baseAttack: 8,
+      experienceReward: 0,
+      goldReward: { min: 0, max: 0 }
+    })
   }
 
   public override attack(): number {

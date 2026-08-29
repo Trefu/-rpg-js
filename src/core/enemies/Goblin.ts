@@ -9,15 +9,15 @@ export class Goblin extends Enemy {
   public attackPatterns: DefensePatternConfig[] = [GOBLIN_ESPADAZO]
 
   constructor(level: number = 1) {
-    super(
-      `goblin-${Math.random().toString(36).substr(2, 9)}`,
-      'Goblin',
+    super({
+      id: `goblin-${Math.random().toString(36).substr(2, 9)}`,
+      name: 'Goblin',
       level,
-      50 + (level * 10),
-      12 + (level * 1),
-      20 + (level * 5),
-      { min: 10 + (level * 2), max: 15 + (level * 3) }
-    )
+      maxHealth: 50 + (level * 10),
+      baseAttack: 12 + (level * 1),
+      experienceReward: 20 + (level * 5),
+      goldReward: { min: 10 + (level * 2), max: 15 + (level * 3) }
+    })
   }
 
   public selectAttackPattern(_player: ICharacter | null): DefensePatternConfig {
