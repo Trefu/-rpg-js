@@ -116,7 +116,8 @@ export const createWarriorAttackAbility = (): IAbility => ({
   targetType: 'enemies-only',
   execute: async (context: AbilityContext) => {
     const caster = context.caster as Hero
-    const { finalDamage, isCrit } = rollAndApplyDamage(caster, caster.attack())
+    const extraDamage = 25 * caster.level
+    const { finalDamage, isCrit } = rollAndApplyDamage(caster, (caster.attack() + extraDamage))
     if (finalDamage > 0) {
       context.target.takeDamage(finalDamage)
       context.showEnemyHit(context.target.id, finalDamage)
@@ -129,45 +130,35 @@ export const createWarriorAttackAbility = (): IAbility => ({
 })
 
 export const createWarriorBasicAttackAbility = (): IAbility => ({
-  name: 'Corte Vertical',
-  description: 'Tres tajos verticales encadenados. Cuesta energia, hace triple de dano y golpea 3 veces con su propia animacion.',
-  type: 'warriorVerticalSlash',
+  name: 'Golpe Lesionador',
+  description: 'Un tajo vertical preciso que inflige dano y aplica el debufo "Lesionado" al objetivo durante 1 turno. Cuesta energia.',
+  type: 'warriorInjuringStrike',
   cooldown: 0,
-  energyCost: 30,
+  energyCost: 20,
   targetType: 'enemies-only',
   animationDurationMs: 800,
   execute: async (context: AbilityContext) => {
     const caster = context.caster as Hero
-    const target = context.target
-    const baseDamage = caster.attack()
-    const strikes = 3
-    const damageMultiplier = 3
-    const strikeDelay = 550
+    const target = context.target as any
 
-    context.addToLog(`Usaste Corte Vertical: una rafaga de ${strikes} tajos.`)
-    context.audioManager.playAttackSound()
-
-    let crit = false
-    for (let strikeIndex = 0; strikeIndex < strikes; strikeIndex++) {
-      const isCrit = caster.rollCrit()
-      if (isCrit) crit = true
-      const perStrike = Math.floor(baseDamage * damageMultiplier)
-      const finalDamage = isCrit
-        ? Math.floor(perStrike * caster.critDamageMultiplier)
-        : perStrike
+    const { finalDamage, isCrit } = rollAndApplyDamage(caster, caster.attack())
+    if (finalDamage > 0) {
       target.takeDamage(finalDamage)
       context.showEnemyHit(target.id, finalDamage)
-      context.showAnnouncement(`¡Tajo ${strikeIndex + 1}/${strikes}!`, 'attack', 650)
-      context.addToLog(
-        (isCrit ? '¡CRÍTICO! ' : '') +
-        `Corte Vertical (${strikeIndex + 1}/${strikes}) inflige ${finalDamage} de dano.`
-      )
-
-      if (strikeIndex < strikes - 1) {
-        await sleep(strikeDelay)
-      }
+      context.audioManager.playAttackSound()
     }
-    if (crit) showCritAnnouncement(context)
+    if (isCrit) showCritAnnouncement(context)
+    context.addToLog(buildAttackLog('Golpe Lesionador', finalDamage, isCrit))
+
+    if (target && typeof target.addStatusEffect === 'function' && target.isAlive) {
+      const template = StatusEffects.INJURED
+      const baseTurns = template.turns
+      const turns = baseTurns + Math.floor((caster.level - 1) / 2)
+      target.addStatusEffect({ ...template, turns })
+      context.addToLog(`¡${target.name} ha sido Lesionado${turns > 1 ? ' durante ' + turns + ' turnos' : ''}!`)
+      context.showAnnouncement(`¡Lesionado${turns > 1 ? ' x' + turns : ''}!`, 'status', 1500)
+    }
+
     await sleep(context.animationDelay)
   }
 })

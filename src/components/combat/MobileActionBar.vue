@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import type { IAbility } from '@/core/interfaces/IAbility'
 import { getAbilityIcon } from '@/core/abilities/abilityIcons'
 import backpackIcon from '@/assets/icons/backpack.png'
+import boltIcon from '@/assets/icons/bolt-shield.png'
+import hourglassIcon from '@/assets/icons/hourglass.png'
 
 const props = defineProps<{
   abilities: IAbility[]
@@ -60,6 +62,37 @@ function abilityState(ability: IAbility, index: number) {
   return 'ready'
 }
 
+const infoAbility = ref<IAbility | null>(null)
+const infoAbilityIndex = ref(-1)
+
+function showAbilityInfo(ability: IAbility, index: number, event: Event) {
+  event.stopPropagation()
+  infoAbility.value = ability
+  infoAbilityIndex.value = index
+}
+
+function closeInfo() {
+  infoAbility.value = null
+  infoAbilityIndex.value = -1
+}
+
+function useFromInfo() {
+  if (!infoAbility.value) return
+  const ab = infoAbility.value
+  const idx = infoAbilityIndex.value
+  closeInfo()
+  onAbilityClick(ab, idx)
+}
+
+function canUseInfo() {
+  const a = infoAbility.value
+  if (!a) return false
+  if (props.isPlayerInputLocked) return false
+  if (isOnCooldown(a)) return false
+  if (!isAffordable(a)) return false
+  return true
+}
+
 function onAbilityClick(ability: IAbility, index: number) {
   if (props.isPlayerInputLocked) return
   if (isOnCooldown(ability)) return
@@ -87,10 +120,12 @@ function shortLabel(name: string, max = 5): string {
         'mab-cooldown': slot.kind === 'ability' && abilityState(slot.ability, slot.index) === 'cooldown',
         'mab-no-energy': slot.kind === 'ability' && abilityState(slot.ability, slot.index) === 'no-energy',
         'mab-empty': slot.kind === 'empty',
-        'mab-disabled': isPlayerInputLocked
+        'mab-disabled': isPlayerInputLocked,
+        'mab-info-open': slot.kind === 'ability' && infoAbility?.type === slot.ability.type
       }"
       :disabled="isPlayerInputLocked || slot.kind === 'empty'"
       @click="slot.kind === 'attack' && emit('attack'); slot.kind === 'object' && emit('object'); slot.kind === 'ability' && onAbilityClick(slot.ability, slot.index)"
+      @contextmenu.prevent="slot.kind === 'ability' && showAbilityInfo(slot.ability, slot.index, $event)"
     >
       <template v-if="slot.kind === 'attack'">
         <img :src="attackIcon" alt="" class="mab-icon" />
@@ -98,7 +133,12 @@ function shortLabel(name: string, max = 5): string {
       </template>
 
       <template v-else-if="slot.kind === 'ability'">
-        <img :src="iconFor(slot.ability.type)" :alt="slot.ability.name" class="mab-icon" />
+        <img
+          :src="iconFor(slot.ability.type)"
+          :alt="slot.ability.name"
+          class="mab-icon"
+          @click.stop="showAbilityInfo(slot.ability, slot.index, $event)"
+        />
         <span class="mab-label" :title="slot.ability.name">{{ shortLabel(slot.ability.name) }}</span>
         <span v-if="cooldownOf(slot.ability.type) > 0" class="mab-cooldown">
           {{ cooldownOf(slot.ability.type) }}
@@ -114,6 +154,48 @@ function shortLabel(name: string, max = 5): string {
         <span class="mab-label mab-empty-label">—</span>
       </template>
     </button>
+
+    <transition name="mab-info">
+      <div
+        v-if="infoAbility"
+        class="mab-info"
+        role="dialog"
+        :aria-label="`Info de ${infoAbility.name}`"
+        @click.stop
+      >
+        <div class="mab-info-card">
+          <header class="mab-info-header">
+            <img :src="iconFor(infoAbility.type)" :alt="infoAbility.name" class="mab-info-icon" />
+            <div class="mab-info-titles">
+              <span class="mab-info-name">{{ infoAbility.name }}</span>
+            </div>
+            <button class="mab-info-close" type="button" aria-label="Cerrar" @click="closeInfo">✕</button>
+          </header>
+          <p class="mab-info-desc">{{ infoAbility.description }}</p>
+          <footer class="mab-info-footer">
+            <span v-if="infoAbility.energyCost" class="mab-info-cost">
+              <img :src="boltIcon" alt="" class="mab-info-cost-icon" />
+              {{ infoAbility.energyCost }}
+            </span>
+            <span v-if="infoAbility.cooldown > 0" class="mab-info-cd">
+              <img :src="hourglassIcon" alt="" class="mab-info-cd-icon" />
+              {{ infoAbility.cooldown }}t
+            </span>
+            <span v-if="cooldownOf(infoAbility.type) > 0" class="mab-info-cd-active">
+              Enfriando: {{ cooldownOf(infoAbility.type) }}t
+            </span>
+            <button
+              type="button"
+              class="mab-info-use"
+              :disabled="!canUseInfo()"
+              @click="useFromInfo"
+            >
+              {{ isOnCooldown(infoAbility) ? 'Enfriando' : (isAffordable(infoAbility) ? 'Usar' : 'Sin energía') }}
+            </button>
+          </footer>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
@@ -224,5 +306,185 @@ function shortLabel(name: string, max = 5): string {
   padding: 0 5px;
   border: 1px solid rgba(255, 107, 107, 0.4);
   line-height: 1.1;
+}
+
+.mab-info {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%);
+  z-index: 60;
+  pointer-events: none;
+}
+
+.mab-info-card {
+  pointer-events: auto;
+  width: min(320px, 90vw);
+  background: linear-gradient(145deg, #1e2035 0%, #23243a 100%);
+  border: 1.5px solid rgba(255, 230, 102, 0.55);
+  border-radius: 12px;
+  box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.55), 0 0 18px rgba(255, 200, 60, 0.25);
+  padding: 0.65rem 0.8rem 0.7rem;
+  color: #fff;
+  font-family: inherit;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.mab-info-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.mab-info-icon {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 3px;
+  filter: drop-shadow(0 1px 3px #000a);
+  flex-shrink: 0;
+}
+
+.mab-info-titles {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mab-info-name {
+  font-family: 'Georgia', serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #ffe066;
+  text-shadow: 0 1px 2px #000;
+  line-height: 1.15;
+}
+
+.mab-info-close {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mab-info-close:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.mab-info-desc {
+  margin: 0;
+  color: #d8d8e8;
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.mab-info-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.mab-info-cost,
+.mab-info-cd {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.18rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mab-info-cost {
+  background: rgba(64, 196, 255, 0.15);
+  color: #82b1ff;
+}
+
+.mab-info-cd {
+  background: rgba(255, 180, 0, 0.15);
+  color: #ffb400;
+}
+
+.mab-info-cd-active {
+  background: rgba(255, 107, 107, 0.18);
+  color: #ff9a9a;
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 0.18rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 107, 107, 0.35);
+  font-family: 'Courier New', monospace;
+}
+
+.mab-info-cost-icon,
+.mab-info-cd-icon {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 1px #000a);
+}
+
+.mab-info-use {
+  margin-left: auto;
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.35rem 0.8rem;
+  border-radius: 8px;
+  border: 1.5px solid rgba(255, 230, 102, 0.6);
+  background: linear-gradient(145deg, #ffe066 0%, #ff8a00 100%);
+  color: #1a1230;
+  cursor: pointer;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+  box-shadow: 0 2px 8px rgba(255, 200, 60, 0.35);
+}
+
+.mab-info-use:disabled {
+  background: rgba(60, 60, 80, 0.8);
+  color: #888;
+  border-color: rgba(255, 255, 255, 0.08);
+  text-shadow: none;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.mab-info-use:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+.mab-info-open {
+  outline: 2px solid rgba(255, 230, 102, 0.75);
+  outline-offset: 1px;
+}
+
+.mab-info-enter-active,
+.mab-info-leave-active {
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+.mab-info-enter-from,
+.mab-info-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(6px);
 }
 </style>

@@ -115,7 +115,7 @@ export function useCombat(config: CombatConfig = {}) {
 
   function startDefenseChallenge(enemy: IEnemy, attackDamage: number, preSelectedPattern?: DefensePatternConfig): Promise<DefenseChallengeResult | null> {
     return new Promise((resolve) => {
-      const modifiers = getDefenseModifiers(player.value!)
+      const modifiers = getDefenseModifiers(player.value!, enemy)
       const selectedPattern = preSelectedPattern ?? enemy.selectAttackPattern(player.value)
       const adjusted = applyModifiersToPattern(selectedPattern, modifiers)
       const zones = pickZonesForPhases(adjusted)
@@ -181,7 +181,7 @@ export function useCombat(config: CombatConfig = {}) {
 
     if (!pattern || !enemy || !resolve) return
 
-    const modifiers = getDefenseModifiers(player.value!)
+    const modifiers = getDefenseModifiers(player.value!, enemy)
     const result = buildDefenseResult(pattern, results, modifiers, attackDamage)
 
     const finalDamage = Math.max(0, result.totalDamage)
@@ -500,16 +500,6 @@ export function useCombat(config: CombatConfig = {}) {
       const enemy = aliveEnemies[i]
       if (!player.value || !player.value.isAlive) break
 
-      await showEnemyStatusSequence(enemy)
-
-      const stunEffect = enemy.statusEffects.find(e => e.type === 'stun')
-      if (stunEffect && stunEffect.turns > 0) {
-        addToLog(`${enemy.name} está aturdido y pierde su turno. (${stunEffect.turns} turno(s) restante(s))`)
-        enemy.reduceStatusEffects && enemy.reduceStatusEffects()
-        await delay(config.isTraining ? 1000 : 2000)
-        continue
-      }
-
       const selectedPattern = enemy.selectAttackPattern(player.value)
       const attackName = selectedPattern.name ?? 'atacar'
       const enemyIndex = enemies.value.filter(e => e.name === enemy.name && e.isAlive).indexOf(enemy) + 1
@@ -519,6 +509,17 @@ export function useCombat(config: CombatConfig = {}) {
       addToLog(`${enemyLabel} va a usar ${attackName}`)
       await delay(config.isTraining ? 800 : 1200)
       attackingEnemyId.value = null
+
+      await showEnemyStatusSequence(enemy)
+
+      enemy.reduceStatusEffects && enemy.reduceStatusEffects()
+
+      const stunEffect = enemy.statusEffects.find(e => e.type === 'stun')
+      if (stunEffect && stunEffect.turns > 0) {
+        addToLog(`${enemy.name} está aturdido y pierde su turno. (${stunEffect.turns} turno(s) restante(s))`)
+        await delay(config.isTraining ? 1000 : 2000)
+        continue
+      }
 
       const rawDamage = enemy.attack()
       const damage = Math.floor(rawDamage * selectedPattern.damageMultiplier)
@@ -639,7 +640,7 @@ export function useCombat(config: CombatConfig = {}) {
     if (enemy.isAlive && enemy.statusEffects.length > 0) {
       for (const effect of enemy.statusEffects) {
         if (effect.turns > 0 && effect.turnLabel) {
-          showAnnouncement(effect.turnLabel, 'status', 2000)
+          showAnnouncement(`${enemy.name}: ${effect.turnLabel}`, 'status', 2000)
           await delay(2000)
           await delay(200)
         }

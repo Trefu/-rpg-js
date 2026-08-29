@@ -22,7 +22,7 @@ import waveStrike from '@/assets/icons/wave-strike.png'
 export type AbilityIconType =
   | 'attack'
   | 'warriorAttack'
-  | 'warriorVerticalSlash'
+  | 'warriorInjuringStrike'
   | 'warriorDevastatingStrike'
   | 'secondWind'
   | 'stunStrike'
@@ -32,7 +32,7 @@ export type AbilityIconType =
 const ABILITY_ICONS: Record<string, string> = {
   attack: sabersChoc,
   warriorAttack: sabersChoc,
-  warriorVerticalSlash: swordSlice,
+  warriorInjuringStrike: swordSlice,
   warriorDevastatingStrike: thunderBlade,
   secondWind: heartDrop,
   stunStrike: stunGrenade,

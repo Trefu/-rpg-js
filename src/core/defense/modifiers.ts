@@ -1,4 +1,5 @@
 import type { IStatusEffect } from '../interfaces/IStatusEffect'
+import { INJURED_WAVE_SPEED_IMPACT } from '../StatusEffects'
 import type { DefenseBlockEffect } from './types'
 
 export interface DefenseModifiers {
@@ -32,7 +33,14 @@ export interface PlayerLikeForDefense {
   defenseValue: number
 }
 
-export function getDefenseModifiers(player: PlayerLikeForDefense): DefenseModifiers {
+export interface EnemyLikeForDefense {
+  statusEffects: IStatusEffect[]
+}
+
+export function getDefenseModifiers(
+  player: PlayerLikeForDefense,
+  enemy?: EnemyLikeForDefense | null
+): DefenseModifiers {
   const modifiers: DefenseModifiers = { ...DEFAULT_DEFENSE_MODIFIERS }
 
   // TODO: mapear más stats del jugador a modifiers (fuerza → blockReductionBonus?,
@@ -49,6 +57,20 @@ export function getDefenseModifiers(player: PlayerLikeForDefense): DefenseModifi
     if (typeof effect.speedPenalty === 'number' && effect.speedPenalty < 0) {
       // Penalty de velocidad (slow, freeze, etc.) → la onda se mueve más rápido (más difícil)
       modifiers.waveSpeedMultiplier += Math.abs(effect.speedPenalty) * 0.08
+    }
+    // "Lesionado" en el jugador → se invierte: la onda se mueve más rápido (más difícil bloquear).
+    if (effect.type === 'injured' && effect.turns > 0) {
+      modifiers.waveSpeedMultiplier += INJURED_WAVE_SPEED_IMPACT
+    }
+  }
+
+  // "Lesionado" en el enemigo → la onda se mueve más lento (más fácil defender).
+  // El efecto se cuenta por turnos restantes > 0 para que solo afecte mientras está activo.
+  if (enemy?.statusEffects) {
+    for (const effect of enemy.statusEffects) {
+      if (effect.type === 'injured' && effect.turns > 0) {
+        modifiers.waveSpeedMultiplier -= INJURED_WAVE_SPEED_IMPACT
+      }
     }
   }
 

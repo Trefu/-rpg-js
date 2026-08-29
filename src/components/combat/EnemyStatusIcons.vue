@@ -52,9 +52,7 @@ defineProps<{
   width: 20px;
   height: 20px;
   object-fit: contain;
-  border-radius: 3px;
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
+  background: transparent;
 }
 
 .enemy-status-turns {

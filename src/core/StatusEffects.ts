@@ -10,10 +10,23 @@ import speedIcon from '@/assets/icons/footprint.png'
 import weaknessIcon from '@/assets/icons/anatomy.png'
 import slowIcon from '@/assets/icons/snail.png'
 import secondWindIcon from '@/assets/icons/wind-slap.png'
+import swordWoundIcon from '@/assets/icons/open-wound.png'
 
 // Duración base por defecto para cualquier efecto de daño por tiempo (DoT).
 export const MAX_DOT_DURATION = 3
 export const DEFAULT_MAX_STACKS = 999
+
+/**
+ * Magnitud del impacto de "Lesionado" sobre la velocidad de la onda
+ * en la barra de defensa. Es un multiplicador (no un porcentaje crudo)
+ * que se SUMA al `waveSpeedMultiplier` existente en `getDefenseModifiers`.
+ *  - Si el portador es el enemigo → la onda se mueve más lento (más fácil defender).
+ *  - Si el portador es el jugador → el efecto se invierte (la onda se acelera, más difícil).
+ *
+ * Diseñado para escalar a futuro (ej. en función del nivel del caster
+ * al aplicar el debuff en la ability Golpe Lesionador).
+ */
+export const INJURED_WAVE_SPEED_IMPACT = 0.3
 
 export interface FailureEffectSpec {
   statusType: string
@@ -166,6 +179,29 @@ export class StatusEffects {
     speedPenalty: -1
   }
 
+  /**
+   * "Lesionado": debufo que altera la velocidad de la onda en la barra
+   * de defensa del portador durante 1 turno. La dirección del efecto
+   * depende de quien lo tenga:
+   *  - Sobre un enemigo: la onda se mueve más lento (más fácil defender).
+   *  - Sobre el jugador: el efecto se invierte (la onda se acelera, más difícil bloquear).
+   *
+   * La magnitud real del impacto está centralizada en `INJURED_WAVE_SPEED_IMPACT`
+   * y se aplica en `getDefenseModifiers` (modifiers.ts).
+   *
+   * Duración base: 1 turno. La ability Golpe Lesionador puede sobreescribir
+   * `turns` al aplicar el efecto para escalar con el nivel del caster.
+   */
+  static readonly INJURED: IStatusEffect = {
+    type: 'injured',
+    name: 'Lesionado',
+    description: 'Reduce la velocidad de la onda en la barra de defensa durante 1 turno. Si lo sufre el jugador, se invierte: la onda se acelera (más difícil bloquear).',
+    turns: 2,
+    icon: swordWoundIcon,
+    isBuff: false,
+    turnLabel: '¡Está lesionado!'
+  }
+
   // Método para obtener un efecto por tipo (case-insensitive)
   static getByType(type: string): IStatusEffect | null {
     const effects = [
@@ -179,7 +215,8 @@ export class StatusEffects {
       this.WEAKNESS,
       this.SLOW,
       this.SECOND_WIND,
-      this.VAMPIRE_SHIELD
+      this.VAMPIRE_SHIELD,
+      this.INJURED
     ]
     const target = type.toLowerCase()
     return effects.find(effect => effect.type === target) || null
@@ -197,7 +234,8 @@ export class StatusEffects {
       this.WEAKNESS.type,
       this.SLOW.type,
       this.SECOND_WIND.type,
-      this.VAMPIRE_SHIELD.type
+      this.VAMPIRE_SHIELD.type,
+      this.INJURED.type
     ]
   }
 }
