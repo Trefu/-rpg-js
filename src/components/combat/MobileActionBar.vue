@@ -110,6 +110,15 @@ function onAbilityClick(ability: IAbility, index: number) {
   emit('selectAbility', ability, index)
 }
 
+function onAbilityIconClick(ability: IAbility, index: number, event: Event) {
+  event.stopPropagation()
+  if (isSelectedForTarget(ability)) {
+    emit('cancel')
+    return
+  }
+  showAbilityInfo(ability, index, event)
+}
+
 function isSelectedForTarget(ability: IAbility): boolean {
   return props.isSelectingTarget && props.selectedAbility?.type === ability.type
 }
@@ -152,7 +161,7 @@ function shortLabel(name: string, max = 5): string {
           :src="iconFor(slot.ability.type)"
           :alt="slot.ability.name"
           class="mab-icon"
-          @click.stop="showAbilityInfo(slot.ability, slot.index, $event)"
+          @click.stop="onAbilityIconClick(slot.ability, slot.index, $event)"
         />
         <span class="mab-label" :title="slot.ability.name">{{ shortLabel(slot.ability.name) }}</span>
         <span v-if="cooldownOf(slot.ability.type) > 0" class="mab-cooldown">
