@@ -55,6 +55,7 @@ const handleResult = (result: TimingResultData) => {
   align-items: center;
   justify-content: center;
   z-index: 3500;
+  pointer-events: auto;
 }
 
 .timing-overlay-content {
@@ -62,6 +63,11 @@ const handleResult = (result: TimingResultData) => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  pointer-events: auto;
+}
+
+.timing-overlay-content > * {
+  pointer-events: auto;
 }
 
 .timing-overlay-enter-active,
