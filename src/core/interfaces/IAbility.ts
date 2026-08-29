@@ -42,6 +42,12 @@ export interface IAbility {
   /** Define a que tipo de personajes puede apuntar esta habilidad. Default: 'enemies-only'. */
   targetType?: AbilityTargetType
   /**
+   * Si es `false`, la habilidad se ejecuta inmediatamente al seleccionarla
+   * sin pedir un objetivo (se aplica al caster). Usar para auto-buffs/curas
+   * que ignoran `context.target`. Default: `true`.
+   */
+  requiresTarget?: boolean
+  /**
    * Tiempo de animacion post-ejecucion (ms), al estilo del tick de DoT del jugador.
    * Controla cuanto permanece visible el resultado antes de pasar al turno enemigo.
    * Default global: 1500 ms.

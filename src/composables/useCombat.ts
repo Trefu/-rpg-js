@@ -288,6 +288,20 @@ export function useCombat(config: CombatConfig = {}) {
     }
     selectedAbility.value = ability
     closeAbilitiesModal()
+
+    if (!actionRequiresTarget(ability)) {
+      const caster = player.value as Hero | null
+      if (!caster || !caster.isAlive) {
+        cancelAction('No puedes actuar sin un heroe vivo.')
+        return
+      }
+      currentAction.value = { ability, target: caster }
+      isSelectingTarget.value = false
+      clearAnnouncement()
+      triggerExecution(caster)
+      return
+    }
+
     isSelectingTarget.value = true
     showTargetSelectionAnnouncement(ability)
   }
@@ -460,7 +474,8 @@ export function useCombat(config: CombatConfig = {}) {
   }
 
   function actionRequiresTarget(ability: IAbility | null): boolean {
-    return !!ability
+    if (!ability) return false
+    return ability.requiresTarget !== false
   }
 
   function endPlayerTurn() {

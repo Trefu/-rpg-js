@@ -1,9 +1,24 @@
 import type { ICharacter } from './ICharacter'
 
+export type StatusEffectSide = 'enemy' | 'player'
+
 export interface IStatusEffect {
   type: string
   name: string
   description: string
+  /**
+   * Descripcion alternativa cuando el portador del efecto es un enemigo.
+   * Si esta definida, la UI que muestra efectos sobre enemigos la usa en
+   * lugar de `description`. Pensado para efectos cuyo impacto difiere
+   * segun el bando (ej. "Lesionado" reduce la onda en enemigos y la
+   * acelera en jugadores).
+   */
+  descriptionOnEnemy?: string
+  /**
+   * Descripcion alternativa cuando el portador del efecto es el jugador
+   * (o un heroe aliado). Si esta definida, se usa en lugar de `description`.
+   */
+  descriptionOnPlayer?: string
   turns: number
   icon: string
   isBuff?: boolean
@@ -37,4 +52,17 @@ export interface IStatusEffect {
    * el efecto. Si `charges` baja a 0, el orquestador lo elimina.
    */
   onBlock?: (target: ICharacter, blockedFraction: number) => void
+}
+
+/**
+ * Resuelve la descripcion que debe mostrarse para un efecto segun el bando
+ * del portador. Si no hay override por lado, cae a `description`.
+ */
+export function getEffectDescription(
+  effect: IStatusEffect,
+  side: StatusEffectSide
+): string {
+  if (side === 'enemy' && effect.descriptionOnEnemy) return effect.descriptionOnEnemy
+  if (side === 'player' && effect.descriptionOnPlayer) return effect.descriptionOnPlayer
+  return effect.description
 }

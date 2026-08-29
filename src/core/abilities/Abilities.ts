@@ -169,6 +169,7 @@ export const createSecondWindAbility = (): IAbility => ({
   type: 'secondWind',
   cooldown: 1,
   targetType: 'allies-only',
+  requiresTarget: false,
   animationDurationMs: 1200,
   execute: async (context: AbilityContext) => {
     const caster = context.caster as Hero

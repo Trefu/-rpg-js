@@ -52,10 +52,8 @@ const isMobileLayout = computed(() => {
 })
 
 const showAlwaysShortcut = computed(() =>
-  !isDead.value && props.index >= 0 && (
-    (isMobileLayout.value && props.enemy.isAlive) ||
-    (props.showShortcut && isTargetSelectable.value)
-  )
+  !isDead.value && props.index >= 0 && !isMobileLayout.value &&
+  props.showShortcut && isTargetSelectable.value
 )
 
 function onClick() {

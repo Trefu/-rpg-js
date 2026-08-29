@@ -2,6 +2,7 @@
 import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import type { Hero } from '@/core/Hero'
 import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
+import { getEffectDescription } from '@/core/interfaces/IStatusEffect'
 import hamburgerIcon from '@/assets/icons/hamburger-menu.png'
 
 interface Props {
@@ -149,7 +150,7 @@ onBeforeUnmount(() => {
             <li v-for="effect in activeEffects" :key="effect.type" class="hud-effect-row">
               <div class="hud-effect-info">
                 <span class="hud-effect-name">{{ effect.name }}</span>
-                <span class="hud-effect-desc">{{ effect.description }}</span>
+                <span class="hud-effect-desc">{{ getEffectDescription(effect, 'player') }}</span>
               </div>
               <div class="hud-effect-tags">
                 <span v-if="effect.stacks && effect.stacks > 1" class="effect-tag stack">x{{ effect.stacks }}</span>

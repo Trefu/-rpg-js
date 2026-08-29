@@ -191,12 +191,17 @@ export class StatusEffects {
    *
    * Duración base: 1 turno. La ability Golpe Lesionador puede sobreescribir
    * `turns` al aplicar el efecto para escalar con el nivel del caster.
+   *
+   * Las descripciones se muestran distintas segun el bando del portador
+   * (ver `getEffectDescription` en IStatusEffect).
    */
   static readonly INJURED: IStatusEffect = {
     type: 'injured',
     name: 'Lesionado',
-    description: 'Reduce la velocidad de la onda en la barra de defensa durante 1 turno. Si lo sufre el jugador, se invierte: la onda se acelera (más difícil bloquear).',
-    turns: 2,
+    description: 'Altera la velocidad de la onda en la barra de defensa.',
+    descriptionOnEnemy: 'La onda en la barra de defensa se mueve más lento (más fácil defender).',
+    descriptionOnPlayer: 'La onda en la barra de defensa se acelera (más difícil bloquear).',
+    turns: 1,
     icon: swordWoundIcon,
     isBuff: false,
     turnLabel: '¡Está lesionado!'
