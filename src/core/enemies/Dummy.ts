@@ -32,7 +32,6 @@ export class Dummy extends Enemy implements IEnemy {
     GOLPE_RAPIDO,
     COMBO_DOBLE,
     COMBO_TRIPLE,
-    MORDIDA_TOXICA,
     ALIENTO_DE_FUEGO,
     ALIENTO_GLACIAL
   ]

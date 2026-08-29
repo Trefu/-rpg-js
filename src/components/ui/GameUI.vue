@@ -80,7 +80,7 @@ function handleClickOutside(event: MouseEvent) {
 .game-ui {
   position: fixed;
   top: 0;
-  right: 0;
+  left: 0;
   z-index: 1000;
   padding: 0.75rem 1rem;
   background: transparent;
@@ -125,7 +125,7 @@ function handleClickOutside(event: MouseEvent) {
 .settings-menu {
   position: absolute;
   top: calc(100% + 0.5rem);
-  right: 0;
+  left: 0;
   background-color: rgba(0, 0, 0, 0.85);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 6px;

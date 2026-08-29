@@ -142,7 +142,7 @@ function handleClickOutside(event: MouseEvent) {
 .volume-panel {
   position: absolute;
   top: 100%;
-  right: 0;
+  left: 0;
   background-color: rgba(0, 0, 0, 0.95);
   border: 2px solid #4CAF50;
   border-radius: 8px;
