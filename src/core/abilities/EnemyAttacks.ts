@@ -18,7 +18,7 @@ export const GOBLIN_FLECHA_VENENOSA: DefensePatternConfig = {
   baseMaxBlockReduction: 0.5,
   baseSuccessZoneSize: 0.2,
   damageMultiplier: 0.6,
-  phases: [fixedPhase(1, 3, 5, 7, 9)],
+  phases: [phase(7), phase(7)],
   onFailureEffect: {
     statusType: 'poison',
     duration: 3,
@@ -32,7 +32,7 @@ export const GOBLIN_ASCUA: DefensePatternConfig = {
   phaseCount: 2,
   baseMaxBlockReduction: 0.5,
   damageMultiplier: 0.7,
-  phases: [phase(4), phase(5)],
+  phases: [phase(5), phase(5)],
   onFailureEffect: {
     statusType: 'burn',
     duration: 3,
