@@ -32,7 +32,6 @@ import {
   GOLPE_RAPIDO,
   COMBO_DOBLE,
   COMBO_TRIPLE,
-  MORDIDA_TOXICA,
   ALIENTO_DE_FUEGO,
   ALIENTO_GLACIAL
 } from '@/core/abilities/EnemyAttacks'
@@ -52,7 +51,6 @@ const ALL_DUMMY_PATTERNS: DefensePatternConfig[] = [
   GOLPE_RAPIDO,
   COMBO_DOBLE,
   COMBO_TRIPLE,
-  MORDIDA_TOXICA,
   ALIENTO_DE_FUEGO,
   ALIENTO_GLACIAL
 ]
