@@ -39,6 +39,8 @@ const getAbilityIcon = (type: string) => {
   const icons: Record<string, string> = {
     attack: waveStrikeIcon,
     warriorAttack: waveStrikeIcon,
+    warriorVerticalSlash: waveStrikeIcon,
+    warriorDevastatingStrike: waveStrikeIcon,
     secondWind: heartDropIcon
   }
   return icons[type]

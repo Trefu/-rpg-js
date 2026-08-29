@@ -11,7 +11,7 @@ const TIMING_PREFIX: Record<TimingResult, string> = {
 }
 
 const BASIC_ATTACK_TIMING_SCALING: Record<TimingResult, number> = {
-  critical: 2.5,
+  critical: 2.0,
   bonus: 1.5,
   normal: 1.0,
   miss: 0.25
@@ -116,7 +116,7 @@ export const createFireballAbility = (): IAbility => ({
 export const createWarriorAttackAbility = (customCriticalMultiplier: number = 3.0): IAbility => ({
   name: 'Tajo Devastador',
   description: `Un tajo certero que siempre cuesta 20 de energia. Un critico inflige X${customCriticalMultiplier} de dano.`,
-  type: 'warriorAttack',
+  type: 'warriorDevastatingStrike',
   cooldown: 0,
   energyCost: 20,
   customCriticalMultiplier,
@@ -140,6 +140,29 @@ export const createWarriorAttackAbility = (customCriticalMultiplier: number = 3.
     }
     context.addToLog(formatAbilityLog(
       `Usaste Tajo Devastador causando ${finalDamage} de dano.`,
+      timingResult
+    ))
+  }
+})
+
+export const createWarriorBasicAttackAbility = (): IAbility => ({
+  name: 'Corte Vertical',
+  description: 'Un tajo vertical basico. No cuesta energia y hace dano normal.',
+  type: 'warriorVerticalSlash',
+  cooldown: 0,
+  targetType: 'enemies-only',
+  requiresTiming: true,
+  execute: async (context: AbilityContext) => {
+    const caster = context.caster as Hero
+    const baseDamage = caster.attack()
+    const timingResult: TimingResult = context.timingResult ?? 'normal'
+    const multiplier = BASIC_ATTACK_TIMING_SCALING[timingResult]
+    const finalDamage = Math.floor(baseDamage * multiplier)
+    context.target.takeDamage(finalDamage)
+    context.showEnemyHit(context.target.id, finalDamage)
+    if (timingResult === 'critical') showCritAnnouncement(context)
+    context.addToLog(formatAbilityLog(
+      `Usaste Corte Vertical causando ${finalDamage} de dano.`,
       timingResult
     ))
   }

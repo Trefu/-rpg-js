@@ -7,7 +7,7 @@ export const GOBLIN_ESPADAZO: DefensePatternConfig = {
   phaseCount: 2,
   baseMaxBlockReduction: 0.5,
   damageMultiplier: 2,
-  phases: [fixedPhase(2,3,4), fixedPhase(2,3,4)]
+  phases: [fixedPhase(1,2,3,4,5), fixedPhase(1,2,3,4,5)]
 }
 
 export const GOBLIN_FLECHA_VENENOSA: DefensePatternConfig = {
@@ -18,6 +18,7 @@ export const GOBLIN_FLECHA_VENENOSA: DefensePatternConfig = {
   baseMaxBlockReduction: 0.5,
   baseSuccessZoneSize: 0.2,
   damageMultiplier: 0.6,
+  phases: [fixedPhase(1, 3, 5, 7, 9)],
   onFailureEffect: {
     statusType: 'poison',
     duration: 3,

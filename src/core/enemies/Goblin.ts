@@ -20,11 +20,6 @@ export class Goblin extends Enemy {
     )
   }
 
-  public attack(): number {
-    const baseAttack = super.attack()
-    return Math.random() < 0.2 ? baseAttack * 1.5 : baseAttack
-  }
-
   public selectAttackPattern(_player: ICharacter | null): DefensePatternConfig {
     return GOBLIN_ESPADAZO
   }
