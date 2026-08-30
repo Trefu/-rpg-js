@@ -1,6 +1,45 @@
 import type { ICharacter } from './ICharacter'
 
 export type StatusEffectSide = 'enemy' | 'player'
+export type DefenseEffectSide = 'player' | 'enemy'
+
+/**
+ * Contribucion declarativa al sistema de modificadores de defensa.
+ * Se invoca una vez por efecto activo (`turns > 0`) durante el calculo de
+ * `getDefenseModifiers` (modifiers.ts). El objeto retornado se SUMA a los
+ * modifiers actuales — no se sobreescriben.
+ *
+ * Definir esto junto al template del efecto (en `StatusEffects.ts`) evita
+ * tours de codigo entre `StatusEffects.ts` y `modifiers.ts`: agregar un
+ * nuevo efecto con impacto defensivo solo requiere tocar su declaracion.
+ *
+ * El parametro `side` permite que el efecto module su signo segun quien
+ * lo porte (ej. INJURED acelera la onda en jugadores pero la desacelera
+ * en enemigos).
+ */
+export interface DefenseContribution {
+  /** Delta a sumar al multiplier de velocidad de la onda. */
+  waveSpeedMultiplier?: number
+  /** Delta a sumar al bonus de reduccion de bloqueo. */
+  blockReductionBonus?: number
+}
+
+export type DefenseContributionFn = (
+  effect: IStatusEffect,
+  side: DefenseEffectSide
+) => DefenseContribution | undefined
+
+/**
+ * Contribucion reutilizable para efectos con `speedPenalty` negativo.
+ * Aplicada por SLOW y FREEZE. La logica vive aca (no en modifiers.ts)
+ * para mantener el contrato `defenseContribution` self-contained.
+ */
+export const speedPenaltyDefenseContribution: DefenseContributionFn = (effect) => {
+  if (typeof effect.speedPenalty === 'number' && effect.speedPenalty < 0) {
+    return { waveSpeedMultiplier: Math.abs(effect.speedPenalty) * 0.08 }
+  }
+  return undefined
+}
 
 export interface IStatusEffect {
   type: string
@@ -60,6 +99,11 @@ export interface IStatusEffect {
    * el efecto. Si `charges` baja a 0, el orquestador lo elimina.
    */
   onBlock?: (target: ICharacter, blockedFraction: number) => void
+  /**
+   * Contribucion al pool de modificadores de defensa. Ver `DefenseContributionFn`.
+   * Si esta presente, `getDefenseModifiers` la invoca una vez por turno activo.
+   */
+  defenseContribution?: DefenseContributionFn
 }
 
 /**

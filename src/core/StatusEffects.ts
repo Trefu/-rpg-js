@@ -1,4 +1,5 @@
 import type { IStatusEffect } from './interfaces/IStatusEffect'
+import { speedPenaltyDefenseContribution } from './interfaces/IStatusEffect'
 import type { Hero } from './Hero'
 import stunIcon from '@/assets/icons/ball-glow.png'
 import burnIcon from '@/assets/icons/fire.png'
@@ -79,6 +80,7 @@ export class StatusEffects {
     isBuff: false,
     turnLabel: '¡Recibe daño por frío!',
     speedPenalty: -2,
+    defenseContribution: speedPenaltyDefenseContribution,
     announceOnTurn: true
   }
 
@@ -101,7 +103,12 @@ export class StatusEffects {
     icon: defenseIcon,
     isBuff: true,
     turnLabel: '¡Su defensa está aumentada!',
-    defenseBonus: 3
+    defenseBonus: 3,
+    defenseContribution: (effect) => (
+      typeof effect.defenseBonus === 'number'
+        ? { blockReductionBonus: effect.defenseBonus * 0.05 }
+        : undefined
+    )
   }
 
   static readonly SPEED_BOOST: IStatusEffect = {
@@ -112,7 +119,13 @@ export class StatusEffects {
     icon: speedIcon,
     isBuff: true,
     turnLabel: '¡Su velocidad está aumentada!',
-    speedBonus: 2
+    speedBonus: 2,
+    defenseContribution: (effect) => (
+      typeof effect.speedBonus === 'number'
+        // Buff de velocidad → la onda se mueve más lento (más fácil bloquear)
+        ? { waveSpeedMultiplier: -effect.speedBonus * 0.08 }
+        : undefined
+    )
   }
 
   static readonly SECOND_WIND: IStatusEffect = {
@@ -173,6 +186,7 @@ export class StatusEffects {
     isBuff: false,
     turnLabel: '¡Está ralentizado!',
     speedPenalty: -1,
+    defenseContribution: speedPenaltyDefenseContribution,
     announceOnTurn: true
   }
 
@@ -202,7 +216,15 @@ export class StatusEffects {
     icon: swordWoundIcon,
     isBuff: false,
     turnLabel: '¡Está lesionado!',
-    defenseWaveSpeedImpact: 0.4
+    defenseWaveSpeedImpact: 0.3,
+    // Lesionado en enemigo: la onda se desacelera (más fácil defender).
+    // Lesionado en jugador: la onda se acelera (más difícil bloquear).
+    // El signo lo decide `side` (pasado por `getDefenseModifiers`).
+    defenseContribution: (effect, side) => (
+      typeof effect.defenseWaveSpeedImpact === 'number'
+        ? { waveSpeedMultiplier: (side === 'player' ? 1 : -1) * effect.defenseWaveSpeedImpact }
+        : undefined
+    )
   }
 
   // Método para obtener un efecto por tipo (case-insensitive)

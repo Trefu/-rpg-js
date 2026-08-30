@@ -647,6 +647,12 @@ export function useCombat(config: CombatConfig = {}) {
   function endPlayerTurn() {
     isPlayerTurn.value = false
     decrementAbilityCooldowns()
+    // Decrement de estados al final del turno del jugador: el efecto debe
+    // seguir activo durante el ataque del enemigo que le sigue y solo expirar
+    // al terminar el turno actual (consistente con la logica del enemigo).
+    if (typeof player.value?.reduceStatusEffects === 'function') {
+      player.value.reduceStatusEffects()
+    }
     if (typeof player.value?.restoreEnergy === 'function') {
       const regen = typeof player.value.getTurnEndEnergyRegen === 'function'
         ? player.value.getTurnEndEnergyRegen()
@@ -704,12 +710,11 @@ export function useCombat(config: CombatConfig = {}) {
 
       await showEnemyStatusSequence(enemy)
 
-      enemy.reduceStatusEffects && enemy.reduceStatusEffects()
-
       const stunEffect = enemy.statusEffects.find(e => e.type === 'stun')
       if (stunEffect && stunEffect.turns > 0) {
         addToLog(`${enemy.name} está aturdido y pierde su turno. (${stunEffect.turns} turno(s) restante(s))`)
         await delay(config.isTraining ? 1000 : 2000)
+        enemy.reduceStatusEffects && enemy.reduceStatusEffects()
         continue
       }
 
@@ -734,6 +739,10 @@ export function useCombat(config: CombatConfig = {}) {
         addToLog(`¡${player.value.name} entra en combate!`)
       }
       await delay(config.isTraining ? 600 : 1500);
+
+      // Decrement DESPUES de las acciones del turno: el efecto (ej. INJURED)
+      // debe aplicarse durante el ataque del enemigo y solo expirar al final.
+      enemy.reduceStatusEffects && enemy.reduceStatusEffects()
     }
 
     isPlayerTurn.value = true
@@ -820,14 +829,13 @@ export function useCombat(config: CombatConfig = {}) {
         showAnnouncement(`${effect.turnLabel}${stackSuffix}`, 'status', 1800)
         addToLog(`${effect.name}${stackSuffix}: recibes ${dmg} de daño.`)
         await delay(1800)
-      } else if (effect.turnLabel) {
+      } else       if (effect.turnLabel) {
         addToLog(`${effect.name}: recibes ${dmg} de daño.`)
       }
     }
-
-    if (typeof p.reduceStatusEffects === 'function') {
-      p.reduceStatusEffects()
-    }
+    // El decrement de turnos ocurre al final del turno del jugador (en
+    // `endPlayerTurn`) para que los efectos sigan activos durante el ataque
+    // del enemigo que le sigue.
   }
 
   async function showEnemyStatusSequence(enemy: IEnemy) {

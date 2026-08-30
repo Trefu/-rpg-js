@@ -1,4 +1,4 @@
-import type { IStatusEffect } from '../interfaces/IStatusEffect'
+import type { IStatusEffect, DefenseEffectSide, DefenseContribution } from '../interfaces/IStatusEffect'
 import type { DefenseBlockEffect } from './types'
 
 export interface DefenseModifiers {
@@ -36,6 +36,32 @@ export interface EnemyLikeForDefense {
   statusEffects: IStatusEffect[]
 }
 
+/**
+ * Acumula en `modifiers` las contribuciones declarativas (`defenseContribution`)
+ * de cada efecto activo de `effects`. Cada efecto decide su propio delta;
+ * este helper solo itera, suma y filtra los inactivos.
+ *
+ * Centralizar el bucle aca evita repetir el `if (turns > 0)` y el casteo
+ * del retorno en cada call site.
+ */
+function applyDefenseContributions(
+  effects: IStatusEffect[] | undefined,
+  modifiers: DefenseModifiers,
+  side: DefenseEffectSide
+): void {
+  for (const effect of effects ?? []) {
+    if (effect.turns <= 0) continue
+    const contribution: DefenseContribution | undefined = effect.defenseContribution?.(effect, side)
+    if (!contribution) continue
+    if (typeof contribution.waveSpeedMultiplier === 'number') {
+      modifiers.waveSpeedMultiplier += contribution.waveSpeedMultiplier
+    }
+    if (typeof contribution.blockReductionBonus === 'number') {
+      modifiers.blockReductionBonus += contribution.blockReductionBonus
+    }
+  }
+}
+
 export function getDefenseModifiers(
   player: PlayerLikeForDefense,
   enemy?: EnemyLikeForDefense | null
@@ -45,33 +71,8 @@ export function getDefenseModifiers(
   // TODO: mapear más stats del jugador a modifiers (fuerza → blockReductionBonus?,
   // destreza → successZoneSizeBonus?, etc.). Por ahora solo status effects + defenseValue.
 
-  for (const effect of player.statusEffects || []) {
-    if (effect.type === 'defense_boost' && typeof effect.defenseBonus === 'number') {
-      modifiers.blockReductionBonus += effect.defenseBonus * 0.05
-    }
-    if (effect.type === 'speed_boost' && typeof effect.speedBonus === 'number') {
-      // Buff de velocidad → la onda se mueve más lento (más fácil bloquear)
-      modifiers.waveSpeedMultiplier -= effect.speedBonus * 0.08
-    }
-    if (typeof effect.speedPenalty === 'number' && effect.speedPenalty < 0) {
-      // Penalty de velocidad (slow, freeze, etc.) → la onda se mueve más rápido (más difícil)
-      modifiers.waveSpeedMultiplier += Math.abs(effect.speedPenalty) * 0.08
-    }
-    // "Lesionado" en el jugador → se invierte: la onda se mueve más rápido (más difícil bloquear).
-    if (effect.type === 'injured' && effect.turns > 0 && effect.defenseWaveSpeedImpact) {
-      modifiers.waveSpeedMultiplier += effect.defenseWaveSpeedImpact
-    }
-  }
-
-  // "Lesionado" en el enemigo → la onda se mueve más lento (más fácil defender).
-  // El efecto se cuenta por turnos restantes > 0 para que solo afecte mientras está activo.
-  if (enemy?.statusEffects) {
-    for (const effect of enemy.statusEffects) {
-      if (effect.type === 'injured' && effect.turns > 0 && effect.defenseWaveSpeedImpact) {
-        modifiers.waveSpeedMultiplier -= effect.defenseWaveSpeedImpact
-      }
-    }
-  }
+  applyDefenseContributions(player.statusEffects, modifiers, 'player')
+  applyDefenseContributions(enemy?.statusEffects, modifiers, 'enemy')
 
   if (typeof player.defenseValue === 'number') {
     const extra = Math.max(0, player.defenseValue - 10)
