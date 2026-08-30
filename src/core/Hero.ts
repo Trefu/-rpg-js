@@ -3,6 +3,7 @@ import type { IAbility } from './interfaces/IAbility'
 import type { IStatusEffect } from './interfaces/IStatusEffect'
 import type { ICombatant, IInventory, ILevelable, IPlayerStats } from './interfaces/ICharacter'
 import { createBasicAttackAbility } from './abilities/Abilities'
+import { DOT_STATUS_TYPES } from './StatusEffects'
 
 export class Hero extends Character implements ICombatant, ILevelable, IInventory {
   public experience: number
@@ -155,15 +156,20 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
 
   public addStatusEffect(effect: IStatusEffect) {
     const existing = this.statusEffects.find(e => e.type === effect.type)
+    const isDot = DOT_STATUS_TYPES.has(effect.type)
     if (existing) {
-      const incomingStacks = effect.stacks ?? 1
-      const maxStacks = existing.maxStacks ?? effect.maxStacks ?? 99
-      existing.stacks = Math.min(maxStacks, (existing.stacks ?? 1) + incomingStacks)
+      if (isDot) {
+        const incomingStacks = effect.stacks ?? 1
+        const maxStacks = existing.maxStacks ?? effect.maxStacks ?? 99
+        existing.stacks = Math.min(maxStacks, (existing.stacks ?? 1) + incomingStacks)
+      }
       existing.maxDuration = existing.maxDuration ?? effect.maxDuration
     } else {
       const copy: IStatusEffect = { ...effect }
-      copy.stacks = effect.stacks ?? 1
-      copy.maxStacks = effect.maxStacks ?? 99
+      if (isDot) {
+        copy.stacks = effect.stacks ?? 1
+        copy.maxStacks = effect.maxStacks ?? 99
+      }
       copy.maxDuration = effect.maxDuration
       this.statusEffects.push(copy)
     }

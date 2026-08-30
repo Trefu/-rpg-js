@@ -142,17 +142,17 @@ function onClick() {
 }
 
 .enemy-card.mobile-layout .enemy-shortcut-badge {
-  top: 2px;
-  left: 2px;
+  top: 4px;
+  left: 4px;
   right: auto;
   bottom: auto;
   transform: none;
 }
 
 .enemy-card.mobile-layout .enemy-shortcut-badge .key-cap {
-  min-width: 26px;
-  font-size: 0.8rem;
-  padding: 0.15rem 0.5rem;
+  min-width: 30px;
+  font-size: 0.95rem;
+  padding: 0.25rem 0.55rem;
 }
 
 .enemy-name-top {
@@ -233,13 +233,12 @@ function onClick() {
 
 .enemy-shortcut-badge {
   position: absolute;
-  bottom: -32px;
-  left: 50%;
-  transform: translateX(-50%);
+  bottom: 6px;
+  left: 6px;
   background: rgba(0, 0, 0, 0.85);
   color: #fff;
   font-weight: bold;
-  padding: 0.2rem 0.5rem 0.2rem 0.2rem;
+  padding: 0.25rem 0.4rem 0.25rem 0.3rem;
   border-radius: 8px;
   box-shadow: 0 2px 8px #000a;
   z-index: 10;
@@ -255,16 +254,16 @@ function onClick() {
   background: linear-gradient(180deg, #fff7c2 0%, #ffe600 100%);
   color: #1a1a2e;
   font-weight: 900;
-  font-size: 0.9rem;
-  padding: 0.05rem 0.45rem;
-  border-radius: 5px;
+  font-size: 1rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
   border: 2px solid #1a1a2e;
-  border-bottom-width: 3px;
-  box-shadow: 0 2px 0 #b29600, 0 2px 4px #000a;
-  min-width: 22px;
+  box-shadow: 0 2px 0 #b29600, 0 3px 6px #000a;
+  min-width: 28px;
   text-align: center;
   font-family: 'Courier New', monospace;
-  line-height: 1.1;
+  line-height: 1;
+  box-sizing: border-box;
 }
 
 .enemy-shortcut-badge .enemy-name-badge {

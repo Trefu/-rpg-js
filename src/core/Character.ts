@@ -1,5 +1,6 @@
 import { ICharacter } from './interfaces/ICharacter'
 import type { IStatusEffect } from './interfaces/IStatusEffect'
+import { DOT_STATUS_TYPES } from './StatusEffects'
 
 export abstract class Character implements ICharacter {
   public readonly id: string
@@ -33,20 +34,25 @@ export abstract class Character implements ICharacter {
 
   public addStatusEffect(effect: IStatusEffect) {
     const existingEffect = this.statusEffects.find(e => e.type === effect.type)
+    const isDot = DOT_STATUS_TYPES.has(effect.type)
     if (existingEffect) {
-      const incomingStacks = effect.stacks ?? 1
-      const maxStacks = existingEffect.maxStacks ?? effect.maxStacks ?? 99
-      const currentStacks = existingEffect.stacks ?? 1
-      existingEffect.stacks = Math.min(maxStacks, currentStacks + incomingStacks)
+      if (isDot) {
+        const incomingStacks = effect.stacks ?? 1
+        const maxStacks = existingEffect.maxStacks ?? effect.maxStacks ?? 99
+        const currentStacks = existingEffect.stacks ?? 1
+        existingEffect.stacks = Math.min(maxStacks, currentStacks + incomingStacks)
+      }
     } else {
-      const maxStacks = effect.maxStacks ?? 99
-      const stacks = effect.stacks ?? 1
       const maxDuration = effect.maxDuration ?? effect.turns
-      this.statusEffects.push({
+      const instance: IStatusEffect = {
         ...effect,
-        stacks: Math.min(maxStacks, stacks),
         turns: Math.min(maxDuration, effect.turns)
-      })
+      }
+      if (isDot) {
+        instance.stacks = effect.stacks ?? 1
+        instance.maxStacks = effect.maxStacks ?? 99
+      }
+      this.statusEffects.push(instance)
     }
   }
 
