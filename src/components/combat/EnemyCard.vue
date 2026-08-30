@@ -4,6 +4,7 @@ import type { IEnemy } from '@/core/interfaces/ICharacter'
 import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
 import EnemyStatusIcons from './EnemyStatusIcons.vue'
 import goblinSprite from '@/assets/sprites/enemies/goblin.png'
+import { useMediaQuery } from '@/composables/useMediaQuery'
 
 interface Props {
   enemy: IEnemy
@@ -24,7 +25,7 @@ const emit = defineEmits<{
 
 const hpPercent = computed(() => {
   if (props.enemy.maxHealth <= 0) return 0
-  return Math.max(0, (props.enemy.health / props.enemy.maxHealth) * 100)
+  return Math.max(0, Math.min(100, (props.enemy.health / props.enemy.maxHealth) * 100))
 })
 
 const hpLabel = computed(() => `${props.enemy.health}/${props.enemy.maxHealth}`)
@@ -48,10 +49,7 @@ const isTargetAll = computed(() => {
 
 const myHitPopups = computed(() => props.hitPopups.filter(p => p.id === props.enemy.id))
 
-const isMobileLayout = computed(() => {
-  if (typeof window === 'undefined') return false
-  return window.matchMedia('(max-width: 720px)').matches
-})
+const isMobileLayout = useMediaQuery('(max-width: 720px)')
 
 const showAlwaysShortcut = computed(() =>
   !isDead.value && props.index >= 0 && !isMobileLayout.value &&
@@ -142,17 +140,13 @@ function onClick() {
 }
 
 .enemy-card.mobile-layout .enemy-shortcut-badge {
-  top: 4px;
-  left: 4px;
-  right: auto;
-  bottom: auto;
-  transform: none;
+  display: none !important;
 }
 
 .enemy-card.mobile-layout .enemy-shortcut-badge .key-cap {
-  min-width: 30px;
+  min-width: 28px;
   font-size: 0.95rem;
-  padding: 0.25rem 0.55rem;
+  padding: 0.2rem 0.5rem;
 }
 
 .enemy-name-top {
@@ -233,12 +227,13 @@ function onClick() {
 
 .enemy-shortcut-badge {
   position: absolute;
-  bottom: 6px;
-  left: 6px;
+  bottom: -38px;
+  left: 50%;
+  transform: translateX(-50%);
   background: rgba(0, 0, 0, 0.85);
   color: #fff;
   font-weight: bold;
-  padding: 0.25rem 0.4rem 0.25rem 0.3rem;
+  padding: 0.3rem 0.5rem 0.3rem 0.35rem;
   border-radius: 8px;
   box-shadow: 0 2px 8px #000a;
   z-index: 10;
@@ -254,8 +249,8 @@ function onClick() {
   background: linear-gradient(180deg, #fff7c2 0%, #ffe600 100%);
   color: #1a1a2e;
   font-weight: 900;
-  font-size: 1rem;
-  padding: 0.2rem 0.5rem;
+  font-size: 0.95rem;
+  padding: 0.25rem 0.55rem;
   border-radius: 6px;
   border: 2px solid #1a1a2e;
   box-shadow: 0 2px 0 #b29600, 0 3px 6px #000a;

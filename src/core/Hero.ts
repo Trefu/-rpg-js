@@ -162,15 +162,18 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
         const incomingStacks = effect.stacks ?? 1
         const maxStacks = existing.maxStacks ?? effect.maxStacks ?? 99
         existing.stacks = Math.min(maxStacks, (existing.stacks ?? 1) + incomingStacks)
+      } else {
+        const maxDuration = effect.maxDuration ?? effect.turns
+        existing.maxDuration = maxDuration
+        existing.turns = maxDuration
       }
-      existing.maxDuration = existing.maxDuration ?? effect.maxDuration
     } else {
       const copy: IStatusEffect = { ...effect }
       if (isDot) {
         copy.stacks = effect.stacks ?? 1
         copy.maxStacks = effect.maxStacks ?? 99
       }
-      copy.maxDuration = effect.maxDuration
+      copy.maxDuration = effect.maxDuration ?? effect.turns
       this.statusEffects.push(copy)
     }
   }
