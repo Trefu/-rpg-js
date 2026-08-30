@@ -3,13 +3,13 @@ import { ICharacter, IEnemy } from '../interfaces/ICharacter'
 import dummySprite from '@/assets/sprites/enemies/dummy.png'
 import type { DefensePatternConfig } from '../defense/types'
 import {
-  GOBLIN_ESPADAZO,
-  GOBLIN_FLECHA_VENENOSA,
-  GOBLIN_ASCUA,
-  WOLF_MORDIDA_FEROZ,
-  WOLF_ZARPAZOS_RAPIDOS,
-  ORC_HACHAZOS_MULTIPLES,
-  ORC_GOLPE_APLASTANTE,
+  ESPADAZO,
+  FLECHA_VENENOSA,
+  ASCUA,
+  MORDIDA_FEROZ,
+  ZARPAZOS_RAPIDOS,
+  HACHAZOS_MULTIPLES,
+  GOLPE_APLASTANTE,
   GOLPE_SUAVE,
   GOLPE_RAPIDO,
   COMBO_DOBLE,
@@ -21,13 +21,13 @@ import {
 export class Dummy extends Enemy implements IEnemy {
   public readonly sprite = dummySprite
   public attackPatterns: DefensePatternConfig[] = [
-    GOBLIN_ESPADAZO,
-    GOBLIN_FLECHA_VENENOSA,
-    GOBLIN_ASCUA,
-    WOLF_MORDIDA_FEROZ,
-    WOLF_ZARPAZOS_RAPIDOS,
-    ORC_HACHAZOS_MULTIPLES,
-    ORC_GOLPE_APLASTANTE,
+    ESPADAZO,
+    FLECHA_VENENOSA,
+    ASCUA,
+    MORDIDA_FEROZ,
+    ZARPAZOS_RAPIDOS,
+    HACHAZOS_MULTIPLES,
+    GOLPE_APLASTANTE,
     GOLPE_SUAVE,
     GOLPE_RAPIDO,
     COMBO_DOBLE,

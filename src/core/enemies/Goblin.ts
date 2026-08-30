@@ -2,11 +2,11 @@ import { Enemy } from './Enemy'
 import goblinSprite from '@/assets/sprites/enemies/goblin.png'
 import type { ICharacter } from '../interfaces/ICharacter'
 import type { DefensePatternConfig } from '../defense/types'
-import { GOBLIN_ESPADAZO } from '../abilities/EnemyAttacks'
+import { ESPADAZO } from '../abilities/EnemyAttacks'
 
 export class Goblin extends Enemy {
   public readonly sprite = goblinSprite
-  public attackPatterns: DefensePatternConfig[] = [GOBLIN_ESPADAZO]
+  public attackPatterns: DefensePatternConfig[] = [ESPADAZO]
 
   constructor(level: number = 1) {
     super({
@@ -22,6 +22,6 @@ export class Goblin extends Enemy {
   }
 
   public selectAttackPattern(_player: ICharacter | null): DefensePatternConfig {
-    return GOBLIN_ESPADAZO
+    return ESPADAZO
   }
 }

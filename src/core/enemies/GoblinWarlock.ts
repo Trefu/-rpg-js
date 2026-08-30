@@ -1,11 +1,11 @@
 import { Enemy } from './Enemy'
 import goblinWarlockSprite from '@/assets/sprites/enemies/goblin-warlock.png'
 import type { DefensePatternConfig } from '../defense/types'
-import { GOBLIN_ASCUA } from '../abilities/EnemyAttacks'
+import { ASCUA } from '../abilities/EnemyAttacks'
 
 export class GoblinWarlock extends Enemy {
   public readonly sprite = goblinWarlockSprite
-  public attackPatterns: DefensePatternConfig[] = [GOBLIN_ASCUA]
+  public attackPatterns: DefensePatternConfig[] = [ASCUA]
 
   constructor(level: number = 1) {
     super({

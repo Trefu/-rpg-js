@@ -1,11 +1,11 @@
 import { Enemy } from './Enemy'
 import goblinArcherSprite from '@/assets/sprites/enemies/goblin-archer.png'
 import type { DefensePatternConfig } from '../defense/types'
-import { GOBLIN_FLECHA_VENENOSA } from '../abilities/EnemyAttacks'
+import { FLECHA_VENENOSA } from '../abilities/EnemyAttacks'
 
 export class GoblinArcher extends Enemy {
   public readonly sprite = goblinArcherSprite
-  public attackPatterns: DefensePatternConfig[] = [GOBLIN_FLECHA_VENENOSA]
+  public attackPatterns: DefensePatternConfig[] = [FLECHA_VENENOSA]
 
   constructor(level: number = 1) {
     super({

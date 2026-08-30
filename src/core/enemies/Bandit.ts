@@ -1,11 +1,11 @@
 import { Enemy } from './Enemy'
 import goblinSprite from '@/assets/sprites/enemies/goblin.png'
 import type { DefensePatternConfig } from '../defense/types'
-import { GOBLIN_ESPADAZO, GOBLIN_FLECHA_VENENOSA } from '../abilities/EnemyAttacks'
+import { ESPADAZO, FLECHA_VENENOSA } from '../abilities/EnemyAttacks'
 
 export class Bandit extends Enemy {
   public readonly sprite = goblinSprite
-  public attackPatterns: DefensePatternConfig[] = [GOBLIN_ESPADAZO, GOBLIN_FLECHA_VENENOSA]
+  public attackPatterns: DefensePatternConfig[] = [ESPADAZO, FLECHA_VENENOSA]
 
   constructor(level: number = 1) {
     super({

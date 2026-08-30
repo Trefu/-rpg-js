@@ -1,7 +1,7 @@
 import type { DefensePatternConfig } from '../defense/types'
 import { fixedPhase, phase } from '../defense/attackPatterns'
 
-export const GOBLIN_ESPADAZO: DefensePatternConfig = {
+export const ESPADAZO: DefensePatternConfig = {
   name: 'Espadazo',
   type: 'physical',
   baseMaxBlockReduction: 0.5,
@@ -9,7 +9,7 @@ export const GOBLIN_ESPADAZO: DefensePatternConfig = {
   phases: [fixedPhase(1,2,3,4,5)]
 }
 
-export const GOBLIN_FLECHA_VENENOSA: DefensePatternConfig = {
+export const FLECHA_VENENOSA: DefensePatternConfig = {
   name: 'Flecha venenosa',
   type: 'physical',
   waveSpeed: 70,
@@ -23,7 +23,7 @@ export const GOBLIN_FLECHA_VENENOSA: DefensePatternConfig = {
   }
 }
 
-export const GOBLIN_ASCUA: DefensePatternConfig = {
+export const ASCUA: DefensePatternConfig = {
   name: 'Ascua',
   type: 'fire',
   baseMaxBlockReduction: 0.5,
@@ -35,7 +35,7 @@ export const GOBLIN_ASCUA: DefensePatternConfig = {
   }
 }
 
-export const WOLF_MORDIDA_FEROZ: DefensePatternConfig = {
+export const MORDIDA_FEROZ: DefensePatternConfig = {
   name: 'Mordida feroz',
   type: 'physical',
   baseMaxBlockReduction: 0.5,
@@ -47,7 +47,7 @@ export const WOLF_MORDIDA_FEROZ: DefensePatternConfig = {
   ]
 }
 
-export const WOLF_ZARPAZOS_RAPIDOS: DefensePatternConfig = {
+export const ZARPAZOS_RAPIDOS: DefensePatternConfig = {
   name: 'Zarpazos rápidos',
   type: 'physical',
   waveSpeed: 40,
@@ -56,7 +56,7 @@ export const WOLF_ZARPAZOS_RAPIDOS: DefensePatternConfig = {
   phases: [phase(3), phase(3), phase(3)]
 }
 
-export const ORC_HACHAZOS_MULTIPLES: DefensePatternConfig = {
+export const HACHAZOS_MULTIPLES: DefensePatternConfig = {
   name: 'Hachazos múltiples',
   type: 'physical',
   baseMaxBlockReduction: 0.5,
@@ -64,7 +64,7 @@ export const ORC_HACHAZOS_MULTIPLES: DefensePatternConfig = {
   phases: [phase(3), phase(3), phase(3), phase(3)]
 }
 
-export const ORC_GOLPE_APLASTANTE: DefensePatternConfig = {
+export const GOLPE_APLASTANTE: DefensePatternConfig = {
   name: 'Golpe aplastante',
   type: 'physical',
   baseMaxBlockReduction: 0.5,

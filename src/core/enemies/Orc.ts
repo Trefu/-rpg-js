@@ -1,11 +1,11 @@
 import { Enemy } from './Enemy'
 import orcSprite from '@/assets/sprites/enemies/orc.png'
 import type { DefensePatternConfig } from '../defense/types'
-import { ORC_HACHAZOS_MULTIPLES, ORC_GOLPE_APLASTANTE } from '../abilities/EnemyAttacks'
+import { HACHAZOS_MULTIPLES, GOLPE_APLASTANTE } from '../abilities/EnemyAttacks'
 
 export class Orc extends Enemy {
   public readonly sprite = orcSprite
-  public attackPatterns: DefensePatternConfig[] = [ORC_HACHAZOS_MULTIPLES, ORC_GOLPE_APLASTANTE]
+  public attackPatterns: DefensePatternConfig[] = [HACHAZOS_MULTIPLES, GOLPE_APLASTANTE]
 
   constructor(level: number = 1) {
     super({
