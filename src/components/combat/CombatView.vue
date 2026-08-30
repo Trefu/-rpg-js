@@ -270,6 +270,7 @@ onUnmounted(() => {
       :is-player-turn="isPlayerTurn"
       :is-selecting-target="isSelectingTarget"
       :can-target-allies="canTargetAllies(selectedAbility)"
+      :active-hero-index="gameStore.activeHeroIndex"
       @rotate-hero="rotateHero"
       @select-enemy="selectEnemy"
       @select-ally="selectAlly"
