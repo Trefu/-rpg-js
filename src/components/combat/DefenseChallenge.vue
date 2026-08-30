@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import type { DefensePatternConfig, DefensePhaseZone, DefensePhaseResult, DefensePhaseOutcome } from '@/core/defense/types'
-import { DEFENSE_BAR_WIDTH, DEFENSE_PHASE_TIMEOUT_MS, DEFAULT_WAVE_SPEED } from '@/core/defense/types'
-import { isWaveInSuccessZone } from '@/core/defense/DefenseEngine'
+import { DEFENSE_BAR_WIDTH, DEFAULT_WAVE_SPEED } from '@/core/defense/types'
+import { isWaveInSuccessZone, calculatePhaseTimeoutMs } from '@/core/defense/DefenseEngine'
 
 const BAR_WIDTH = DEFENSE_BAR_WIDTH
-const PHASE_TIMEOUT_MS = DEFENSE_PHASE_TIMEOUT_MS
 
 const props = withDefaults(defineProps<{
   show: boolean
@@ -92,11 +91,14 @@ function resetForPhase() {
   isActive.value = true
   clearPhaseTimeout()
   if (props.pattern) {
-    timeoutDuration.value = PHASE_TIMEOUT_MS
+    const phaseWaveSpeed = currentZone.value?.waveSpeed
+      ?? props.pattern.waveSpeed
+      ?? DEFAULT_WAVE_SPEED
+    timeoutDuration.value = calculatePhaseTimeoutMs(phaseWaveSpeed)
     timeoutKey.value++
     phaseTimeoutHandle = window.setTimeout(() => {
       handleTimeout()
-    }, PHASE_TIMEOUT_MS)
+    }, timeoutDuration.value)
   }
 }
 

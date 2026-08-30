@@ -34,6 +34,13 @@ export interface IStatusEffect {
   speedBonus?: number
   speedPenalty?: number
   /**
+   * Impacto sobre la velocidad de la onda en la barra de defensa del portador.
+   * Se SUMA al `waveSpeedMultiplier` en `getDefenseModifiers`.
+   * La dirección del efecto (acelera vs. desacelera) la decide el bando del
+   * portador (en jugadores se invierte la onda → más difícil bloquear).
+   */
+  defenseWaveSpeedImpact?: number
+  /**
    * Cargas consumibles. Si esta presente, el efecto se elimina al llegar a 0
    * tras disparar `onBlock`. Independiente de `stacks` (que acumula magnitud).
    * Si no se define, el efecto se gobierna solo por `turns`.

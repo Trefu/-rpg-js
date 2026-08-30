@@ -20,11 +20,17 @@ const PHASE_MARGIN_COLUMNS = 2
 export const CRIT_WAVE_SPEED = 100
 
 export function applyCritToPattern(
-  pattern: DefensePatternConfig
+  pattern: DefensePatternConfig,
+  modifiers?: DefenseModifiers
 ): DefensePatternConfig {
   const next: DefensePatternConfig = { ...pattern }
 
-  next.waveSpeed = CRIT_WAVE_SPEED
+  // El crit respeta el waveSpeedMultiplier (ej. enemigo lesionado desacelera
+  // el crit, jugador lesionado lo acelera). Sin modifiers, queda en 100 fijo.
+  const waveSpeedMultiplier = modifiers?.waveSpeedMultiplier ?? 1.0
+  const critWaveSpeed = CRIT_WAVE_SPEED * waveSpeedMultiplier
+
+  next.waveSpeed = critWaveSpeed
 
   if (typeof next.baseSuccessZoneSize === 'number') {
     next.baseSuccessZoneSize = next.baseSuccessZoneSize / 2
@@ -33,7 +39,7 @@ export function applyCritToPattern(
   if (Array.isArray(next.phases)) {
     next.phases = next.phases.map(spec => {
       const out: DefensePhaseSpec = { ...spec }
-      out.waveSpeed = CRIT_WAVE_SPEED
+      out.waveSpeed = critWaveSpeed
       if (typeof out.columnCount === 'number') {
         out.columnCount = Math.max(1, Math.ceil(out.columnCount / 2))
       }
@@ -150,6 +156,59 @@ export function calculateDefenseDamage(
   const totalBlock = perPhaseBlock * successfulPhases
   const raw = attackDamage * (1 - totalBlock)
   return Math.max(0, Math.floor(raw))
+}
+
+/**
+ * Timeout base por fase (ms). Equivale a ~1.7 cruces completos de la barra
+ * a la waveSpeed baseline (`DEFAULT_WAVE_SPEED` = 30 cols/seg).
+ */
+const BASE_PHASE_TIMEOUT_MS = 5000
+
+/**
+ * Extra máximo de timeout (ms) para ondas lentas (lentitud relativa al baseline).
+ * Con `DEFAULT_WAVE_SPEED` = 30, una onda al 70% (21 cols/seg, ej. goblin lesionado)
+ * suma 3000ms, llegando a 8s de timeout.
+ */
+const SLOW_WAVE_EXTRA_MS = 10000
+
+/**
+ * Extra máximo de timeout (ms) para ondas rápidas (sobre el baseline).
+ * Cap para no generar fases eternas con crits/combos extremos.
+ */
+const FAST_WAVE_EXTRA_MS = 2000
+
+/** Tope duro de timeout por fase (ms) para no bloquear la UI. */
+const MAX_PHASE_TIMEOUT_MS = 10000
+
+/**
+ * Calcula el timeout por fase a partir de la waveSpeed efectiva
+ * (ya con modificadores aplicados).
+ *
+ * Por qué existe: con el timeout fijo de 5000ms, una onda muy lenta
+ * (ej. ESPADAZO del goblin lesionado → 21 cols/seg) hace que el jugador
+ * tenga que esperar muchas oscilaciones para encontrar el momento, y
+ * puede no alcanzar. Una onda muy rápida tampoco deja reaccionar.
+ *
+ * Fórmula:
+ *  - baseline (30)  → 5000ms (sin extra)
+ *  - baseline - 30% → +3000ms (goblin lesionado, caso del usuario)
+ *  - baseline + X%  → hasta +2000ms (cap para reflejos)
+ *  - tope absoluto: 10000ms
+ */
+export function calculatePhaseTimeoutMs(waveSpeed: number): number {
+  const baseline = DEFAULT_WAVE_SPEED
+  let extraMs = 0
+
+  if (waveSpeed < baseline) {
+    const slowRatio = (baseline - waveSpeed) / baseline
+    extraMs = slowRatio * SLOW_WAVE_EXTRA_MS
+  } else if (waveSpeed > baseline) {
+    const fastRatio = Math.min((waveSpeed - baseline) / baseline, 1)
+    extraMs = fastRatio * FAST_WAVE_EXTRA_MS
+  }
+
+  const total = BASE_PHASE_TIMEOUT_MS + Math.round(extraMs)
+  return Math.min(total, MAX_PHASE_TIMEOUT_MS)
 }
 
 export function isWaveInSuccessZone(waveColumn: number, zone: DefensePhaseZone): boolean {
