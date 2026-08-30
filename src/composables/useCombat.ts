@@ -647,12 +647,6 @@ export function useCombat(config: CombatConfig = {}) {
   function endPlayerTurn() {
     isPlayerTurn.value = false
     decrementAbilityCooldowns()
-    // Decrement de estados al final del turno del jugador: el efecto debe
-    // seguir activo durante el ataque del enemigo que le sigue y solo expirar
-    // al terminar el turno actual (consistente con la logica del enemigo).
-    if (typeof player.value?.reduceStatusEffects === 'function') {
-      player.value.reduceStatusEffects()
-    }
     if (typeof player.value?.restoreEnergy === 'function') {
       const regen = typeof player.value.getTurnEndEnergyRegen === 'function'
         ? player.value.getTurnEndEnergyRegen()
@@ -747,6 +741,13 @@ export function useCombat(config: CombatConfig = {}) {
 
     isPlayerTurn.value = true
     isExecutingAction.value = false
+    // Decrement de estados del jugador al FINAL del turno enemigo: el efecto
+    // (ej. INJURED del jugador) debe seguir activo durante los ataques
+    // enemigos de este turno y solo expirar cuando el siguiente turno
+    // del jugador comienza (consistente con la logica del enemigo).
+    if (typeof player.value?.reduceStatusEffects === 'function') {
+      player.value.reduceStatusEffects()
+    }
     // Si el heroe activo murio durante el turno enemigo, rotar al siguiente heroe vivo.
     if (!player.value || !player.value.isAlive) {
       const rotated = rotateToNextAliveHero()

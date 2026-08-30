@@ -72,6 +72,17 @@ const isLastPhase = computed(() => props.phaseIndex >= (props.pattern?.phases?.l
 
 const phaseHeader = computed(() => `Fase ${props.phaseIndex + 1} / ${props.pattern?.phases?.length ?? 1}`)
 
+// Debug overlay: solo visible en dev (vite) + desktop (pointer:fine, no touch).
+const isDev = import.meta.env.DEV
+const isDesktop = ref(false)
+let desktopMql: MediaQueryList | null = null
+function updateIsDesktop(e: MediaQueryListEvent | MediaQueryList) {
+  isDesktop.value = e.matches
+}
+
+const zoneSuccessCount = computed(() => currentZone.value?.successColumns.length ?? 0)
+const showDebug = computed(() => isDev && isDesktop.value && props.show)
+
 function clearPhaseTimeout() {
   if (phaseTimeoutHandle !== null) {
     clearTimeout(phaseTimeoutHandle)
@@ -203,12 +214,16 @@ watch(() => props.phaseIndex, (val) => {
 
 onMounted(() => {
   window.addEventListener('keydown', onKeydown)
+  desktopMql = window.matchMedia('(pointer: fine)')
+  updateIsDesktop(desktopMql)
+  desktopMql.addEventListener('change', updateIsDesktop)
 })
 
 onUnmounted(() => {
   window.removeEventListener('keydown', onKeydown)
   if (animationFrame) cancelAnimationFrame(animationFrame)
   clearPhaseTimeout()
+  desktopMql?.removeEventListener('change', updateIsDesktop)
 })
 </script>
 
@@ -271,6 +286,14 @@ onUnmounted(() => {
           <div class="defense-feedback-text">{{ feedbackLabel }}</div>
         </div>
       </transition>
+
+      <div v-if="showDebug" class="defense-debug">
+        <div class="defense-debug-row"><span>attack</span><b>{{ pattern?.name }}</b></div>
+        <div class="defense-debug-row"><span>waveSpeed</span><b>{{ waveSpeed.toFixed(1) }}</b></div>
+        <div class="defense-debug-row"><span>zone</span><b>{{ zoneSuccessCount }} col</b></div>
+        <div class="defense-debug-row"><span>timeout</span><b>{{ (timeoutDuration / 1000).toFixed(1) }}s</b></div>
+        <div class="defense-debug-row"><span>crit</span><b>{{ isCrit ? 'SI' : 'no' }}</b></div>
+      </div>
     </div>
   </div>
 </template>
@@ -477,6 +500,36 @@ onUnmounted(() => {
   gap: 0.7rem;
   color: #fff;
   font-size: 1rem;
+}
+
+.defense-debug {
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.8rem;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px dashed rgba(255, 230, 0, 0.6);
+  border-radius: 6px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.78rem;
+  color: #ffe600;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  pointer-events: none;
+}
+
+.defense-debug-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.defense-debug-row span {
+  opacity: 0.7;
+}
+
+.defense-debug-row b {
+  color: #fff;
+  font-weight: 700;
 }
 
 .cta-key {

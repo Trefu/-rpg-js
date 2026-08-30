@@ -151,6 +151,6 @@ export const DEEP_SLASH: DefensePatternConfig = {
   onFailureEffect: {
     statusType: 'injured',
     stacks: 1,
-    maxDuration: 1
+    maxDuration: 3
   }
 }
