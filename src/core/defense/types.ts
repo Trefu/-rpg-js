@@ -56,7 +56,7 @@ export interface DefensePhaseSpec {
 
 /**
  * Efecto que se aplica cuando se consigue un bloqueo.
- * Por defecto el bloqueo es una reduccion plana de dano,
+ * Por defecto el bloqueo es una reduccion plana de daño,
  * pero perks/armas pueden cambiarlo a parry, contraataque, reflect, etc.
  */
 export type DefenseBlockEffectType =
@@ -68,7 +68,7 @@ export type DefenseBlockEffectType =
 
 export interface DefenseBlockEffect {
   type: DefenseBlockEffectType
-  /** Etiqueta legible para logs/UI (ej. "parry", "contraataque", "reduccion de dano"). */
+  /** Etiqueta legible para logs/UI (ej. "parry", "contraataque", "reduccion de daño"). */
   label: string
   /** Metadata libre (ej. fraccion de contraataque, fraccion reflejada). */
   metadata?: Record<string, number | string>
@@ -81,7 +81,7 @@ export const DEFAULT_SUCCESS_ZONE_SIZE = 0.1
 
 export const DEFAULT_BLOCK_EFFECT: DefenseBlockEffect = {
   type: 'damage_reduction',
-  label: 'reduccion de dano'
+  label: 'reduccion de daño'
 }
 
 export interface DefensePatternConfig {

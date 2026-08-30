@@ -135,10 +135,10 @@ export class StatusEffects {
   static readonly SECOND_WIND: IStatusEffect = {
     type: 'second_wind',
     name: 'Segundo Aliento',
-    description: 'Cada bloqueo restaura 10% de la energia maxima. Se consume tras 5 bloqueos.',
     turns: Infinity,
-    charges: 5,
-    maxCharges: 5,
+    charges: 3,
+    maxCharges: 3,
+    description: 'Cada bloqueo restaura 10% de la energia maxima. Se consume tras 3 bloqueos.',
     icon: secondWindIcon,
     isBuff: true,
     turnLabel: '¡Su segundo aliento lo mantiene en pie!',
@@ -149,12 +149,12 @@ export class StatusEffects {
     }
   }
 
-  // Ejemplo: bloquea y se cura HP en funcion del dano bloqueado. Sin cargos
+  // Ejemplo: bloquea y se cura HP en funcion del daño bloqueado. Sin cargos
   // (mientras dure `turns`, se mantiene). Solo se activa si `blockedFraction >= 1`.
   static readonly VAMPIRE_SHIELD: IStatusEffect = {
     type: 'vampire_shield',
     name: 'Escudo Vampírico',
-    description: 'Cada bloqueo completo absorbe 30% del dano bloqueado como vida.',
+    description: 'Cada bloqueo completo absorbe 30% del daño bloqueado como vida.',
     turns: 3,
     icon: secondWindIcon,
     isBuff: true,
@@ -162,7 +162,7 @@ export class StatusEffects {
     onBlock: (target, blockedFraction) => {
       if (blockedFraction < 1) return
       const hero = target as Hero
-      // El dano bloqueado exacto no llega al hook; estimamos con maxHealth * factor.
+      // El daño bloqueado exacto no llega al hook; estimamos con maxHealth * factor.
       // Si necesitas el valor exacto, hay que extender el hook para recibirlo.
       const heal = Math.floor(hero.maxHealth * 0.05 * blockedFraction)
       hero.heal(heal)

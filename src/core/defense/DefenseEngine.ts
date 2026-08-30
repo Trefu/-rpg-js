@@ -16,27 +16,31 @@ import type { DefenseModifiers } from './modifiers'
 /** Margen (en columnas) a cada lado de la barra donde no se sortea zona. */
 const PHASE_MARGIN_COLUMNS = 2
 
-/** Multiplicador de waveSpeed cuando el ataque es un critico. */
-export const CRIT_WAVE_SPEED_MULTIPLIER = 2
+/**
+ * Velocidad fija de la onda (columnas/segundo) cuando el ataque es un critico.
+ * Es un override absoluto: se aplica DESPUES de los modifiers del jugador
+ * (Lesionado, +Velocidad, etc.) para que el critico siempre se sienta igual
+ * de brutal independientemente del estado del jugador.
+ */
+export const CRIT_WAVE_SPEED = 100
 
 /**
  * Aplica los modificadores de critico a un patron:
- * - waveSpeed (a nivel de patron y por fase) duplicado.
+ * - waveSpeed (a nivel de patron y por fase) reemplazado por `CRIT_WAVE_SPEED`.
  * - Zonas de exito reducidas a la mitad (columnCount / baseSuccessZoneSize /
  *   successColumns.length), con minimo 1 y redondeo hacia arriba.
  *
  * Devuelve un clon del patron, nunca muta el original. El patron retornado
  * debe pasar luego por `applyModifiersToPattern` para叠加 los modifiers del
- * jugador (waveSpeedMultiplier, etc.).
+ * jugador. El critico DEBE aplicarse despues de los modifiers para que el
+ * valor fijo no se vea alterado (ver `startDefenseChallenge`).
  */
 export function applyCritToPattern(
   pattern: DefensePatternConfig
 ): DefensePatternConfig {
   const next: DefensePatternConfig = { ...pattern }
 
-  if (typeof next.waveSpeed === 'number') {
-    next.waveSpeed = next.waveSpeed * CRIT_WAVE_SPEED_MULTIPLIER
-  }
+  next.waveSpeed = CRIT_WAVE_SPEED
 
   if (typeof next.baseSuccessZoneSize === 'number') {
     next.baseSuccessZoneSize = next.baseSuccessZoneSize / 2
@@ -45,9 +49,7 @@ export function applyCritToPattern(
   if (Array.isArray(next.phases)) {
     next.phases = next.phases.map(spec => {
       const out: DefensePhaseSpec = { ...spec }
-      if (typeof out.waveSpeed === 'number') {
-        out.waveSpeed = out.waveSpeed * CRIT_WAVE_SPEED_MULTIPLIER
-      }
+      out.waveSpeed = CRIT_WAVE_SPEED
       if (typeof out.columnCount === 'number') {
         out.columnCount = Math.max(1, Math.ceil(out.columnCount / 2))
       }

@@ -244,11 +244,7 @@ onUnmounted(() => {
 
 <template>
   <div class="combat-view">
-    <AnnouncementBanner
-      :visible="!!announcement"
-      :text="announcement?.text"
-      :variant="(announcement?.variant as any) || 'info'"
-    />
+    <AnnouncementBanner />
 
     <div v-if="!isMobile" class="heroes-column">
       <div class="heroes-container">

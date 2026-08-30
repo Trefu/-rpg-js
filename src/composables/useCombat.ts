@@ -20,6 +20,8 @@ import {
 } from '@/core/defense/DefenseEngine'
 import { DEFAULT_BLOCK_EFFECT } from '@/core/defense/types'
 import { getDefenseModifiers } from '@/core/defense/modifiers'
+import { useAnnouncer } from './useAnnouncer'
+import type { AnnouncementVariant } from './useAnnouncer'
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
@@ -57,35 +59,36 @@ export function useCombat(config: CombatConfig = {}) {
   const showAbilitiesModal = ref(false)
   const abilityCooldowns = ref<{ [type: string]: number }>({})
 
-  const announcement = ref<{ text: string, variant: string, key: number } | null>(null)
-  let announcementKey = 0
-  let announcementTimer: ReturnType<typeof setTimeout> | null = null
+  const announcer = useAnnouncer()
+  const announcement = computed(() => announcer.current.value)
+
+  /**
+   * Mapa de prioridad por variant. Los anuncios de combate critico/turno/ataque
+   * pesan mas que los de status/info para que la cola respete el orden visual
+   * que el dev espera cuando encola varios en sucesion rapida.
+   */
+  const VARIANT_PRIORITY: Record<AnnouncementVariant, number> = {
+    'info': 0,
+    'status': 1,
+    'turn': 5,
+    'attack': 5,
+    'crit': 10,
+    'crit-attack': 10
+  }
 
   function showAnnouncement(
     text: string,
-    variant: 'info' | 'attack' | 'status' | 'turn' | 'crit' | 'crit-attack' = 'info',
+    variant: AnnouncementVariant = 'info',
     duration: number = 2000,
-    options: { sticky?: boolean } = {}
+    options: { sticky?: boolean; priority?: number; id?: string } = {}
   ) {
-    if (announcementTimer) {
-      clearTimeout(announcementTimer)
-      announcementTimer = null
-    }
-    announcement.value = { text, variant, key: ++announcementKey }
-    if (options.sticky) return
-    announcementTimer = setTimeout(() => {
-      announcement.value = null
-      announcementTimer = null
-    }, duration)
+    return announcer.show(text, variant, duration, {
+      ...options,
+      priority: options.priority ?? VARIANT_PRIORITY[variant]
+    })
   }
 
-  function clearAnnouncement() {
-    if (announcementTimer) {
-      clearTimeout(announcementTimer)
-      announcementTimer = null
-    }
-    announcement.value = null
-  }
+  const clearAnnouncement = announcer.clear
 
   const isDefenseActive = ref(false)
   const defensePattern = ref<DefensePatternConfig | null>(null)
@@ -125,7 +128,10 @@ export function useCombat(config: CombatConfig = {}) {
     return new Promise((resolve) => {
       const modifiers = getDefenseModifiers(player.value!, enemy)
       const selectedPattern = preSelectedPattern ?? enemy.selectAttackPattern(player.value)
-      const adjusted = applyModifiersToPattern(selectedPattern, modifiers)
+      const withModifiers = applyModifiersToPattern(selectedPattern, modifiers)
+      // El critico se aplica DESPUES de los modifiers del jugador para que
+      // su waveSpeed fijo (CRIT_WAVE_SPEED) no se vea alterado por buffs/debuffs.
+      const adjusted = opts.isCrit ? applyCritToPattern(withModifiers) : withModifiers
       const zones = pickZonesForPhases(adjusted)
       pendingDefenseResolve = resolve
       pendingDefensePattern = adjusted
@@ -216,7 +222,7 @@ export function useCombat(config: CombatConfig = {}) {
     const blockLog = blockedFraction >= 1
       ? `¡Bloqueaste el ataque por completo (${effectLabelText})!`
       : blockedFraction > 0
-        ? `Bloqueaste ${blockPercent}% del dano (${effectLabelText}).`
+        ? `Bloqueaste ${blockPercent}% del daño (${effectLabelText}).`
         : ''
 
     if (finalDamage > 0) {
@@ -225,8 +231,8 @@ export function useCombat(config: CombatConfig = {}) {
       audioManager.playAttackSound()
       audioManager.playHitSound()
       addToLog(blockLog
-        ? `${blockLog}${critTag} Recibes ${finalDamage} de dano.`
-        : `Recibes ${finalDamage} de dano${critTag}.`)
+        ? `${blockLog}${critTag} Recibes ${finalDamage} de daño.`
+        : `Recibes ${finalDamage} de daño${critTag}.`)
     } else {
       addToLog(blockLog || `¡Bloqueaste el ataque!`)
     }
@@ -549,7 +555,6 @@ export function useCombat(config: CombatConfig = {}) {
       const enemyLabel = aliveEnemies.length > 1 ? `${enemy.name} ${enemyIndex}` : enemy.name
 
       const isCrit = typeof enemy.rollCrit === 'function' && enemy.rollCrit()
-      const critPattern = isCrit ? applyCritToPattern(selectedPattern) : selectedPattern
 
       attackingEnemyId.value = enemy.id
       const announceText = isCrit
@@ -561,7 +566,11 @@ export function useCombat(config: CombatConfig = {}) {
       addToLog(isCrit
         ? `¡CRÍTICO! ${enemyLabel} va a usar ${attackName} (daño x2)`
         : `${enemyLabel} va a usar ${attackName}`)
-      await delay(config.isTraining ? 800 : 1200)
+      // Esperar a que el banner del anuncio termine para coordinar el
+      // highlight del enemigo atacante. La cola del announcer garantiza que
+      // el siguiente `showAnnouncement` (de status effects) NO pisa este
+      // banner, asi que este delay es solo sincronizacion visual.
+      await delay(announceDuration)
       attackingEnemyId.value = null
 
       await showEnemyStatusSequence(enemy)
@@ -577,7 +586,7 @@ export function useCombat(config: CombatConfig = {}) {
 
       const rawDamage = enemy.attack()
       const damage = Math.floor(rawDamage * selectedPattern.damageMultiplier * (isCrit ? 2 : 1))
-      await startDefenseChallenge(enemy, damage, critPattern, { isCrit })
+      await startDefenseChallenge(enemy, damage, selectedPattern, { isCrit })
 
       if (!player.value.isAlive) {
         if (config.isTraining) {
@@ -867,6 +876,7 @@ export function useCombat(config: CombatConfig = {}) {
     announcement,
     showAnnouncement,
     clearAnnouncement,
+    announcer,
     abilities,
     aliveEnemies,
     abilityShortcuts,

@@ -1,19 +1,20 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useAnnouncer } from '@/composables/useAnnouncer'
+import type { AnnouncementVariant } from '@/composables/useAnnouncer'
 
-type AnnouncementVariant = 'info' | 'attack' | 'status' | 'turn' | 'crit' | 'crit-attack'
+/**
+ * El banner se suscribe al singleton `useAnnouncer` directamente, sin
+ * depender de que CombatView le pase props. Esto evita acoplamiento y
+ * permite que cualquier parte del juego (training, expedicion, futuras
+ * pantallas) muestre anuncios sin coordinacion extra.
+ */
+const announcer = useAnnouncer()
 
-const props = withDefaults(defineProps<{
-  text?: string
-  visible?: boolean
-  variant?: AnnouncementVariant
-}>(), {
-  text: '',
-  visible: false,
-  variant: 'info'
-})
-
-const variantClass = computed(() => `variant-${props.variant}`)
+const visible = computed(() => announcer.current.value !== null)
+const text = computed(() => announcer.current.value?.text ?? '')
+const variant = computed<AnnouncementVariant>(() => announcer.current.value?.variant ?? 'info')
+const variantClass = computed(() => `variant-${variant.value}`)
 </script>
 
 <template>

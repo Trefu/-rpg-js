@@ -1,12 +1,13 @@
 import type { ICharacter } from './ICharacter'
 import type { AudioManager } from '../AudioManager'
+import type { AnnouncementVariant } from '@/composables/useAnnouncer'
 
 export interface AbilityContext {
   caster: ICharacter
   target: ICharacter
   addToLog: (message: string) => void
   showEnemyHit: (id: string, value: number) => void
-  showAnnouncement: (text: string, variant?: 'info' | 'attack' | 'status' | 'turn' | 'crit', duration?: number) => void
+  showAnnouncement: (text: string, variant?: AnnouncementVariant, duration?: number) => void
   audioManager: AudioManager
   /**
    * Duracion del delay post-ejecucion (ms) que la ability debe esperar

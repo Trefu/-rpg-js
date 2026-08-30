@@ -501,6 +501,8 @@ onUnmounted(() => {
   transform: translate(-50%, -50%);
   pointer-events: none;
   z-index: 5;
+  contain: layout paint;
+  will-change: transform, opacity;
 }
 
 .defense-feedback-text {
@@ -508,9 +510,12 @@ onUnmounted(() => {
   font-size: 3.5rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  text-shadow: 0 0 18px currentColor, 0 0 36px currentColor, 0 4px 12px rgba(0, 0, 0, 0.85);
+  text-shadow: 0 0 10px currentColor, 0 3px 6px rgba(0, 0, 0, 0.85);
   color: #fff;
   text-align: center;
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .defense-feedback.success .defense-feedback-text {
@@ -520,7 +525,7 @@ onUnmounted(() => {
 
 .defense-overlay.is-crit .defense-feedback.success .defense-feedback-text {
   color: #b388ff;
-  text-shadow: 0 0 18px #b388ff, 0 0 36px rgba(179, 136, 255, 0.8), 0 4px 12px rgba(0, 0, 0, 0.85);
+  text-shadow: 0 0 10px #b388ff, 0 3px 6px rgba(0, 0, 0, 0.85);
 }
 
 .defense-feedback.fail .defense-feedback-text,
@@ -558,9 +563,9 @@ onUnmounted(() => {
 }
 
 @keyframes success-pulse {
-  0% { transform: scale(0.5); filter: brightness(1.4); }
-  50% { transform: scale(1.25); filter: brightness(1.8); }
-  100% { transform: scale(1); filter: brightness(1); }
+  0%   { transform: scale(0.5);  opacity: 0.4; }
+  50%  { transform: scale(1.2);  opacity: 1; }
+  100% { transform: scale(1);    opacity: 1; }
 }
 
 @keyframes fail-pulse {
@@ -568,5 +573,21 @@ onUnmounted(() => {
   25% { transform: translateX(-6px) scale(1); }
   50% { transform: translateX(6px) scale(1); }
   75% { transform: translateX(-4px) scale(1); }
+}
+
+@media (max-width: 720px) {
+  .defense-feedback-text {
+    font-size: 2.4rem;
+    letter-spacing: 0.04em;
+    text-shadow: 0 0 8px currentColor, 0 2px 4px rgba(0, 0, 0, 0.85);
+  }
+  .defense-overlay.is-crit .defense-feedback.success .defense-feedback-text {
+    text-shadow: 0 0 8px #b388ff, 0 2px 4px rgba(0, 0, 0, 0.85);
+  }
+  .defense-feedback.success .defense-feedback-text,
+  .defense-feedback.fail .defense-feedback-text,
+  .defense-feedback.timeout .defense-feedback-text {
+    animation-duration: 0.45s;
+  }
 }
 </style>
