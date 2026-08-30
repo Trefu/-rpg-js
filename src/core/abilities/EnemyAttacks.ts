@@ -2,7 +2,7 @@ import type { DefensePatternConfig } from '../defense/types'
 import { fixedPhase, phase } from '../defense/attackPatterns'
 
 export const ESPADAZO: DefensePatternConfig = {
-  name: 'Espadazo',
+  name: 'Slash',
   type: 'physical',
   baseMaxBlockReduction: 0.5,
   damageMultiplier: 2,
@@ -10,7 +10,7 @@ export const ESPADAZO: DefensePatternConfig = {
 }
 
 export const FLECHA_VENENOSA: DefensePatternConfig = {
-  name: 'Flecha venenosa',
+  name: 'Poison Arrow',
   type: 'physical',
   waveSpeed: 70,
   baseMaxBlockReduction: 0.5,
@@ -24,7 +24,7 @@ export const FLECHA_VENENOSA: DefensePatternConfig = {
 }
 
 export const ASCUA: DefensePatternConfig = {
-  name: 'Ascua',
+  name: 'Ember',
   type: 'fire',
   baseMaxBlockReduction: 0.5,
   damageMultiplier: 0.7,
@@ -36,7 +36,7 @@ export const ASCUA: DefensePatternConfig = {
 }
 
 export const MORDIDA_FEROZ: DefensePatternConfig = {
-  name: 'Mordida feroz',
+  name: 'Ferocious Bite',
   type: 'physical',
   baseMaxBlockReduction: 0.5,
   damageMultiplier: 0.8,
@@ -48,7 +48,7 @@ export const MORDIDA_FEROZ: DefensePatternConfig = {
 }
 
 export const ZARPAZOS_RAPIDOS: DefensePatternConfig = {
-  name: 'Zarpazos rápidos',
+  name: 'Quick Claws',
   type: 'physical',
   waveSpeed: 40,
   baseMaxBlockReduction: 0.5,
@@ -57,7 +57,7 @@ export const ZARPAZOS_RAPIDOS: DefensePatternConfig = {
 }
 
 export const HACHAZOS_MULTIPLES: DefensePatternConfig = {
-  name: 'Hachazos múltiples',
+  name: 'Multiple Axe Strikes',
   type: 'physical',
   baseMaxBlockReduction: 0.5,
   damageMultiplier: 0.8,
@@ -65,7 +65,7 @@ export const HACHAZOS_MULTIPLES: DefensePatternConfig = {
 }
 
 export const GOLPE_APLASTANTE: DefensePatternConfig = {
-  name: 'Golpe aplastante',
+  name: 'Crushing Blow',
   type: 'physical',
   baseMaxBlockReduction: 0.5,
   damageMultiplier: 1.5,
@@ -73,7 +73,7 @@ export const GOLPE_APLASTANTE: DefensePatternConfig = {
 }
 
 export const GOLPE_SUAVE: DefensePatternConfig = {
-  name: 'Golpe Suave',
+  name: 'Gentle Strike',
   type: 'physical',
   waveSpeed: 25,
   baseMaxBlockReduction: 0.8,
@@ -82,7 +82,7 @@ export const GOLPE_SUAVE: DefensePatternConfig = {
 }
 
 export const GOLPE_RAPIDO: DefensePatternConfig = {
-  name: 'Golpe Rápido',
+  name: 'Quick Strike',
   type: 'physical',
   waveSpeed: 55,
   baseMaxBlockReduction: 0.5,
@@ -91,7 +91,7 @@ export const GOLPE_RAPIDO: DefensePatternConfig = {
 }
 
 export const COMBO_DOBLE: DefensePatternConfig = {
-  name: 'Combo Doble',
+  name: 'Double Combo',
   type: 'physical',
   waveSpeed: 35,
   baseMaxBlockReduction: 0.5,
@@ -100,7 +100,7 @@ export const COMBO_DOBLE: DefensePatternConfig = {
 }
 
 export const COMBO_TRIPLE: DefensePatternConfig = {
-  name: 'Combo Triple',
+  name: 'Triple Combo',
   type: 'physical',
   waveSpeed: 45,
   baseMaxBlockReduction: 0.4,
@@ -109,7 +109,7 @@ export const COMBO_TRIPLE: DefensePatternConfig = {
 }
 
 export const ALIENTO_DE_FUEGO: DefensePatternConfig = {
-  name: 'Aliento de Fuego',
+  name: 'Fire Breath',
   type: 'fire',
   waveSpeed: 80,
   baseMaxBlockReduction: 0.5,
@@ -122,7 +122,7 @@ export const ALIENTO_DE_FUEGO: DefensePatternConfig = {
 }
 
 export const ALIENTO_GLACIAL: DefensePatternConfig = {
-  name: 'Aliento Glacial',
+  name: 'Glacial Breath',
   type: 'frost',
   waveSpeed: 50,
   baseMaxBlockReduction: 0.5,

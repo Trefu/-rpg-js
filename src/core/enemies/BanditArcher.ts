@@ -1,0 +1,22 @@
+import { Enemy } from './Enemy'
+import banditArcherSprite from '@/assets/sprites/enemies/bandit-archer.png'
+import type { DefensePatternConfig } from '../defense/types'
+import { FLECHA_VENENOSA } from '../abilities/EnemyAttacks'
+
+export class BanditArcher extends Enemy {
+  public readonly sprite = banditArcherSprite
+  public attackPatterns: DefensePatternConfig[] = [FLECHA_VENENOSA]
+
+  constructor(level: number = 1) {
+    super({
+      id: `bandit-archer-${Math.random().toString(36).substr(2, 9)}`,
+      name: 'Bandido Arquero',
+      level,
+      maxHealth: 45 + (level * 7),
+      baseAttack: 13 + (level * 2),
+      experienceReward: 20 + (level * 4),
+      goldReward: { min: 16 + (level * 3), max: 26 + (level * 4) },
+      critChance: 0.07
+    })
+  }
+}

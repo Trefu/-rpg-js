@@ -1,5 +1,5 @@
 import { Enemy } from './Enemy'
-import goblinSprite from '@/assets/sprites/enemies/goblin.png'
+import goblinSprite from '@/assets/sprites/enemies/bandit.png'
 import type { DefensePatternConfig } from '../defense/types'
 import { ESPADAZO, FLECHA_VENENOSA } from '../abilities/EnemyAttacks'
 
