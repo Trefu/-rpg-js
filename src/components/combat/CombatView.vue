@@ -319,8 +319,10 @@ onUnmounted(() => {
             <img :src="ItemIcon" alt="" class="btn-icon" /> Objeto
           </button>
           <button
-            v-if="canCancelSelectedAbility"
             class="action-btn cancel"
+            :class="{ 'is-hidden': !canCancelSelectedAbility }"
+            :aria-hidden="!canCancelSelectedAbility"
+            :tabindex="canCancelSelectedAbility ? 0 : -1"
             @click="onCancelAbility"
           >
             ✕ Cancelar <span class="shortcut-badge">[Esc]</span>

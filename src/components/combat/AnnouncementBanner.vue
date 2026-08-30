@@ -3,12 +3,6 @@ import { computed } from 'vue'
 import { useAnnouncer } from '@/composables/useAnnouncer'
 import type { AnnouncementVariant } from '@/composables/useAnnouncer'
 
-/**
- * El banner se suscribe al singleton `useAnnouncer` directamente, sin
- * depender de que CombatView le pase props. Esto evita acoplamiento y
- * permite que cualquier parte del juego (training, expedicion, futuras
- * pantallas) muestre anuncios sin coordinacion extra.
- */
 const announcer = useAnnouncer()
 
 const visible = computed(() => announcer.current.value !== null)

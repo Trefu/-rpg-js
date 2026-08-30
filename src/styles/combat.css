@@ -227,6 +227,11 @@
   color: #fff;
 }
 
+.action-btn.cancel.is-hidden {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 @keyframes cancel-pulse {
   0%, 100% { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.55); }
   50% { box-shadow: 0 0 0 8px rgba(244, 67, 54, 0); }

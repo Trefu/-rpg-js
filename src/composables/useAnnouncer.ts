@@ -11,25 +11,9 @@ export type AnnouncementVariant =
 export interface AnnouncementSpec {
   text: string
   variant?: AnnouncementVariant
-  /**
-   * Cuanto tiempo (ms) permanece visible el banner antes de avanzar al
-   * siguiente anuncio encolado. Default: 2000.
-   */
   duration?: number
-  /**
-   * Si true, el anuncio nunca se borra solo: hay que llamar `clear()` o
-   * `skip()` para que continue la cola. Default: false.
-   */
   sticky?: boolean
-  /**
-   * Prioridad dentro de la cola. Mayor = sale antes. Default: 0.
-   * Sugeridos: crit-attack = 10, attack = 5, turn = 5, status = 1, info = 0.
-   */
   priority?: number
-  /**
-   * Identificador opcional para deduplicar. Si ya hay un anuncio encolado
-   * o activo con el mismo id, el nuevo se descarta.
-   */
   id?: string
 }
 
@@ -39,34 +23,19 @@ interface ActiveAnnouncement extends Required<Omit<AnnouncementSpec, 'id'>> {
 }
 
 export interface Announcer {
-  /** Ref reactivo con el anuncio actualmente visible. Solo lectura. */
   current: Readonly<ReturnType<typeof ref<ActiveAnnouncement | null>>>
-  /**
-   * API estilo "fire and forget". Reemplaza la firma antigua de
-   * `showAnnouncement(text, variant, duration, { sticky })` para que el
-   * resto del codigo siga funcionando sin cambios.
-   */
   show: (
     text: string,
     variant?: AnnouncementVariant,
     duration?: number,
     options?: { sticky?: boolean; priority?: number; id?: string }
   ) => string
-  /** Inserta un anuncio en la cola respetando prioridad/deduplicacion. */
   enqueue: (spec: AnnouncementSpec) => string
-  /** Vacia la cola y limpia el banner actual. */
   clear: () => void
-  /** Salta el banner actual y muestra el siguiente encolado (si hay). */
   skip: () => void
-  /** Cantidad de anuncios pendientes en la cola (sin contar el activo). */
   pending: () => number
 }
 
-/**
- * Modulo singleton: mantiene UNA cola y UN banner activo para toda la app.
- * Asi, dos componentes distintos (ej. CombatView + un futuro HUD) pueden
- * despachar anuncios sin pisarse.
- */
 function createAnnouncer(): Announcer {
   const queue: ActiveAnnouncement[] = []
   const current = ref<ActiveAnnouncement | null>(null)
@@ -94,10 +63,6 @@ function createAnnouncer(): Announcer {
     }
   }
 
-  /**
-   * Selecciona el siguiente anuncio a mostrar: primero el activo actual
-   * (para no interrumpirlo), si no hay, el de mayor prioridad de la cola.
-   */
   function pickNext(): ActiveAnnouncement | null {
     if (queue.length === 0) return null
     let bestIdx = 0
@@ -183,10 +148,6 @@ export function useAnnouncer(): Announcer {
   return _singleton
 }
 
-/**
- * Helper de test/devuelve para resetear el singleton entre tests
- * (no se usa en runtime).
- */
 export function __resetAnnouncerForTests() {
   _singleton = null
 }

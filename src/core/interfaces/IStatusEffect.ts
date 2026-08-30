@@ -23,6 +23,7 @@ export interface IStatusEffect {
   icon: string
   isBuff?: boolean
   turnLabel?: string
+  announceOnTurn?: boolean
   onApply?: (target: ICharacter) => void
   onRemove?: (target: ICharacter) => void
   damagePerTurn?: number

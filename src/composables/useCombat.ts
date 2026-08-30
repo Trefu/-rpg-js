@@ -62,11 +62,6 @@ export function useCombat(config: CombatConfig = {}) {
   const announcer = useAnnouncer()
   const announcement = computed(() => announcer.current.value)
 
-  /**
-   * Mapa de prioridad por variant. Los anuncios de combate critico/turno/ataque
-   * pesan mas que los de status/info para que la cola respete el orden visual
-   * que el dev espera cuando encola varios en sucesion rapida.
-   */
   const VARIANT_PRIORITY: Record<AnnouncementVariant, number> = {
     'info': 0,
     'status': 1,
@@ -129,8 +124,6 @@ export function useCombat(config: CombatConfig = {}) {
       const modifiers = getDefenseModifiers(player.value!, enemy)
       const selectedPattern = preSelectedPattern ?? enemy.selectAttackPattern(player.value)
       const withModifiers = applyModifiersToPattern(selectedPattern, modifiers)
-      // El critico se aplica DESPUES de los modifiers del jugador para que
-      // su waveSpeed fijo (CRIT_WAVE_SPEED) no se vea alterado por buffs/debuffs.
       const adjusted = opts.isCrit ? applyCritToPattern(withModifiers) : withModifiers
       const zones = pickZonesForPhases(adjusted)
       pendingDefenseResolve = resolve
@@ -566,10 +559,6 @@ export function useCombat(config: CombatConfig = {}) {
       addToLog(isCrit
         ? `¡CRÍTICO! ${enemyLabel} va a usar ${attackName} (daño x2)`
         : `${enemyLabel} va a usar ${attackName}`)
-      // Esperar a que el banner del anuncio termine para coordinar el
-      // highlight del enemigo atacante. La cola del announcer garantiza que
-      // el siguiente `showAnnouncement` (de status effects) NO pisa este
-      // banner, asi que este delay es solo sincronizacion visual.
       await delay(announceDuration)
       attackingEnemyId.value = null
 
@@ -686,11 +675,13 @@ export function useCombat(config: CombatConfig = {}) {
       p.takeDamage(dmg)
       showPlayerHit(dmg)
       audioManager.playHitSound()
-      if (effect.turnLabel) {
+      if (effect.turnLabel && effect.announceOnTurn) {
         const stackSuffix = stacks > 1 ? ` (x${stacks})` : ''
         showAnnouncement(`${effect.turnLabel}${stackSuffix}`, 'status', 1800)
         addToLog(`${effect.name}${stackSuffix}: recibes ${dmg} de daño.`)
         await delay(1800)
+      } else if (effect.turnLabel) {
+        addToLog(`${effect.name}: recibes ${dmg} de daño.`)
       }
     }
 
@@ -702,7 +693,7 @@ export function useCombat(config: CombatConfig = {}) {
   async function showEnemyStatusSequence(enemy: IEnemy) {
     if (enemy.isAlive && enemy.statusEffects.length > 0) {
       for (const effect of enemy.statusEffects) {
-        if (effect.turns > 0 && effect.turnLabel) {
+        if (effect.turns > 0 && effect.turnLabel && effect.announceOnTurn) {
           showAnnouncement(`${enemy.name}: ${effect.turnLabel}`, 'status', 2000)
           await delay(2000)
           await delay(200)

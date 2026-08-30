@@ -16,25 +16,9 @@ import type { DefenseModifiers } from './modifiers'
 /** Margen (en columnas) a cada lado de la barra donde no se sortea zona. */
 const PHASE_MARGIN_COLUMNS = 2
 
-/**
- * Velocidad fija de la onda (columnas/segundo) cuando el ataque es un critico.
- * Es un override absoluto: se aplica DESPUES de los modifiers del jugador
- * (Lesionado, +Velocidad, etc.) para que el critico siempre se sienta igual
- * de brutal independientemente del estado del jugador.
- */
+/** Velocidad fija de la onda (columnas/segundo) cuando el ataque es un critico. */
 export const CRIT_WAVE_SPEED = 100
 
-/**
- * Aplica los modificadores de critico a un patron:
- * - waveSpeed (a nivel de patron y por fase) reemplazado por `CRIT_WAVE_SPEED`.
- * - Zonas de exito reducidas a la mitad (columnCount / baseSuccessZoneSize /
- *   successColumns.length), con minimo 1 y redondeo hacia arriba.
- *
- * Devuelve un clon del patron, nunca muta el original. El patron retornado
- * debe pasar luego por `applyModifiersToPattern` para叠加 los modifiers del
- * jugador. El critico DEBE aplicarse despues de los modifiers para que el
- * valor fijo no se vea alterado (ver `startDefenseChallenge`).
- */
 export function applyCritToPattern(
   pattern: DefensePatternConfig
 ): DefensePatternConfig {

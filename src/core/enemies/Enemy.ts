@@ -41,11 +41,6 @@ export abstract class Enemy extends Character implements ICombatant {
     return Math.random() < chance
   }
 
-  /**
-   * Devuelve la probabilidad de critico efectiva: si el enemigo (o un
-   * override externo, como el Dummy en la sala de pruebas) definio un valor
-   * alternativo, ese gana. Si no, usa `critChance`.
-   */
   public getEffectiveCritChance(): number {
     return this.critChance
   }

@@ -12,16 +12,10 @@ import slowIcon from '@/assets/icons/snail.png'
 import secondWindIcon from '@/assets/icons/wind-slap.png'
 import swordWoundIcon from '@/assets/icons/open-wound.png'
 
-// Duración base por defecto para cualquier efecto de daño por tiempo (DoT).
 export const MAX_DOT_DURATION = 3
-/**
- * Duracion alternativa aplicada a los DoT cuando el ataque sale con critico.
- * Solo aplica a `burn`, `poison` y `freeze`.
- */
 export const CRIT_DOT_DURATION = 5
 export const DEFAULT_MAX_STACKS = 999
 
-/** Tipos de status que cuentan como DoT y por tanto respetan CRIT_DOT_DURATION. */
 export const DOT_STATUS_TYPES: ReadonlySet<string> = new Set([
   'burn',
   'poison',
@@ -54,7 +48,8 @@ export class StatusEffects {
     turns: 1,
     icon: stunIcon,
     isBuff: false,
-    turnLabel: '¡Está aturdido y pierde su turno!'
+    turnLabel: '¡Está aturdido y pierde su turno!',
+    announceOnTurn: true
   }
 
   // Efectos de daño por tiempo (DoTs): todos comparten maxDuration + maxStacks
@@ -69,7 +64,8 @@ export class StatusEffects {
     maxStacks: DEFAULT_MAX_STACKS,
     icon: burnIcon,
     isBuff: false,
-    turnLabel: '¡Recibe daño por quemadura!'
+    turnLabel: '¡Recibe daño por quemadura!',
+    announceOnTurn: true
   }
 
   static readonly POISON: IStatusEffect = {
@@ -82,7 +78,8 @@ export class StatusEffects {
     maxStacks: DEFAULT_MAX_STACKS,
     icon: poisonIcon,
     isBuff: false,
-    turnLabel: '¡Recibe daño por veneno!'
+    turnLabel: '¡Recibe daño por veneno!',
+    announceOnTurn: true
   }
 
   static readonly FREEZE: IStatusEffect = {
@@ -96,7 +93,8 @@ export class StatusEffects {
     icon: freezeIcon,
     isBuff: false,
     turnLabel: '¡Recibe daño por frío!',
-    speedPenalty: -2
+    speedPenalty: -2,
+    announceOnTurn: true
   }
 
   // Efectos de buff
@@ -177,7 +175,8 @@ export class StatusEffects {
     turns: 2,
     icon: weaknessIcon,
     isBuff: false,
-    turnLabel: '¡Está debilitado!'
+    turnLabel: '¡Está debilitado!',
+    announceOnTurn: true
   }
 
   static readonly SLOW: IStatusEffect = {
@@ -188,7 +187,8 @@ export class StatusEffects {
     icon: slowIcon,
     isBuff: false,
     turnLabel: '¡Está ralentizado!',
-    speedPenalty: -1
+    speedPenalty: -1,
+    announceOnTurn: true
   }
 
   /**
