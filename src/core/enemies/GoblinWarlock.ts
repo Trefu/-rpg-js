@@ -16,7 +16,7 @@ export class GoblinWarlock extends Enemy {
       baseAttack: 11 + (level * 1),
       experienceReward: 24 + (level * 5),
       goldReward: { min: 14 + (level * 2), max: 20 + (level * 3) },
-      critChance: 0.10
+      critChance: 0.05
     })
   }
 }

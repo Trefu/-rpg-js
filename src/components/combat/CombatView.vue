@@ -90,15 +90,10 @@ const {
   selectedItem,
   inventory,
   usedItemThisTurn,
-  usedAbilityThisTurn,
-  canStillUseItem,
-  canStillUseAbility,
-  canPassTurn,
   openItemsModal,
   closeItemsModal,
   selectItem,
-  itemCanTargetAllies,
-  passTurn
+  itemCanTargetAllies
 } = useCombat(combatOptions)
 
 const isMobile = useMediaQuery('(max-width: 720px)')
@@ -136,10 +131,6 @@ function onCancelAbility() {
   cancelAction()
 }
 
-function onPassTurn() {
-  passTurn()
-}
-
 function onObjectAction() {
   openItemsModal()
 }
@@ -159,7 +150,7 @@ const canCancelTargeting = computed(() => {
   return false
 })
 
-function isAllySelectable(hero: Hero | null, index: number): boolean {
+function isAllySelectable(hero: Hero | null): boolean {
   if (!hero || !isSelectingTarget.value) return false
   if (selectedItem.value) {
     return hero.isAlive && itemCanTargetAllies(selectedItem.value)
@@ -303,7 +294,7 @@ onUnmounted(() => {
           :hero="hero"
           :index="idx"
           :is-active="!!hero && idx === gameStore.activeHeroIndex"
-          :is-target-selectable="isAllySelectable(hero, idx)"
+          :is-target-selectable="isAllySelectable(hero)"
           @select="(h) => selectAlly(h)"
         />
       </div>
@@ -362,31 +353,18 @@ onUnmounted(() => {
 
       <div class="actions-area">
         <div class="action-buttons">
-          <button
-            class="action-btn"
-            :disabled="!canStillUseAbility || isPlayerInputLocked"
-            @click="openAbilitiesModal"
-          >
-            <img :src="AbilitiesIcon" alt="" class="btn-icon" />
-            Habilidades
-            <span v-if="usedAbilityThisTurn" class="action-used-tag">usada</span>
-            <span v-else class="shortcut-badge">[A]</span>
+          <button class="action-btn" :disabled="isPlayerInputLocked" @click="openAbilitiesModal">
+            <img :src="AbilitiesIcon" alt="" class="btn-icon" /> Habilidades <span class="shortcut-badge">[A]</span>
           </button>
           <button
             class="action-btn item"
-            :disabled="!canStillUseItem || isPlayerInputLocked"
+            :disabled="isPlayerInputLocked || usedItemThisTurn"
+            :class="{ 'action-used': usedItemThisTurn }"
             @click="onObjectAction"
           >
             <img :src="ItemIcon" alt="" class="btn-icon" />
             Objeto
             <span v-if="usedItemThisTurn" class="action-used-tag">usado</span>
-          </button>
-          <button
-            class="action-btn pass"
-            :disabled="!canPassTurn || isPlayerInputLocked"
-            @click="onPassTurn"
-          >
-            Pasar turno <span class="shortcut-badge">[Enter]</span>
           </button>
           <button
             class="action-btn cancel"
@@ -410,14 +388,11 @@ onUnmounted(() => {
       :is-player-input-locked="isPlayerInputLocked"
       :selected-ability="selectedAbility"
       :is-selecting-target="isSelectingTarget"
-      :used-ability-this-turn="usedAbilityThisTurn"
       :used-item-this-turn="usedItemThisTurn"
-      :can-pass-turn="canPassTurn"
       @attack="onMobileAttack"
       @select-ability="onMobileAbility"
       @object="onMobileObject"
       @cancel="onCancelAbility"
-      @pass="onPassTurn"
     />
 
     <CombatLogFab
@@ -481,20 +456,13 @@ onUnmounted(() => {
   filter: brightness(0) invert(1);
 }
 
-.action-btn.pass {
-  background-color: #2a3a2a;
-  border-color: #4caf50;
-  color: #b6f5b6;
-}
-.action-btn.pass:hover:not(:disabled) {
-  background-color: #1e4a1e;
-  border-color: #66bb6a;
-  color: #fff;
+.action-btn.action-used {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .action-used-tag {
-  margin-left: auto;
-  margin-right: 0.4em;
+  margin-left: 0.4em;
   background: rgba(255, 107, 107, 0.22);
   border: 1px solid rgba(255, 107, 107, 0.4);
   color: #ffb3b3;

@@ -12,7 +12,7 @@ export interface InventoryEntryView {
 interface Props {
   show: boolean
   inventory: InventoryEntryView[]
-  usedThisTurn: boolean
+  usedThisTurn?: boolean
 }
 
 interface Emits {
@@ -70,7 +70,7 @@ function handleModalOverlayClick(e: MouseEvent) {
             :key="entry.entry.id"
             class="item-card"
             :class="{
-              'item-disabled': usedThisTurn || entry.entry.count <= 0
+              'item-disabled': entry.entry.count <= 0 || usedThisTurn
             }"
             @click="selectEntry(entry.entry.id)"
           >
@@ -86,10 +86,7 @@ function handleModalOverlayClick(e: MouseEvent) {
                 <span class="item-name">{{ entry.item.name }}</span>
                 <span
                   class="item-tag"
-                  :class="{
-                    'tag-already': usedThisTurn,
-                    'tag-use': !usedThisTurn
-                  }"
+                  :class="usedThisTurn ? 'tag-already' : 'tag-use'"
                 >
                   {{ usedThisTurn ? 'Ya usado' : 'Click para usar' }}
                 </span>
@@ -100,8 +97,8 @@ function handleModalOverlayClick(e: MouseEvent) {
         </div>
 
         <div class="items-modal-hint">
-          <span v-if="usedThisTurn">Ya usaste un objeto este turno.</span>
-          <span v-else>Puedes usar <b>1 objeto</b> por turno ademas de una habilidad.</span>
+          <span v-if="usedThisTurn">Ya usaste un objeto este turno. Puedes usar una habilidad todavia.</span>
+          <span v-else>Usar un objeto no consume el turno. Podras usar una habilidad despues.</span>
         </div>
       </div>
     </div>

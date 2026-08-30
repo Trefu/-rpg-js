@@ -65,8 +65,10 @@ export function useCombat(config: CombatConfig = {}) {
   // ---- Sistema de objetos ----
   const showItemsModal = ref(false)
   const selectedItem = ref<IItem | null>(null)
+  // El uso de un objeto NO cierra el turno, para permitir usar
+  // una habilidad inmediatamente despues. Solo se reinicia al
+  // empezar el siguiente turno del jugador.
   const usedItemThisTurn = ref(false)
-  const usedAbilityThisTurn = ref(false)
 
   const announcer = useAnnouncer()
   const announcement = computed(() => announcer.current.value)
@@ -122,21 +124,6 @@ export function useCombat(config: CombatConfig = {}) {
            isExecutingAction.value ||
            isDefenseActive.value
   })
-
-  const canStillUseItem = computed(() =>
-    isPlayerTurn.value && !isCombatEnded.value && !isExecutingAction.value &&
-    !isDefenseActive.value && !usedItemThisTurn.value
-  )
-
-  const canStillUseAbility = computed(() =>
-    isPlayerTurn.value && !isCombatEnded.value && !isExecutingAction.value &&
-    !isDefenseActive.value && !usedAbilityThisTurn.value
-  )
-
-  const canPassTurn = computed(() =>
-    isPlayerTurn.value && !isCombatEnded.value && !isExecutingAction.value &&
-    !isDefenseActive.value && !isSelectingTarget.value
-  )
 
   function startDefenseChallenge(
     enemy: IEnemy,
@@ -312,11 +299,6 @@ export function useCombat(config: CombatConfig = {}) {
 
   function openAbilitiesModal() {
     if (!isPlayerTurn.value || isCombatEnded.value || isExecutingAction.value) return
-    if (usedAbilityThisTurn.value) {
-      showAnnouncement('Ya usaste una habilidad este turno.', 'status', 1500)
-      addToLog('Ya usaste una habilidad este turno.')
-      return
-    }
     showAbilitiesModal.value = true
   }
 
@@ -325,7 +307,6 @@ export function useCombat(config: CombatConfig = {}) {
   }
 
   function selectAbility(ability: IAbility, index: number) {
-    if (usedAbilityThisTurn.value) return
     if (abilityCooldowns.value[ability.type] > 0) return
     if (!canAffordAbility(ability)) {
       closeAbilitiesModal()
@@ -470,19 +451,6 @@ export function useCombat(config: CombatConfig = {}) {
     executeItem(item, hero)
   }
 
-  /**
-   * El jugador cede el turno voluntariamente. Llamado por el boton
-   * "Pasar turno". Es la unica forma de avanzar al turno enemigo
-   * una vez que se ha consumido alguna accion.
-   */
-  function passTurn() {
-    if (!isPlayerTurn.value || isCombatEnded.value || isExecutingAction.value) return
-    if (isSelectingTarget.value) return
-    closeAbilitiesModal()
-    closeItemsModal()
-    endPlayerTurn()
-  }
-
   function showTargetSelectionAnnouncement(ability: IAbility) {
     const name = ability.name.toLowerCase()
     if (canTargetAllies(ability) && !canTargetEnemies(ability)) {
@@ -618,12 +586,6 @@ export function useCombat(config: CombatConfig = {}) {
       return
     }
 
-    if (e.key === 'Enter' && isPlayerTurn.value && !isSelectingTarget.value && !isExecutingAction.value) {
-      passTurn()
-      e.preventDefault()
-      return
-    }
-
     if (isSelectingTarget.value && ['1', '2', '3', '4', '5'].includes(e.key)) {
       const idx = parseInt(e.key, 10) - 1
       if (selectedItem.value && itemCanTargetAllies(selectedItem.value)) {
@@ -699,16 +661,11 @@ export function useCombat(config: CombatConfig = {}) {
     setTimeout(enemyTurn, config.isTraining ? 1000 : 2000)
   }
 
-  function resetTurnUsageFlags() {
-    usedItemThisTurn.value = false
-    usedAbilityThisTurn.value = false
-  }
-
   async function startPlayerTurn() {
     if (!player.value) return
     if (isCombatEnded.value) return
     if (!isPlayerTurn.value) return
-    resetTurnUsageFlags()
+    usedItemThisTurn.value = false
     await applyPlayerStatusTick()
   }
 
@@ -964,8 +921,7 @@ export function useCombat(config: CombatConfig = {}) {
     currentAction.value = null
     clearAnnouncement()
 
-    usedAbilityThisTurn.value = true
-    isExecutingAction.value = false
+    endPlayerTurn()
   }
 
   function selectEnemy(enemy: IEnemy) {
@@ -1003,10 +959,6 @@ export function useCombat(config: CombatConfig = {}) {
     if (isActionType(action)) {
       const ability = abilities.value.find((a: IAbility) => a.type === action)
       if (ability) {
-        if (usedAbilityThisTurn.value) {
-          showAnnouncement('Ya usaste una habilidad este turno.', 'status', 1500)
-          return
-        }
         if (!canAffordAbility(ability)) return
         selectedAbility.value = ability
         isSelectingTarget.value = true
@@ -1103,16 +1055,11 @@ export function useCombat(config: CombatConfig = {}) {
     selectedItem,
     inventory,
     usedItemThisTurn,
-    usedAbilityThisTurn,
-    canStillUseItem,
-    canStillUseAbility,
-    canPassTurn,
     openItemsModal,
     closeItemsModal,
     selectItem,
     selectItemAllyTarget,
     itemCanTargetAllies,
-    itemRequiresTarget,
-    passTurn
+    itemRequiresTarget
   }
 }
