@@ -26,6 +26,15 @@ export const DOT_STATUS_TYPES: ReadonlySet<string> = new Set([
 export interface FailureEffectSpec {
   statusType: string
   stacks?: number
+  /**
+   * Override explicito de la duracion maxima (turnos) cuando se aplica el
+   * efecto via `onFailureEffect`. Si esta presente, tiene prioridad sobre
+   * `template.maxDuration` y sobre el default DoT.
+   *
+   * Util para efectos no-DoT (ej. INJURED, STUN) cuya duracion no debe
+   * seguir la regla de DoTs (3 base / 5 crit).
+   */
+  maxDuration?: number
 }
 
 export class StatusEffects {
@@ -290,7 +299,7 @@ export function applyFailureEffect(
   const defaultDotDuration = opts.isCrit && DOT_STATUS_TYPES.has(statusType)
     ? CRIT_DOT_DURATION
     : MAX_DOT_DURATION
-  const maxDuration = template.maxDuration ?? defaultDotDuration
+  const maxDuration = spec.maxDuration ?? template.maxDuration ?? defaultDotDuration
 
   const instance: IStatusEffect = {
     ...template,

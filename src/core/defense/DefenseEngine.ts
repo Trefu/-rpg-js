@@ -185,7 +185,7 @@ const MAX_PHASE_TIMEOUT_MS = 10000
  * (ya con modificadores aplicados).
  *
  * Por qué existe: con el timeout fijo de 5000ms, una onda muy lenta
- * (ej. ESPADAZO del goblin lesionado → 21 cols/seg) hace que el jugador
+ * (ej. SLASH del goblin lesionado → 21 cols/seg) hace que el jugador
  * tenga que esperar muchas oscilaciones para encontrar el momento, y
  * puede no alcanzar. Una onda muy rápida tampoco deja reaccionar.
  *

@@ -1,11 +1,11 @@
 import { Enemy } from './Enemy'
 import banditArcherSprite from '@/assets/sprites/enemies/bandit-archer.png'
 import type { DefensePatternConfig } from '../defense/types'
-import { FLECHA_VENENOSA } from '../abilities/EnemyAttacks'
+import { POISON_ARROW } from '../abilities/EnemyAttacks'
 
 export class BanditArcher extends Enemy {
   public readonly sprite = banditArcherSprite
-  public attackPatterns: DefensePatternConfig[] = [FLECHA_VENENOSA]
+  public attackPatterns: DefensePatternConfig[] = [POISON_ARROW]
 
   constructor(level: number = 1) {
     super({

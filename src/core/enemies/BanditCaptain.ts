@@ -1,11 +1,11 @@
 import { Enemy } from './Enemy'
 import banditCaptainSprite from '@/assets/sprites/enemies/bandit-captain.png'
 import type { DefensePatternConfig } from '../defense/types'
-import { GOLPE_APLASTANTE, ESPADAZO } from '../abilities/EnemyAttacks'
+import { CRUSHING_BLOW, SLASH } from '../abilities/EnemyAttacks'
 
 export class BanditCaptain extends Enemy {
   public readonly sprite = banditCaptainSprite
-  public attackPatterns: DefensePatternConfig[] = [GOLPE_APLASTANTE, ESPADAZO]
+  public attackPatterns: DefensePatternConfig[] = [CRUSHING_BLOW, SLASH]
 
   constructor(level: number = 1) {
     super({

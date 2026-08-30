@@ -14,7 +14,7 @@ import sparklesIcon from '@/assets/icons/sparkles.png'
 import skullIcon from '@/assets/icons/skull-shield.png'
 import cycleIcon from '@/assets/icons/cycle.png'
 import doorIcon from '@/assets/icons/door.png'
-import chevronIcon from '@/assets/icons/arrowhead.png'
+import cancelIcon from '@/assets/icons/logic-gate-not.png'
 import {
   createBasicAttackAbility,
   createStunStrikeAbility,
@@ -22,38 +22,40 @@ import {
   createFireballAbility
 } from '@/core/abilities/Abilities'
 import {
-  ESPADAZO,
-  FLECHA_VENENOSA,
-  ASCUA,
-  MORDIDA_FEROZ,
-  ZARPAZOS_RAPIDOS,
-  HACHAZOS_MULTIPLES,
-  GOLPE_APLASTANTE,
-  GOLPE_SUAVE,
-  GOLPE_RAPIDO,
-  COMBO_DOBLE,
-  COMBO_TRIPLE,
-  ALIENTO_DE_FUEGO,
-  ALIENTO_GLACIAL
+  SLASH,
+  DEEP_SLASH,
+  POISON_ARROW,
+  EMBER,
+  FEROCIOUS_BITE,
+  QUICK_CLAWS,
+  MULTIPLE_AXE_STRIKES,
+  CRUSHING_BLOW,
+  GENTLE_STRIKE,
+  QUICK_STRIKE,
+  DOUBLE_COMBO,
+  TRIPLE_COMBO,
+  FIRE_BREATH,
+  GLACIAL_BREATH
 } from '@/core/abilities/EnemyAttacks'
 import CombatView from './CombatView.vue'
 import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
 import type { DefensePatternConfig } from '@/core/defense/types'
 
 const ALL_DUMMY_PATTERNS: DefensePatternConfig[] = [
-  ESPADAZO,
-  FLECHA_VENENOSA,
-  ASCUA,
-  MORDIDA_FEROZ,
-  ZARPAZOS_RAPIDOS,
-  HACHAZOS_MULTIPLES,
-  GOLPE_APLASTANTE,
-  GOLPE_SUAVE,
-  GOLPE_RAPIDO,
-  COMBO_DOBLE,
-  COMBO_TRIPLE,
-  ALIENTO_DE_FUEGO,
-  ALIENTO_GLACIAL
+  SLASH,
+  DEEP_SLASH,
+  POISON_ARROW,
+  EMBER,
+  FEROCIOUS_BITE,
+  QUICK_CLAWS,
+  MULTIPLE_AXE_STRIKES,
+  CRUSHING_BLOW,
+  GENTLE_STRIKE,
+  QUICK_STRIKE,
+  DOUBLE_COMBO,
+  TRIPLE_COMBO,
+  FIRE_BREATH,
+  GLACIAL_BREATH
 ]
 
 function describePattern(p: DefensePatternConfig): string {
@@ -180,7 +182,7 @@ function onTrainingEnded() {
 
     <aside class="training-panel" :class="{ collapsed: panelCollapsed }">
       <button class="collapse-btn" @click="panelCollapsed = !panelCollapsed" :title="panelCollapsed ? 'Expandir panel' : 'Colapsar panel'">
-        <img :src="chevronIcon" alt="" class="chevron-icon" :class="{ collapsed: panelCollapsed }" />
+        <img :src="cancelIcon" alt="" class="chevron-icon" :class="{ collapsed: panelCollapsed }" />
       </button>
 
       <div v-show="!panelCollapsed" class="panel-content">

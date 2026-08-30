@@ -2,11 +2,11 @@ import { Enemy } from './Enemy'
 import goblinSprite from '@/assets/sprites/enemies/goblin.png'
 import type { ICharacter } from '../interfaces/ICharacter'
 import type { DefensePatternConfig } from '../defense/types'
-import { ESPADAZO } from '../abilities/EnemyAttacks'
+import { SLASH, DEEP_SLASH } from '../abilities/EnemyAttacks'
 
 export class Goblin extends Enemy {
   public readonly sprite = goblinSprite
-  public attackPatterns: DefensePatternConfig[] = [ESPADAZO]
+  public attackPatterns: DefensePatternConfig[] = [SLASH, DEEP_SLASH]
 
   constructor(level: number = 1) {
     super({
@@ -22,6 +22,6 @@ export class Goblin extends Enemy {
   }
 
   public selectAttackPattern(_player: ICharacter | null): DefensePatternConfig {
-    return ESPADAZO
+    return this.attackPatterns[Math.floor(Math.random() * this.attackPatterns.length)]
   }
 }

@@ -1,11 +1,11 @@
 import { Enemy } from './Enemy'
 import orcArcherSprite from '@/assets/sprites/enemies/orc-archer.png'
 import type { DefensePatternConfig } from '../defense/types'
-import { FLECHA_VENENOSA } from '../abilities/EnemyAttacks'
+import { POISON_ARROW } from '../abilities/EnemyAttacks'
 
 export class OrcArcher extends Enemy {
   public readonly sprite = orcArcherSprite
-  public attackPatterns: DefensePatternConfig[] = [FLECHA_VENENOSA]
+  public attackPatterns: DefensePatternConfig[] = [POISON_ARROW]
 
   constructor(level: number = 1) {
     super({

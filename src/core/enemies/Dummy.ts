@@ -3,37 +3,39 @@ import { ICharacter, IEnemy } from '../interfaces/ICharacter'
 import dummySprite from '@/assets/sprites/enemies/dummy.png'
 import type { DefensePatternConfig } from '../defense/types'
 import {
-  ESPADAZO,
-  FLECHA_VENENOSA,
-  ASCUA,
-  MORDIDA_FEROZ,
-  ZARPAZOS_RAPIDOS,
-  HACHAZOS_MULTIPLES,
-  GOLPE_APLASTANTE,
-  GOLPE_SUAVE,
-  GOLPE_RAPIDO,
-  COMBO_DOBLE,
-  COMBO_TRIPLE,
-  ALIENTO_DE_FUEGO,
-  ALIENTO_GLACIAL
+  SLASH,
+  DEEP_SLASH,
+  POISON_ARROW,
+  EMBER,
+  FEROCIOUS_BITE,
+  QUICK_CLAWS,
+  MULTIPLE_AXE_STRIKES,
+  CRUSHING_BLOW,
+  GENTLE_STRIKE,
+  QUICK_STRIKE,
+  DOUBLE_COMBO,
+  TRIPLE_COMBO,
+  FIRE_BREATH,
+  GLACIAL_BREATH
 } from '../abilities/EnemyAttacks'
 
 export class Dummy extends Enemy implements IEnemy {
   public readonly sprite = dummySprite
   public attackPatterns: DefensePatternConfig[] = [
-    ESPADAZO,
-    FLECHA_VENENOSA,
-    ASCUA,
-    MORDIDA_FEROZ,
-    ZARPAZOS_RAPIDOS,
-    HACHAZOS_MULTIPLES,
-    GOLPE_APLASTANTE,
-    GOLPE_SUAVE,
-    GOLPE_RAPIDO,
-    COMBO_DOBLE,
-    COMBO_TRIPLE,
-    ALIENTO_DE_FUEGO,
-    ALIENTO_GLACIAL
+    SLASH,
+    DEEP_SLASH,
+    POISON_ARROW,
+    EMBER,
+    FEROCIOUS_BITE,
+    QUICK_CLAWS,
+    MULTIPLE_AXE_STRIKES,
+    CRUSHING_BLOW,
+    GENTLE_STRIKE,
+    QUICK_STRIKE,
+    DOUBLE_COMBO,
+    TRIPLE_COMBO,
+    FIRE_BREATH,
+    GLACIAL_BREATH
   ]
 
   public forcedPattern: DefensePatternConfig | null = null

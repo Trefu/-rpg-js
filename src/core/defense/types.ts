@@ -16,6 +16,12 @@ export interface DefensePhaseZone {
 export interface DefenseFailureEffect {
   statusType: string
   stacks?: number
+  /**
+   * Override explicito de la duracion maxima (turnos) del efecto aplicado
+   * al fallar el bloqueo. Util para efectos no-DoT (ej. INJURED, STUN)
+   * cuya duracion no debe seguir la regla default de DoTs.
+   */
+  maxDuration?: number
 }
 
 /**
