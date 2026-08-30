@@ -64,6 +64,7 @@ const {
   defensePattern,
   defenseZones,
   defensePhaseIndex,
+  defenseIsCrit,
   openAbilitiesModal,
   closeAbilitiesModal,
   selectAbility,
@@ -359,6 +360,7 @@ onUnmounted(() => {
       :pattern="defensePattern"
       :zones="defenseZones"
       :phase-index="defensePhaseIndex"
+      :is-crit="defenseIsCrit"
       @phase-complete="onDefensePhaseComplete"
       @all-phases-complete="onDefenseAllPhasesComplete"
       @close="onDefenseClose"

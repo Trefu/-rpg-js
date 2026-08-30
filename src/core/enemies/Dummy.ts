@@ -38,6 +38,7 @@ export class Dummy extends Enemy implements IEnemy {
 
   public forcedPattern: DefensePatternConfig | null = null
   public damageOverride: number | null = null
+  public critChanceOverride: number | null = null
 
   constructor(level: number = 1) {
     super({
@@ -47,7 +48,8 @@ export class Dummy extends Enemy implements IEnemy {
       maxHealth: 1000,
       baseAttack: 8,
       experienceReward: 0,
-      goldReward: { min: 0, max: 0 }
+      goldReward: { min: 0, max: 0 },
+      critChance: 0
     })
   }
 
@@ -77,11 +79,16 @@ export class Dummy extends Enemy implements IEnemy {
     this.isAlive = true
   }
 
+  public override getEffectiveCritChance(): number {
+    return this.critChanceOverride ?? this.critChance
+  }
+
   public reset(): void {
     this.health = this.maxHealth
     this.isAlive = true
     this.forcedPattern = null
     this.damageOverride = null
+    this.critChanceOverride = null
     this.statusEffects = []
   }
 
@@ -91,5 +98,14 @@ export class Dummy extends Enemy implements IEnemy {
 
   public setDamageOverride(value: number | null): void {
     this.damageOverride = value
+  }
+
+  public setCritChanceOverride(value: number | null): void {
+    if (value === null) {
+      this.critChanceOverride = null
+      return
+    }
+    const clamped = Math.max(0, Math.min(1, value))
+    this.critChanceOverride = clamped
   }
 }

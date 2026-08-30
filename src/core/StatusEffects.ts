@@ -14,7 +14,19 @@ import swordWoundIcon from '@/assets/icons/open-wound.png'
 
 // Duración base por defecto para cualquier efecto de daño por tiempo (DoT).
 export const MAX_DOT_DURATION = 3
+/**
+ * Duracion alternativa aplicada a los DoT cuando el ataque sale con critico.
+ * Solo aplica a `burn`, `poison` y `freeze`.
+ */
+export const CRIT_DOT_DURATION = 5
 export const DEFAULT_MAX_STACKS = 999
+
+/** Tipos de status que cuentan como DoT y por tanto respetan CRIT_DOT_DURATION. */
+export const DOT_STATUS_TYPES: ReadonlySet<string> = new Set([
+  'burn',
+  'poison',
+  'freeze'
+])
 
 /**
  * Magnitud del impacto de "Lesionado" sobre la velocidad de la onda
@@ -247,7 +259,8 @@ export class StatusEffects {
 
 export function applyFailureEffect(
   target: { addStatusEffect: (effect: IStatusEffect) => void; statusEffects: IStatusEffect[] },
-  spec: FailureEffectSpec
+  spec: FailureEffectSpec,
+  opts: { isCrit?: boolean } = {}
 ): void {
   const statusType = String(spec.statusType).toLowerCase()
   const template = StatusEffects.getByType(statusType)
@@ -266,7 +279,10 @@ export function applyFailureEffect(
     )
   }
 
-  const maxDuration = template.maxDuration ?? MAX_DOT_DURATION
+  const defaultDotDuration = opts.isCrit && DOT_STATUS_TYPES.has(statusType)
+    ? CRIT_DOT_DURATION
+    : MAX_DOT_DURATION
+  const maxDuration = template.maxDuration ?? defaultDotDuration
 
   const instance: IStatusEffect = {
     ...template,

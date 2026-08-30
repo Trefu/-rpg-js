@@ -7,12 +7,15 @@ import { isWaveInSuccessZone } from '@/core/defense/DefenseEngine'
 const BAR_WIDTH = DEFENSE_BAR_WIDTH
 const PHASE_TIMEOUT_MS = DEFENSE_PHASE_TIMEOUT_MS
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   show: boolean
   pattern: DefensePatternConfig | null
   zones: DefensePhaseZone[]
   phaseIndex: number
-}>()
+  isCrit?: boolean
+}>(), {
+  isCrit: false
+})
 
 const emit = defineEmits<{
   (e: 'phase-complete', result: DefensePhaseResult): void
@@ -208,7 +211,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div v-if="show && pattern" class="defense-overlay" :class="feedbackClass" @pointerdown="onPointerDown">
+  <div v-if="show && pattern" class="defense-overlay" :class="[feedbackClass, { 'is-crit': isCrit }]" @pointerdown="onPointerDown">
     <div class="defense-modal">
       <div class="defense-header">
         <h3>¡DEFENDE!</h3>
@@ -284,6 +287,10 @@ onUnmounted(() => {
 
 .defense-overlay.success {
   box-shadow: inset 0 0 80px 10px #4CAF5088;
+}
+
+.defense-overlay.success.is-crit {
+  box-shadow: inset 0 0 80px 10px #b388ff99;
 }
 
 .defense-overlay.fail,
@@ -380,6 +387,12 @@ onUnmounted(() => {
   box-shadow: 0 0 8px rgba(60, 180, 80, 0.5);
 }
 
+.defense-bar-wrap.is-crit-mode ~ * .defense-column.success,
+.defense-overlay.is-crit .defense-column.success {
+  background: rgba(160, 80, 220, 0.78);
+  box-shadow: 0 0 12px rgba(179, 136, 255, 0.85), 0 0 22px rgba(160, 80, 220, 0.5);
+}
+
 .defense-column.under-wave {
   transform: scaleY(1.15);
   box-shadow: 0 0 14px rgba(255, 230, 0, 0.7);
@@ -433,6 +446,13 @@ onUnmounted(() => {
   background: #4CAF50;
   border-color: #2e7d32;
   color: #fff;
+}
+
+.defense-overlay.is-crit .phase-dot.success {
+  background: #b388ff;
+  border-color: #7c4dff;
+  color: #1a0033;
+  box-shadow: 0 0 12px rgba(179, 136, 255, 0.7);
 }
 
 .phase-dot.fail,
@@ -496,6 +516,11 @@ onUnmounted(() => {
 .defense-feedback.success .defense-feedback-text {
   color: #4CAF50;
   animation: success-pulse 0.6s ease-out;
+}
+
+.defense-overlay.is-crit .defense-feedback.success .defense-feedback-text {
+  color: #b388ff;
+  text-shadow: 0 0 18px #b388ff, 0 0 36px rgba(179, 136, 255, 0.8), 0 4px 12px rgba(0, 0, 0, 0.85);
 }
 
 .defense-feedback.fail .defense-feedback-text,

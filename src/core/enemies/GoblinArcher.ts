@@ -15,7 +15,8 @@ export class GoblinArcher extends Enemy {
       maxHealth: 40 + (level * 8),
       baseAttack: 10 + (level * 2),
       experienceReward: 22 + (level * 5),
-      goldReward: { min: 12 + (level * 2), max: 18 + (level * 3) }
+      goldReward: { min: 12 + (level * 2), max: 18 + (level * 3) },
+      critChance: 0.05
     })
   }
 }

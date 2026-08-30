@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-type AnnouncementVariant = 'info' | 'attack' | 'status' | 'turn' | 'crit'
+type AnnouncementVariant = 'info' | 'attack' | 'status' | 'turn' | 'crit' | 'crit-attack'
 
 const props = withDefaults(defineProps<{
   text?: string
@@ -132,6 +132,25 @@ const variantClass = computed(() => `variant-${props.variant}`)
   font-weight: 700;
 }
 
+.variant-crit-attack .announcement-frame {
+  border-color: #b388ff;
+  background: linear-gradient(180deg, rgba(30, 18, 50, 0.95) 0%, rgba(16, 8, 28, 0.95) 100%);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.6) inset,
+    0 4px 22px rgba(0, 0, 0, 0.55),
+    0 0 30px rgba(179, 136, 255, 0.55);
+  animation: announcement-pulse 0.6s ease-out;
+}
+.variant-crit-attack .announcement-frame::before,
+.variant-crit-attack .announcement-frame::after { border-color: #b388ff; }
+.variant-crit-attack .announcement-text {
+  color: #dcc6ff;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-shadow: 0 0 14px rgba(179, 136, 255, 0.65), 0 1px 3px rgba(0, 0, 0, 0.85);
+}
+
 @keyframes announcement-pulse {
   0%   { transform: scale(0.92); }
   60%  { transform: scale(1.04); }
@@ -183,6 +202,9 @@ const variantClass = computed(() => `variant-${props.variant}`)
   }
   .variant-crit .announcement-text {
     font-size: 0.9rem;
+  }
+  .variant-crit-attack .announcement-text {
+    font-size: 0.85rem;
   }
 }
 </style>

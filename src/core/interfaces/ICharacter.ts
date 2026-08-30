@@ -60,6 +60,7 @@ export interface IEnemy extends ICombatant {
   baseAttack: number
   experienceReward: number
   goldReward: { min: number; max: number }
+  critChance: number
   abilities?: IAbility[]
   statusEffects: IStatusEffect[]
   addStatusEffect(effect: IStatusEffect): void
@@ -68,4 +69,5 @@ export interface IEnemy extends ICombatant {
   sprite?: string
   attackPatterns: DefensePatternConfig[]
   selectAttackPattern(player: ICharacter | null): DefensePatternConfig
+  rollCrit?(): boolean
 }

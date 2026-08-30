@@ -16,6 +16,52 @@ import type { DefenseModifiers } from './modifiers'
 /** Margen (en columnas) a cada lado de la barra donde no se sortea zona. */
 const PHASE_MARGIN_COLUMNS = 2
 
+/** Multiplicador de waveSpeed cuando el ataque es un critico. */
+export const CRIT_WAVE_SPEED_MULTIPLIER = 2
+
+/**
+ * Aplica los modificadores de critico a un patron:
+ * - waveSpeed (a nivel de patron y por fase) duplicado.
+ * - Zonas de exito reducidas a la mitad (columnCount / baseSuccessZoneSize /
+ *   successColumns.length), con minimo 1 y redondeo hacia arriba.
+ *
+ * Devuelve un clon del patron, nunca muta el original. El patron retornado
+ * debe pasar luego por `applyModifiersToPattern` para叠加 los modifiers del
+ * jugador (waveSpeedMultiplier, etc.).
+ */
+export function applyCritToPattern(
+  pattern: DefensePatternConfig
+): DefensePatternConfig {
+  const next: DefensePatternConfig = { ...pattern }
+
+  if (typeof next.waveSpeed === 'number') {
+    next.waveSpeed = next.waveSpeed * CRIT_WAVE_SPEED_MULTIPLIER
+  }
+
+  if (typeof next.baseSuccessZoneSize === 'number') {
+    next.baseSuccessZoneSize = next.baseSuccessZoneSize / 2
+  }
+
+  if (Array.isArray(next.phases)) {
+    next.phases = next.phases.map(spec => {
+      const out: DefensePhaseSpec = { ...spec }
+      if (typeof out.waveSpeed === 'number') {
+        out.waveSpeed = out.waveSpeed * CRIT_WAVE_SPEED_MULTIPLIER
+      }
+      if (typeof out.columnCount === 'number') {
+        out.columnCount = Math.max(1, Math.ceil(out.columnCount / 2))
+      }
+      if (out.successColumns && out.successColumns.length > 0) {
+        const keep = Math.max(1, Math.ceil(out.successColumns.length / 2))
+        out.successColumns = out.successColumns.slice(0, keep)
+      }
+      return out
+    })
+  }
+
+  return next
+}
+
 export function applyModifiersToPattern(
   pattern: DefensePatternConfig,
   modifiers: DefenseModifiers

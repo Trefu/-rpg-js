@@ -6,6 +6,7 @@ import { StatusEffects } from '@/core/StatusEffects'
 import hammerIcon from '@/assets/icons/hammer-drop.png'
 import robotIcon from '@/assets/icons/robot-golem.png'
 import swordsIcon from '@/assets/icons/crossed-swords.png'
+import burstIcon from '@/assets/icons/explosion-rays.png'
 import personIcon from '@/assets/icons/person.png'
 import heartIcon from '@/assets/icons/heart-drop.png'
 import broomIcon from '@/assets/icons/broom.png'
@@ -88,6 +89,8 @@ const dummy = ref<Dummy>(new Dummy(gameStore.activeHero?.level ?? 1))
 const selectedPatternIndex = ref<number>(-1)
 const damageValue = ref<number>(dummy.value.baseAttack)
 const useCustomDamage = ref<boolean>(false)
+const critChanceValue = ref<number>(0)
+const useCustomCrit = ref<boolean>(false)
 const panelCollapsed = ref<boolean>(false)
 
 const patterns = computed<DefensePatternConfig[]>(() => ALL_DUMMY_PATTERNS)
@@ -97,6 +100,13 @@ const currentForcedLabel = computed(() => {
 })
 
 const playerAbilitiesCount = computed(() => gameStore.activeHero?.abilities.length ?? 0)
+
+const critChancePercentProxy = computed<number>({
+  get: () => Math.round(critChanceValue.value * 100),
+  set: (percent: number) => { critChanceValue.value = Math.max(0, Math.min(1, percent / 100)) }
+})
+
+const critChancePercentLabel = computed(() => `${Math.round(critChanceValue.value * 100)}%`)
 
 function selectPattern(index: number) {
   selectedPatternIndex.value = index
@@ -112,14 +122,22 @@ function applyDamageChange() {
   dummy.value.setDamageOverride(useCustomDamage.value ? damageValue.value : null)
 }
 
+function applyCritChange() {
+  dummy.value.setCritChanceOverride(useCustomCrit.value ? critChanceValue.value : null)
+}
+
 watch(damageValue, () => applyDamageChange())
 watch(useCustomDamage, () => applyDamageChange())
+watch(critChanceValue, () => applyCritChange())
+watch(useCustomCrit, () => applyCritChange())
 
 function resetDummy() {
   dummy.value.reset()
   selectedPatternIndex.value = -1
   damageValue.value = dummy.value.baseAttack
   useCustomDamage.value = false
+  critChanceValue.value = 0
+  useCustomCrit.value = false
 }
 
 function applyStatusToPlayer(type: 'stun' | 'burn' | 'poison' | 'defense_boost' | 'speed_boost' | 'weakness' | 'slow' | 'strength_boost') {
@@ -211,6 +229,26 @@ function onTrainingEnded() {
             <span class="damage-value">{{ damageValue }}</span>
           </div>
           <p v-else class="section-hint">Daño por defecto ({{ dummy.baseAttack + dummy.level }})</p>
+        </section>
+
+        <section class="panel-section crit-section">
+          <h3><img :src="burstIcon" alt="" class="inline-icon" /> Crítico del Dummy</h3>
+          <label class="checkbox-row">
+            <input type="checkbox" v-model="useCustomCrit" />
+            <span>Forzar probabilidad de crítico</span>
+          </label>
+          <div v-if="useCustomCrit" class="damage-control">
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="5"
+              v-model.number="critChancePercentProxy"
+              class="crit-range"
+            />
+            <span class="damage-value crit-value">{{ critChancePercentLabel }}</span>
+          </div>
+          <p v-else class="section-hint">Crítico deshabilitado (0%)</p>
         </section>
 
         <section class="panel-section">
@@ -524,6 +562,19 @@ function onTrainingEnded() {
   color: #ffe600;
   min-width: 32px;
   text-align: right;
+}
+
+.panel-section.crit-section {
+  border-color: rgba(179, 136, 255, 0.4);
+}
+.panel-section.crit-section h3 {
+  color: #b388ff;
+}
+.crit-range {
+  accent-color: #b388ff;
+}
+.crit-value {
+  color: #dcc6ff;
 }
 
 .button-grid {

@@ -11,12 +11,14 @@ export interface EnemyOptions {
   baseAttack: number
   experienceReward: number
   goldReward: { min: number; max: number }
+  critChance?: number
 }
 
 export abstract class Enemy extends Character implements ICombatant {
   public baseAttack: number
   public readonly experienceReward: number
   public readonly goldReward: { min: number; max: number }
+  public readonly critChance: number
   public statusEffects: IStatusEffect[] = [];
   public attackPatterns: DefensePatternConfig[] = [];
 
@@ -25,11 +27,27 @@ export abstract class Enemy extends Character implements ICombatant {
     this.baseAttack = opts.baseAttack
     this.experienceReward = opts.experienceReward
     this.goldReward = opts.goldReward
+    this.critChance = opts.critChance ?? 0.05
   }
 
   public attack(): number {
     if (!this.isAlive) return 0
     return this.baseAttack
+  }
+
+  public rollCrit(): boolean {
+    const chance = this.getEffectiveCritChance()
+    if (chance <= 0) return false
+    return Math.random() < chance
+  }
+
+  /**
+   * Devuelve la probabilidad de critico efectiva: si el enemigo (o un
+   * override externo, como el Dummy en la sala de pruebas) definio un valor
+   * alternativo, ese gana. Si no, usa `critChance`.
+   */
+  public getEffectiveCritChance(): number {
+    return this.critChance
   }
 
   public selectAttackPattern(_player: ICharacter | null): DefensePatternConfig {

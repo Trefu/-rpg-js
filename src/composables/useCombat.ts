@@ -14,6 +14,7 @@ import type {
 } from '@/core/defense/types'
 import {
   applyModifiersToPattern,
+  applyCritToPattern,
   buildDefenseResult,
   pickZonesForPhases
 } from '@/core/defense/DefenseEngine'
@@ -62,7 +63,7 @@ export function useCombat(config: CombatConfig = {}) {
 
   function showAnnouncement(
     text: string,
-    variant: 'info' | 'attack' | 'status' | 'turn' | 'crit' = 'info',
+    variant: 'info' | 'attack' | 'status' | 'turn' | 'crit' | 'crit-attack' = 'info',
     duration: number = 2000,
     options: { sticky?: boolean } = {}
   ) {
@@ -91,10 +92,12 @@ export function useCombat(config: CombatConfig = {}) {
   const defenseZones = ref<DefensePhaseZone[]>([])
   const defensePhaseIndex = ref(0)
   const defenseEnemyId = ref<string | null>(null)
+  const defenseIsCrit = ref(false)
   let pendingDefenseResolve: ((result: DefenseChallengeResult | null) => void) | null = null
   let pendingDefensePattern: DefensePatternConfig | null = null
   let pendingDefenseAttackDamage = 0
   let pendingDefenseEnemy: IEnemy | null = null
+  let pendingDefenseIsCrit = false
   let popupKey = 0
 
   const abilities = computed(() => {
@@ -113,7 +116,12 @@ export function useCombat(config: CombatConfig = {}) {
            isDefenseActive.value
   })
 
-  function startDefenseChallenge(enemy: IEnemy, attackDamage: number, preSelectedPattern?: DefensePatternConfig): Promise<DefenseChallengeResult | null> {
+  function startDefenseChallenge(
+    enemy: IEnemy,
+    attackDamage: number,
+    preSelectedPattern?: DefensePatternConfig,
+    opts: { isCrit?: boolean } = {}
+  ): Promise<DefenseChallengeResult | null> {
     return new Promise((resolve) => {
       const modifiers = getDefenseModifiers(player.value!, enemy)
       const selectedPattern = preSelectedPattern ?? enemy.selectAttackPattern(player.value)
@@ -123,10 +131,12 @@ export function useCombat(config: CombatConfig = {}) {
       pendingDefensePattern = adjusted
       pendingDefenseAttackDamage = attackDamage
       pendingDefenseEnemy = enemy
+      pendingDefenseIsCrit = !!opts.isCrit
       defensePattern.value = adjusted
       defenseZones.value = zones
       defensePhaseIndex.value = 0
       defenseEnemyId.value = enemy.id
+      defenseIsCrit.value = pendingDefenseIsCrit
       isDefenseActive.value = true
     })
   }
@@ -171,13 +181,16 @@ export function useCombat(config: CombatConfig = {}) {
     const enemy = pendingDefenseEnemy
     const attackDamage = pendingDefenseAttackDamage
     const resolve = pendingDefenseResolve
+    const wasCrit = pendingDefenseIsCrit
     pendingDefenseResolve = null
     pendingDefensePattern = null
     pendingDefenseEnemy = null
+    pendingDefenseIsCrit = false
     isDefenseActive.value = false
     defensePattern.value = null
     defenseZones.value = []
     defenseEnemyId.value = null
+    defenseIsCrit.value = false
 
     if (!pattern || !enemy || !resolve) return
 
@@ -199,6 +212,7 @@ export function useCombat(config: CombatConfig = {}) {
       ? effectLabels.join(' + ')
       : effectLabels[0]
 
+    const critTag = wasCrit ? ' (CRÍTICO)' : ''
     const blockLog = blockedFraction >= 1
       ? `¡Bloqueaste el ataque por completo (${effectLabelText})!`
       : blockedFraction > 0
@@ -211,20 +225,20 @@ export function useCombat(config: CombatConfig = {}) {
       audioManager.playAttackSound()
       audioManager.playHitSound()
       addToLog(blockLog
-        ? `${blockLog} Recibes ${finalDamage} de dano.`
-        : `Recibes ${finalDamage} de dano.`)
+        ? `${blockLog}${critTag} Recibes ${finalDamage} de dano.`
+        : `Recibes ${finalDamage} de dano${critTag}.`)
     } else {
       addToLog(blockLog || `¡Bloqueaste el ataque!`)
     }
 
     if (result.appliedOnFailureEffect && pattern.onFailureEffect) {
-      applyOnFailureEffectToPlayer(player.value, pattern.onFailureEffect)
+      applyOnFailureEffectToPlayer(player.value, pattern.onFailureEffect, wasCrit)
     }
 
     resolve(result)
   }
 
-  function applyOnFailureEffectToPlayer(p: any, fx: { statusType: string; stacks?: number }) {
+  function applyOnFailureEffectToPlayer(p: any, fx: { statusType: string; stacks?: number }, isCrit: boolean = false) {
     const template = StatusEffects.getByType(fx.statusType)
     if (!template) {
       throw new Error(
@@ -232,12 +246,13 @@ export function useCombat(config: CombatConfig = {}) {
       )
     }
 
-    applyFailureEffect(p, fx)
+    applyFailureEffect(p, fx, { isCrit })
 
     const applied = p.statusEffects.find((e: IStatusEffect) => e.type === template.type)
     const stackLabel = (applied?.stacks ?? 1) > 1 ? ` x${applied?.stacks}` : ''
-    addToLog(`¡Sufres el efecto: ${template.name}${stackLabel}!`)
-    showAnnouncement(`¡${template.name}${stackLabel}!`, 'status', 1800)
+    const critLabel = isCrit ? ' (crítico)' : ''
+    addToLog(`¡Sufres el efecto: ${template.name}${stackLabel}${critLabel}!`)
+    showAnnouncement(`¡${template.name}${stackLabel}${critLabel}!`, 'status', 1800)
   }
 
   function closeDefenseChallenge() {
@@ -247,10 +262,12 @@ export function useCombat(config: CombatConfig = {}) {
     }
     pendingDefensePattern = null
     pendingDefenseEnemy = null
+    pendingDefenseIsCrit = false
     isDefenseActive.value = false
     defensePattern.value = null
     defenseZones.value = []
     defenseEnemyId.value = null
+    defenseIsCrit.value = false
   }
 
   function resetAbilityCooldowns() {
@@ -530,9 +547,20 @@ export function useCombat(config: CombatConfig = {}) {
       const attackName = selectedPattern.name ?? 'atacar'
       const enemyIndex = enemies.value.filter(e => e.name === enemy.name && e.isAlive).indexOf(enemy) + 1
       const enemyLabel = aliveEnemies.length > 1 ? `${enemy.name} ${enemyIndex}` : enemy.name
+
+      const isCrit = typeof enemy.rollCrit === 'function' && enemy.rollCrit()
+      const critPattern = isCrit ? applyCritToPattern(selectedPattern) : selectedPattern
+
       attackingEnemyId.value = enemy.id
-      showAnnouncement(`${enemyLabel} va a usar ${attackName}!`, 'attack', config.isTraining ? 800 : 1400)
-      addToLog(`${enemyLabel} va a usar ${attackName}`)
+      const announceText = isCrit
+        ? `¡CRÍTICO! ${enemyLabel} va a usar ${attackName}!`
+        : `${enemyLabel} va a usar ${attackName}!`
+      const announceDuration = (config.isTraining ? 800 : 1400) + (isCrit ? 500 : 0)
+      const announceVariant: 'attack' | 'crit-attack' = isCrit ? 'crit-attack' : 'attack'
+      showAnnouncement(announceText, announceVariant, announceDuration)
+      addToLog(isCrit
+        ? `¡CRÍTICO! ${enemyLabel} va a usar ${attackName} (daño x2)`
+        : `${enemyLabel} va a usar ${attackName}`)
       await delay(config.isTraining ? 800 : 1200)
       attackingEnemyId.value = null
 
@@ -548,8 +576,8 @@ export function useCombat(config: CombatConfig = {}) {
       }
 
       const rawDamage = enemy.attack()
-      const damage = Math.floor(rawDamage * selectedPattern.damageMultiplier)
-      await startDefenseChallenge(enemy, damage, selectedPattern)
+      const damage = Math.floor(rawDamage * selectedPattern.damageMultiplier * (isCrit ? 2 : 1))
+      await startDefenseChallenge(enemy, damage, critPattern, { isCrit })
 
       if (!player.value.isAlive) {
         if (config.isTraining) {
@@ -849,6 +877,7 @@ export function useCombat(config: CombatConfig = {}) {
     defenseZones,
     defensePhaseIndex,
     defenseEnemyId,
+    defenseIsCrit,
     handleDefensePhaseComplete,
     handleDefenseAllPhasesComplete,
     closeDefenseChallenge,
