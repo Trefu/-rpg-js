@@ -5,6 +5,7 @@ import { getAbilityIcon } from '@/core/abilities/abilityIcons'
 import backpackIcon from '@/assets/icons/backpack.png'
 import boltIcon from '@/assets/icons/bolt-shield.png'
 import hourglassIcon from '@/assets/icons/hourglass.png'
+import skipIcon from '@/assets/icons/fast-forward-button.png'
 
 const props = defineProps<{
   abilities: IAbility[]
@@ -13,6 +14,9 @@ const props = defineProps<{
   isPlayerInputLocked: boolean
   selectedAbility: IAbility | null
   isSelectingTarget: boolean
+  usedAbilityThisTurn: boolean
+  usedItemThisTurn: boolean
+  canPassTurn: boolean
 }>()
 
 const emit = defineEmits<{
@@ -20,6 +24,7 @@ const emit = defineEmits<{
   (e: 'selectAbility', ability: IAbility, index: number): void
   (e: 'object'): void
   (e: 'cancel'): void
+  (e: 'pass'): void
 }>()
 
 const attackIcon = computed(() => getAbilityIcon('attack'))
@@ -29,11 +34,12 @@ const slots = computed(() => {
     | { kind: 'attack' }
     | { kind: 'ability', ability: IAbility, index: number }
     | { kind: 'object' }
+    | { kind: 'pass' }
     | { kind: 'empty' }
   > = []
   list.push({ kind: 'attack' })
   const filtered = props.abilities.filter(a => a.type !== 'attack')
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 3; i++) {
     const ab = filtered[i]
     if (ab) {
       const originalIndex = props.abilities.indexOf(ab)
@@ -41,6 +47,7 @@ const slots = computed(() => {
     } else list.push({ kind: 'empty' })
   }
   list.push({ kind: 'object' })
+  list.push({ kind: 'pass' })
   return list
 })
 
@@ -94,6 +101,7 @@ function canUseInfo() {
   const a = infoAbility.value
   if (!a) return false
   if (props.isPlayerInputLocked) return false
+  if (props.usedAbilityThisTurn) return false
   if (isOnCooldown(a)) return false
   if (!isAffordable(a)) return false
   return true
@@ -101,6 +109,7 @@ function canUseInfo() {
 
 function onAbilityClick(ability: IAbility, index: number) {
   if (props.isPlayerInputLocked) return
+  if (props.usedAbilityThisTurn) return
   if (isOnCooldown(ability)) return
   if (!isAffordable(ability)) return
   if (props.isSelectingTarget && props.selectedAbility?.type === ability.type) {
@@ -108,6 +117,28 @@ function onAbilityClick(ability: IAbility, index: number) {
     return
   }
   emit('selectAbility', ability, index)
+}
+
+type Slot =
+  | { kind: 'attack' }
+  | { kind: 'ability', ability: IAbility, index: number }
+  | { kind: 'object' }
+  | { kind: 'pass' }
+  | { kind: 'empty' }
+
+function handleSlotClick(slot: Slot, _event: Event) {
+  if (props.isPlayerInputLocked) return
+  if (slot.kind === 'attack') {
+    emit('attack')
+  } else if (slot.kind === 'ability') {
+    onAbilityClick(slot.ability, slot.index)
+  } else if (slot.kind === 'object') {
+    if (props.usedItemThisTurn) return
+    emit('object')
+  } else if (slot.kind === 'pass') {
+    if (!props.canPassTurn) return
+    emit('pass')
+  }
 }
 
 function onAbilityIconClick(ability: IAbility, index: number, event: Event) {
@@ -140,15 +171,22 @@ function shortLabel(name: string, max = 5): string {
       :class="{
         'mab-attack': slot.kind === 'attack',
         'mab-object': slot.kind === 'object',
+        'mab-pass': slot.kind === 'pass',
         'mab-cooldown': slot.kind === 'ability' && abilityState(slot.ability, slot.index) === 'cooldown',
         'mab-no-energy': slot.kind === 'ability' && abilityState(slot.ability, slot.index) === 'no-energy',
         'mab-empty': slot.kind === 'empty',
-        'mab-disabled': isPlayerInputLocked,
+        'mab-disabled': isPlayerInputLocked || (slot.kind === 'ability' && usedAbilityThisTurn) || (slot.kind === 'object' && usedItemThisTurn) || (slot.kind === 'pass' && !canPassTurn),
         'mab-info-open': slot.kind === 'ability' && infoAbility?.type === slot.ability.type,
         'mab-selected': slot.kind === 'ability' && isSelectedForTarget(slot.ability)
       }"
-      :disabled="isPlayerInputLocked || slot.kind === 'empty'"
-      @click="slot.kind === 'attack' && emit('attack'); slot.kind === 'object' && emit('object'); slot.kind === 'ability' && onAbilityClick(slot.ability, slot.index)"
+      :disabled="
+        isPlayerInputLocked
+        || slot.kind === 'empty'
+        || (slot.kind === 'ability' && usedAbilityThisTurn)
+        || (slot.kind === 'object' && usedItemThisTurn)
+        || (slot.kind === 'pass' && !canPassTurn)
+      "
+      @click="handleSlotClick(slot, $event)"
       @contextmenu.prevent="slot.kind === 'ability' && showAbilityInfo(slot.ability, slot.index, $event)"
     >
       <template v-if="slot.kind === 'attack'">
@@ -164,7 +202,8 @@ function shortLabel(name: string, max = 5): string {
           @click.stop="onAbilityIconClick(slot.ability, slot.index, $event)"
         />
         <span class="mab-label" :title="slot.ability.name">{{ shortLabel(slot.ability.name) }}</span>
-        <span v-if="cooldownOf(slot.ability.type) > 0" class="mab-cooldown">
+        <span v-if="usedAbilityThisTurn" class="mab-used-mark">✓</span>
+        <span v-else-if="cooldownOf(slot.ability.type) > 0" class="mab-cooldown">
           {{ cooldownOf(slot.ability.type) }}
         </span>
         <span v-else-if="isSelectedForTarget(slot.ability)" class="mab-cancel-hint" aria-hidden="true">
@@ -175,6 +214,12 @@ function shortLabel(name: string, max = 5): string {
       <template v-else-if="slot.kind === 'object'">
         <img :src="backpackIcon" alt="" class="mab-icon" />
         <span class="mab-label">Obj</span>
+        <span v-if="usedItemThisTurn" class="mab-used-mark">✓</span>
+      </template>
+
+      <template v-else-if="slot.kind === 'pass'">
+        <img :src="skipIcon" alt="" class="mab-icon" />
+        <span class="mab-label">Pasar</span>
       </template>
 
       <template v-else>
@@ -275,6 +320,26 @@ function shortLabel(name: string, max = 5): string {
 .mab-object {
   background: linear-gradient(145deg, #2196F3 0%, #0d47a1 100%);
   border-color: rgba(180, 220, 255, 0.3);
+}
+
+.mab-pass {
+  background: linear-gradient(145deg, #2e7d32 0%, #1b5e20 100%);
+  border-color: rgba(180, 230, 180, 0.35);
+}
+
+.mab-used-mark {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  background: rgba(255, 230, 102, 0.9);
+  color: #1a1a2e;
+  font-family: 'Courier New', monospace;
+  font-size: 0.6rem;
+  font-weight: 900;
+  border-radius: 6px;
+  padding: 0 4px;
+  border: 1px solid #1a1a2e;
+  line-height: 1.1;
 }
 
 .mab-cooldown {

@@ -19,6 +19,7 @@ import EnemyCard from './EnemyCard.vue'
 import MobileCombatHud from './MobileCombatHud.vue'
 import MobileActionBar from './MobileActionBar.vue'
 import AbilitiesModal from '@/components/ui/AbilitiesModal.vue'
+import ItemsModal from '@/components/ui/ItemsModal.vue'
 import type { DefensePhaseResult } from '@/core/defense/types'
 import type { IEnemy } from '@/core/interfaces/ICharacter'
 import { useMediaQuery } from '@/composables/useMediaQuery'
@@ -83,7 +84,21 @@ const {
   closeDefenseChallenge,
   startPlayerTurn,
   canTargetAllies,
-  canTargetEnemies
+  canTargetEnemies,
+
+  showItemsModal,
+  selectedItem,
+  inventory,
+  usedItemThisTurn,
+  usedAbilityThisTurn,
+  canStillUseItem,
+  canStillUseAbility,
+  canPassTurn,
+  openItemsModal,
+  closeItemsModal,
+  selectItem,
+  itemCanTargetAllies,
+  passTurn
 } = useCombat(combatOptions)
 
 const isMobile = useMediaQuery('(max-width: 720px)')
@@ -119,6 +134,40 @@ const canCancelSelectedAbility = computed(() => {
 
 function onCancelAbility() {
   cancelAction()
+}
+
+function onPassTurn() {
+  passTurn()
+}
+
+function onObjectAction() {
+  openItemsModal()
+}
+
+function onItemsModalSelectItem(entryId: string) {
+  selectItem(entryId)
+}
+
+function onItemsModalClose() {
+  closeItemsModal()
+}
+
+const canCancelTargeting = computed(() => {
+  if (!isSelectingTarget.value) return false
+  if (selectedItem.value) return true
+  if (selectedAbility.value && actionRequiresTarget(selectedAbility.value)) return true
+  return false
+})
+
+function isAllySelectable(hero: Hero | null, index: number): boolean {
+  if (!hero || !isSelectingTarget.value) return false
+  if (selectedItem.value) {
+    return hero.isAlive && itemCanTargetAllies(selectedItem.value)
+  }
+  if (selectedAbility.value && canTargetAllies(selectedAbility.value)) {
+    return hero.isAlive
+  }
+  return false
 }
 
 const heroSlots = computed(() => {
@@ -254,7 +303,7 @@ onUnmounted(() => {
           :hero="hero"
           :index="idx"
           :is-active="!!hero && idx === gameStore.activeHeroIndex"
-          :is-target-selectable="isSelectingTarget && !!hero && hero.isAlive && canTargetAllies(selectedAbility)"
+          :is-target-selectable="isAllySelectable(hero, idx)"
           @select="(h) => selectAlly(h)"
         />
       </div>
@@ -269,7 +318,7 @@ onUnmounted(() => {
       :alive-index-by-enemy-id="aliveIndexByEnemyId"
       :is-player-turn="isPlayerTurn"
       :is-selecting-target="isSelectingTarget"
-      :can-target-allies="canTargetAllies(selectedAbility)"
+      :can-target-allies="(!!selectedItem && itemCanTargetAllies(selectedItem)) || (!!selectedAbility && canTargetAllies(selectedAbility))"
       :active-hero-index="gameStore.activeHeroIndex"
       @rotate-hero="rotateHero"
       @select-enemy="selectEnemy"
@@ -313,17 +362,37 @@ onUnmounted(() => {
 
       <div class="actions-area">
         <div class="action-buttons">
-          <button class="action-btn" :disabled="isPlayerInputLocked" @click="openAbilitiesModal">
-            <img :src="AbilitiesIcon" alt="" class="btn-icon" /> Habilidades <span class="shortcut-badge">[A]</span>
+          <button
+            class="action-btn"
+            :disabled="!canStillUseAbility || isPlayerInputLocked"
+            @click="openAbilitiesModal"
+          >
+            <img :src="AbilitiesIcon" alt="" class="btn-icon" />
+            Habilidades
+            <span v-if="usedAbilityThisTurn" class="action-used-tag">usada</span>
+            <span v-else class="shortcut-badge">[A]</span>
           </button>
-          <button class="action-btn item" :disabled="isPlayerInputLocked" @click="selectAction('Objeto')">
-            <img :src="ItemIcon" alt="" class="btn-icon" /> Objeto
+          <button
+            class="action-btn item"
+            :disabled="!canStillUseItem || isPlayerInputLocked"
+            @click="onObjectAction"
+          >
+            <img :src="ItemIcon" alt="" class="btn-icon" />
+            Objeto
+            <span v-if="usedItemThisTurn" class="action-used-tag">usado</span>
+          </button>
+          <button
+            class="action-btn pass"
+            :disabled="!canPassTurn || isPlayerInputLocked"
+            @click="onPassTurn"
+          >
+            Pasar turno <span class="shortcut-badge">[Enter]</span>
           </button>
           <button
             class="action-btn cancel"
-            :class="{ 'is-hidden': !canCancelSelectedAbility }"
-            :aria-hidden="!canCancelSelectedAbility"
-            :tabindex="canCancelSelectedAbility ? 0 : -1"
+            :class="{ 'is-hidden': !canCancelTargeting }"
+            :aria-hidden="!canCancelTargeting"
+            :tabindex="canCancelTargeting ? 0 : -1"
             @click="onCancelAbility"
           >
             ✕ Cancelar <span class="shortcut-badge">[Esc]</span>
@@ -341,10 +410,14 @@ onUnmounted(() => {
       :is-player-input-locked="isPlayerInputLocked"
       :selected-ability="selectedAbility"
       :is-selecting-target="isSelectingTarget"
+      :used-ability-this-turn="usedAbilityThisTurn"
+      :used-item-this-turn="usedItemThisTurn"
+      :can-pass-turn="canPassTurn"
       @attack="onMobileAttack"
       @select-ability="onMobileAbility"
       @object="onMobileObject"
       @cancel="onCancelAbility"
+      @pass="onPassTurn"
     />
 
     <CombatLogFab
@@ -374,6 +447,14 @@ onUnmounted(() => {
       @select-ability="handleAbilitySelect"
     />
 
+    <ItemsModal
+      :show="showItemsModal"
+      :inventory="inventory"
+      :used-this-turn="usedItemThisTurn"
+      @close="onItemsModalClose"
+      @select-item="onItemsModalSelectItem"
+    />
+
     <CombatLogModal
       :show="showLogModal"
       :messages="combatLog"
@@ -398,5 +479,31 @@ onUnmounted(() => {
   vertical-align: -0.18em;
   margin-right: 0.35rem;
   filter: brightness(0) invert(1);
+}
+
+.action-btn.pass {
+  background-color: #2a3a2a;
+  border-color: #4caf50;
+  color: #b6f5b6;
+}
+.action-btn.pass:hover:not(:disabled) {
+  background-color: #1e4a1e;
+  border-color: #66bb6a;
+  color: #fff;
+}
+
+.action-used-tag {
+  margin-left: auto;
+  margin-right: 0.4em;
+  background: rgba(255, 107, 107, 0.22);
+  border: 1px solid rgba(255, 107, 107, 0.4);
+  color: #ffb3b3;
+  font-size: 0.7em;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+  line-height: 1;
 }
 </style>

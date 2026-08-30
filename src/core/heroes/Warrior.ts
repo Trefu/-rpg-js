@@ -21,6 +21,7 @@ export class Warrior extends Hero {
     warrior.learnAbility(createWarriorBasicAttackAbility())
     warrior.learnAbility(createSecondWindAbility())
     warrior.learnAbility(createWarriorAttackAbility())
+    warrior.addItem('healing-flask')
     return warrior
   }
 }

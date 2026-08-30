@@ -5,6 +5,9 @@ import { AudioManager } from '@/core/AudioManager'
 import type { IEnemy } from '@/core/interfaces/ICharacter'
 import type { IAbility } from '@/core/interfaces/IAbility'
 import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
+import type { IItem, ItemTargetType } from '@/core/items/types'
+import { getItemOrThrow } from '@/core/items/items'
+import { consumeItem, getInventoryEntries, type InventoryEntry } from '@/core/items/inventory'
 import { StatusEffects, applyFailureEffect } from '@/core/StatusEffects'
 import type {
   DefenseChallengeResult,
@@ -58,6 +61,12 @@ export function useCombat(config: CombatConfig = {}) {
   const playerHitPopups = ref<{ value: number, key: number }[]>([])
   const showAbilitiesModal = ref(false)
   const abilityCooldowns = ref<{ [type: string]: number }>({})
+
+  // ---- Sistema de objetos ----
+  const showItemsModal = ref(false)
+  const selectedItem = ref<IItem | null>(null)
+  const usedItemThisTurn = ref(false)
+  const usedAbilityThisTurn = ref(false)
 
   const announcer = useAnnouncer()
   const announcement = computed(() => announcer.current.value)
@@ -113,6 +122,21 @@ export function useCombat(config: CombatConfig = {}) {
            isExecutingAction.value ||
            isDefenseActive.value
   })
+
+  const canStillUseItem = computed(() =>
+    isPlayerTurn.value && !isCombatEnded.value && !isExecutingAction.value &&
+    !isDefenseActive.value && !usedItemThisTurn.value
+  )
+
+  const canStillUseAbility = computed(() =>
+    isPlayerTurn.value && !isCombatEnded.value && !isExecutingAction.value &&
+    !isDefenseActive.value && !usedAbilityThisTurn.value
+  )
+
+  const canPassTurn = computed(() =>
+    isPlayerTurn.value && !isCombatEnded.value && !isExecutingAction.value &&
+    !isDefenseActive.value && !isSelectingTarget.value
+  )
 
   function startDefenseChallenge(
     enemy: IEnemy,
@@ -288,6 +312,11 @@ export function useCombat(config: CombatConfig = {}) {
 
   function openAbilitiesModal() {
     if (!isPlayerTurn.value || isCombatEnded.value || isExecutingAction.value) return
+    if (usedAbilityThisTurn.value) {
+      showAnnouncement('Ya usaste una habilidad este turno.', 'status', 1500)
+      addToLog('Ya usaste una habilidad este turno.')
+      return
+    }
     showAbilitiesModal.value = true
   }
 
@@ -296,7 +325,7 @@ export function useCombat(config: CombatConfig = {}) {
   }
 
   function selectAbility(ability: IAbility, index: number) {
-    console.log(index);
+    if (usedAbilityThisTurn.value) return
     if (abilityCooldowns.value[ability.type] > 0) return
     if (!canAffordAbility(ability)) {
       closeAbilitiesModal()
@@ -333,6 +362,127 @@ export function useCombat(config: CombatConfig = {}) {
     return false
   }
 
+  // ===== Objetos =====
+
+  const inventory = computed<InventoryEntry[]>(() => {
+    const hero = player.value
+    if (!hero) return []
+    return getInventoryEntries(hero)
+  })
+
+  function itemRequiresTarget(item: IItem): boolean {
+    return item.requiresTarget !== false
+  }
+
+  function itemCanTargetAllies(item: IItem | null): boolean {
+    if (!item) return false
+    const tt: ItemTargetType = item.targetType ?? 'allies-only'
+    return tt === 'all' || tt === 'allies-only'
+  }
+
+  /**
+   * Abre el menu de objetos. Si hay una habilidad seleccionada que
+   * requiere objetivo, la cancela primero (no consume turno).
+   */
+  function openItemsModal() {
+    if (!isPlayerTurn.value || isCombatEnded.value || isExecutingAction.value) return
+    if (usedItemThisTurn.value) {
+      showAnnouncement('Ya usaste un objeto este turno.', 'status', 1500)
+      addToLog('Ya usaste un objeto este turno.')
+      return
+    }
+    if (isSelectingTarget.value && selectedAbility.value && actionRequiresTarget(selectedAbility.value)) {
+      cancelAction()
+    }
+    showItemsModal.value = true
+  }
+
+  function closeItemsModal() {
+    showItemsModal.value = false
+  }
+
+  /**
+   * Inicia el flujo de uso de un objeto. Si requiere objetivo,
+   * entra en modo de seleccion (cancelando cualquier habilidad pendiente).
+   * Si no requiere, ejecuta inmediatamente sobre el caster.
+   */
+  function selectItem(itemId: string) {
+    const caster = player.value as Hero | null
+    if (!caster) return
+    if (usedItemThisTurn.value) return
+    let item: IItem
+    try {
+      item = getItemOrThrow(itemId)
+    } catch {
+      return
+    }
+    if (!itemRequiresTarget(item)) {
+      selectedItem.value = item
+      closeItemsModal()
+      executeItem(item, caster)
+      return
+    }
+    if (isSelectingTarget.value && selectedAbility.value && actionRequiresTarget(selectedAbility.value)) {
+      cancelAction()
+    }
+    selectedItem.value = item
+    closeItemsModal()
+    isSelectingTarget.value = true
+    showAnnouncement(
+      `Selecciona un aliado para ${item.name.toLowerCase()}.`,
+      'info',
+      0,
+      { sticky: true }
+    )
+  }
+
+  async function executeItem(item: IItem, target: Hero) {
+    const caster = player.value as Hero | null
+    if (!caster) return
+    isExecutingAction.value = true
+    try {
+      consumeItem(caster, item.id)
+      await item.execute({
+        caster,
+        target,
+        addToLog,
+        showAnnouncement: (text, variant, duration) => showAnnouncement(text, variant ?? 'info', duration),
+        audioManager,
+        animationDelay: item.animationDurationMs ?? 900
+      })
+      usedItemThisTurn.value = true
+    } finally {
+      isExecutingAction.value = false
+      selectedItem.value = null
+      isSelectingTarget.value = false
+      clearAnnouncement()
+    }
+  }
+
+  function selectItemAllyTarget(hero: Hero) {
+    if (!isPlayerTurn.value || !hero.isAlive || isPlayerInputLocked.value) return
+    if (!isSelectingTarget.value || !selectedItem.value) return
+    if (!itemCanTargetAllies(selectedItem.value)) {
+      addToLog(`${selectedItem.value.name} no se puede usar sobre aliados.`)
+      return
+    }
+    const item = selectedItem.value
+    executeItem(item, hero)
+  }
+
+  /**
+   * El jugador cede el turno voluntariamente. Llamado por el boton
+   * "Pasar turno". Es la unica forma de avanzar al turno enemigo
+   * una vez que se ha consumido alguna accion.
+   */
+  function passTurn() {
+    if (!isPlayerTurn.value || isCombatEnded.value || isExecutingAction.value) return
+    if (isSelectingTarget.value) return
+    closeAbilitiesModal()
+    closeItemsModal()
+    endPlayerTurn()
+  }
+
   function showTargetSelectionAnnouncement(ability: IAbility) {
     const name = ability.name.toLowerCase()
     if (canTargetAllies(ability) && !canTargetEnemies(ability)) {
@@ -365,11 +515,13 @@ export function useCombat(config: CombatConfig = {}) {
    * (requiresTarget === false) ya se ejecutaron y no se ven afectadas.
    */
   function cancelAction(reasonMessage?: string) {
-    if (!isSelectingTarget.value && !selectedAbility.value) return
+    if (!isSelectingTarget.value && !selectedAbility.value && !selectedItem.value) return
     if (selectedAbility.value && !actionRequiresTarget(selectedAbility.value)) return
+    if (selectedItem.value && !itemRequiresTarget(selectedItem.value)) return
     if (reasonMessage) addToLog(reasonMessage)
     isSelectingTarget.value = false
     selectedAbility.value = null
+    selectedItem.value = null
     selectedEnemy.value = null
     currentAction.value = null
     isExecutingAction.value = false
@@ -417,7 +569,12 @@ export function useCombat(config: CombatConfig = {}) {
 
   function selectAlly(hero: Hero) {
     if (!isPlayerTurn.value || !hero.isAlive || isPlayerInputLocked.value) return
-    if (!isSelectingTarget.value || !selectedAbility.value) return
+    if (!isSelectingTarget.value) return
+    if (selectedItem.value) {
+      selectItemAllyTarget(hero)
+      return
+    }
+    if (!selectedAbility.value) return
     if (!canTargetAllies(selectedAbility.value)) {
       addToLog(`Solo puedes lanzar ${selectedAbility.value.name} sobre enemigos.`)
       return
@@ -453,25 +610,23 @@ export function useCombat(config: CombatConfig = {}) {
   function handleCombatShortcuts(e: KeyboardEvent) {
     if (isCombatEnded.value) return
     if (showAbilitiesModal.value) return
+    if (showItemsModal.value) return
 
-    if (e.key === 'Escape' && isSelectingTarget.value && selectedAbility.value && actionRequiresTarget(selectedAbility.value)) {
+    if (e.key === 'Escape' && isSelectingTarget.value && (selectedAbility.value || selectedItem.value)) {
       cancelAction()
       e.preventDefault()
       return
     }
 
-    if (isSelectingTarget.value && ['1', '2', '3', '4', '5'].includes(e.key) && actionRequiresTarget(selectedAbility.value)) {
+    if (e.key === 'Enter' && isPlayerTurn.value && !isSelectingTarget.value && !isExecutingAction.value) {
+      passTurn()
+      e.preventDefault()
+      return
+    }
+
+    if (isSelectingTarget.value && ['1', '2', '3', '4', '5'].includes(e.key)) {
       const idx = parseInt(e.key, 10) - 1
-      if (canTargetEnemies(selectedAbility.value)) {
-        const alive = aliveEnemies.value
-        if (alive[idx]) {
-          selectEnemy(alive[idx])
-          e.preventDefault()
-        } else {
-          addToLog(`No hay enemigo en la posición ${e.key}.`)
-          e.preventDefault()
-        }
-      } else if (canTargetAllies(selectedAbility.value)) {
+      if (selectedItem.value && itemCanTargetAllies(selectedItem.value)) {
         const aliveAllies = heroes.value.filter(h => h.isAlive)
         if (aliveAllies[idx]) {
           selectAlly(aliveAllies[idx])
@@ -479,6 +634,28 @@ export function useCombat(config: CombatConfig = {}) {
         } else {
           addToLog(`No hay aliado en la posición ${e.key}.`)
           e.preventDefault()
+        }
+        return
+      }
+      if (selectedAbility.value && actionRequiresTarget(selectedAbility.value)) {
+        if (canTargetEnemies(selectedAbility.value)) {
+          const alive = aliveEnemies.value
+          if (alive[idx]) {
+            selectEnemy(alive[idx])
+            e.preventDefault()
+          } else {
+            addToLog(`No hay enemigo en la posición ${e.key}.`)
+            e.preventDefault()
+          }
+        } else if (canTargetAllies(selectedAbility.value)) {
+          const aliveAllies = heroes.value.filter(h => h.isAlive)
+          if (aliveAllies[idx]) {
+            selectAlly(aliveAllies[idx])
+            e.preventDefault()
+          } else {
+            addToLog(`No hay aliado en la posición ${e.key}.`)
+            e.preventDefault()
+          }
         }
       }
     }
@@ -522,10 +699,16 @@ export function useCombat(config: CombatConfig = {}) {
     setTimeout(enemyTurn, config.isTraining ? 1000 : 2000)
   }
 
+  function resetTurnUsageFlags() {
+    usedItemThisTurn.value = false
+    usedAbilityThisTurn.value = false
+  }
+
   async function startPlayerTurn() {
     if (!player.value) return
     if (isCombatEnded.value) return
     if (!isPlayerTurn.value) return
+    resetTurnUsageFlags()
     await applyPlayerStatusTick()
   }
 
@@ -781,7 +964,8 @@ export function useCombat(config: CombatConfig = {}) {
     currentAction.value = null
     clearAnnouncement()
 
-    endPlayerTurn()
+    usedAbilityThisTurn.value = true
+    isExecutingAction.value = false
   }
 
   function selectEnemy(enemy: IEnemy) {
@@ -810,15 +994,19 @@ export function useCombat(config: CombatConfig = {}) {
     if (action === 'Objeto') {
       if (config.isTraining) {
         addToLog('No puedes usar objetos durante el entrenamiento.')
-      } else {
-        addToLog('No tienes objetos disponibles.')
+        return
       }
+      openItemsModal()
       return
     }
 
     if (isActionType(action)) {
       const ability = abilities.value.find((a: IAbility) => a.type === action)
       if (ability) {
+        if (usedAbilityThisTurn.value) {
+          showAnnouncement('Ya usaste una habilidad este turno.', 'status', 1500)
+          return
+        }
         if (!canAffordAbility(ability)) return
         selectedAbility.value = ability
         isSelectingTarget.value = true
@@ -909,6 +1097,22 @@ export function useCombat(config: CombatConfig = {}) {
     executeAbility,
     revivePlayer,
     healPlayerToFull,
-    clearAllStatusEffects
+    clearAllStatusEffects,
+
+    showItemsModal,
+    selectedItem,
+    inventory,
+    usedItemThisTurn,
+    usedAbilityThisTurn,
+    canStillUseItem,
+    canStillUseAbility,
+    canPassTurn,
+    openItemsModal,
+    closeItemsModal,
+    selectItem,
+    selectItemAllyTarget,
+    itemCanTargetAllies,
+    itemRequiresTarget,
+    passTurn
   }
 }
