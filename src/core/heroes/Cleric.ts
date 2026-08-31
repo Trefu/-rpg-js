@@ -13,6 +13,7 @@ export class Cleric extends Hero {
       name: 'Elara',
       level,
       maxHealth: 100,
+      maxEnergy: 80,
       defense: 10,
       speed: 12,
       baseAttack: 10,

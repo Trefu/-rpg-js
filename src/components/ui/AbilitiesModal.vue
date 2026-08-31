@@ -2,6 +2,7 @@
 import type { IAbility } from '@/core/interfaces/IAbility'
 import closeIcon from '@/assets/icons/cross-mark.png'
 import hourglassIcon from '@/assets/icons/hourglass.png'
+import boltIcon from '@/assets/icons/bolt-shield.png'
 import skillsIcon from '@/assets/icons/skills.png'
 import { getAbilityIcon } from '@/core/abilities/abilityIcons'
 
@@ -67,6 +68,9 @@ const handleModalOverlayClick = (e: MouseEvent) => {
               </div>
               <p class="ability-desc">{{ ability.description }}</p>
               <div class="ability-footer">
+                <span v-if="ability.energyCost" class="energy-badge">
+                  <img :src="boltIcon" alt="" class="energy-icon" /> {{ ability.energyCost }}
+                </span>
                 <span v-if="ability.cooldown > 0" class="cooldown-badge">
                   <img :src="hourglassIcon" alt="" class="cooldown-icon" /> {{ ability.cooldown }} turno{{ ability.cooldown > 1 ? 's' : '' }}
                 </span>
@@ -293,7 +297,19 @@ const handleModalOverlayClick = (e: MouseEvent) => {
   align-items: center;
   gap: 0.3rem;
 }
+.energy-badge {
+  background: rgba(64,196,255,0.15);
+  color: #82b1ff;
+  padding: 0.2em 0.6em;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  border: 1px solid rgba(64,196,255,0.3);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
 .cooldown-icon { width: 0.9em; height: 0.9em; filter: sepia(1) saturate(5) hue-rotate(0deg) brightness(1.2); }
+.energy-icon { width: 0.9em; height: 0.9em; }
 .close-icon { width: 14px; height: 14px; display: block; margin: auto; filter: brightness(0) invert(1); }
 
 .use-hint {

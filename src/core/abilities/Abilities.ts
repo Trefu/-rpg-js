@@ -52,6 +52,7 @@ export const StunStrike: IAbility = {
     description: 'Un golpe que puede aturdir al enemigo',
     type: 'stunStrike',
     cooldown: 3,
+    energyCost: 15,
     targetType: 'enemies-only',
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
@@ -72,6 +73,7 @@ export const StealthStrike: IAbility = {
     description: 'Ataque furtivo que hace más daño',
     type: 'stealthStrike',
     cooldown: 2,
+    energyCost: 15,
     targetType: 'enemies-only',
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
@@ -92,6 +94,7 @@ export const Fireball: IAbility = {
     description: 'Hechizo de fuego que causa daño mágico',
     type: 'fireball',
     cooldown: 3,
+    energyCost: 25,
     targetType: 'enemies-only',
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
@@ -109,7 +112,7 @@ export const Fireball: IAbility = {
 
 export const WarriorInjuringStrike: IAbility = {
     name: 'Golpe Lesionador',
-    description: 'Un tajo vertical preciso que inflige daño y aplica el debufo "Lesionado" al objetivo durante 1 turno. Cuesta energia.',
+    description: 'Un tajo vertical preciso que inflige daño y aplica el debufo "Lesionado" al objetivo durante 1 turno.',
     type: 'warriorInjuringStrike',
     cooldown: 0,
     energyCost: 20,
@@ -144,7 +147,7 @@ export const WarriorInjuringStrike: IAbility = {
 
 export const WarriorDevastatingStrike: IAbility = {
     name: 'Golpe Devastador',
-    description: 'Un golpe devastador que siempre cuesta 20 de energia y golpea a todos los enemigos con el mismo daño.',
+    description: 'Un golpe devastador que golpea a todos los enemigos con el mismo daño.',
     type: 'warriorDevastatingStrike',
     cooldown: 0,
     energyCost: 20,
@@ -171,6 +174,7 @@ export const SecondWind: IAbility = {
     description: 'Cura 20% de vida maxima y aplica el buff Segundo Aliento: cada bloqueo siguiente restaura 2% de la energia maxima (5 bloqueos).',
     type: 'secondWind',
     cooldown: 1,
+    energyCost: 20,
     targetType: 'allies-only',
     requiresTarget: false,
     animationDurationMs: 1200,
@@ -238,7 +242,7 @@ export const ClericRadiantStrike: IAbility = {
 
 export const ClericDivineSmite: IAbility = {
     name: 'Castigo Divino',
-    description: 'Un ataque radiante imbuido de fe pura que siempre cuesta 20 de energia.',
+    description: 'Un ataque radiante imbuido de fe pura.',
     type: 'clericDivineSmite',
     cooldown: 0,
     energyCost: 20,

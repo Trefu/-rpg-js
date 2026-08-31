@@ -13,6 +13,8 @@ export interface HeroOptions {
   defense: number
   speed: number
   baseAttack: number
+  maxEnergy?: number
+  startingEnergy?: number
   sprite?: string
 }
 
@@ -47,8 +49,8 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
     this.abilities = []
     this.defenseValue = opts.defense
     this.speed = opts.speed
-    this.maxEnergy = 50
-    this.energy = 50
+    this.maxEnergy = opts.maxEnergy ?? 50
+    this.energy = opts.startingEnergy ?? this.maxEnergy
     this.baseAttack = opts.baseAttack
     this.critChance = 0.05
     this.critDamageMultiplier = 2.0
