@@ -11,6 +11,7 @@ import { AudioManager } from './core/AudioManager'
 import type { ZoneId } from './core/zones/EnemyPools'
 import type { INode } from './core/interfaces/IExpedition'
 import type { Hero } from './core/Hero'
+import { restoreItemsToMax } from './core/items/items'
 
 const gameStore = useGameStore()
 const expeditionStore = useExpeditionStore()
@@ -63,6 +64,7 @@ const handleCombatEnded = (victory: boolean) => {
         if (!hero) continue
         hero.gainExperience(totalXp)
         hero.addGold(totalGold)
+        restoreItemsToMax(hero)
       }
     }
     expeditionStore.completeNode(expeditionStore.selectedNode?.id || '')

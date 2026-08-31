@@ -32,6 +32,7 @@ export const BasicAttack: IAbility = {
     description: 'Un ataque simple con daño bajo',
     type: 'attack',
     cooldown: 0,
+    damageType: 'physical',
     targetType: 'enemies-only',
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
@@ -53,6 +54,7 @@ export const StunStrike: IAbility = {
     type: 'stunStrike',
     cooldown: 3,
     energyCost: 15,
+    damageType: 'physical',
     targetType: 'enemies-only',
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
@@ -74,6 +76,7 @@ export const StealthStrike: IAbility = {
     type: 'stealthStrike',
     cooldown: 2,
     energyCost: 15,
+    damageType: 'physical',
     targetType: 'enemies-only',
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
@@ -95,6 +98,7 @@ export const Fireball: IAbility = {
     type: 'fireball',
     cooldown: 3,
     energyCost: 25,
+    damageType: 'fire',
     targetType: 'enemies-only',
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
@@ -116,6 +120,7 @@ export const WarriorInjuringStrike: IAbility = {
     type: 'warriorInjuringStrike',
     cooldown: 0,
     energyCost: 20,
+    damageType: 'physical',
     targetType: 'enemies-only',
     animationDurationMs: 800,
     execute: async (context: AbilityContext) => {
@@ -151,6 +156,7 @@ export const WarriorDevastatingStrike: IAbility = {
     type: 'warriorDevastatingStrike',
     cooldown: 0,
     energyCost: 20,
+    damageType: 'physical',
     targetType: 'enemies-only',
     aoe: true,
     execute: async (context: AbilityContext) => {
@@ -211,6 +217,7 @@ export const ClericRadiantStrike: IAbility = {
     type: 'clericRadiantStrike',
     cooldown: 0,
     energyCost: 25,
+    damageType: 'holy',
     targetType: 'enemies-only',
     randomAttack: {
         minExtraTargets: 1,
@@ -239,6 +246,7 @@ export const ClericDivineSmite: IAbility = {
     type: 'clericDivineSmite',
     cooldown: 0,
     energyCost: 20,
+    damageType: 'holy',
     targetType: 'enemies-only',
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero

@@ -1,11 +1,13 @@
 import healthPotionIcon from '@/assets/icons/health-potion.png'
 import healingIcon from '@/assets/icons/healing.png'
+import magicPotionIcon from '@/assets/icons/magic-potion.png'
 
-export type ItemIconType = 'healing-flask' | 'health-potion'
+export type ItemIconType = 'healing-flask' | 'health-potion' | 'energy-potion'
 
 const ITEM_ICONS: Record<string, string> = {
   'healing-flask': healthPotionIcon,
-  'health-potion': healingIcon
+  'health-potion': healingIcon,
+  'energy-potion': magicPotionIcon
 }
 
 export function getItemIcon(id: string): string {

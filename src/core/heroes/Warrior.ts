@@ -32,6 +32,7 @@ export class Warrior extends Hero {
     warrior.learnAbility(SecondWind)
     warrior.learnAbility(WarriorDevastatingStrike)
     warrior.addItem('healing-flask')
+    warrior.addItem('energy-potion')
     return warrior
   }
 }

@@ -56,11 +56,26 @@ export interface RandomAttackSpec {
   damageMultiplier: number
 }
 
+/**
+ * Categorias de daño de una habilidad. Sirve para:
+ * - futuras resistencias/debilidades de enemigos o heroes
+ * - UI (icono/etiqueta del tipo de daño en el modal y en los popups de impacto)
+ * - balanceo (los buffs de mind escalan el daño magico, los de body el fisico)
+ *
+ * Si la ability no inflige daño (curas, buffs), dejar el campo en `undefined`.
+ */
+export type DamageType = 'physical' | 'fire' | 'holy'
+
 export interface IAbility {
   name: string
   description: string
   type: string
   cooldown: number
+  /**
+   * Tipo de daño que inflige esta habilidad. `undefined` para habilidades
+   * que no causan daño (curas, buffs). Default: `undefined`.
+   */
+  damageType?: DamageType
   /**
    * Costo fijo de energia que se cobra antes de ejecutar.
    * Si el caster no tiene suficiente energia, la accion se cancela antes de gastar el turno.
