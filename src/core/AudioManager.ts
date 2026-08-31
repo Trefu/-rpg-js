@@ -1,7 +1,7 @@
 import { Howl, Howler } from 'howler'
 
 type MusicTrack = 'menu' | 'combat' | 'boss'
-type SfxName = 'attack' | 'hit' | 'victory'
+type SfxName = 'attack' | 'hit' | 'victory' | 'block'
 
 const MENU_SRC = '/assets/music/menu_ost.mp3'
 const COMBAT_SOURCES = [
@@ -13,7 +13,20 @@ const BOSS_SRC = '/assets/music/mountain_ost_boss.mp3'
 const SFX_SRC: Record<SfxName, string> = {
     attack: '/assets/sounds/Stab 4-1.wav',
     hit: '/assets/sounds/Hit Generic 2-1.wav',
-    victory: '/assets/sounds/Special Collectible 26-1.wav'
+    victory: '/assets/sounds/Special Collectible 26-1.wav',
+    block: '/assets/sounds/Shield Metal Impact 1-3.wav'
+}
+
+/**
+ * Multiplicador de volumen por SFX, relativo al `sfxVolume` maestro.
+ * Se usa para que sonidos cortos como el `block` (que compiten con el
+ * `hit` del mismo impacto) se escuchen por encima del resto.
+ */
+const SFX_VOLUME_MULT: Record<SfxName, number> = {
+    attack: 1,
+    hit: 0.9,
+    victory: 1,
+    block: 1.6
 }
 
 interface CombatPool {
@@ -94,7 +107,7 @@ export class AudioManager {
         if (!this.soundEffects[name]) {
             this.soundEffects[name] = new Howl({
                 src: [SFX_SRC[name]],
-                volume: this.sfxVolume
+                volume: this.sfxVolume * SFX_VOLUME_MULT[name]
             })
         }
         return this.soundEffects[name]!
@@ -167,6 +180,10 @@ export class AudioManager {
         this.tryPlay(this.getSfx('victory'))
     }
 
+    public playBlockSound(): void {
+        this.tryPlay(this.getSfx('block'))
+    }
+
     public setMusicVolume(volume: number): void {
         this.musicVolume = Math.max(0, Math.min(1, volume))
         if (this.menuHowl) this.menuHowl.volume(this.musicVolume)
@@ -176,9 +193,10 @@ export class AudioManager {
 
     public setSFXVolume(volume: number): void {
         this.sfxVolume = Math.max(0, Math.min(1, volume))
-        Object.values(this.soundEffects).forEach(sound => {
-            sound.volume(this.sfxVolume)
-        })
+        const entries = Object.entries(this.soundEffects) as [SfxName, Howl][]
+        for (const [name, sound] of entries) {
+            sound.volume(this.sfxVolume * SFX_VOLUME_MULT[name])
+        }
     }
 
     public getMusicVolume(): number {

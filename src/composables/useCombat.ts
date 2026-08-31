@@ -294,6 +294,10 @@ export function useCombat(config: CombatConfig = {}) {
         ? `Bloqueaste ${blockPercent}% del daño (${effectLabelText}).`
         : ''
 
+    if (blockedFraction > 0) {
+      audioManager.playBlockSound()
+    }
+
     if (finalDamage > 0) {
       target.takeDamage(finalDamage)
       showPlayerHit(finalDamage)
