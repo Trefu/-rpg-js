@@ -16,6 +16,7 @@ import CombatLogPanel from './CombatLogPanel.vue'
 import CombatLogFab from './CombatLogFab.vue'
 import HeroCard from './HeroCard.vue'
 import EnemyCard from './EnemyCard.vue'
+import TurnOrderBar from './TurnOrderBar.vue'
 import MobileCombatHud from './MobileCombatHud.vue'
 import MobileActionBar from './MobileActionBar.vue'
 import AbilitiesModal from '@/components/ui/AbilitiesModal.vue'
@@ -53,7 +54,6 @@ const {
   selectedAbility,
   combatLog,
   isSelectingTarget,
-  isPlayerTurn,
   attackingEnemyId,
   attackedHeroIds,
   enemyHitPopups,
@@ -83,9 +83,12 @@ const {
   handleDefensePhaseComplete,
   handleDefenseAllPhasesComplete,
   closeDefenseChallenge,
-  startPlayerTurn,
   canTargetAllies,
   canTargetEnemies,
+
+  turnQueue,
+  turnActors,
+  currentActorId,
 
   showItemsModal,
   selectedItem,
@@ -96,6 +99,12 @@ const {
   selectItem,
   itemCanTargetAllies
 } = useCombat(combatOptions)
+
+const actorsById = computed<Record<string, import('@/core/turn-engine/TurnEngine').TurnActor>>(() => {
+  const map: Record<string, import('@/core/turn-engine/TurnEngine').TurnActor> = {}
+  for (const actor of turnActors.value) map[actor.id] = actor
+  return map
+})
 
 const isMobile = useMediaQuery('(max-width: 720px)')
 
@@ -272,8 +281,6 @@ onMounted(() => {
     }
   }
 
-  startPlayerTurn()
-
   window.addEventListener('keydown', handleKeyDown)
 })
 
@@ -285,6 +292,12 @@ onUnmounted(() => {
 
 <template>
   <div class="combat-view">
+    <TurnOrderBar
+      :queue="turnQueue"
+      :actors-by-id="actorsById"
+      :current-actor-id="currentActorId"
+    />
+
     <AnnouncementBanner />
 
     <div v-if="!isMobile" class="heroes-column">
@@ -309,7 +322,6 @@ onUnmounted(() => {
       :heroes="heroes"
       :enemies="enemies"
       :alive-index-by-enemy-id="aliveIndexByEnemyId"
-      :is-player-turn="isPlayerTurn"
       :is-selecting-target="isSelectingTarget"
       :can-target-allies="(!!selectedItem && itemCanTargetAllies(selectedItem)) || (!!selectedAbility && canTargetAllies(selectedAbility))"
       :active-hero-index="gameStore.activeHeroIndex"

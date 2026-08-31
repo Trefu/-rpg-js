@@ -9,11 +9,17 @@
   overflow: hidden;
   display: grid;
   grid-template-columns: minmax(220px, 28%) 1fr;
-  grid-template-rows: 1fr auto;
+  grid-template-rows: auto 1fr auto;
   grid-template-areas:
+    "turn turn"
     "heroes enemies"
     "bottom bottom";
   gap: 0;
+}
+
+.turn-order-bar {
+  grid-area: turn;
+  z-index: 4;
 }
 
 .heroes-column {
@@ -622,8 +628,9 @@
 @media (max-width: 720px) {
   .combat-view {
     grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr auto;
+    grid-template-rows: auto auto 1fr auto;
     grid-template-areas:
+      "turn"
       "hud"
       "field"
       "actions";

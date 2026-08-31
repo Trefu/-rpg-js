@@ -16,7 +16,8 @@ export class Bandit extends Enemy {
       baseAttack: 14 + (level * 1),
       experienceReward: 18 + (level * 4),
       goldReward: { min: 18 + (level * 3), max: 28 + (level * 4) },
-      critChance: 0.05
+      critChance: 0.05,
+      agility: 12
     })
   }
 }

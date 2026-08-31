@@ -16,7 +16,8 @@ export class Wolf extends Enemy {
       baseAttack: 13 + (level * 1),
       experienceReward: 15 + (level * 4),
       goldReward: { min: 8 + (level * 2), max: 14 + (level * 3) },
-      critChance: 0.05
+      critChance: 0.05,
+      agility: 14
     })
   }
 }

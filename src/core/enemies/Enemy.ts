@@ -23,6 +23,8 @@ export interface EnemyOptions {
   experienceReward: number
   goldReward: { min: number; max: number }
   critChance?: number
+  /** Velocidad base para el motor de turnos. Default 10. */
+  agility?: number
 }
 
 export abstract class Enemy extends Character implements ICombatant {
@@ -30,6 +32,7 @@ export abstract class Enemy extends Character implements ICombatant {
   public readonly experienceReward: number
   public readonly goldReward: { min: number; max: number }
   public readonly critChance: number
+  public agility: number
   public statusEffects: IStatusEffect[] = [];
   public attackPatterns: DefensePatternConfig[] = [];
 
@@ -39,6 +42,7 @@ export abstract class Enemy extends Character implements ICombatant {
     this.experienceReward = opts.experienceReward
     this.goldReward = opts.goldReward
     this.critChance = opts.critChance ?? 0.05
+    this.agility = opts.agility ?? 10
   }
 
   public attack(): number {

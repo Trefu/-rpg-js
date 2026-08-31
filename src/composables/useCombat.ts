@@ -25,8 +25,20 @@ import { DEFAULT_BLOCK_EFFECT } from '@/core/defense/types'
 import { getDefenseModifiers } from '@/core/defense/modifiers'
 import { useAnnouncer } from './useAnnouncer'
 import type { AnnouncementVariant } from './useAnnouncer'
+import {
+  initTurnState,
+  nextActorId,
+  advanceAfterTurn,
+  predictNextTurns,
+  STUN_EFFECT_TYPE,
+  type TurnActor,
+  type TurnCostState,
+  type TurnQueueEntry
+} from '@/core/turn-engine/TurnEngine'
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
+const TURN_QUEUE_SIZE = 6
 
 // Tipos de estado que infligen daño por turno. Cada stack = 1 de daño fijo.
 const DO_STATUS_TYPES: Set<string> = new Set([
@@ -48,7 +60,6 @@ export function useCombat(config: CombatConfig = {}) {
   const enemies = ref<IEnemy[]>([])
   const selectedEnemy = ref<IEnemy | null>(null)
   const combatLog = ref<string[]>([])
-  const isPlayerTurn = ref(true)
   const isExecutingAction = ref(false)
   const isCombatEnded = ref(false)
   const isSelectingTarget = ref(false)
@@ -68,6 +79,48 @@ export function useCombat(config: CombatConfig = {}) {
   const playerHitPopups = ref<{ value: number, key: number }[]>([])
   const showAbilitiesModal = ref(false)
   const abilityCooldowns = ref<{ [type: string]: number }>({})
+
+  // ---- Motor de turnos (FF/Persona style) ----
+  const turnState = ref<TurnCostState>({ costs: {} })
+  const currentActorId = ref<string | null>(null)
+
+  function activeEffectTypesOf(combatant: { statusEffects: IStatusEffect[] }): Set<string> {
+    return new Set(combatant.statusEffects.filter(e => e.turns > 0).map(e => e.type))
+  }
+
+  const turnActors = computed<TurnActor[]>(() => {
+    const heroesList: TurnActor[] = heroes.value.map(h => ({
+      id: h.id,
+      name: h.name,
+      kind: 'hero',
+      agility: h.baseStats.agility.value,
+      isAlive: h.isAlive,
+      activeEffectTypes: activeEffectTypesOf(h),
+      icon: h.sprite ?? ''
+    }))
+    const enemiesList: TurnActor[] = enemies.value.map(e => ({
+      id: e.id,
+      name: e.name,
+      kind: 'enemy',
+      agility: e.agility,
+      isAlive: e.isAlive,
+      activeEffectTypes: activeEffectTypesOf(e),
+      icon: (e as any).sprite ?? ''
+    }))
+    return [...heroesList, ...enemiesList]
+  })
+
+  const currentActor = computed<TurnActor | null>(() => {
+    if (!currentActorId.value) return null
+    return turnActors.value.find(a => a.id === currentActorId.value) ?? null
+  })
+
+  /** Backward-compat: muchos call sites leen `isPlayerTurn.value`. */
+  const isPlayerTurn = computed<boolean>(() => currentActor.value?.kind === 'hero')
+
+  const turnQueue = computed<TurnQueueEntry[]>(() =>
+    predictNextTurns(turnState.value, turnActors.value, TURN_QUEUE_SIZE)
+  )
 
   // ---- Sistema de objetos ----
   const showItemsModal = ref(false)
@@ -658,136 +711,111 @@ export function useCombat(config: CombatConfig = {}) {
   }
 
   function endPlayerTurn() {
-    isPlayerTurn.value = false
+    if (currentActor.value?.kind !== 'hero') return
+    endHeroTurn()
+  }
+
+  function endHeroTurn() {
+    const hero = player.value
     decrementAbilityCooldowns()
-    if (typeof player.value?.restoreEnergy === 'function') {
-      const regen = typeof player.value.getTurnEndEnergyRegen === 'function'
-        ? player.value.getTurnEndEnergyRegen()
+    if (hero && typeof hero.restoreEnergy === 'function') {
+      const regen = typeof hero.getTurnEndEnergyRegen === 'function'
+        ? hero.getTurnEndEnergyRegen()
         : 0
       if (regen > 0) {
-        const restored = player.value.restoreEnergy(regen)
+        const restored = hero.restoreEnergy(regen)
         if (restored > 0) {
           addToLog(`Recuperaste ${restored} de energia (fin de turno).`)
         }
       }
     }
-    setTimeout(enemyTurn, config.isTraining ? 1000 : 2000)
+    const id = currentActorId.value
+    if (id) {
+      turnState.value = advanceAfterTurn(turnState.value, turnActors.value, id)
+    }
+    setTimeout(() => { runNextTurn() }, config.isTraining ? 600 : 1000)
   }
 
   async function startPlayerTurn() {
     if (!player.value) return
     if (isCombatEnded.value) return
-    if (!isPlayerTurn.value) return
+    if (currentActor.value?.kind !== 'hero') return
     usedItemThisTurn.value = false
     await applyPlayerStatusTick()
   }
 
-  async function enemyTurn() {
-    if (!player.value) return
-
-    const aliveEnemies = enemies.value.filter(enemy => enemy.isAlive)
-    if (aliveEnemies.length === 0) {
-      endCombat(true)
+  async function runNextTurn() {
+    if (isCombatEnded.value) return
+    const nextId = nextActorId(turnState.value, turnActors.value)
+    if (!nextId) {
+      const anyHeroAlive = heroes.value.some(h => h.isAlive)
+      if (anyHeroAlive) endCombat(true)
+      else endCombat(false)
       return
     }
-
-    const enemyTargets = new Map<string, Hero | null>()
-    for (const enemy of aliveEnemies) {
-      enemyTargets.set(enemy.id, enemy.selectTarget(gameStore.activeHeroes))
+    currentActorId.value = nextId
+    const actor = turnActors.value.find(a => a.id === nextId)
+    if (!actor) return
+    if (actor.activeEffectTypes.has(STUN_EFFECT_TYPE)) {
+      await skipStunnedTurn(actor)
+      return
     }
-
-    for (let i = 0; i < aliveEnemies.length; i++) {
-      const enemy = aliveEnemies[i]
-      if (!player.value || !player.value.isAlive) break
-
-      let target = enemyTargets.get(enemy.id) ?? null
-      if (!target) {
-        addToLog(`${enemy.name} no encuentra un objetivo válido y pierde su turno.`)
-        await delay(config.isTraining ? 600 : 1200)
-        continue
-      }
-
-      const selectedPattern = enemy.selectAttackPattern(target)
-      const attackName = selectedPattern.name ?? 'atacar'
-      const enemyIndex = enemies.value.filter(e => e.name === enemy.name && e.isAlive).indexOf(enemy) + 1
-      const enemyLabel = aliveEnemies.length > 1 ? `${enemy.name} ${enemyIndex}` : enemy.name
-
-      const isCrit = typeof enemy.rollCrit === 'function' && enemy.rollCrit()
-
-      // Marca al heroe target como atacado antes del anuncio/defensa para que
-      // la UI pueda resaltarlo durante todo el tiempo que dura el ataque.
-      // El splash multi-heroe agregara mas IDs al terminar la defensa.
-      attackedHeroIds.value = [target.id]
-      attackingEnemyId.value = enemy.id
-      const announceText = isCrit
-        ? `¡CRÍTICO! ${enemyLabel} va a usar ${attackName} contra ${target.name}!`
-        : `${enemyLabel} va a usar ${attackName} contra ${target.name}!`
-      const announceDuration = (config.isTraining ? 800 : 1400) + (isCrit ? 500 : 0)
-      const announceVariant: 'attack' | 'crit-attack' = isCrit ? 'crit-attack' : 'attack'
-      showAnnouncement(announceText, announceVariant, announceDuration)
-      addToLog(isCrit
-        ? `¡CRÍTICO! ${enemyLabel} va a usar ${attackName} contra ${target.name} (daño x2)`
-        : `${enemyLabel} va a usar ${attackName} contra ${target.name}`)
-      await delay(announceDuration)
-      attackingEnemyId.value = null
-
-      await showEnemyStatusSequence(enemy)
-
-      const stunEffect = enemy.statusEffects.find(e => e.type === 'stun')
-      if (stunEffect && stunEffect.turns > 0) {
-        attackedHeroIds.value = []
-        addToLog(`${enemy.name} está aturdido y pierde su turno. (${stunEffect.turns} turno(s) restante(s))`)
-        await delay(config.isTraining ? 1000 : 2000)
-        enemy.reduceStatusEffects && enemy.reduceStatusEffects()
-        continue
-      }
-
-      const rawDamage = enemy.attack()
-      const damage = Math.floor(rawDamage * selectedPattern.damageMultiplier * (isCrit ? 2 : 1))
-      await startDefenseChallenge(enemy, target, damage, selectedPattern, { isCrit })
-
-      if (selectedPattern.multiHeroAttack) {
-        await applyEnemyMultiHeroSplash(selectedPattern.multiHeroAttack, target, enemy)
-      }
-
-      attackedHeroIds.value = []
-
-      if (!target.isAlive) {
-        if (config.isTraining) {
-          addToLog('¡Has caído en el entrenamiento! Usa "Revivir" en el panel para continuar.')
-          isPlayerTurn.value = true
-          isExecutingAction.value = false
-          return
-        }
-        const rotated = rotateToNextAliveHero()
-        if (!rotated) {
-          addToLog('¡Todos tus heroes han caido!')
-          endCombat(false)
-          return
-        }
-        addToLog(`¡${player.value.name} entra en combate!`)
-        for (let j = i + 1; j < aliveEnemies.length; j++) {
-          const remaining = aliveEnemies[j]
-          enemyTargets.set(remaining.id, remaining.selectTarget(gameStore.activeHeroes))
-        }
-      }
-      await delay(config.isTraining ? 600 : 1500);
-
-      // Decrement DESPUES de las acciones del turno: el efecto (ej. INJURED)
-      // debe aplicarse durante el ataque del enemigo y solo expirar al final.
-      enemy.reduceStatusEffects && enemy.reduceStatusEffects()
+    if (!actor.isAlive) {
+      turnState.value = advanceAfterTurn(turnState.value, turnActors.value, actor.id)
+      await runNextTurn()
+      return
     }
+    if (actor.kind === 'hero') {
+      await startHeroTurn(actor)
+    } else {
+      await startEnemyTurn(actor)
+    }
+  }
 
-    isPlayerTurn.value = true
+  async function skipStunnedTurn(actor: TurnActor) {
+    const combatant = (enemies.value.find(e => e.id === actor.id)
+      ?? heroes.value.find(h => h.id === actor.id)) as
+      | { reduceStatusEffects?: () => void } | undefined
+    addToLog(`${actor.name} está aturdido y pierde su turno.`)
+    showAnnouncement(`${actor.name} pierde su turno`, 'status', 1400)
+    if (combatant && typeof combatant.reduceStatusEffects === 'function') {
+      combatant.reduceStatusEffects()
+    }
+    await delay(config.isTraining ? 1000 : 1500)
+    turnState.value = advanceAfterTurn(turnState.value, turnActors.value, actor.id)
+    await runNextTurn()
+  }
+
+  async function startHeroTurn(actor: TurnActor) {
+    if (isCombatEnded.value) return
+    // Sync activeHero al actor actual para que `player.value` (UI) apunte
+    // al heroe correcto y `applyPlayerStatusTick` le aplique el DoT.
+    const heroIdx = gameStore.heroes.findIndex(h => h?.id === actor.id)
+    if (heroIdx >= 0) gameStore.setActiveHero(heroIdx)
+
+    const hero = heroes.value.find(h => h.id === actor.id)
+    if (hero && typeof hero.reduceStatusEffects === 'function') {
+      // Decrement de estados del heroe entre turnos (consistente con la logica
+      // original que lo hacia al final del turno enemigo).
+      hero.reduceStatusEffects()
+    }
     isExecutingAction.value = false
-    // Decrement de estados del jugador al FINAL del turno enemigo: el efecto
-    // (ej. INJURED del jugador) debe seguir activo durante los ataques
-    // enemigos de este turno y solo expirar cuando el siguiente turno
-    // del jugador comienza (consistente con la logica del enemigo).
-    if (typeof player.value?.reduceStatusEffects === 'function') {
-      player.value.reduceStatusEffects()
+    usedItemThisTurn.value = false
+    addToLog(`Turno de ${actor.name}.`)
+    showAnnouncement(`Turno de ${actor.name}`, 'turn', 1200)
+    await applyPlayerStatusTick()
+    // Espera la accion del jugador; `endHeroTurn` (o `endPlayerTurn`) cierra el turno.
+  }
+
+  async function startEnemyTurn(actor: TurnActor) {
+    const enemy = enemies.value.find(e => e.id === actor.id)
+    if (!enemy || !enemy.isAlive) {
+      turnState.value = advanceAfterTurn(turnState.value, turnActors.value, actor.id)
+      await runNextTurn()
+      return
     }
-    // Si el heroe activo murio durante el turno enemigo, rotar al siguiente heroe vivo.
+    // Asegura que `player.value` apunte a un heroe vivo durante el turno
+    // enemigo (por si el heroe activo murio en turnos previos).
     if (!player.value || !player.value.isAlive) {
       const rotated = rotateToNextAliveHero()
       if (!rotated) {
@@ -795,12 +823,86 @@ export function useCombat(config: CombatConfig = {}) {
         endCombat(false)
         return
       }
-      addToLog(`Tu turno. ${gameStore.activeHero?.name} entra en combate.`)
-    } else {
-      addToLog('Tu turno.')
     }
-    showAnnouncement('Tu turno', 'turn', 1400)
-    await startPlayerTurn()
+
+    const target = enemy.selectTarget(gameStore.activeHeroes)
+    if (!target) {
+      addToLog(`${enemy.name} no encuentra un objetivo válido y pierde su turno.`)
+      await delay(config.isTraining ? 600 : 1200)
+      turnState.value = advanceAfterTurn(turnState.value, turnActors.value, actor.id)
+      if (enemy.isAlive && typeof enemy.reduceStatusEffects === 'function') {
+        enemy.reduceStatusEffects()
+      }
+      await runNextTurn()
+      return
+    }
+
+    const selectedPattern = enemy.selectAttackPattern(target)
+    const attackName = selectedPattern.name ?? 'atacar'
+    const aliveEnemiesCount = enemies.value.filter(e => e.isAlive).length
+    const enemyIndex = enemies.value.filter(e => e.name === enemy.name && e.isAlive).indexOf(enemy) + 1
+    const enemyLabel = aliveEnemiesCount > 1 ? `${enemy.name} ${enemyIndex}` : enemy.name
+
+    const isCrit = typeof enemy.rollCrit === 'function' && enemy.rollCrit()
+
+    // Marca al heroe target como atacado antes del anuncio/defensa para que
+    // la UI pueda resaltarlo durante todo el tiempo que dura el ataque.
+    attackedHeroIds.value = [target.id]
+    attackingEnemyId.value = enemy.id
+    const announceText = isCrit
+      ? `¡CRÍTICO! ${enemyLabel} va a usar ${attackName} contra ${target.name}!`
+      : `${enemyLabel} va a usar ${attackName} contra ${target.name}!`
+    const announceDuration = (config.isTraining ? 800 : 1400) + (isCrit ? 500 : 0)
+    const announceVariant: 'attack' | 'crit-attack' = isCrit ? 'crit-attack' : 'attack'
+    showAnnouncement(announceText, announceVariant, announceDuration)
+    addToLog(isCrit
+      ? `¡CRÍTICO! ${enemyLabel} va a usar ${attackName} contra ${target.name} (daño x2)`
+      : `${enemyLabel} va a usar ${attackName} contra ${target.name}`)
+    await delay(announceDuration)
+    attackingEnemyId.value = null
+
+    await showEnemyStatusSequence(enemy)
+
+    const rawDamage = enemy.attack()
+    const damage = Math.floor(rawDamage * selectedPattern.damageMultiplier * (isCrit ? 2 : 1))
+    await startDefenseChallenge(enemy, target, damage, selectedPattern, { isCrit })
+
+    if (selectedPattern.multiHeroAttack) {
+      await applyEnemyMultiHeroSplash(selectedPattern.multiHeroAttack, target, enemy)
+    }
+
+    attackedHeroIds.value = []
+
+    if (!target.isAlive) {
+      if (config.isTraining) {
+        addToLog('¡Has caído en el entrenamiento! Usa "Revivir" en el panel para continuar.')
+        isExecutingAction.value = false
+        rotateToNextAliveHero()
+        turnState.value = advanceAfterTurn(turnState.value, turnActors.value, actor.id)
+        if (enemy.isAlive && typeof enemy.reduceStatusEffects === 'function') {
+          enemy.reduceStatusEffects()
+        }
+        await runNextTurn()
+        return
+      }
+      const rotated = rotateToNextAliveHero()
+      if (!rotated) {
+        addToLog('¡Todos tus heroes han caido!')
+        endCombat(false)
+        return
+      }
+      addToLog(`¡${player.value.name} entra en combate!`)
+    }
+
+    await delay(config.isTraining ? 600 : 1500)
+
+    // Decrement DESPUES de las acciones del turno: el efecto (ej. INJURED)
+    // debe aplicarse durante el ataque del enemigo y solo expirar al final.
+    if (enemy.isAlive && typeof enemy.reduceStatusEffects === 'function') {
+      enemy.reduceStatusEffects()
+    }
+    turnState.value = advanceAfterTurn(turnState.value, turnActors.value, actor.id)
+    await runNextTurn()
   }
 
   /**
@@ -1155,6 +1257,11 @@ export function useCombat(config: CombatConfig = {}) {
     } else {
       addToLog(`¡Combate iniciado! Te enfrentas a ${enemyList.length} enemigo${enemyList.length > 1 ? 's' : ''}.`)
     }
+
+    // Inicializa el motor de turnos con heroes + enemigos actuales.
+    turnState.value = initTurnState(turnActors.value)
+    currentActorId.value = null
+    void runNextTurn()
   }
 
   function cleanup() {
@@ -1188,6 +1295,12 @@ export function useCombat(config: CombatConfig = {}) {
     abilityShortcuts,
     isPlayerInputLocked,
 
+    turnState,
+    currentActorId,
+    turnActors,
+    currentActor,
+    turnQueue,
+
     isDefenseActive,
     defensePattern,
     defenseZones,
@@ -1206,7 +1319,6 @@ export function useCombat(config: CombatConfig = {}) {
     handleCombatShortcuts,
     endPlayerTurn,
     startPlayerTurn,
-    enemyTurn,
     endCombat,
     endTraining,
     addToLog,

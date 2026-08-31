@@ -14,7 +14,6 @@ const props = defineProps<{
   heroes: Hero[]
   enemies: IEnemy[]
   aliveIndexByEnemyId: Record<string, number>
-  isPlayerTurn: boolean
   isSelectingTarget?: boolean
   canTargetAllies?: boolean
   activeHeroIndex?: number
