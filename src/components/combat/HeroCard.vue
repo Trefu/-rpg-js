@@ -153,7 +153,7 @@ onBeforeUnmount(() => {
     @click="onCardClick"
   >
     <template v-if="hero">
-      <div v-if="isBeingAttacked" class="being-attacked-badge">¡TE ATACAN!</div>
+      <div v-if="isBeingAttacked" class="being-attacked-badge">Defendiendo</div>
       <div v-if="isActive" class="active-badge">ACTIVO</div>
       <div class="hero-portrait">
         <img :src="hero.sprite" :alt="hero.name" class="hero-sprite" />

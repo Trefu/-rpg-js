@@ -101,7 +101,8 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
   }
 
   public defense(): number {
-    return this.defenseValue + Math.log(1 + Math.max(0, this.baseStats.body.value - 10)) * 4 + this.level
+    const bodyBonus = Math.log(1 + Math.max(0, this.baseStats.body.value - 10)) * 4
+    return Math.round(this.defenseValue + bodyBonus + this.level)
   }
 
   /**

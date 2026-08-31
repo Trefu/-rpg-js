@@ -172,8 +172,8 @@ const variantClass = computed(() => `variant-${variant.value}`)
 
 @media (max-width: 720px) {
   .announcement-banner {
-    top: auto;
-    bottom: calc(80px + env(safe-area-inset-bottom) + 56px);
+    top: 150px;
+    bottom: auto;
   }
   .announcement-frame {
     min-width: 0;
@@ -192,6 +192,18 @@ const variantClass = computed(() => `variant-${variant.value}`)
   }
   .variant-crit .announcement-text {
     font-size: 0.9rem;
+  }
+  .announcement-enter-from {
+    transform: translateX(-50%) translateY(-14px);
+  }
+  .announcement-enter-to {
+    transform: translateX(-50%) translateY(0);
+  }
+  .announcement-leave-from {
+    transform: translateX(-50%) translateY(0);
+  }
+  .announcement-leave-to {
+    transform: translateX(-50%) translateY(-10px);
   }
 }
 </style>

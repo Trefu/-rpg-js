@@ -33,21 +33,45 @@ const heroSlots = computed<(Hero | null)[]>(() => {
     return slots
 })
 
+/**
+ * Hero que esta recibiendo el ataque enemigo actual (target principal del
+ * turno enemigo). Si no hay ninguno, devuelve null. Solo considera heroes
+ * vivos: si el atacado cae durante el ataque, dejamos de mostrarlo.
+ */
+const attackedHero = computed<Hero | null>(() => {
+    const ids = props.attackedHeroIds ?? []
+    if (ids.length === 0) return null
+    const targetId = ids[0]
+    return props.heroes.find(h => h.id === targetId && h.isAlive) ?? null
+})
+
+/**
+ * Heroe cuyo retrato se muestra en el slot principal del HUD.
+ * Prioridad: el heroe que esta siendo atacado > el heroe activo del jugador.
+ * Asi, durante el turno enemigo el jugador ve claramente QUIEN recibe el
+ * golpe (con sombra roja), en lugar de seguir viendo al heroe "activo".
+ */
+const displayedHero = computed<Hero | null>(() => attackedHero.value ?? props.player)
+
+const isDisplayingAttackedHero = computed(() => !!attackedHero.value)
+
 const hpPercent = computed(() => {
-    if (!props.player || props.player.maxHealth <= 0) return 0
-    return Math.max(0, (props.player.health / props.player.maxHealth) * 100)
+    const h = displayedHero.value
+    if (!h || h.maxHealth <= 0) return 0
+    return Math.max(0, (h.health / h.maxHealth) * 100)
 })
 
 const energyPercent = computed(() => {
-    if (!props.player || !props.player.maxEnergy) return 0
-    return Math.max(0, (props.player.energy / props.player.maxEnergy) * 100)
+    const h = displayedHero.value
+    if (!h || !h.maxEnergy) return 0
+    return Math.max(0, (h.energy / h.maxEnergy) * 100)
 })
 
 const hpDisplay = computed(() =>
-    props.player ? `${props.player.health}/${props.player.maxHealth}` : ''
+    displayedHero.value ? `${displayedHero.value.health}/${displayedHero.value.maxHealth}` : ''
 )
 const energyDisplay = computed(() =>
-    props.player ? `${props.player.energy}/${props.player.maxEnergy}` : ''
+    displayedHero.value ? `${displayedHero.value.energy}/${displayedHero.value.maxEnergy}` : ''
 )
 
 const aliveEnemies = computed(() => props.enemies.filter(e => e.isAlive))
@@ -102,6 +126,10 @@ function onAllyRowClick(hero: Hero | null) {
     if (!hero) return
     if (isAllyTargeting.value) {
         if (!hero.isAlive) return
+        // Cierra el panel de equipo para que el jugador vea la animacion del
+        // buff/curacion sobre el campo en vez de quedarse con la lista tapando
+        // la mitad inferior del HUD mobile.
+        showAllyPreview.value = false
         emit('selectAlly', hero)
         return
     }
@@ -111,16 +139,28 @@ function onAllyRowClick(hero: Hero | null) {
 
 <template>
     <div v-if="player" class="mobile-hud">
-        <button class="mobile-hud-hero" :class="{ 'mobile-hud-hero-targeting': isAllyTargeting }" type="button"
-            :title="isAllyTargeting ? 'Seleccionar aliado' : (heroSlots.length > 1 ? 'Cambiar héroe' : '')"
+        <button class="mobile-hud-hero" :class="{
+            'mobile-hud-hero-targeting': isAllyTargeting,
+            'mobile-hud-hero-being-attacked': isDisplayingAttackedHero
+        }" type="button"
+            :title="isAllyTargeting
+                ? 'Seleccionar aliado'
+                : (isDisplayingAttackedHero
+                    ? `${displayedHero?.name} esta siendo atacado`
+                    : (heroSlots.length > 1 ? 'Cambiar héroe' : ''))"
             @click="onHeroPortraitClick">
-            <img v-if="player.sprite" :src="player.sprite" :alt="player.name" class="mobile-hud-portrait" />
+            <img v-if="displayedHero?.sprite" :src="displayedHero.sprite" :alt="displayedHero.name"
+                class="mobile-hud-portrait" />
             <div class="mobile-hud-info">
                 <div class="mobile-hud-name">
                     <span class="mobile-hud-name-text">
-                        {{ isAllyTargeting ? 'Seleccionar aliado' : player.name }}
+                        {{ isAllyTargeting
+                            ? 'Seleccionar aliado'
+                            : (isDisplayingAttackedHero
+                                ? `${displayedHero?.name} Defendiendo`
+                                : displayedHero?.name) }}
                     </span>
-                    <span class="mobile-hud-level">Nv {{ player.level }}</span>
+                    <span class="mobile-hud-level">Nv {{ displayedHero?.level }}</span>
                 </div>
                 <div class="mobile-hud-bar">
                     <div class="mobile-hud-bar-fill hp" :style="{ width: `${hpPercent}%` }"></div>
@@ -192,7 +232,7 @@ function onAllyRowClick(hero: Hero | null) {
                             <span class="mobile-hud-ally-name">{{ hero?.name ?? 'Vacío' }}</span>
                             <span v-if="hero" class="mobile-hud-ally-level">Nv {{ hero.level }}</span>
                             <span v-if="hero && (props.attackedHeroIds ?? []).includes(hero.id)"
-                                class="mobile-hud-ally-being-attacked">¡TE ATACAN!</span>
+                                class="mobile-hud-ally-being-attacked">Defendiendo</span>
                         </div>
                         <template v-if="hero">
                             <div class="mobile-hud-ally-bar">
@@ -431,6 +471,12 @@ function onAllyRowClick(hero: Hero | null) {
     border-color: rgba(102, 255, 178, 0.85) !important;
     box-shadow: 0 0 0 2px rgba(102, 255, 178, 0.35);
     animation: mobile-hud-targeting-pulse 1.2s ease-in-out infinite;
+}
+
+.mobile-hud-hero-being-attacked {
+    border-color: rgba(255, 68, 85, 0.95) !important;
+    box-shadow: 0 0 0 2px rgba(255, 68, 85, 0.55), 0 0 14px rgba(255, 51, 68, 0.6);
+    animation: mobile-hud-being-attacked-pulse 0.8s ease-in-out infinite;
 }
 
 @keyframes mobile-hud-targeting-pulse {

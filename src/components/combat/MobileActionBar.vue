@@ -191,7 +191,7 @@ function shortLabel(name: string, max = 5): string {
           @click.stop="onAbilityIconClick(slot.ability, slot.index, $event)"
         />
         <span class="mab-label" :title="slot.ability.name">{{ shortLabel(slot.ability.name) }}</span>
-        <span v-if="cooldownOf(slot.ability.type) > 0" class="mab-cooldown">
+        <span v-if="cooldownOf(slot.ability.type) > 0" class="mab-cd-badge">
           {{ cooldownOf(slot.ability.type) }}
         </span>
         <span v-else-if="isSelectedForTarget(slot.ability)" class="mab-cancel-hint" aria-hidden="true">
@@ -372,7 +372,7 @@ function shortLabel(name: string, max = 5): string {
   opacity: 0.4;
 }
 
-.mab-cooldown {
+.mab-cd-badge {
   position: absolute;
   top: 1px;
   right: 3px;

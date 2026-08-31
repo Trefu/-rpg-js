@@ -1,7 +1,7 @@
 import type { IAbility } from '@/core/interfaces/IAbility'
 import type { AbilityContext } from '@/core/interfaces/IAbility'
 import type { Hero } from '../Hero'
-import { StatusEffects } from '../StatusEffects'
+import { StatusEffects, DOT_STATUS_TYPES } from '../StatusEffects'
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
@@ -215,7 +215,7 @@ export const ClericRadiantStrike: IAbility = {
     randomAttack: {
         minExtraTargets: 1,
         maxExtraTargets: 2,
-        damageMultiplier: 1
+        damageMultiplier: 0.6
     },
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
@@ -257,7 +257,7 @@ export const ClericDivineSmite: IAbility = {
 
 export const ClericHeal: IAbility = {
     name: 'Curar Heridas',
-    description: 'Canaliza luz radiante para restaurar 30% de la vida maxima de un aliado (incluido el caster).',
+    description: 'Canaliza luz radiante para restaurar 30% de la vida maxima de un aliado (incluido el caster) y eliminar todos los efectos de dano por tiempo (Quemadura, Veneno, Congelado).',
     type: 'clericHeal',
     cooldown: 2,
     energyCost: 15,
@@ -273,11 +273,26 @@ export const ClericHeal: IAbility = {
         const before = target.health
         target.heal(healAmount)
         const restored = target.health - before
-        context.addToLog(
-            target === caster
-                ? `Te curaste ${restored} HP con luz radiante.`
-                : `Curaste a ${target.name} ${restored} HP.`
-        )
+
+        const cleansed: string[] = []
+        const dotEffects = target.statusEffects.filter(e => DOT_STATUS_TYPES.has(e.type))
+        for (const effect of dotEffects) {
+            target.removeStatusEffect(effect.type)
+            cleansed.push(StatusEffects.getByType(effect.type)?.name ?? effect.type)
+        }
+
+        const parts: string[] = []
+        if (restored > 0) {
+            parts.push(
+                target === caster
+                    ? `Te curaste ${restored} HP con luz radiante`
+                    : `Curaste a ${target.name} ${restored} HP`
+            )
+        }
+        if (cleansed.length > 0) {
+            parts.push(`y eliminaste ${cleansed.join(', ')}`)
+        }
+        context.addToLog(parts.length > 0 ? `${parts.join(' ')}.` : `La luz radiante no tuvo efecto sobre ${target.name}.`)
         context.showAnnouncement('Curar Heridas', 'info', 1500)
         await sleep(context.animationDelay)
     }
