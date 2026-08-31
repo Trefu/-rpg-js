@@ -38,12 +38,14 @@ const emit = defineEmits<{
 const expeditionStore = useExpeditionStore()
 const gameStore = useGameStore()
 
-const combatOptions: { isTraining?: boolean; onCombatEnd?: (victory: boolean) => void; onTrainingEnd?: () => void } = {
+const combatOptions: { isTraining?: boolean; isBoss?: boolean; onCombatEnd?: (victory: boolean) => void; onTrainingEnd?: () => void } = {
   onCombatEnd: (victory: boolean) => emit('combatEnded', victory)
 }
 if (props.isTraining) {
   combatOptions.isTraining = true
   combatOptions.onTrainingEnd = () => emit('trainingEnded')
+} else if (expeditionStore.selectedNode?.type === 'boss') {
+  combatOptions.isBoss = true
 }
 
 const {
