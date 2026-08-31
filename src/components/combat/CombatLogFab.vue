@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import scrollIcon from '@/assets/icons/arrowhead.png'
+import infoIcon from '@/assets/icons/info.png'
 import closeIcon from '@/assets/icons/cross-mark.png'
 
 const props = defineProps<{
@@ -37,7 +37,7 @@ function close() {
       :title="open ? 'Cerrar registro' : `Registro (${totalCount})`"
       @click="toggle"
     >
-      <img v-if="!open" :src="scrollIcon" alt="" class="log-fab-icon" />
+      <img v-if="!open" :src="infoIcon" alt="" class="log-fab-icon" />
       <img v-else :src="closeIcon" alt="" class="log-fab-icon" />
       <span v-if="!open && totalCount > 0" class="log-fab-badge">{{ totalCount }}</span>
     </button>
@@ -97,8 +97,8 @@ function close() {
 
 .log-fab {
   position: relative;
-  width: 48px;
-  height: 48px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: linear-gradient(145deg, #2e7d32 0%, #1b5e20 100%);
   border: 2px solid rgba(180, 230, 180, 0.5);
@@ -116,8 +116,8 @@ function close() {
 }
 
 .log-fab-icon {
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
   filter: brightness(0) invert(1);
 }
 
@@ -125,8 +125,8 @@ function close() {
   position: absolute;
   top: -2px;
   right: -2px;
-  min-width: 18px;
-  height: 18px;
+  min-width: 6px;
+  height: 10px;
   padding: 0 4px;
   border-radius: 9px;
   background: #ffe066;

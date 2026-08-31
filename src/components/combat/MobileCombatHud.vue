@@ -18,6 +18,8 @@ const props = defineProps<{
   isSelectingTarget?: boolean
   canTargetAllies?: boolean
   activeHeroIndex?: number
+  /** IDs de heroes recibiendo actualmente un ataque enemigo (incluye target principal y splashes). */
+  attackedHeroIds?: string[]
 }>()
 
 const emit = defineEmits<{
@@ -202,7 +204,8 @@ function onAllyRowClick(hero: Hero | null) {
             dead: !hero || !hero.isAlive,
             active: hero && props.activeHeroIndex === idx,
             targeting: isAllyTargeting && hero && hero.isAlive,
-            empty: !hero
+            empty: !hero,
+            'being-attacked': !!hero && (props.attackedHeroIds ?? []).includes(hero.id)
           }"
           :disabled="!hero || (!hero.isAlive && !isAllyTargeting)"
           @click="onAllyRowClick(hero)"
@@ -214,6 +217,7 @@ function onAllyRowClick(hero: Hero | null) {
             <div class="mobile-hud-ally-head">
               <span class="mobile-hud-ally-name">{{ hero?.name ?? 'Vacío' }}</span>
               <span v-if="hero" class="mobile-hud-ally-level">Nv {{ hero.level }}</span>
+              <span v-if="hero && (props.attackedHeroIds ?? []).includes(hero.id)" class="mobile-hud-ally-being-attacked">¡TE ATACAN!</span>
             </div>
             <template v-if="hero">
               <div class="mobile-hud-ally-bar">
@@ -546,6 +550,35 @@ function onAllyRowClick(hero: Hero | null) {
 .mobile-hud-ally-row.active {
   border-color: rgba(255, 230, 102, 0.7);
   box-shadow: 0 0 0 1.5px rgba(255, 230, 102, 0.35);
+}
+
+.mobile-hud-ally-row.being-attacked {
+  border-color: rgba(255, 68, 85, 0.95);
+  box-shadow: 0 0 0 2px rgba(255, 68, 85, 0.55), 0 0 14px rgba(255, 51, 68, 0.6);
+  animation: mobile-hud-being-attacked-pulse 0.8s ease-in-out infinite;
+}
+
+@keyframes mobile-hud-being-attacked-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 1.5px rgba(255, 68, 85, 0.45), 0 0 8px rgba(255, 51, 68, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 2.5px rgba(255, 68, 85, 0.85), 0 0 18px rgba(255, 51, 68, 0.8);
+  }
+}
+
+.mobile-hud-ally-being-attacked {
+  display: inline-block;
+  background: #ff3344;
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+  margin-left: 0.4rem;
+  box-shadow: 0 0 6px rgba(255, 51, 68, 0.7);
+  vertical-align: middle;
 }
 
 .mobile-hud-ally-row.targeting {

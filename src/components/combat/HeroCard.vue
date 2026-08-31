@@ -20,6 +20,8 @@ interface Props {
   index: number
   isActive: boolean
   isTargetSelectable: boolean
+  /** Cuando true, marca visualmente al heroe como objetivo de un ataque enemigo en curso. */
+  isBeingAttacked?: boolean
 }
 
 const props = defineProps<Props>()
@@ -143,11 +145,18 @@ onBeforeUnmount(() => {
 <template>
   <div
     class="hero-card"
-    :class="{ empty: !hero, active: isActive, 'target-selectable': isTargetSelectable, 'menu-open': isOpen }"
+    :class="{
+      empty: !hero,
+      active: isActive,
+      'target-selectable': isTargetSelectable,
+      'menu-open': isOpen,
+      'being-attacked': !!hero && !!isBeingAttacked
+    }"
     ref="rootEl"
     @click="onCardClick"
   >
     <template v-if="hero">
+      <div v-if="isBeingAttacked" class="being-attacked-badge">¡TE ATACAN!</div>
       <div v-if="isActive" class="active-badge">ACTIVO</div>
       <div class="hero-portrait">
         <img :src="hero.sprite" :alt="hero.name" class="hero-sprite" />
@@ -270,6 +279,38 @@ onBeforeUnmount(() => {
 .hero-card.active {
   border-color: #ffe066;
   box-shadow: 0 0 14px rgba(255, 230, 102, 0.55), 0 2px 8px rgba(0, 0, 0, 0.45);
+}
+
+.hero-card.being-attacked {
+  border-color: #ff3344;
+  box-shadow: 0 0 18px rgba(255, 51, 68, 0.85), 0 2px 8px rgba(0, 0, 0, 0.45);
+  animation: hero-being-attacked-pulse 0.8s ease-in-out infinite;
+}
+
+@keyframes hero-being-attacked-pulse {
+  0%, 100% {
+    box-shadow: 0 0 12px rgba(255, 51, 68, 0.55), 0 2px 8px rgba(0, 0, 0, 0.45);
+    transform: translateX(0);
+  }
+  50% {
+    box-shadow: 0 0 24px rgba(255, 51, 68, 0.95), 0 2px 8px rgba(0, 0, 0, 0.45);
+    transform: translateX(-3px);
+  }
+}
+
+.being-attacked-badge {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  background: #ff3344;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+  z-index: 2;
+  box-shadow: 0 0 6px rgba(255, 51, 68, 0.8);
 }
 
 .hero-card.empty {

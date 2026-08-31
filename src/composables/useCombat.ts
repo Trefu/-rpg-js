@@ -56,6 +56,13 @@ export function useCombat(config: CombatConfig = {}) {
   const audioManager = AudioManager.getInstance()
   const currentAction = ref<{ ability: IAbility, target: any } | null>(null)
   const attackingEnemyId = ref<string | null>(null)
+  /**
+   * IDs de heroes que estan recibiendo el ataque actual (incluye al target
+   * principal y, si el patron enemigo tiene multiHeroAttack, a los heroes
+   * extra golpeados por el splash). La UI lo usa para resaltar visualmente
+   * a quien le estan pegando (mobile y desktop). Set vacio = nadie.
+   */
+  const attackedHeroIds = ref<string[]>([])
   const combatLogRef = ref<HTMLDivElement | null>(null)
   const enemyHitPopups = ref<{ id: string, value: number, key: number }[]>([])
   const playerHitPopups = ref<{ value: number, key: number }[]>([])
@@ -707,16 +714,20 @@ export function useCombat(config: CombatConfig = {}) {
 
       const isCrit = typeof enemy.rollCrit === 'function' && enemy.rollCrit()
 
+      // Marca al heroe target como atacado antes del anuncio/defensa para que
+      // la UI pueda resaltarlo durante todo el tiempo que dura el ataque.
+      // El splash multi-heroe agregara mas IDs al terminar la defensa.
+      attackedHeroIds.value = [target.id]
       attackingEnemyId.value = enemy.id
       const announceText = isCrit
-        ? `¡CRÍTICO! ${enemyLabel} va a usar ${attackName}!`
-        : `${enemyLabel} va a usar ${attackName}!`
+        ? `¡CRÍTICO! ${enemyLabel} va a usar ${attackName} contra ${target.name}!`
+        : `${enemyLabel} va a usar ${attackName} contra ${target.name}!`
       const announceDuration = (config.isTraining ? 800 : 1400) + (isCrit ? 500 : 0)
       const announceVariant: 'attack' | 'crit-attack' = isCrit ? 'crit-attack' : 'attack'
       showAnnouncement(announceText, announceVariant, announceDuration)
       addToLog(isCrit
-        ? `¡CRÍTICO! ${enemyLabel} va a usar ${attackName} (daño x2)`
-        : `${enemyLabel} va a usar ${attackName}`)
+        ? `¡CRÍTICO! ${enemyLabel} va a usar ${attackName} contra ${target.name} (daño x2)`
+        : `${enemyLabel} va a usar ${attackName} contra ${target.name}`)
       await delay(announceDuration)
       attackingEnemyId.value = null
 
@@ -724,6 +735,7 @@ export function useCombat(config: CombatConfig = {}) {
 
       const stunEffect = enemy.statusEffects.find(e => e.type === 'stun')
       if (stunEffect && stunEffect.turns > 0) {
+        attackedHeroIds.value = []
         addToLog(`${enemy.name} está aturdido y pierde su turno. (${stunEffect.turns} turno(s) restante(s))`)
         await delay(config.isTraining ? 1000 : 2000)
         enemy.reduceStatusEffects && enemy.reduceStatusEffects()
@@ -737,6 +749,8 @@ export function useCombat(config: CombatConfig = {}) {
       if (selectedPattern.multiHeroAttack) {
         await applyEnemyMultiHeroSplash(selectedPattern.multiHeroAttack, target, enemy)
       }
+
+      attackedHeroIds.value = []
 
       if (!target.isAlive) {
         if (config.isTraining) {
@@ -988,6 +1002,10 @@ export function useCombat(config: CombatConfig = {}) {
     const extras = shuffle(pool).slice(0, count)
     const baseDmg = Math.max(0, Math.floor(enemy.attack() * spec.damageMultiplier))
     if (baseDmg <= 0) return
+    // Anade visualmente a la lista de heroes atacados al inicio del splash
+    // para que la UI los marque simultaneamente con el principal.
+    const baseIds = attackedHeroIds.value.slice()
+    attackedHeroIds.value = [...baseIds, ...extras.map(h => h.id)]
     for (const hero of extras) {
       const dmg = Math.max(0, baseDmg)
       hero.takeDamage(dmg)
@@ -1155,6 +1173,7 @@ export function useCombat(config: CombatConfig = {}) {
     selectedAbility,
     currentAction,
     attackingEnemyId,
+    attackedHeroIds,
     combatLogRef,
     enemyHitPopups,
     playerHitPopups,
