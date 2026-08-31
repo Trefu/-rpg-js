@@ -14,6 +14,7 @@ export class Warrior extends Hero {
       name: 'Bjorn',
       level,
       maxHealth: 140,
+      maxEnergy: 60,
       defense: 12,
       speed: 10,
       baseAttack: 16,
