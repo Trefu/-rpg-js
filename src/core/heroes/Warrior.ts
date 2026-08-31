@@ -1,5 +1,10 @@
 import { Hero } from '../Hero'
-import { createWarriorBasicAttackAbility, createWarriorAttackAbility, createSecondWindAbility } from '../abilities/Abilities'
+import {
+  BasicAttack,
+  WarriorInjuringStrike,
+  SecondWind,
+  WarriorDevastatingStrike
+} from '../abilities/Abilities'
 import warriorSprite from '@/assets/sprites/heroes/warrior.png'
 
 export class Warrior extends Hero {
@@ -18,9 +23,10 @@ export class Warrior extends Hero {
 
   static createStarter(): Warrior {
     const warrior = new Warrior(1)
-    warrior.learnAbility(createWarriorBasicAttackAbility())
-    warrior.learnAbility(createSecondWindAbility())
-    warrior.learnAbility(createWarriorAttackAbility())
+    warrior.learnAbility(BasicAttack)
+    warrior.learnAbility(WarriorInjuringStrike)
+    warrior.learnAbility(SecondWind)
+    warrior.learnAbility(WarriorDevastatingStrike)
     warrior.addItem('healing-flask')
     return warrior
   }

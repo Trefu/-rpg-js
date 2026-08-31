@@ -2,7 +2,7 @@ import { Character } from './Character'
 import type { IAbility } from './interfaces/IAbility'
 import type { IStatusEffect } from './interfaces/IStatusEffect'
 import type { ICombatant, IInventory, ILevelable, IPlayerStats } from './interfaces/ICharacter'
-import { createBasicAttackAbility } from './abilities/Abilities'
+import { BasicAttack } from './abilities/Abilities'
 import { DOT_STATUS_TYPES } from './StatusEffects'
 
 export class Hero extends Character implements ICombatant, ILevelable, IInventory {
@@ -60,7 +60,7 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
       carisma: 10
     }
 
-    this.learnAbility(createBasicAttackAbility())
+    this.learnAbility(BasicAttack)
   }
 
   public learnAbility(ability: IAbility): void {

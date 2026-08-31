@@ -16,10 +16,10 @@ import cycleIcon from '@/assets/icons/cycle.png'
 import doorIcon from '@/assets/icons/door.png'
 import cancelIcon from '@/assets/icons/logic-gate-not.png'
 import {
-  createBasicAttackAbility,
-  createStunStrikeAbility,
-  createStealthStrikeAbility,
-  createFireballAbility
+  BasicAttack,
+  StunStrike,
+  StealthStrike,
+  Fireball
 } from '@/core/abilities/Abilities'
 import {
   SLASH,
@@ -157,10 +157,10 @@ function learnAbility(abilityType: 'attack' | 'stunStrike' | 'stealthStrike' | '
   if (p.abilities.find(a => a.type === abilityType)) return
   let ability
   switch (abilityType) {
-    case 'attack': ability = createBasicAttackAbility(); break
-    case 'stunStrike': ability = createStunStrikeAbility(); break
-    case 'stealthStrike': ability = createStealthStrikeAbility(); break
-    case 'fireball': ability = createFireballAbility(); break
+    case 'attack': ability = BasicAttack; break
+    case 'stunStrike': ability = StunStrike; break
+    case 'stealthStrike': ability = StealthStrike; break
+    case 'fireball': ability = Fireball; break
   }
   if (ability) p.learnAbility(ability)
 }

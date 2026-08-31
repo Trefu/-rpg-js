@@ -1,8 +1,8 @@
 import { Hero } from '../Hero'
 import {
-  createClericBasicAttackAbility,
-  createClericHealAbility,
-  createClericSmiteAbility
+  ClericRadiantStrike,
+  ClericHeal,
+  ClericDivineSmite
 } from '../abilities/Abilities'
 import clericSprite from '@/assets/sprites/heroes/cleric.png'
 
@@ -22,9 +22,9 @@ export class Cleric extends Hero {
 
   static createStarter(): Cleric {
     const cleric = new Cleric(1)
-    cleric.learnAbility(createClericBasicAttackAbility())
-    cleric.learnAbility(createClericSmiteAbility())
-    cleric.learnAbility(createClericHealAbility())
+    cleric.learnAbility(ClericRadiantStrike)
+    cleric.learnAbility(ClericDivineSmite)
+    cleric.learnAbility(ClericHeal)
     cleric.addItem('healing-flask')
     return cleric
   }

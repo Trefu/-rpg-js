@@ -27,7 +27,7 @@ const buildAttackLog = (abilityName: string, damage: number, isCrit: boolean): s
     return isCrit ? `¡CRÍTICO! ${base}` : base
 }
 
-export const createBasicAttackAbility = (): IAbility => ({
+export const BasicAttack: IAbility = {
     name: 'Ataque Básico',
     description: 'Un ataque simple con daño bajo',
     type: 'attack',
@@ -45,9 +45,9 @@ export const createBasicAttackAbility = (): IAbility => ({
         context.addToLog(buildAttackLog('Ataque Básico', finalDamage, isCrit))
         await sleep(context.animationDelay)
     }
-})
+}
 
-export const createStunStrikeAbility = (): IAbility => ({
+export const StunStrike: IAbility = {
     name: 'Golpe Aturdidor',
     description: 'Un golpe que puede aturdir al enemigo',
     type: 'stunStrike',
@@ -65,9 +65,9 @@ export const createStunStrikeAbility = (): IAbility => ({
         context.addToLog(buildAttackLog('Golpe Aturdidor', finalDamage, isCrit))
         await sleep(context.animationDelay)
     }
-})
+}
 
-export const createStealthStrikeAbility = (): IAbility => ({
+export const StealthStrike: IAbility = {
     name: 'Golpe Sigiloso',
     description: 'Ataque furtivo que hace más daño',
     type: 'stealthStrike',
@@ -85,9 +85,9 @@ export const createStealthStrikeAbility = (): IAbility => ({
         context.addToLog(buildAttackLog('Golpe Sigiloso', finalDamage, isCrit))
         await sleep(context.animationDelay)
     }
-})
+}
 
-export const createFireballAbility = (): IAbility => ({
+export const Fireball: IAbility = {
     name: 'Bola de Fuego',
     description: 'Hechizo de fuego que causa daño mágico',
     type: 'fireball',
@@ -105,31 +105,9 @@ export const createFireballAbility = (): IAbility => ({
         context.addToLog(buildAttackLog('Bola de Fuego', finalDamage, isCrit))
         await sleep(context.animationDelay)
     }
-})
+}
 
-export const createWarriorAttackAbility = (): IAbility => ({
-    name: 'Tajo Devastador',
-    description: 'Un tajo certero que siempre cuesta 20 de energia.',
-    type: 'warriorDevastatingStrike',
-    cooldown: 0,
-    energyCost: 20,
-    targetType: 'enemies-only',
-    execute: async (context: AbilityContext) => {
-        const caster = context.caster as Hero
-        const extraDamage = 25 * caster.level
-        const { finalDamage, isCrit } = rollAndApplyDamage(caster, (caster.attack() + extraDamage))
-        if (finalDamage > 0) {
-            context.target.takeDamage(finalDamage)
-            context.showEnemyHit(context.target.id, finalDamage)
-            context.audioManager.playAttackSound()
-        }
-        if (isCrit) showCritAnnouncement(context)
-        context.addToLog(buildAttackLog('Tajo Devastador', finalDamage, isCrit))
-        await sleep(context.animationDelay)
-    }
-})
-
-export const createWarriorBasicAttackAbility = (): IAbility => ({
+export const WarriorInjuringStrike: IAbility = {
     name: 'Golpe Lesionador',
     description: 'Un tajo vertical preciso que inflige daño y aplica el debufo "Lesionado" al objetivo durante 1 turno. Cuesta energia.',
     type: 'warriorInjuringStrike',
@@ -162,9 +140,31 @@ export const createWarriorBasicAttackAbility = (): IAbility => ({
 
         await sleep(context.animationDelay)
     }
-})
+}
 
-export const createSecondWindAbility = (): IAbility => ({
+export const WarriorDevastatingStrike: IAbility = {
+    name: 'Golpe Devastador',
+    description: 'Un golpe devastador que siempre cuesta 20 de energia.',
+    type: 'warriorDevastatingStrike',
+    cooldown: 0,
+    energyCost: 20,
+    targetType: 'enemies-only',
+    execute: async (context: AbilityContext) => {
+        const caster = context.caster as Hero
+        const extraDamage = 25 * caster.level
+        const { finalDamage, isCrit } = rollAndApplyDamage(caster, (caster.attack() + extraDamage))
+        if (finalDamage > 0) {
+            context.target.takeDamage(finalDamage)
+            context.showEnemyHit(context.target.id, finalDamage)
+            context.audioManager.playAttackSound()
+        }
+        if (isCrit) showCritAnnouncement(context)
+        context.addToLog(buildAttackLog('Golpe Devastador', finalDamage, isCrit))
+        await sleep(context.animationDelay)
+    }
+}
+
+export const SecondWind: IAbility = {
     name: 'Segundo Aliento',
     description: 'Cura 20% de vida maxima y aplica el buff Segundo Aliento: cada bloqueo siguiente restaura 2% de la energia maxima (5 bloqueos).',
     type: 'secondWind',
@@ -204,9 +204,9 @@ export const createSecondWindAbility = (): IAbility => ({
         context.showAnnouncement('Segundo Aliento!', 'info', 1500)
         await sleep(context.animationDelay)
     }
-})
+}
 
-export const createClericBasicAttackAbility = (): IAbility => ({
+export const ClericRadiantStrike: IAbility = {
     name: 'Luz Sagrada',
     description: 'Un destello radiante que causa daño sagrado al objetivo y puede saltar a 1-2 enemigos adicionales cercanos.',
     type: 'clericRadiantStrike',
@@ -231,9 +231,9 @@ export const createClericBasicAttackAbility = (): IAbility => ({
         context.addToLog(buildAttackLog('Luz Sagrada', finalDamage, isCrit))
         await sleep(context.animationDelay)
     }
-})
+}
 
-export const createClericSmiteAbility = (): IAbility => ({
+export const ClericDivineSmite: IAbility = {
     name: 'Castigo Divino',
     description: 'Un ataque radiante imbuido de fe pura que siempre cuesta 20 de energia.',
     type: 'clericDivineSmite',
@@ -253,9 +253,9 @@ export const createClericSmiteAbility = (): IAbility => ({
         context.addToLog(buildAttackLog('Castigo Divino', finalDamage, isCrit))
         await sleep(context.animationDelay)
     }
-})
+}
 
-export const createClericHealAbility = (): IAbility => ({
+export const ClericHeal: IAbility = {
     name: 'Curar Heridas',
     description: 'Canaliza luz radiante para restaurar 30% de la vida maxima de un aliado (incluido el caster).',
     type: 'clericHeal',
@@ -281,4 +281,4 @@ export const createClericHealAbility = (): IAbility => ({
         context.showAnnouncement('Curar Heridas', 'info', 1500)
         await sleep(context.animationDelay)
     }
-})
+}
