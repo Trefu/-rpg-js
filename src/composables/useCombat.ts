@@ -49,7 +49,6 @@ const DO_STATUS_TYPES: Set<string> = new Set([
 
 export interface CombatConfig {
   isTraining?: boolean
-  isBoss?: boolean
   onCombatEnd?: (victory: boolean) => void
   onTrainingEnd?: () => void
 }
@@ -1257,11 +1256,11 @@ export function useCombat(config: CombatConfig = {}) {
     }
   }
 
-  function initializeCombat(enemyList: IEnemy[]) {
+  function initializeCombat(enemyList: IEnemy[], isBoss: boolean = false) {
     enemies.value = enemyList
     resetAbilityCooldowns()
     if (!config.isTraining) {
-      if (config.isBoss) {
+      if (isBoss) {
         audioManager.playMountainBoss()
       } else {
         audioManager.playMountainCombat()

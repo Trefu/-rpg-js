@@ -17,7 +17,7 @@ export class Dragon extends Enemy {
       experienceReward: 100 + (level * 12),
       goldReward: { min: 60 + (level * 6), max: 110 + (level * 7) },
       critChance: 0.10,
-      agility: 8
+      agility: 20
     })
   }
 }

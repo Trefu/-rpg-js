@@ -38,14 +38,12 @@ const emit = defineEmits<{
 const expeditionStore = useExpeditionStore()
 const gameStore = useGameStore()
 
-const combatOptions: { isTraining?: boolean; isBoss?: boolean; onCombatEnd?: (victory: boolean) => void; onTrainingEnd?: () => void } = {
+const combatOptions: { isTraining?: boolean; onCombatEnd?: (victory: boolean) => void; onTrainingEnd?: () => void } = {
   onCombatEnd: (victory: boolean) => emit('combatEnded', victory)
 }
 if (props.isTraining) {
   combatOptions.isTraining = true
   combatOptions.onTrainingEnd = () => emit('trainingEnded')
-} else if (expeditionStore.selectedNode?.type === 'boss') {
-  combatOptions.isBoss = true
 }
 
 const {
@@ -271,11 +269,14 @@ const handleKeyDown = (e: KeyboardEvent) => {
 
 onMounted(() => {
   if (props.enemyList && props.enemyList.length > 0) {
-    initializeCombat(props.enemyList)
+    const isBoss = props.enemyList.some(e => e.constructor.name === 'Dragon')
+    initializeCombat(props.enemyList, isBoss)
   } else {
     const currentNode = expeditionStore.currentExpedition?.currentNode
     if (currentNode && currentNode.enemies && currentNode.enemies.length > 0) {
-      initializeCombat(currentNode.enemies)
+      const isBoss = currentNode.type === 'boss'
+        || currentNode.enemies.some(e => e.constructor.name === 'Dragon')
+      initializeCombat(currentNode.enemies, isBoss)
     } else {
       console.error('CombatView: No se encontraron enemigos en el nodo de expedicion actual. Volviendo al mapa.')
       gameStore.navigateTo('expedition-map')
