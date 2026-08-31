@@ -8,6 +8,7 @@ import type { Hero } from '@/core/Hero'
 import { listZones } from '@/core/zones/Zones'
 import warriorSprite from '@/assets/sprites/heroes/warrior.png'
 import clericSprite from '@/assets/sprites/heroes/cleric.png'
+import { MAX_HEROES } from '@/stores/game'
 
 const emit = defineEmits<{
   (e: 'start', payload: { zoneId: ZoneId, heroes: Hero[] }): void
@@ -45,31 +46,79 @@ const heroes: HeroChoice[] = [
   }
 ]
 
-const selectedHeroId = ref<HeroChoice['id']>('warrior')
+/**
+ * Modo debug local: permite arrancar con varios heroes a la vez
+ * (incluyendo duplicados de la misma clase) para poder probar
+ * combate multi-heroe, rotacion, splash multi-heroe, etc.
+ * Capado por MAX_HEROES (=3).
+ */
+const multiHeroMode = ref(false)
+const maxHeroes = MAX_HEROES
+
+const selectedHeroIds = ref<HeroChoice['id'][]>(['warrior'])
 const selectedZoneId = ref<ZoneId | null>(zones[0]?.id ?? null)
 
-const selectedHero = computed(() => heroes.find(h => h.id === selectedHeroId.value) ?? null)
 const selectedZone = computed<IZone | null>(() => {
   if (!selectedZoneId.value) return null
   return zones.find(z => z.id === selectedZoneId.value) ?? null
 })
 
-const canStart = computed(() => !!selectedHero.value && !!selectedZone.value)
+const canStart = computed(
+  () => selectedHeroIds.value.length > 0 && !!selectedZone.value
+)
 
-const previewHero = computed(() => selectedHero.value?.factory() ?? null)
+const previewHeroes = computed<Hero[]>(() => {
+  const out: Hero[] = []
+  for (const id of selectedHeroIds.value) {
+    const choice = heroes.find(h => h.id === id)
+    if (choice) out.push(choice.factory())
+  }
+  return out
+})
 
-function handleStart() {
-  if (!canStart.value || !selectedHero.value || !selectedZoneId.value) return
-  emit('start', { zoneId: selectedZoneId.value, heroes: [selectedHero.value.factory()] })
+function isHeroSelected(id: HeroChoice['id']): boolean {
+  if (multiHeroMode.value) return selectedHeroIds.value.includes(id)
+  return selectedHeroIds.value[0] === id
 }
 
-function selectHero(id: HeroChoice['id']) {
-  selectedHeroId.value = id
+function heroCount(id: HeroChoice['id']): number {
+  return selectedHeroIds.value.filter(x => x === id).length
+}
+
+function toggleHero(id: HeroChoice['id']) {
+  if (multiHeroMode.value) {
+    const idx = selectedHeroIds.value.lastIndexOf(id)
+    if (idx >= 0) {
+      const next = selectedHeroIds.value.slice()
+      next.splice(idx, 1)
+      selectedHeroIds.value = next
+    } else {
+      if (selectedHeroIds.value.length >= maxHeroes) return
+      selectedHeroIds.value = [...selectedHeroIds.value, id]
+    }
+  } else {
+    selectedHeroIds.value = [id]
+  }
+}
+
+function setMultiHeroMode(enabled: boolean) {
+  multiHeroMode.value = enabled
+  if (!enabled && selectedHeroIds.value.length > 1) {
+    selectedHeroIds.value = [selectedHeroIds.value[0]]
+  }
+  if (selectedHeroIds.value.length === 0 && heroes[0]) {
+    selectedHeroIds.value = [heroes[0].id]
+  }
 }
 
 function selectZone(id: ZoneId) {
   if (!isZoneUnlocked(id)) return
   selectedZoneId.value = id
+}
+
+function handleStart() {
+  if (!canStart.value || !selectedZoneId.value) return
+  emit('start', { zoneId: selectedZoneId.value, heroes: previewHeroes.value })
 }
 </script>
 
@@ -83,21 +132,36 @@ function selectZone(id: ZoneId) {
     <section class="pre-game__panels">
       <div class="panel">
         <h2>Heroe</h2>
+        <label class="debug-toggle">
+          <input
+            type="checkbox"
+            :checked="multiHeroMode"
+            @change="(e) => setMultiHeroMode((e.target as HTMLInputElement).checked)"
+          />
+          <span>Modo debug (multi-heroe, max {{ maxHeroes }})</span>
+        </label>
         <ul class="card-list">
           <li
             v-for="hero in heroes"
             :key="hero.id"
             class="card"
-            :class="{ selected: hero.id === selectedHeroId }"
-            @click="selectHero(hero.id)"
+            :class="{ selected: isHeroSelected(hero.id) }"
+            @click="toggleHero(hero.id)"
           >
             <img :src="hero.sprite" :alt="hero.name" class="card__sprite" />
             <div class="card__body">
               <h3>{{ hero.name }}</h3>
               <p>{{ hero.description }}</p>
+              <small v-if="multiHeroMode && heroCount(hero.id) > 0">
+                Seleccionados: {{ heroCount(hero.id) }}
+              </small>
+              <small v-else-if="multiHeroMode">Clic para anadir</small>
             </div>
           </li>
         </ul>
+        <small v-if="multiHeroMode" class="multi-hint">
+          {{ selectedHeroIds.length }}/{{ maxHeroes }} heroes seleccionados. Clic otra vez en la misma tarjeta para quitar uno.
+        </small>
       </div>
 
       <div class="panel">
@@ -123,16 +187,22 @@ function selectZone(id: ZoneId) {
       </div>
     </section>
 
-    <section v-if="selectedHero && selectedZone" class="pre-game__summary">
-      <div class="summary__hero">
-        <img :src="selectedHero.sprite" :alt="selectedHero.name" />
-        <div>
-          <strong>{{ selectedHero.name }}</strong>
-          <span v-if="previewHero">
-            HP {{ previewHero.health }}/{{ previewHero.maxHealth }} ·
-            ATQ {{ previewHero.baseAttack }} ·
-            DEF {{ previewHero.defenseValue }}
-          </span>
+    <section v-if="canStart && selectedZone" class="pre-game__summary">
+      <div class="summary__heroes">
+        <div
+          v-for="(hero, idx) in previewHeroes"
+          :key="hero.id + '-' + idx"
+          class="summary__hero"
+        >
+          <img :src="hero.sprite" :alt="hero.name" />
+          <div>
+            <strong>{{ hero.name }}</strong>
+            <span>
+              HP {{ hero.health }}/{{ hero.maxHealth }} ·
+              ATQ {{ hero.baseAttack }} ·
+              DEF {{ hero.defenseValue }}
+            </span>
+          </div>
         </div>
       </div>
       <button class="start-btn" :disabled="!canStart" @click="handleStart">
@@ -291,6 +361,37 @@ function selectZone(id: ZoneId) {
   background: rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
+}
+
+.summary__heroes {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.debug-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 230, 102, 0.08);
+  border: 1px dashed rgba(255, 230, 102, 0.35);
+  border-radius: 6px;
+  color: rgba(255, 230, 102, 0.9);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.debug-toggle input {
+  cursor: pointer;
+}
+
+.multi-hint {
+  display: block;
+  margin-top: 0.6rem;
+  color: rgba(255, 230, 102, 0.75);
+  font-size: 0.8rem;
 }
 
 .summary__hero {
