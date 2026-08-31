@@ -11,7 +11,7 @@ import clericSprite from '@/assets/sprites/heroes/cleric.png'
 import { MAX_HEROES } from '@/stores/game'
 
 const emit = defineEmits<{
-  (e: 'start', payload: { zoneId: ZoneId, heroes: Hero[] }): void
+  (e: 'start', payload: { zoneId: ZoneId, heroes: Hero[], pendingJoinHero: Hero | null }): void
 }>()
 
 const zones = listZones()
@@ -51,7 +51,12 @@ const heroes: HeroChoice[] = [
  * (incluyendo duplicados de la misma clase) para poder probar
  * combate multi-heroe, rotacion, splash multi-heroe, etc.
  * Capado por MAX_HEROES (=3).
+ *
+ * Solo visible y usable en `npm run dev`. En build de produccion
+ * (`vite build`) el checkbox se oculta y `setMultiHeroMode` queda
+ * anulado para que el jugador solo pueda elegir 1 heroe al inicio.
  */
+const isDev = import.meta.env.DEV
 const multiHeroMode = ref(false)
 const maxHeroes = MAX_HEROES
 
@@ -102,6 +107,13 @@ function toggleHero(id: HeroChoice['id']) {
 }
 
 function setMultiHeroMode(enabled: boolean) {
+  if (!isDev) {
+    multiHeroMode.value = false
+    if (selectedHeroIds.value.length > 1) {
+      selectedHeroIds.value = [selectedHeroIds.value[0]]
+    }
+    return
+  }
   multiHeroMode.value = enabled
   if (!enabled && selectedHeroIds.value.length > 1) {
     selectedHeroIds.value = [selectedHeroIds.value[0]]
@@ -118,7 +130,15 @@ function selectZone(id: ZoneId) {
 
 function handleStart() {
   if (!canStart.value || !selectedZoneId.value) return
-  emit('start', { zoneId: selectedZoneId.value, heroes: previewHeroes.value })
+  const chosenIds = new Set(selectedHeroIds.value)
+  const pendingChoice = heroes.find(h => !chosenIds.has(h.id))
+  const pendingJoinHero =
+    pendingChoice && !multiHeroMode.value ? pendingChoice.factory() : null
+  emit('start', {
+    zoneId: selectedZoneId.value,
+    heroes: previewHeroes.value,
+    pendingJoinHero
+  })
 }
 </script>
 
@@ -132,7 +152,7 @@ function handleStart() {
     <section class="pre-game__panels">
       <div class="panel">
         <h2>Heroe</h2>
-        <label class="debug-toggle">
+        <label v-if="isDev" class="debug-toggle">
           <input
             type="checkbox"
             :checked="multiHeroMode"

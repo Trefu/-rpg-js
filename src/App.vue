@@ -11,7 +11,6 @@ import { AudioManager } from './core/AudioManager'
 import type { ZoneId } from './core/zones/EnemyPools'
 import type { INode } from './core/interfaces/IExpedition'
 import type { Hero } from './core/Hero'
-import { Cleric } from './core/heroes/Cleric'
 
 const gameStore = useGameStore()
 const expeditionStore = useExpeditionStore()
@@ -31,7 +30,8 @@ const handleResetGame = () => {
   expeditionStore.resetExpedition()
 }
 
-const handleStartRun = (payload: { zoneId: ZoneId, heroes: Hero[] }) => {
+const handleStartRun = (payload: { zoneId: ZoneId, heroes: Hero[], pendingJoinHero: Hero | null }) => {
+  gameStore.setPendingSecondHero(payload.pendingJoinHero)
   gameStore.beginRun({ zoneId: payload.zoneId, heroes: payload.heroes })
 }
 
@@ -71,21 +71,26 @@ const handleCombatEnded = (victory: boolean) => {
     }
   }
   gameStore.navigateTo('expedition-map')
-  checkClericJoin()
+  checkSecondHeroJoin()
 }
 
-const checkClericJoin = () => {
+const checkSecondHeroJoin = () => {
+  const pending = gameStore.pendingSecondHero
+  if (!pending) return
   const exp = expeditionStore.currentExpedition
   if (!exp) return
   const completedCombat = exp.nodes.filter(
     n => (n.type === 'combat' || n.type === 'boss') && n.completed
   ).length
-  const alreadyJoined = gameStore.heroes.some(h => h?.name === 'Elara')
-  if (completedCombat >= 3 && !alreadyJoined) {
-    const ok = gameStore.addHeroToFirstFreeSlot(Cleric.createStarter())
-    if (ok) {
-      window.alert('¡Elara, la Clériga, se une al grupo! (PRUEBAS)')
-    }
+  if (completedCombat < 3) {
+    const alreadyJoined = gameStore.heroes.some(h => h?.name === pending.name)
+    if (alreadyJoined) gameStore.setPendingSecondHero(null)
+    return
+  }
+  const ok = gameStore.addHeroToFirstFreeSlot(pending as Hero)
+  gameStore.setPendingSecondHero(null)
+  if (ok) {
+    window.alert(`¡${pending.name} se une al grupo! (PRUEBAS)`)
   }
 }
 
