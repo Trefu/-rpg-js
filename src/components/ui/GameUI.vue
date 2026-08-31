@@ -80,7 +80,7 @@ function handleClickOutside(event: MouseEvent) {
 .game-ui {
   position: fixed;
   top: 0;
-  right: 0;
+  left: 0;
   z-index: 1000;
   padding: 0.75rem 1rem;
   background: transparent;
@@ -90,7 +90,7 @@ function handleClickOutside(event: MouseEvent) {
   .game-ui {
     padding: 0.4rem 0.5rem;
     /* Offset below the turn-order bar (≈46px) so the gear no longer overlaps it */
-    top: 46px;
+    top: 144px;
   }
   .gear-btn {
     width: 32px;
