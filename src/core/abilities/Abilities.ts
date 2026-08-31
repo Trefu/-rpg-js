@@ -219,7 +219,7 @@ export const ClericRadiantStrike: IAbility = {
     },
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
-        const baseDamage = caster.attack() * 1.3
+        const baseDamage = caster.attack() * 1.8
         const { finalDamage, isCrit } = rollAndApplyDamage(caster, baseDamage)
         context.lastPrimaryBaseDamage = baseDamage
         if (finalDamage > 0) {
