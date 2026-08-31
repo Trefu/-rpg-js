@@ -3,7 +3,7 @@ import { useGameStore } from '@/stores/game'
 import type { Hero } from '@/core/Hero'
 import { AudioManager } from '@/core/AudioManager'
 import type { IEnemy } from '@/core/interfaces/ICharacter'
-import type { IAbility } from '@/core/interfaces/IAbility'
+import type { IAbility, AbilityContext } from '@/core/interfaces/IAbility'
 import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
 import type { IItem, ItemTargetType } from '@/core/items/types'
 import { getItemOrThrow } from '@/core/items/items'
@@ -734,6 +734,10 @@ export function useCombat(config: CombatConfig = {}) {
       const damage = Math.floor(rawDamage * selectedPattern.damageMultiplier * (isCrit ? 2 : 1))
       await startDefenseChallenge(enemy, target, damage, selectedPattern, { isCrit })
 
+      if (selectedPattern.multiHeroAttack) {
+        await applyEnemyMultiHeroSplash(selectedPattern.multiHeroAttack, target, enemy)
+      }
+
       if (!target.isAlive) {
         if (config.isTraining) {
           addToLog('¡Has caído en el entrenamiento! Usa "Revivir" en el panel para continuar.')
@@ -920,6 +924,81 @@ export function useCombat(config: CombatConfig = {}) {
     return Math.max(0, (current / max) * 100)
   }
 
+  function shuffle<T>(items: T[]): T[] {
+    const copy = items.slice()
+    for (let i = copy.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[copy[i], copy[j]] = [copy[j], copy[i]]
+    }
+    return copy
+  }
+
+  /**
+   * Splash de una ability de heroe: tras el impacto principal, golpea a
+   * N objetivos aleatorios extra del campo enemigo (excluyendo al principal)
+   * con `primaryBaseDamage * damageMultiplier`. Sin critico en splashes.
+   */
+  async function applyHeroSplash(
+    spec: NonNullable<IAbility['randomAttack']>,
+    primaryTargetId: string,
+    primaryBaseDamage: number
+  ) {
+    const candidates = enemies.value.filter(e => e.isAlive && e.id !== primaryTargetId)
+    if (candidates.length === 0) return
+    const cap = Math.min(spec.maxExtraTargets, candidates.length)
+    const min = Math.min(spec.minExtraTargets, cap)
+    if (cap < min) return
+    const count = min + Math.floor(Math.random() * (cap - min + 1))
+    const extras = shuffle(candidates).slice(0, count)
+    const splashDamage = Math.max(0, Math.floor(primaryBaseDamage * spec.damageMultiplier))
+    if (splashDamage <= 0) return
+    for (const enemy of extras) {
+      enemy.takeDamage(splashDamage)
+      showEnemyHit(enemy.id, splashDamage)
+      audioManager.playAttackSound()
+      audioManager.playHitSound()
+      addToLog(`¡La luz salta a ${enemy.name}! ${splashDamage} de daño.`)
+      await delay(280)
+    }
+    if (extras.length > 0) {
+      showAnnouncement(
+        `¡Salto radiante! ${extras.length} objetivo${extras.length > 1 ? 's' : ''} extra`,
+        'status',
+        1200
+      )
+    }
+  }
+
+  /**
+   * Multi-hero attack de un enemigo: tras la defensa contra el target principal,
+   * golpea a N heroes adicionales al azar (excluyendo al principal) con daño
+   * `enemy.attack() * damageMultiplier`. Sin critico en splashes.
+   */
+  async function applyEnemyMultiHeroSplash(
+    spec: NonNullable<DefensePatternConfig['multiHeroAttack']>,
+    primaryTarget: Hero,
+    enemy: IEnemy
+  ) {
+    const pool = heroes.value.filter(h => h.isAlive && h.id !== primaryTarget.id)
+    if (pool.length === 0) return
+    const cap = Math.min(spec.maxExtraTargets, pool.length)
+    const min = Math.min(spec.minExtraTargets, cap)
+    if (cap < min) return
+    const count = min + Math.floor(Math.random() * (cap - min + 1))
+    const extras = shuffle(pool).slice(0, count)
+    const baseDmg = Math.max(0, Math.floor(enemy.attack() * spec.damageMultiplier))
+    if (baseDmg <= 0) return
+    for (const hero of extras) {
+      const dmg = Math.max(0, baseDmg)
+      hero.takeDamage(dmg)
+      showPlayerHit(dmg)
+      audioManager.playAttackSound()
+      audioManager.playHitSound()
+      addToLog(`¡${enemy.name} golpea a ${hero.name}! ${dmg} de daño.`)
+      await delay(280)
+    }
+  }
+
   const executeAbility = async (
     energySpent: number = 0
   ) => {
@@ -930,18 +1009,24 @@ export function useCombat(config: CombatConfig = {}) {
       const playerChar = player.value as Hero
       const animationDelay = ability.animationDurationMs ?? 1500
 
+      const abilityContext: AbilityContext = {
+        caster: playerChar,
+        target,
+        addToLog,
+        showEnemyHit,
+        showAnnouncement: (text, variant, duration) => showAnnouncement(text, variant ?? 'info', duration),
+        audioManager,
+        animationDelay,
+        energySpent
+      }
+
       if (ability.execute) {
-        await ability.execute({
-          caster: playerChar,
-          target,
-          addToLog,
-          showEnemyHit,
-          showAnnouncement: (text, variant, duration) => showAnnouncement(text, variant ?? 'info', duration),
-          audioManager,
-          animationDelay,
-          energySpent
-        })
+        await ability.execute(abilityContext)
         onAbilityUsed(ability.type, ability.cooldown)
+      }
+
+      if (ability.randomAttack && typeof abilityContext.lastPrimaryBaseDamage === 'number') {
+        await applyHeroSplash(ability.randomAttack, target.id, abilityContext.lastPrimaryBaseDamage)
       }
     }
 

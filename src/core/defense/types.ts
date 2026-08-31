@@ -124,6 +124,20 @@ export interface DefensePatternConfig {
    * por lo que cuando se implemente AoE solo hay que iterar la lista de heroes.
    */
   targetType?: 'single' | 'all' | 'aoe'
+  /**
+   * Si esta definido, el enemigo que use este patron hara un ataque
+   * multi-heroe: tras resolver la defensa contra el target principal,
+   * golpea a 1-3 heroes adicionales al azar con daño reducido.
+   * La cantidad real se sortea uniformemente entre [minExtraTargets, maxExtraTargets]
+   * y se clampea al numero de heroes vivos restantes (excluyendo al principal).
+   * El daño a cada extra es `enemy.attack() * damageMultiplier` (sin critico).
+   */
+  multiHeroAttack?: {
+    minExtraTargets: number
+    maxExtraTargets: number
+    /** Multiplicador de daño aplicado a cada objetivo extra (default 0.5). */
+    damageMultiplier: number
+  }
 }
 
 export type DefensePhaseOutcome = 'success' | 'fail' | 'timeout'

@@ -208,13 +208,20 @@ export const createSecondWindAbility = (): IAbility => ({
 
 export const createClericBasicAttackAbility = (): IAbility => ({
     name: 'Luz Sagrada',
-    description: 'Un destello radiante que causa daño sagrado al objetivo.',
+    description: 'Un destello radiante que causa daño sagrado al objetivo y puede saltar a 1-2 enemigos adicionales cercanos.',
     type: 'clericRadiantStrike',
     cooldown: 0,
     targetType: 'enemies-only',
+    randomAttack: {
+        minExtraTargets: 1,
+        maxExtraTargets: 2,
+        damageMultiplier: 0.6
+    },
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
-        const { finalDamage, isCrit } = rollAndApplyDamage(caster, caster.attack() * 0.9)
+        const baseDamage = caster.attack() * 0.9
+        const { finalDamage, isCrit } = rollAndApplyDamage(caster, baseDamage)
+        context.lastPrimaryBaseDamage = baseDamage
         if (finalDamage > 0) {
             context.target.takeDamage(finalDamage)
             context.showEnemyHit(context.target.id, finalDamage)

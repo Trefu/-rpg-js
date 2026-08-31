@@ -5,6 +5,7 @@ import { Orc } from '../enemies/Orc'
 import { Wolf } from '../enemies/Wolf'
 import { Bandit } from '../enemies/Bandit'
 import type { IEnemy } from '../interfaces/ICharacter'
+import { BanditCaptain } from '../enemies/BanditCaptain'
 
 export type ZoneId = 'mountain-peak' | 'forgotten-castle' | 'crystal-caves'
 
@@ -35,7 +36,7 @@ export const ZONE_ENEMY_POOLS: Record<ZoneId, ZoneEnemyConfig> = {
     displayName: 'Monte Pico',
     pools: {
       intro: [
-        () => new Goblin(1),
+        () => new BanditCaptain(1),
         () => new GoblinArcher(1),
         () => new GoblinWarlock(1)
       ],
