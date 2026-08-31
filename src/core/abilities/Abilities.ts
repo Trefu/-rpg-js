@@ -158,14 +158,7 @@ export const WarriorDevastatingStrike: IAbility = {
         const extraDamage = 25 * caster.level
         const { finalDamage, isCrit } = rollAndApplyDamage(caster, (caster.attack() + extraDamage))
         context.lastPrimaryFinalDamage = finalDamage
-        if (finalDamage > 0) {
-            context.target.takeDamage(finalDamage)
-            context.showEnemyHit(context.target.id, finalDamage)
-            context.audioManager.playAttackSound()
-        }
         if (isCrit) showCritAnnouncement(context)
-        context.addToLog(buildAttackLog('Golpe Devastador', finalDamage, isCrit))
-        await sleep(context.animationDelay)
     }
 }
 

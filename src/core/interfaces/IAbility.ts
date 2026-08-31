@@ -89,7 +89,8 @@ export interface IAbility {
   /**
    * Si es `true`, tras el impacto principal la habilidad golpea a TODOS los
    * demas enemigos vivos con el mismo daño final (el del impacto principal,
-   * ya con crit aplicado). Sin critico adicional en los splashes.
+   * ya con crit aplicado) de forma simultanea en un unico tick, sin delays
+   * entre objetivos. Sin critico adicional en los splashes.
    * La ability debe escribir `context.lastPrimaryFinalDamage` en su `execute`.
    */
   aoe?: boolean

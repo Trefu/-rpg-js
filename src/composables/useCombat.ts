@@ -1000,30 +1000,40 @@ export function useCombat(config: CombatConfig = {}) {
   }
 
   /**
-   * AOE de una ability de heroe: tras el impacto principal, golpea a TODOS
-   * los demas enemigos vivos con el mismo daño final (con crit ya aplicado)
-   * de forma simultanea para una respuesta mas responsiva.
+   * AOE de una ability de heroe: golpea a TODOS los enemigos vivos (incluido
+   * el primario seleccionado) con el mismo daño final (con crit ya aplicado)
+   * en un unico tick simultaneo. La ability NO debe aplicar dano ni popup
+   * al target primario en su `execute`; eso lo hace esta funcion para que
+   * todos los impactos caigan a la vez.
    * Sin critico adicional en los splashes.
    */
   async function applyHeroAoe(
     primaryTargetId: string,
-    finalDamage: number
+    finalDamage: number,
+    animationDelay: number = 1500
   ) {
     if (finalDamage <= 0) return
-    const targets = enemies.value.filter(e => e.isAlive && e.id !== primaryTargetId)
+    const targets = enemies.value.filter(e => e.isAlive)
     if (targets.length === 0) return
-    for (const enemy of targets) {
-      enemy.takeDamage(finalDamage)
-      showEnemyHit(enemy.id, finalDamage)
-      addToLog(`¡Golpe Devastador golpea a ${enemy.name}! ${finalDamage} de daño.`)
-    }
+    await Promise.all(
+      targets.map(async enemy => {
+        enemy.takeDamage(finalDamage)
+        showEnemyHit(enemy.id, finalDamage)
+        addToLog(
+          enemy.id === primaryTargetId
+            ? `¡Golpe devastador golpea a ${enemy.name}! ${finalDamage} de daño.`
+            : `¡Golpe devastador alcanza a ${enemy.name}! ${finalDamage} de daño.`
+        )
+      })
+    )
     audioManager.playAttackSound()
     audioManager.playHitSound()
     showAnnouncement(
-      `¡Golpe Devastador! ${targets.length} enemigo${targets.length > 1 ? 's' : ''} mas`,
+      `¡Golpe devastador! ${targets.length} enemigo${targets.length > 1 ? 's' : ''} simultaneamente`,
       'status',
       1200
     )
+    await delay(animationDelay)
   }
 
   const executeAbility = async (
@@ -1057,7 +1067,7 @@ export function useCombat(config: CombatConfig = {}) {
       }
 
       if (ability.aoe && typeof abilityContext.lastPrimaryFinalDamage === 'number') {
-        await applyHeroAoe(target.id, abilityContext.lastPrimaryFinalDamage)
+        await applyHeroAoe(target.id, abilityContext.lastPrimaryFinalDamage, animationDelay)
       }
     }
 
