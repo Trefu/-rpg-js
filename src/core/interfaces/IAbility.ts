@@ -26,6 +26,12 @@ export interface AbilityContext {
    * el daño de cada objetivo splash como `lastPrimaryBaseDamage * damageMultiplier`.
    */
   lastPrimaryBaseDamage?: number
+  /**
+   * Escrito por la ability cuando tiene `aoe: true`: daño final (con crit ya
+   * aplicado) del impacto principal. `useCombat` lo replica a todos los demas
+   * enemigos vivos SIN critico adicional.
+   */
+  lastPrimaryFinalDamage?: number
 }
 
 /**
@@ -80,5 +86,12 @@ export interface IAbility {
    * Ver `RandomAttackSpec`.
    */
   randomAttack?: RandomAttackSpec
+  /**
+   * Si es `true`, tras el impacto principal la habilidad golpea a TODOS los
+   * demas enemigos vivos con el mismo daño final (el del impacto principal,
+   * ya con crit aplicado). Sin critico adicional en los splashes.
+   * La ability debe escribir `context.lastPrimaryFinalDamage` en su `execute`.
+   */
+  aoe?: boolean
   execute: (context: AbilityContext) => Promise<void>
 }

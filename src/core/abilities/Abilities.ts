@@ -144,15 +144,17 @@ export const WarriorInjuringStrike: IAbility = {
 
 export const WarriorDevastatingStrike: IAbility = {
     name: 'Golpe Devastador',
-    description: 'Un golpe devastador que siempre cuesta 20 de energia.',
+    description: 'Un golpe devastador que siempre cuesta 20 de energia y golpea a todos los enemigos con el mismo daño.',
     type: 'warriorDevastatingStrike',
     cooldown: 0,
     energyCost: 20,
     targetType: 'enemies-only',
+    aoe: true,
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
         const extraDamage = 25 * caster.level
         const { finalDamage, isCrit } = rollAndApplyDamage(caster, (caster.attack() + extraDamage))
+        context.lastPrimaryFinalDamage = finalDamage
         if (finalDamage > 0) {
             context.target.takeDamage(finalDamage)
             context.showEnemyHit(context.target.id, finalDamage)
@@ -211,15 +213,16 @@ export const ClericRadiantStrike: IAbility = {
     description: 'Un destello radiante que causa daño sagrado al objetivo y puede saltar a 1-2 enemigos adicionales cercanos.',
     type: 'clericRadiantStrike',
     cooldown: 0,
+    energyCost: 25,
     targetType: 'enemies-only',
     randomAttack: {
         minExtraTargets: 1,
         maxExtraTargets: 2,
-        damageMultiplier: 0.6
+        damageMultiplier: 1
     },
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
-        const baseDamage = caster.attack() * 0.9
+        const baseDamage = caster.attack() * 1.3
         const { finalDamage, isCrit } = rollAndApplyDamage(caster, baseDamage)
         context.lastPrimaryBaseDamage = baseDamage
         if (finalDamage > 0) {

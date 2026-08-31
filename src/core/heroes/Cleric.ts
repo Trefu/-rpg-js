@@ -8,16 +8,16 @@ import clericSprite from '@/assets/sprites/heroes/cleric.png'
 
 export class Cleric extends Hero {
   constructor(level: number = 1) {
-    super(
-      `cleric-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      'Elara',
+    super({
+      id: `cleric-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      name: 'Elara',
       level,
-      100,
-      10,
-      12,
-      10,
-      clericSprite
-    )
+      maxHealth: 100,
+      defense: 10,
+      speed: 12,
+      baseAttack: 10,
+      sprite: clericSprite
+    })
   }
 
   static createStarter(): Cleric {

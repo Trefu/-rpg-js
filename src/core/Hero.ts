@@ -5,6 +5,17 @@ import type { ICombatant, IInventory, ILevelable, IPlayerStats } from './interfa
 import { BasicAttack } from './abilities/Abilities'
 import { DOT_STATUS_TYPES } from './StatusEffects'
 
+export interface HeroOptions {
+  id: string
+  name: string
+  level?: number
+  maxHealth: number
+  defense: number
+  speed: number
+  baseAttack: number
+  sprite?: string
+}
+
 export class Hero extends Character implements ICombatant, ILevelable, IInventory {
   public experience: number
   public experienceToNextLevel: number
@@ -27,30 +38,21 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
    */
   public passiveEnergyRegen: number = 0
 
-  constructor(
-    id: string,
-    name: string,
-    level: number = 1,
-    maxHealth: number = 100,
-    defense: number = 10,
-    speed: number = 10,
-    baseAttack: number = 10,
-    sprite: string = ''
-  ) {
-    super(id, name, level, maxHealth)
+  constructor(opts: HeroOptions) {
+    super(opts.id, opts.name, opts.level ?? 1, opts.maxHealth)
     this.experience = 0
     this.experienceToNextLevel = 100
     this.gold = 0
     this.items = []
     this.abilities = []
-    this.defenseValue = defense
-    this.speed = speed
+    this.defenseValue = opts.defense
+    this.speed = opts.speed
     this.maxEnergy = 50
     this.energy = 50
-    this.baseAttack = baseAttack
+    this.baseAttack = opts.baseAttack
     this.critChance = 0.05
     this.critDamageMultiplier = 2.0
-    this.sprite = sprite
+    this.sprite = opts.sprite ?? ''
     this.baseStats = {
       fuerza: 10,
       destreza: 10,

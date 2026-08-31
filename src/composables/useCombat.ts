@@ -999,6 +999,33 @@ export function useCombat(config: CombatConfig = {}) {
     }
   }
 
+  /**
+   * AOE de una ability de heroe: tras el impacto principal, golpea a TODOS
+   * los demas enemigos vivos con el mismo daño final (con crit ya aplicado)
+   * de forma simultanea para una respuesta mas responsiva.
+   * Sin critico adicional en los splashes.
+   */
+  async function applyHeroAoe(
+    primaryTargetId: string,
+    finalDamage: number
+  ) {
+    if (finalDamage <= 0) return
+    const targets = enemies.value.filter(e => e.isAlive && e.id !== primaryTargetId)
+    if (targets.length === 0) return
+    for (const enemy of targets) {
+      enemy.takeDamage(finalDamage)
+      showEnemyHit(enemy.id, finalDamage)
+      addToLog(`¡Golpe Devastador golpea a ${enemy.name}! ${finalDamage} de daño.`)
+    }
+    audioManager.playAttackSound()
+    audioManager.playHitSound()
+    showAnnouncement(
+      `¡Golpe Devastador! ${targets.length} enemigo${targets.length > 1 ? 's' : ''} mas`,
+      'status',
+      1200
+    )
+  }
+
   const executeAbility = async (
     energySpent: number = 0
   ) => {
@@ -1027,6 +1054,10 @@ export function useCombat(config: CombatConfig = {}) {
 
       if (ability.randomAttack && typeof abilityContext.lastPrimaryBaseDamage === 'number') {
         await applyHeroSplash(ability.randomAttack, target.id, abilityContext.lastPrimaryBaseDamage)
+      }
+
+      if (ability.aoe && typeof abilityContext.lastPrimaryFinalDamage === 'number') {
+        await applyHeroAoe(target.id, abilityContext.lastPrimaryFinalDamage)
       }
     }
 

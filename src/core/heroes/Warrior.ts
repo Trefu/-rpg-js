@@ -9,16 +9,16 @@ import warriorSprite from '@/assets/sprites/heroes/warrior.png'
 
 export class Warrior extends Hero {
   constructor(level: number = 1) {
-    super(
-      `warrior-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      'Bjorn',
+    super({
+      id: `warrior-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      name: 'Bjorn',
       level,
-      140,
-      12,
-      10,
-      16,
-      warriorSprite
-    )
+      maxHealth: 140,
+      defense: 12,
+      speed: 10,
+      baseAttack: 16,
+      sprite: warriorSprite
+    })
   }
 
   static createStarter(): Warrior {
