@@ -12,11 +12,12 @@ export class BanditCaptain extends Enemy {
       id: `bandit-captain-${Math.random().toString(36).substr(2, 9)}`,
       name: 'Capitán Bandido',
       level,
-      maxHealth: 75 + (level * 12),
-      baseAttack: 16 + (level * 2),
-      experienceReward: 30 + (level * 5),
-      goldReward: { min: 25 + (level * 4), max: 40 + (level * 5) },
-      critChance: 0.08
+      maxHealth: 110 + (level * 18),
+      baseAttack: 22 + (level * 3),
+      experienceReward: 45 + (level * 8),
+      goldReward: { min: 35 + (level * 5), max: 55 + (level * 7) },
+      critChance: 0.12,
+      agility: 7
     })
   }
 }

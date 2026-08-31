@@ -36,7 +36,8 @@ export const BasicAttack: IAbility = {
     targetType: 'enemies-only',
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
-        const { finalDamage, isCrit } = rollAndApplyDamage(caster, caster.attack())
+        const rawDamage = caster.baseStats.body.value * 0.7 + caster.level * 0.5
+        const { finalDamage, isCrit } = rollAndApplyDamage(caster, rawDamage)
         if (finalDamage > 0) {
             context.target.takeDamage(finalDamage)
             context.showEnemyHit(context.target.id, finalDamage)
@@ -58,7 +59,8 @@ export const StunStrike: IAbility = {
     targetType: 'enemies-only',
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
-        const { finalDamage, isCrit } = rollAndApplyDamage(caster, caster.attack() * 0.8)
+        const rawDamage = (caster.baseStats.body.value * 0.7 + caster.level * 0.5) * 0.8
+        const { finalDamage, isCrit } = rollAndApplyDamage(caster, rawDamage)
         if (finalDamage > 0) {
             context.target.takeDamage(finalDamage)
             context.showEnemyHit(context.target.id, finalDamage)
@@ -80,7 +82,8 @@ export const StealthStrike: IAbility = {
     targetType: 'enemies-only',
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
-        const { finalDamage, isCrit } = rollAndApplyDamage(caster, caster.attack() * 1.5)
+        const rawDamage = (caster.baseStats.body.value * 0.7 + caster.level * 0.5) * 1.5
+        const { finalDamage, isCrit } = rollAndApplyDamage(caster, rawDamage)
         if (finalDamage > 0) {
             context.target.takeDamage(finalDamage)
             context.showEnemyHit(context.target.id, finalDamage)
@@ -102,7 +105,8 @@ export const Fireball: IAbility = {
     targetType: 'enemies-only',
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
-        const { finalDamage, isCrit } = rollAndApplyDamage(caster, caster.attack() * 1.5)
+        const rawDamage = caster.baseStats.mind.value * 2.5
+        const { finalDamage, isCrit } = rollAndApplyDamage(caster, rawDamage)
         if (finalDamage > 0) {
             context.target.takeDamage(finalDamage)
             context.showEnemyHit(context.target.id, finalDamage)
@@ -127,7 +131,8 @@ export const WarriorInjuringStrike: IAbility = {
         const caster = context.caster as Hero
         const target = context.target as any
 
-        const { finalDamage, isCrit } = rollAndApplyDamage(caster, caster.attack())
+        const rawDamage = caster.baseStats.body.value * 0.7 + caster.level * 0.5
+        const { finalDamage, isCrit } = rollAndApplyDamage(caster, rawDamage)
         if (finalDamage > 0) {
             target.takeDamage(finalDamage)
             context.showEnemyHit(target.id, finalDamage)
@@ -155,14 +160,14 @@ export const WarriorDevastatingStrike: IAbility = {
     description: 'Un golpe devastador que golpea a todos los enemigos con el mismo daño.',
     type: 'warriorDevastatingStrike',
     cooldown: 0,
-    energyCost: 20,
+    energyCost: 35,
     damageType: 'physical',
     targetType: 'enemies-only',
     aoe: true,
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
-        const extraDamage = 25 * caster.level
-        const { finalDamage, isCrit } = rollAndApplyDamage(caster, (caster.attack() + extraDamage))
+        const rawDamage = caster.baseStats.body.value * 1.5 + caster.level * 4
+        const { finalDamage, isCrit } = rollAndApplyDamage(caster, rawDamage)
         context.lastPrimaryFinalDamage = finalDamage
         if (isCrit) showCritAnnouncement(context)
     }
@@ -172,8 +177,8 @@ export const SecondWind: IAbility = {
     name: 'Segundo Aliento',
     description: 'Cura 20% de vida maxima y aplica el buff Segundo Aliento: cada bloqueo siguiente restaura 2% de la energia maxima (5 bloqueos).',
     type: 'secondWind',
-    cooldown: 1,
-    energyCost: 20,
+    cooldown: 2,
+    energyCost: 0,
     targetType: 'allies-only',
     requiresTarget: false,
     animationDurationMs: 1200,
@@ -183,7 +188,8 @@ export const SecondWind: IAbility = {
             context.addToLog('No puedes usar Segundo Aliento estando inconsciente.')
             return
         }
-        const healAmount = Math.floor(caster.maxHealth * 0.20)
+        const mindBonus = Math.floor(caster.baseStats.mind.value * 0.5)
+        const healAmount = Math.floor(caster.maxHealth * 0.20) + mindBonus
         caster.heal(healAmount)
 
         const buffTemplate = StatusEffects.SECOND_WIND
@@ -216,7 +222,7 @@ export const ClericRadiantStrike: IAbility = {
     description: 'Un destello radiante que causa daño sagrado al objetivo y puede saltar a 1-2 enemigos adicionales cercanos.',
     type: 'clericRadiantStrike',
     cooldown: 0,
-    energyCost: 25,
+    energyCost: 30,
     damageType: 'holy',
     targetType: 'enemies-only',
     randomAttack: {
@@ -245,7 +251,7 @@ export const ClericDivineSmite: IAbility = {
     description: 'Un ataque radiante imbuido de fe pura.',
     type: 'clericDivineSmite',
     cooldown: 0,
-    energyCost: 20,
+    energyCost: 40,
     damageType: 'holy',
     targetType: 'enemies-only',
     execute: async (context: AbilityContext) => {
@@ -264,10 +270,10 @@ export const ClericDivineSmite: IAbility = {
 
 export const ClericHeal: IAbility = {
     name: 'Curar Heridas',
-    description: 'Canaliza luz radiante para restaurar 30% de la vida maxima de un aliado (incluido el caster) y eliminar todos los efectos de dano por tiempo (Quemadura, Veneno, Congelado).',
+    description: 'Canaliza luz radiante para restaurar 30% (+ bono por mente) de la vida maxima de un aliado (incluido el caster) y eliminar todos los efectos de dano por tiempo (Quemadura, Veneno, Congelado).',
     type: 'clericHeal',
-    cooldown: 2,
-    energyCost: 15,
+    cooldown: 0,
+    energyCost: 30,
     targetType: 'allies-only',
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
@@ -276,7 +282,7 @@ export const ClericHeal: IAbility = {
             context.addToLog('No hay un aliado valido para curar.')
             return
         }
-        const healAmount = Math.floor(target.maxHealth * 0.30)
+        const healAmount = Math.floor(target.maxHealth * 0.30 + caster.baseStats.mind.value * 2)
         const before = target.health
         target.heal(healAmount)
         const restored = target.health - before

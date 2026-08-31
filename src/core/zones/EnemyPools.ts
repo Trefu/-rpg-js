@@ -14,12 +14,36 @@ export type EnemyTier = 'intro' | 'early' | 'mid' | 'late' | 'boss'
 
 export type EnemyCountRange = readonly [number, number]
 
+export interface EnemyFactory {
+  (): IEnemy
+  /**
+   * Si true, el picker garantiza que no se generen duplicados de esta
+   * misma "categoria elite" en el mismo combate (ver `uniqueKey`).
+   */
+  unique?: boolean
+  /** Identificador estable de la categoria elite (p.ej. 'bandit-captain'). */
+  uniqueKey?: string
+}
+
+/**
+ * Envuelve una factory marcandola como "elite unica": durante el muestreo
+ * de enemigos para un combate, si ya hay un enemigo con el mismo
+ * `uniqueKey`, esa factory no se vuelve a elegir. Usado para que el
+ * Capitan Bandido aparezca como miniboss (max 1 por combate).
+ */
+export function elite(key: string, factory: () => IEnemy): EnemyFactory {
+  const f = factory as EnemyFactory
+  f.unique = true
+  f.uniqueKey = key
+  return f
+}
+
 export interface EnemyPool {
-  intro: (() => IEnemy)[]
-  early: (() => IEnemy)[]
-  mid: (() => IEnemy)[]
-  late: (() => IEnemy)[]
-  boss: (() => IEnemy)[]
+  intro: EnemyFactory[]
+  early: EnemyFactory[]
+  mid: EnemyFactory[]
+  late: EnemyFactory[]
+  boss: EnemyFactory[]
 }
 
 export interface ZoneEnemyConfig {
@@ -34,7 +58,7 @@ export const DEFAULT_ZONE: ZoneId = 'mountain-peak'
 export const ZONE_ENEMY_POOLS: Record<ZoneId, ZoneEnemyConfig> = {
   'mountain-peak': {
     id: 'mountain-peak',
-    displayName: 'Monte Pico',
+    displayName: 'Monte Pico 🥵',
     pools: {
       intro: [
         () => new GoblinArcher(1),
@@ -51,30 +75,29 @@ export const ZONE_ENEMY_POOLS: Record<ZoneId, ZoneEnemyConfig> = {
         () => new Bandit(2)
       ],
       mid: [
-        () => new Goblin(2),
-        () => new Goblin(3),
-        () => new GoblinArcher(2),
-        () => new GoblinArcher(3),
-        () => new GoblinWarlock(2),
-        () => new GoblinWarlock(3),
-        () => new Wolf(2),
         () => new Wolf(3),
-        () => new Bandit(2),
-        () => new Bandit(3),
-        () => new Orc(3)
-      ],
-      late: [
-        () => new Goblin(3),
-        () => new Goblin(4),
-        () => new GoblinArcher(3),
-        () => new GoblinArcher(4),
-        () => new GoblinWarlock(3),
-        () => new GoblinWarlock(4),
-        () => new Wolf(3),
+        () => new Wolf(4),
         () => new Wolf(4),
         () => new Bandit(3),
         () => new Bandit(4),
-        () => new Orc(4)
+        () => new Bandit(4),
+        () => new Orc(3),
+        () => new Orc(4),
+        () => new Orc(4),
+        elite('bandit-captain', () => new BanditCaptain(4))
+      ],
+      late: [
+        () => new Wolf(4),
+        () => new Wolf(5),
+        () => new Wolf(5),
+        () => new Bandit(4),
+        () => new Bandit(5),
+        () => new Bandit(5),
+        () => new Orc(4),
+        () => new Orc(5),
+        () => new Orc(5),
+        () => new Orc(6),
+        elite('bandit-captain', () => new BanditCaptain(5))
       ],
       boss: [
         () => new Dragon(8)
@@ -155,7 +178,7 @@ export function determineEnemyTier(floor: number, totalFloors: number): EnemyTie
   if (floor <= 1) return 'intro'
   if (floor >= totalFloors - 1) return 'boss'
   if (floor >= totalFloors - 3) return 'late'
-  if (floor <= 3) return 'early'
+  if (floor <= 2) return 'early'
   return 'mid'
 }
 
@@ -171,9 +194,37 @@ export function getEnemiesForNode(zoneId: string, floor: number, totalFloors: nu
   const count = randomInt(min, max)
 
   const selected: IEnemy[] = []
+  const spawnedUniques = new Set<string>()
+
   for (let i = 0; i < count; i++) {
-    const factory = pool[Math.floor(Math.random() * pool.length)]
-    selected.push(factory())
+    const factory = pickFactory(pool, spawnedUniques)
+    const enemy = factory()
+    if (factory.unique && factory.uniqueKey) {
+      spawnedUniques.add(factory.uniqueKey)
+    }
+    selected.push(enemy)
   }
   return selected
+}
+
+/**
+ * Elige una factory del pool respetando la restriccion de "elite unica":
+ * si una factory tiene `unique === true` y su `uniqueKey` ya aparece en
+ * `spawnedUniques`, se re-elige otra (hasta un limite de intentos para
+ * evitar loops si el pool solo tiene elites ya spawneadas).
+ */
+function pickFactory(pool: EnemyFactory[], spawnedUniques: Set<string>): EnemyFactory {
+  const maxAttempts = pool.length * 4
+  let attempts = 0
+  let factory = pool[Math.floor(Math.random() * pool.length)]
+  while (
+    attempts < maxAttempts &&
+    factory.unique &&
+    factory.uniqueKey &&
+    spawnedUniques.has(factory.uniqueKey)
+  ) {
+    factory = pool[Math.floor(Math.random() * pool.length)]
+    attempts++
+  }
+  return factory
 }
