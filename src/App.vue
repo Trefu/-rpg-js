@@ -11,6 +11,7 @@ import { AudioManager } from './core/AudioManager'
 import type { ZoneId } from './core/zones/EnemyPools'
 import type { INode } from './core/interfaces/IExpedition'
 import type { Hero } from './core/Hero'
+import { Cleric } from './core/heroes/Cleric'
 
 const gameStore = useGameStore()
 const expeditionStore = useExpeditionStore()
@@ -40,21 +41,52 @@ const handleNodeSelected = (node: INode) => {
     gameStore.navigateTo('combat')
   } else if (node.type === 'combat' || node.type === 'boss') {
     gameStore.navigateTo('combat')
-  } else if (node.type === 'shop') {
-    gameStore.navigateTo('shop')
-  } else if (node.type === 'curiosity') {
+  } else if (node.type === 'shop' || node.type === 'curiosity') {
+    expeditionStore.completeNode(node.id)
     gameStore.navigateTo('expedition-map')
   }
 }
 
 const handleCombatEnded = (victory: boolean) => {
   if (victory) {
+    const node = expeditionStore.selectedNode
+    if (node?.type === 'combat' || node?.type === 'boss') {
+      const defeatedEnemies = (node.enemies ?? []).filter(e => !e.isAlive)
+      let totalXp = 0
+      let totalGold = 0
+      for (const e of defeatedEnemies) {
+        const r = e.getRewards()
+        totalXp += r.experience
+        totalGold += r.gold
+      }
+      for (const hero of gameStore.heroes) {
+        if (!hero) continue
+        hero.gainExperience(totalXp)
+        hero.addGold(totalGold)
+      }
+    }
     expeditionStore.completeNode(expeditionStore.selectedNode?.id || '')
     if (expeditionStore.selectedNode?.type === 'boss') {
       expeditionStore.completeExpedition()
     }
   }
   gameStore.navigateTo('expedition-map')
+  checkClericJoin()
+}
+
+const checkClericJoin = () => {
+  const exp = expeditionStore.currentExpedition
+  if (!exp) return
+  const completedCombat = exp.nodes.filter(
+    n => (n.type === 'combat' || n.type === 'boss') && n.completed
+  ).length
+  const alreadyJoined = gameStore.heroes.some(h => h?.name === 'Elara')
+  if (completedCombat >= 3 && !alreadyJoined) {
+    const ok = gameStore.addHeroToFirstFreeSlot(Cleric.createStarter())
+    if (ok) {
+      window.alert('¡Elara, la Clériga, se une al grupo! (PRUEBAS)')
+    }
+  }
 }
 
 const handleTrainingEnded = () => {

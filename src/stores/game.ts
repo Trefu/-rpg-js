@@ -54,6 +54,13 @@ export const useGameStore = defineStore('game', {
       this.activeHeroIndex = index
     },
 
+    addHeroToFirstFreeSlot(hero: Hero): boolean {
+      const idx = this.heroes.findIndex(h => h === null)
+      if (idx === -1) return false
+      this.heroes[idx] = hero
+      return true
+    },
+
     navigateTo(location: GameLocation) {
       this.currentLocation = location
     },

@@ -6,6 +6,7 @@ import { Wolf } from '../enemies/Wolf'
 import { Bandit } from '../enemies/Bandit'
 import type { IEnemy } from '../interfaces/ICharacter'
 import { BanditCaptain } from '../enemies/BanditCaptain'
+import { Dragon } from '../enemies/Dragon'
 
 export type ZoneId = 'mountain-peak' | 'forgotten-castle' | 'crystal-caves'
 
@@ -76,7 +77,7 @@ export const ZONE_ENEMY_POOLS: Record<ZoneId, ZoneEnemyConfig> = {
         () => new Orc(4)
       ],
       boss: [
-        () => new Orc(5)
+        () => new Dragon(8)
       ]
     },
     enemyCountPerTier: {
