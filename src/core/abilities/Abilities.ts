@@ -219,7 +219,7 @@ export const ClericRadiantStrike: IAbility = {
     },
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
-        const baseDamage = caster.attack() * 1.8
+        const baseDamage = caster.baseStats.mind.value * 2.6
         const { finalDamage, isCrit } = rollAndApplyDamage(caster, baseDamage)
         context.lastPrimaryBaseDamage = baseDamage
         if (finalDamage > 0) {
@@ -242,8 +242,7 @@ export const ClericDivineSmite: IAbility = {
     targetType: 'enemies-only',
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
-        const extraDamage = 18 * caster.level
-        const { finalDamage, isCrit } = rollAndApplyDamage(caster, caster.attack() * 1.2 + extraDamage)
+        const { finalDamage, isCrit } = rollAndApplyDamage(caster, caster.baseStats.mind.value * 4)
         if (finalDamage > 0) {
             context.target.takeDamage(finalDamage)
             context.showEnemyHit(context.target.id, finalDamage)

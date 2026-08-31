@@ -751,6 +751,14 @@ export function useCombat(config: CombatConfig = {}) {
 
   async function runNextTurn() {
     if (isCombatEnded.value) return
+    // Victoria: todos los enemigos cayeron. Se detecta aqui (no solo cuando
+    // `nextActorId` devuelve null) porque con heroes vivos el motor de
+    // turnos seguiria repartiendo turnos entre heroes indefinidamente
+    // aunque ya no haya enemigos a quien atacar.
+    if (enemies.value.length > 0 && enemies.value.every(e => !e.isAlive)) {
+      endCombat(true)
+      return
+    }
     const nextId = nextActorId(turnState.value, turnActors.value)
     if (!nextId) {
       const anyHeroAlive = heroes.value.some(h => h.isAlive)
