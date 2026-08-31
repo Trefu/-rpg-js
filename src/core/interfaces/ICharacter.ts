@@ -66,6 +66,8 @@ export interface IEnemy extends ICombatant {
   experienceReward: number
   goldReward: { min: number; max: number }
   critChance: number
+  /** Velocidad base para el motor de turnos (TurnActor.agility). */
+  agility: number
   abilities?: IAbility[]
   statusEffects: IStatusEffect[]
   addStatusEffect(effect: IStatusEffect): void
