@@ -24,13 +24,17 @@ export interface ICharacter {
   getHealthPercentage(): number
 }
 
+export interface IStat {
+  value: number
+  growthPerLevel: number
+  description: string
+}
+
 export interface IPlayerStats {
-  fuerza: number
-  destreza: number
-  inteligencia: number
-  sabiduria: number
-  constitucion: number
-  carisma: number
+  agility: IStat
+  constitution: IStat
+  mind: IStat
+  body: IStat
 }
 
 export interface ICombatant extends ICharacter {

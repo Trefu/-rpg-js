@@ -199,8 +199,8 @@ function handleStart() {
             <strong>{{ hero.name }}</strong>
             <span>
               HP {{ hero.health }}/{{ hero.maxHealth }} ·
-              ATQ {{ hero.baseAttack }} ·
-              DEF {{ hero.defenseValue }}
+              ATQ {{ hero.attack() }} ·
+              DEF {{ hero.defense() }}
             </span>
           </div>
         </div>

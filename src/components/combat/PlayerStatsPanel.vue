@@ -1,20 +1,17 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { IPlayerStats } from '@/core/interfaces/ICharacter'
+import type { IPlayerStats, IStat } from '@/core/interfaces/ICharacter'
 import type { Hero } from '@/core/Hero'
 import heartIcon from '@/assets/icons/heart-drop.png'
 import energyIcon from '@/assets/icons/bolt-drop.png'
 import attackIcon from '@/assets/icons/crossed-swords.png'
 import defenseIcon from '@/assets/icons/shield.png'
-import speedIcon from '@/assets/icons/footprint.png'
+import agilityIcon from '@/assets/icons/footprint.png'
 import levelIcon from '@/assets/icons/sparkles.png'
 import closeIcon from '@/assets/icons/cross-mark.png'
-import fuerzaIcon from '@/assets/icons/muscle-up.png'
-import destrezaIcon from '@/assets/icons/crosshair.png'
-import inteligenciaIcon from '@/assets/icons/crystal-ball.png'
-import sabiduriaIcon from '@/assets/icons/spell-book.png'
-import constitucionIcon from '@/assets/icons/stone-crafting.png'
-import carismaIcon from '@/assets/icons/chat-bubble.png'
+import bodyIcon from '@/assets/icons/muscle-up.png'
+import mindIcon from '@/assets/icons/crystal-ball.png'
+import constitutionIcon from '@/assets/icons/stone-crafting.png'
 
 interface PlayerDerivedStat {
   key: string
@@ -22,6 +19,27 @@ interface PlayerDerivedStat {
   icon: string
   value: number
   hint?: string
+}
+
+interface StatRow {
+  key: keyof IPlayerStats
+  label: string
+  icon: string
+  stat: IStat
+}
+
+const STAT_LABELS: Record<keyof IPlayerStats, string> = {
+  agility: 'Agilidad',
+  constitution: 'Constitución',
+  mind: 'Mente',
+  body: 'Cuerpo'
+}
+
+const STAT_ICONS: Record<keyof IPlayerStats, string> = {
+  agility: agilityIcon,
+  constitution: constitutionIcon,
+  mind: mindIcon,
+  body: bodyIcon
 }
 
 const props = defineProps<{
@@ -35,6 +53,17 @@ const emit = defineEmits<{
 
 const baseStats = computed<IPlayerStats | null>(() => props.player?.baseStats ?? null)
 
+const statRows = computed<StatRow[]>(() => {
+  const bs = baseStats.value
+  if (!bs) return []
+  return (Object.keys(bs) as (keyof IPlayerStats)[]).map(key => ({
+    key,
+    label: STAT_LABELS[key],
+    icon: STAT_ICONS[key],
+    stat: bs[key]
+  }))
+})
+
 const derived = computed<PlayerDerivedStat[]>(() => {
   if (!props.player) return []
   const p = props.player
@@ -43,7 +72,6 @@ const derived = computed<PlayerDerivedStat[]>(() => {
     { key: 'energy',label: 'Energía',  icon: energyIcon, value: p.maxEnergy, hint: 'Recurso para habilidades' },
     { key: 'atk',   label: 'Ataque',   icon: attackIcon, value: p.attack(), hint: 'Daño base' },
     { key: 'def',   label: 'Defensa',  icon: defenseIcon, value: p.defense(), hint: 'Mitigación' },
-    { key: 'spd',   label: 'Velocidad',icon: speedIcon, value: p.speed, hint: 'Orden de turnos' },
     { key: 'lvl',   label: 'Nivel',    icon: levelIcon, value: p.level, hint: 'Nivel del héroe' }
   ]
 })
@@ -68,36 +96,11 @@ function onBackdropClick(e: MouseEvent) {
         <div class="stats-modal-body">
           <section class="stats-section">
             <h4 class="section-title">Atributos base</h4>
-            <ul v-if="baseStats" class="stat-grid">
-              <li class="stat-row">
-                <span class="stat-icon"><img :src="fuerzaIcon" alt="" /></span>
-                <span class="stat-label">Fuerza</span>
-                <span class="stat-value">{{ baseStats.fuerza }}</span>
-              </li>
-              <li class="stat-row">
-                <span class="stat-icon"><img :src="destrezaIcon" alt="" /></span>
-                <span class="stat-label">Destreza</span>
-                <span class="stat-value">{{ baseStats.destreza }}</span>
-              </li>
-              <li class="stat-row">
-                <span class="stat-icon"><img :src="inteligenciaIcon" alt="" /></span>
-                <span class="stat-label">Inteligencia</span>
-                <span class="stat-value">{{ baseStats.inteligencia }}</span>
-              </li>
-              <li class="stat-row">
-                <span class="stat-icon"><img :src="sabiduriaIcon" alt="" /></span>
-                <span class="stat-label">Sabiduría</span>
-                <span class="stat-value">{{ baseStats.sabiduria }}</span>
-              </li>
-              <li class="stat-row">
-                <span class="stat-icon"><img :src="constitucionIcon" alt="" /></span>
-                <span class="stat-label">Constitución</span>
-                <span class="stat-value">{{ baseStats.constitucion }}</span>
-              </li>
-              <li class="stat-row">
-                <span class="stat-icon"><img :src="carismaIcon" alt="" /></span>
-                <span class="stat-label">Carisma</span>
-                <span class="stat-value">{{ baseStats.carisma }}</span>
+            <ul v-if="statRows.length" class="stat-grid">
+              <li v-for="row in statRows" :key="row.key" class="stat-row" :title="row.stat.description">
+                <span class="stat-icon"><img :src="row.icon" alt="" /></span>
+                <span class="stat-label">{{ row.label }}</span>
+                <span class="stat-value">{{ row.stat.value }}</span>
               </li>
             </ul>
           </section>

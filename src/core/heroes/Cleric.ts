@@ -14,9 +14,12 @@ export class Cleric extends Hero {
       level,
       maxHealth: 100,
       maxEnergy: 80,
-      defense: 10,
-      speed: 12,
-      baseAttack: 10,
+      defenseValue: 10,
+      baseAttack: 6,
+      agility:    { value: 9,  growthPerLevel: 0 },
+      constitution: { value: 12, growthPerLevel: 2 },
+      mind:       { value: 16, growthPerLevel: 6 },
+      body:       { value: 10, growthPerLevel: 2 },
       sprite: clericSprite
     })
   }

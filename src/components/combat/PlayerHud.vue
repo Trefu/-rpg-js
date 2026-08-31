@@ -46,13 +46,10 @@ const derivedStats = computed(() => {
   return [
     { label: 'Ataque', value: p.attack() },
     { label: 'Defensa', value: p.defense() },
-    { label: 'Velocidad', value: p.speed },
-    { label: 'Fuerza', value: p.baseStats.fuerza },
-    { label: 'Destreza', value: p.baseStats.destreza },
-    { label: 'Inteligencia', value: p.baseStats.inteligencia },
-    { label: 'Constitucion', value: p.baseStats.constitucion },
-    { label: 'Sabiduria', value: p.baseStats.sabiduria },
-    { label: 'Carisma', value: p.baseStats.carisma }
+    { label: 'Agilidad', value: p.baseStats.agility.value },
+    { label: 'Constitucion', value: p.baseStats.constitution.value },
+    { label: 'Mente', value: p.baseStats.mind.value },
+    { label: 'Cuerpo', value: p.baseStats.body.value }
   ]
 })
 
