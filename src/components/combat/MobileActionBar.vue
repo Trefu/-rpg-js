@@ -257,9 +257,11 @@ function shortLabel(name: string, max = 5): string {
 <style scoped>
 .mobile-action-bar {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 4px;
-  padding: 6px 6px calc(6px + env(safe-area-inset-bottom)) 6px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 3px;
+  padding: 4px 4px calc(4px + env(safe-area-inset-bottom)) 4px;
+  box-sizing: border-box;
+  width: 100%;
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.85) 100%);
   border-top: 1px solid rgba(255, 230, 102, 0.35);
   backdrop-filter: blur(6px);
@@ -271,10 +273,12 @@ function shortLabel(name: string, max = 5): string {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  min-height: 56px;
+  gap: 1px;
+  min-height: 44px;
   min-width: 0;
-  padding: 4px 2px;
+  max-width: 100%;
+  padding: 3px 1px;
+  box-sizing: border-box;
   background: linear-gradient(145deg, #292b44 0%, #2f324d 100%);
   border: 1.5px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
@@ -312,15 +316,15 @@ function shortLabel(name: string, max = 5): string {
 
 .mab-used-mark {
   position: absolute;
-  top: 2px;
-  right: 4px;
+  top: 1px;
+  right: 3px;
   background: rgba(76, 175, 80, 0.95);
   color: #0e1f0e;
   font-family: 'Courier New', monospace;
-  font-size: 0.65rem;
+  font-size: 0.55rem;
   font-weight: 900;
-  border-radius: 6px;
-  padding: 0 4px;
+  border-radius: 5px;
+  padding: 0 3px;
   border: 1px solid rgba(76, 175, 80, 0.5);
   line-height: 1.1;
 }
@@ -345,14 +349,14 @@ function shortLabel(name: string, max = 5): string {
 }
 
 .mab-icon {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   object-fit: contain;
   filter: drop-shadow(0 1px 2px #000a);
 }
 
 .mab-label {
-  font-size: 0.52rem;
+  font-size: 0.48rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.02em;
@@ -370,15 +374,15 @@ function shortLabel(name: string, max = 5): string {
 
 .mab-cooldown {
   position: absolute;
-  top: 2px;
-  right: 4px;
+  top: 1px;
+  right: 3px;
   background: rgba(0, 0, 0, 0.85);
   color: #ff6b6b;
   font-family: 'Courier New', monospace;
-  font-size: 0.65rem;
+  font-size: 0.55rem;
   font-weight: 900;
-  border-radius: 6px;
-  padding: 0 5px;
+  border-radius: 5px;
+  padding: 0 4px;
   border: 1px solid rgba(255, 107, 107, 0.4);
   line-height: 1.1;
 }
@@ -572,15 +576,15 @@ function shortLabel(name: string, max = 5): string {
 
 .mab-cancel-hint {
   position: absolute;
-  top: 2px;
-  right: 4px;
+  top: 1px;
+  right: 3px;
   background: rgba(0, 0, 0, 0.85);
   color: #ffe066;
   font-family: 'Courier New', monospace;
-  font-size: 0.55rem;
+  font-size: 0.5rem;
   font-weight: 900;
-  border-radius: 6px;
-  padding: 1px 4px;
+  border-radius: 5px;
+  padding: 1px 3px;
   border: 1px solid rgba(255, 224, 102, 0.5);
   line-height: 1.1;
   letter-spacing: 0.02em;

@@ -15,6 +15,7 @@
     "heroes enemies"
     "bottom bottom";
   gap: 0;
+  min-width: 0;
 }
 
 .turn-order-bar {
@@ -627,7 +628,7 @@
    ============================================================ */
 @media (max-width: 720px) {
   .combat-view {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto auto 1fr auto;
     grid-template-areas:
       "turn"
@@ -698,8 +699,8 @@
   .combat-log-fab {
     grid-area: field;
     position: fixed;
-    left: 12px;
-    top: 86px;
+    right: 8px;
+    bottom: calc(53px + env(safe-area-inset-bottom) + 6px);
     z-index: 20;
   }
 }

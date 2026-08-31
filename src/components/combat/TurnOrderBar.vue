@@ -187,14 +187,28 @@ const slots = computed(() => {
 
 @media (max-width: 720px) {
   .turn-order-bar {
-    padding: 0.4rem 0.5rem;
+    padding: 0.3rem 0.5rem;
     gap: 0.5rem;
   }
   .turn-order-bar-label {
     display: none;
   }
   .turn-slot {
-    min-width: 78px;
+    min-width: 72px;
+    padding: 0.25rem 0.4rem;
+    gap: 0.3rem;
+  }
+  .turn-slot-icon {
+    width: 24px;
+    height: 24px;
+  }
+  .turn-slot-name {
+    font-size: 0.65rem;
+  }
+  .turn-slot-index {
+    width: 16px;
+    height: 16px;
+    font-size: 0.6rem;
   }
 }
 </style>
