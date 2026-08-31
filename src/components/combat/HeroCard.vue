@@ -153,8 +153,10 @@ onBeforeUnmount(() => {
     @click="onCardClick"
   >
     <template v-if="hero">
-      <div v-if="isBeingAttacked" class="being-attacked-badge">Defendiendo</div>
-      <div v-if="isActive" class="active-badge">ACTIVO</div>
+      <div class="hero-card-badges">
+        <div v-if="isActive" class="active-badge">ACTIVO</div>
+        <div v-if="isBeingAttacked" class="being-attacked-badge">Defendiendo</div>
+      </div>
       <div class="hero-portrait">
         <img :src="hero.sprite" :alt="hero.name" class="hero-sprite" />
       </div>
@@ -295,10 +297,19 @@ onBeforeUnmount(() => {
   }
 }
 
-.being-attacked-badge {
+.hero-card-badges {
   position: absolute;
   top: 4px;
   left: 4px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.being-attacked-badge {
   background: #ff3344;
   color: #fff;
   font-size: 0.65rem;
@@ -306,7 +317,6 @@ onBeforeUnmount(() => {
   padding: 2px 6px;
   border-radius: 4px;
   letter-spacing: 0.05em;
-  z-index: 2;
   box-shadow: 0 0 6px rgba(255, 51, 68, 0.8);
 }
 
@@ -507,9 +517,6 @@ onBeforeUnmount(() => {
 }
 
 .active-badge {
-  position: absolute;
-  top: 6px;
-  left: 6px;
   background: #ffe066;
   color: #1a1a2e;
   font-size: 0.55rem;
@@ -518,7 +525,6 @@ onBeforeUnmount(() => {
   border-radius: 4px;
   letter-spacing: 0.05em;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
-  z-index: 5;
 }
 
 .hero-info {

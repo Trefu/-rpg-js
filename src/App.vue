@@ -89,7 +89,7 @@ const checkSecondHeroJoin = () => {
     if (alreadyJoined) gameStore.setPendingSecondHero(null)
     return
   }
-  const ok = gameStore.addHeroToFirstFreeSlot(pending as Hero)
+  const ok = gameStore.addHeroToFirstFreeSlot(pending)
   gameStore.setPendingSecondHero(null)
   if (ok) {
     window.alert(`¡${pending.name} se une al grupo! (PRUEBAS)`)

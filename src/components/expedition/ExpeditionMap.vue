@@ -25,15 +25,14 @@ const getNodeIcon = (type: INode['type']) => {
 
 const isNodeReachable = (node: INode) => {
   if (!expeditionStore.currentExpedition) return false
-
-  const startNode = expeditionStore.currentExpedition.nodes.find(n => n.id === 'start')
-  if (!startNode) return false
-
-  if (!startNode.completed) {
-    return node.id === 'start'
-  }
-
-  return startNode.connections.includes(node.id)
+  if (node.completed) return false
+  // Un nodo es alcanzable si esta en la lista de nodos disponibles que
+  // calcula el store: conexiones del nodo actualmente seleccionado (o el
+  // nodo start si la expedicion acaba de empezar). Esto permite avanzar
+  // correctamente despues de pasar por nodos shop/curiosity que se
+  // auto-completan al hacer click: su `selectedNode` queda fijado al
+  // propio nodo y sus hijos quedan desbloqueados.
+  return availableNodes.value.includes(node.id)
 }
 
 const handleNodeClick = (node: INode) => {

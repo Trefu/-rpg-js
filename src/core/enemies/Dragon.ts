@@ -12,7 +12,7 @@ export class Dragon extends Enemy {
       id: `dragon-${Math.random().toString(36).substr(2, 9)}`,
       name: 'Dragón Ancestral',
       level,
-      maxHealth: 260 + (level * 22),
+      maxHealth: 460 + (level * 22),
       baseAttack: 22 + (level * 2),
       experienceReward: 100 + (level * 12),
       goldReward: { min: 60 + (level * 6), max: 110 + (level * 7) },
