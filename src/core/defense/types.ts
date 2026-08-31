@@ -116,6 +116,13 @@ export interface DefensePatternConfig {
    * Se aplica si ningun modifier lo sobreescribe.
    */
   onBlockEffect?: DefenseBlockEffect
+  /**
+   * Alcance del ataque. Por ahora solo se usa 'single' (default).
+   * Futuros: 'all' (pega a todos los heroes), 'aoe' (subconjunto por radio).
+   * La maquinaria de modifiers ya recibe el target correcto via useCombat,
+   * por lo que cuando se implemente AoE solo hay que iterar la lista de heroes.
+   */
+  targetType?: 'single' | 'all' | 'aoe'
 }
 
 export type DefensePhaseOutcome = 'success' | 'fail' | 'timeout'

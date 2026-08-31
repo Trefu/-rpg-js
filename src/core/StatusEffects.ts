@@ -225,7 +225,7 @@ export class StatusEffects {
     icon: swordWoundIcon,
     isBuff: false,
     turnLabel: '¡Está lesionado!',
-    defenseWaveSpeedImpact: 0.9,
+    defenseWaveSpeedImpact: 0.4,
     // Lesionado en enemigo: la onda se desacelera (más fácil defender).
     // Lesionado en jugador: la onda se acelera (más difícil bloquear).
     // El signo lo decide `side` (pasado por `getDefenseModifiers`).

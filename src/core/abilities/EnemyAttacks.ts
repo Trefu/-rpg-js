@@ -6,7 +6,7 @@ export const SLASH: DefensePatternConfig = {
   type: 'physical',
   baseMaxBlockReduction: 0.5,
   damageMultiplier: 2,
-  phases: [fixedPhase(1,2,3,4,5)]
+  phases: [fixedPhase(1,2,3,4,5,6)]
 }
 
 export const POISON_ARROW: DefensePatternConfig = {
@@ -16,7 +16,7 @@ export const POISON_ARROW: DefensePatternConfig = {
   baseMaxBlockReduction: 0.5,
   baseSuccessZoneSize: 0.2,
   damageMultiplier: 0.6,
-  phases: [phase(9)],
+  phases: [phase(10)],
   onFailureEffect: {
     statusType: 'poison',
     stacks: 10
@@ -28,7 +28,7 @@ export const EMBER: DefensePatternConfig = {
   type: 'fire',
   baseMaxBlockReduction: 0.5,
   damageMultiplier: 0.7,
-  phases: [phase(5)],
+  phases: [phase(6)],
   onFailureEffect: {
     statusType: 'burn',
     stacks: 12
@@ -41,9 +41,9 @@ export const FEROCIOUS_BITE: DefensePatternConfig = {
   baseMaxBlockReduction: 0.5,
   damageMultiplier: 0.8,
   phases: [
-    phase(3, { waveSpeed: 30 }),
-    phase(3, { waveSpeed: 60 }),
-    phase(3, { waveSpeed: 120 })
+    phase(4, { waveSpeed: 30 }),
+    phase(4, { waveSpeed: 60 }),
+    phase(4, { waveSpeed: 120 })
   ]
 }
 

@@ -106,6 +106,7 @@ export function useCombat(config: CombatConfig = {}) {
   let pendingDefensePattern: DefensePatternConfig | null = null
   let pendingDefenseAttackDamage = 0
   let pendingDefenseEnemy: IEnemy | null = null
+  let pendingDefenseTarget: Hero | null = null
   let pendingDefenseIsCrit = false
   let popupKey = 0
 
@@ -127,13 +128,14 @@ export function useCombat(config: CombatConfig = {}) {
 
   function startDefenseChallenge(
     enemy: IEnemy,
+    target: Hero,
     attackDamage: number,
     preSelectedPattern?: DefensePatternConfig,
     opts: { isCrit?: boolean } = {}
   ): Promise<DefenseChallengeResult | null> {
     return new Promise((resolve) => {
-      const modifiers = getDefenseModifiers(player.value!, enemy)
-      const selectedPattern = preSelectedPattern ?? enemy.selectAttackPattern(player.value)
+      const modifiers = getDefenseModifiers(target, enemy)
+      const selectedPattern = preSelectedPattern ?? enemy.selectAttackPattern(target)
       const withModifiers = applyModifiersToPattern(selectedPattern, modifiers)
       const adjusted = opts.isCrit ? applyCritToPattern(withModifiers, modifiers) : withModifiers
       const zones = pickZonesForPhases(adjusted)
@@ -141,6 +143,7 @@ export function useCombat(config: CombatConfig = {}) {
       pendingDefensePattern = adjusted
       pendingDefenseAttackDamage = attackDamage
       pendingDefenseEnemy = enemy
+      pendingDefenseTarget = target
       pendingDefenseIsCrit = !!opts.isCrit
       defensePattern.value = adjusted
       defenseZones.value = zones
@@ -189,12 +192,14 @@ export function useCombat(config: CombatConfig = {}) {
   function handleDefenseAllPhasesComplete(results: DefensePhaseResult[]) {
     const pattern = pendingDefensePattern
     const enemy = pendingDefenseEnemy
+    const target = pendingDefenseTarget
     const attackDamage = pendingDefenseAttackDamage
     const resolve = pendingDefenseResolve
     const wasCrit = pendingDefenseIsCrit
     pendingDefenseResolve = null
     pendingDefensePattern = null
     pendingDefenseEnemy = null
+    pendingDefenseTarget = null
     pendingDefenseIsCrit = false
     isDefenseActive.value = false
     defensePattern.value = null
@@ -202,9 +207,9 @@ export function useCombat(config: CombatConfig = {}) {
     defenseEnemyId.value = null
     defenseIsCrit.value = false
 
-    if (!pattern || !enemy || !resolve) return
+    if (!pattern || !enemy || !target || !resolve) return
 
-    const modifiers = getDefenseModifiers(player.value!, enemy)
+    const modifiers = getDefenseModifiers(target, enemy)
     const result = buildDefenseResult(pattern, results, modifiers, attackDamage)
 
     const finalDamage = Math.max(0, result.totalDamage)
@@ -230,7 +235,7 @@ export function useCombat(config: CombatConfig = {}) {
         : ''
 
     if (finalDamage > 0) {
-      player.value!.takeDamage(finalDamage)
+      target.takeDamage(finalDamage)
       showPlayerHit(finalDamage)
       audioManager.playAttackSound()
       audioManager.playHitSound()
@@ -242,7 +247,7 @@ export function useCombat(config: CombatConfig = {}) {
     }
 
     if (result.appliedOnFailureEffect && pattern.onFailureEffect) {
-      applyOnFailureEffectToPlayer(player.value, pattern.onFailureEffect, wasCrit)
+      applyOnFailureEffectToPlayer(target, pattern.onFailureEffect, wasCrit)
     }
 
     resolve(result)
@@ -272,6 +277,7 @@ export function useCombat(config: CombatConfig = {}) {
     }
     pendingDefensePattern = null
     pendingDefenseEnemy = null
+    pendingDefenseTarget = null
     pendingDefenseIsCrit = false
     isDefenseActive.value = false
     defensePattern.value = null
@@ -678,11 +684,23 @@ export function useCombat(config: CombatConfig = {}) {
       return
     }
 
+    const enemyTargets = new Map<string, Hero | null>()
+    for (const enemy of aliveEnemies) {
+      enemyTargets.set(enemy.id, enemy.selectTarget(gameStore.activeHeroes))
+    }
+
     for (let i = 0; i < aliveEnemies.length; i++) {
       const enemy = aliveEnemies[i]
       if (!player.value || !player.value.isAlive) break
 
-      const selectedPattern = enemy.selectAttackPattern(player.value)
+      let target = enemyTargets.get(enemy.id) ?? null
+      if (!target) {
+        addToLog(`${enemy.name} no encuentra un objetivo válido y pierde su turno.`)
+        await delay(config.isTraining ? 600 : 1200)
+        continue
+      }
+
+      const selectedPattern = enemy.selectAttackPattern(target)
       const attackName = selectedPattern.name ?? 'atacar'
       const enemyIndex = enemies.value.filter(e => e.name === enemy.name && e.isAlive).indexOf(enemy) + 1
       const enemyLabel = aliveEnemies.length > 1 ? `${enemy.name} ${enemyIndex}` : enemy.name
@@ -714,16 +732,15 @@ export function useCombat(config: CombatConfig = {}) {
 
       const rawDamage = enemy.attack()
       const damage = Math.floor(rawDamage * selectedPattern.damageMultiplier * (isCrit ? 2 : 1))
-      await startDefenseChallenge(enemy, damage, selectedPattern, { isCrit })
+      await startDefenseChallenge(enemy, target, damage, selectedPattern, { isCrit })
 
-      if (!player.value.isAlive) {
+      if (!target.isAlive) {
         if (config.isTraining) {
           addToLog('¡Has caído en el entrenamiento! Usa "Revivir" en el panel para continuar.')
           isPlayerTurn.value = true
           isExecutingAction.value = false
           return
         }
-        // Rotar al siguiente heroe vivo antes de continuar el turno enemigo
         const rotated = rotateToNextAliveHero()
         if (!rotated) {
           addToLog('¡Todos tus heroes han caido!')
@@ -731,6 +748,10 @@ export function useCombat(config: CombatConfig = {}) {
           return
         }
         addToLog(`¡${player.value.name} entra en combate!`)
+        for (let j = i + 1; j < aliveEnemies.length; j++) {
+          const remaining = aliveEnemies[j]
+          enemyTargets.set(remaining.id, remaining.selectTarget(gameStore.activeHeroes))
+        }
       }
       await delay(config.isTraining ? 600 : 1500);
 

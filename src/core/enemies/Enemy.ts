@@ -2,6 +2,17 @@ import { Character } from '../Character'
 import { ICharacter, ICombatant } from '../interfaces/ICharacter'
 import type { IStatusEffect } from '../interfaces/IStatusEffect'
 import type { DefensePatternConfig } from '../defense/types'
+import type { Hero } from '../Hero'
+
+export interface TargetScoreWeights {
+  hpLow: number
+  friendlyDebuffs: number
+  lowDefense: number
+}
+
+const FRIENDLY_DEBUFF_TYPES: ReadonlySet<string> = new Set([
+  'injured', 'freeze', 'slow', 'weakness', 'poison', 'burn'
+])
 
 export interface EnemyOptions {
   id: string
@@ -75,5 +86,39 @@ export abstract class Enemy extends Character implements ICombatant {
 
   public isStunned(): boolean {
     return this.hasStatusEffect('stun')
+  }
+
+  public readonly scoreWeights: TargetScoreWeights = {
+    hpLow: 1.0,
+    friendlyDebuffs: 0.5,
+    lowDefense: 0.3
+  }
+
+  public selectTarget(heroes: Hero[]): Hero | null {
+    const alive = heroes.filter(h => h.isAlive)
+    if (alive.length === 0) return null
+    let best: Hero | null = null
+    let bestScore = -Infinity
+    for (const hero of alive) {
+      const score = this.scoreTarget(hero, this.scoreWeights)
+      if (score > bestScore) { bestScore = score; best = hero }
+    }
+    return best ?? alive.reduce((a, b) => (a.health > b.health ? a : b))
+  }
+
+  protected scoreTarget(hero: Hero, w: TargetScoreWeights): number {
+    const hpRatio = hero.health / hero.maxHealth
+    const hpScore = (1 - hpRatio) * w.hpLow
+    const debuffScore = this.countFriendlyDebuffs(hero) * w.friendlyDebuffs
+    const defScore = (1 - this.normalizeDefense(hero)) * w.lowDefense
+    return hpScore + debuffScore + defScore
+  }
+
+  protected countFriendlyDebuffs(hero: Hero): number {
+    return hero.statusEffects.filter(e => e.turns > 0 && FRIENDLY_DEBUFF_TYPES.has(e.type)).length
+  }
+
+  protected normalizeDefense(hero: Hero): number {
+    return Math.min(1, hero.defenseValue / 30)
   }
 }

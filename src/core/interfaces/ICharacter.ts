@@ -1,6 +1,7 @@
 import type { IStatusEffect } from './IStatusEffect'
 import type { IAbility } from './IAbility'
 import type { DefensePatternConfig } from '../defense/types'
+import type { Hero } from '../Hero'
 
 export type AttackPatternSelector = (player: ICharacter | null) => DefensePatternConfig
 
@@ -69,5 +70,6 @@ export interface IEnemy extends ICombatant {
   sprite?: string
   attackPatterns: DefensePatternConfig[]
   selectAttackPattern(player: ICharacter | null): DefensePatternConfig
+  selectTarget(heroes: Hero[]): Hero | null
   rollCrit?(): boolean
 }
