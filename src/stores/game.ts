@@ -58,8 +58,8 @@ export const useGameStore = defineStore('game', {
       this.currentLocation = location
     },
 
-    beginRun({ zoneId = DEFAULT_ZONE }: { zoneId?: ZoneId } = {}) {
-      this.startGame([Warrior.createStarter()])
+    beginRun({ zoneId = DEFAULT_ZONE, heroes }: { zoneId?: ZoneId, heroes?: Hero[] } = {}) {
+      this.startGame(heroes ?? [Warrior.createStarter()])
       const expeditionStore = useExpeditionStore()
       expeditionStore.startExpedition(zoneId)
       this.navigateTo('expedition-map')

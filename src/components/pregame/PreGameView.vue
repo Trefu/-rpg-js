@@ -3,11 +3,14 @@ import { computed, ref } from 'vue'
 import type { IZone } from '@/core/interfaces/IExpedition'
 import type { ZoneId } from '@/core/zones/EnemyPools'
 import { Warrior } from '@/core/heroes/Warrior'
+import { Cleric } from '@/core/heroes/Cleric'
+import type { Hero } from '@/core/Hero'
 import { listZones } from '@/core/zones/Zones'
 import warriorSprite from '@/assets/sprites/heroes/warrior.png'
+import clericSprite from '@/assets/sprites/heroes/cleric.png'
 
 const emit = defineEmits<{
-  (e: 'start', payload: { zoneId: ZoneId }): void
+  (e: 'start', payload: { zoneId: ZoneId, heroes: Hero[] }): void
 }>()
 
 const zones = listZones()
@@ -18,11 +21,11 @@ function isZoneUnlocked(id: ZoneId): boolean {
 }
 
 interface HeroChoice {
-  id: 'warrior'
+  id: 'warrior' | 'cleric'
   name: string
   description: string
   sprite: string
-  factory: () => Warrior
+  factory: () => Hero
 }
 
 const heroes: HeroChoice[] = [
@@ -32,6 +35,13 @@ const heroes: HeroChoice[] = [
     description: 'Guerrero cuerpo a cuerpo. Tanque con alto daño sostenido y autogestión de energia.',
     sprite: warriorSprite,
     factory: () => Warrior.createStarter()
+  },
+  {
+    id: 'cleric',
+    name: 'Elara',
+    description: 'Cleriga con ataques radiantes. Soporte sagrado: daño radiante y curación de aliados.',
+    sprite: clericSprite,
+    factory: () => Cleric.createStarter()
   }
 ]
 
@@ -49,8 +59,8 @@ const canStart = computed(() => !!selectedHero.value && !!selectedZone.value)
 const previewHero = computed(() => selectedHero.value?.factory() ?? null)
 
 function handleStart() {
-  if (!canStart.value || !selectedZoneId.value) return
-  emit('start', { zoneId: selectedZoneId.value })
+  if (!canStart.value || !selectedHero.value || !selectedZoneId.value) return
+  emit('start', { zoneId: selectedZoneId.value, heroes: [selectedHero.value.factory()] })
 }
 
 function selectHero(id: HeroChoice['id']) {

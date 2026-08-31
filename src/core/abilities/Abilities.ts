@@ -205,3 +205,73 @@ export const createSecondWindAbility = (): IAbility => ({
         await sleep(context.animationDelay)
     }
 })
+
+export const createClericBasicAttackAbility = (): IAbility => ({
+    name: 'Luz Sagrada',
+    description: 'Un destello radiante que causa daño sagrado al objetivo.',
+    type: 'clericRadiantStrike',
+    cooldown: 0,
+    targetType: 'enemies-only',
+    execute: async (context: AbilityContext) => {
+        const caster = context.caster as Hero
+        const { finalDamage, isCrit } = rollAndApplyDamage(caster, caster.attack() * 0.9)
+        if (finalDamage > 0) {
+            context.target.takeDamage(finalDamage)
+            context.showEnemyHit(context.target.id, finalDamage)
+            context.audioManager.playAttackSound()
+        }
+        if (isCrit) showCritAnnouncement(context)
+        context.addToLog(buildAttackLog('Luz Sagrada', finalDamage, isCrit))
+        await sleep(context.animationDelay)
+    }
+})
+
+export const createClericSmiteAbility = (): IAbility => ({
+    name: 'Castigo Divino',
+    description: 'Un ataque radiante imbuido de fe pura que siempre cuesta 20 de energia.',
+    type: 'clericDivineSmite',
+    cooldown: 0,
+    energyCost: 20,
+    targetType: 'enemies-only',
+    execute: async (context: AbilityContext) => {
+        const caster = context.caster as Hero
+        const extraDamage = 18 * caster.level
+        const { finalDamage, isCrit } = rollAndApplyDamage(caster, caster.attack() * 1.2 + extraDamage)
+        if (finalDamage > 0) {
+            context.target.takeDamage(finalDamage)
+            context.showEnemyHit(context.target.id, finalDamage)
+            context.audioManager.playAttackSound()
+        }
+        if (isCrit) showCritAnnouncement(context)
+        context.addToLog(buildAttackLog('Castigo Divino', finalDamage, isCrit))
+        await sleep(context.animationDelay)
+    }
+})
+
+export const createClericHealAbility = (): IAbility => ({
+    name: 'Curar Heridas',
+    description: 'Canaliza luz radiante para restaurar 30% de la vida maxima de un aliado (incluido el caster).',
+    type: 'clericHeal',
+    cooldown: 2,
+    energyCost: 15,
+    targetType: 'allies-only',
+    execute: async (context: AbilityContext) => {
+        const caster = context.caster as Hero
+        const target = context.target as Hero
+        if (!target || !target.isAlive) {
+            context.addToLog('No hay un aliado valido para curar.')
+            return
+        }
+        const healAmount = Math.floor(target.maxHealth * 0.30)
+        const before = target.health
+        target.heal(healAmount)
+        const restored = target.health - before
+        context.addToLog(
+            target === caster
+                ? `Te curaste ${restored} HP con luz radiante.`
+                : `Curaste a ${target.name} ${restored} HP.`
+        )
+        context.showAnnouncement('Curar Heridas', 'info', 1500)
+        await sleep(context.animationDelay)
+    }
+})

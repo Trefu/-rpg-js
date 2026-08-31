@@ -37,6 +37,7 @@ export type AttackType =
   | 'shadow'
   | 'arcane'
   | 'holy'
+  | 'radiant'
 
 /**
  * Especificación declarativa de UNA fase del patrón.

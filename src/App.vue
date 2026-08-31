@@ -10,6 +10,7 @@ import { useExpeditionStore } from './stores/expedition'
 import { AudioManager } from './core/AudioManager'
 import type { ZoneId } from './core/zones/EnemyPools'
 import type { INode } from './core/interfaces/IExpedition'
+import type { Hero } from './core/Hero'
 
 const gameStore = useGameStore()
 const expeditionStore = useExpeditionStore()
@@ -29,8 +30,8 @@ const handleResetGame = () => {
   expeditionStore.resetExpedition()
 }
 
-const handleStartRun = (payload: { zoneId: ZoneId }) => {
-  gameStore.beginRun(payload)
+const handleStartRun = (payload: { zoneId: ZoneId, heroes: Hero[] }) => {
+  gameStore.beginRun({ zoneId: payload.zoneId, heroes: payload.heroes })
 }
 
 const handleNodeSelected = (node: INode) => {
