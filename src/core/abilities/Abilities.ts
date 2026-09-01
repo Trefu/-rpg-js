@@ -1,12 +1,15 @@
-import type { IAbility } from '@/core/interfaces/IAbility'
+import type { IAbility, DamageType } from '@/core/interfaces/IAbility'
 import type { AbilityContext } from '@/core/interfaces/IAbility'
+import { DAMAGE_TYPE_LABELS } from '@/core/interfaces/IAbility'
 import type { Hero } from '../Hero'
 import { StatusEffects, DOT_STATUS_TYPES } from '../StatusEffects'
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
-const showCritAnnouncement = (context: AbilityContext) => {
-    context.showAnnouncement(`¡CRÍTICO!`, 'crit', 1800)
+const showCritAnnouncement = (context: AbilityContext, damage: number) => {
+    const dmgType = context.ability?.damageType as DamageType | undefined
+    const typeLabel = dmgType ? DAMAGE_TYPE_LABELS[dmgType] : 'Físico'
+    context.showAnnouncement(`Crítico ${damage} ${typeLabel}`, 'crit', 1800, { priority: 100, interrupt: true })
 }
 
 const rollAndApplyDamage = (
@@ -24,7 +27,7 @@ const rollAndApplyDamage = (
 
 const buildAttackLog = (abilityName: string, damage: number, isCrit: boolean): string => {
     const base = `Usaste ${abilityName} causando ${damage} de daño.`
-    return isCrit ? `¡CRÍTICO! ${base}` : base
+    return isCrit ? `Crítico ${base}` : base
 }
 
 export const BasicAttack: IAbility = {
@@ -43,7 +46,7 @@ export const BasicAttack: IAbility = {
             context.showEnemyHit(context.target.id, finalDamage, isCrit)
             context.audioManager.playAttackSound()
         }
-        if (isCrit) showCritAnnouncement(context)
+        if (isCrit) showCritAnnouncement(context, finalDamage)
         context.addToLog(buildAttackLog('Ataque Básico', finalDamage, isCrit))
         await sleep(context.animationDelay)
     }
@@ -66,7 +69,7 @@ export const StunStrike: IAbility = {
             context.showEnemyHit(context.target.id, finalDamage, isCrit)
             context.audioManager.playAttackSound()
         }
-        if (isCrit) showCritAnnouncement(context)
+        if (isCrit) showCritAnnouncement(context, finalDamage)
         context.addToLog(buildAttackLog('Golpe Aturdidor', finalDamage, isCrit))
         await sleep(context.animationDelay)
     }
@@ -89,7 +92,7 @@ export const StealthStrike: IAbility = {
             context.showEnemyHit(context.target.id, finalDamage, isCrit)
             context.audioManager.playAttackSound()
         }
-        if (isCrit) showCritAnnouncement(context)
+        if (isCrit) showCritAnnouncement(context, finalDamage)
         context.addToLog(buildAttackLog('Golpe Sigiloso', finalDamage, isCrit))
         await sleep(context.animationDelay)
     }
@@ -112,7 +115,7 @@ export const Fireball: IAbility = {
             context.showEnemyHit(context.target.id, finalDamage, isCrit)
             context.audioManager.playAttackSound()
         }
-        if (isCrit) showCritAnnouncement(context)
+        if (isCrit) showCritAnnouncement(context, finalDamage)
         context.addToLog(buildAttackLog('Bola de Fuego', finalDamage, isCrit))
         await sleep(context.animationDelay)
     }
@@ -138,7 +141,7 @@ export const WarriorInjuringStrike: IAbility = {
             context.showEnemyHit(target.id, finalDamage, isCrit)
             context.audioManager.playAttackSound()
         }
-        if (isCrit) showCritAnnouncement(context)
+        if (isCrit) showCritAnnouncement(context, finalDamage)
         context.addToLog(buildAttackLog('Golpe Lesionador', finalDamage, isCrit))
 
         if (target && typeof target.addStatusEffect === 'function' && target.isAlive) {
@@ -169,7 +172,7 @@ export const WarriorDevastatingStrike: IAbility = {
         const rawDamage = caster.baseStats.body.value * 1.5 + caster.level * 4
         const { finalDamage, isCrit } = rollAndApplyDamage(caster, rawDamage)
         context.lastPrimaryFinalDamage = finalDamage
-        if (isCrit) showCritAnnouncement(context)
+        if (isCrit) showCritAnnouncement(context, finalDamage)
     }
 }
 
@@ -240,7 +243,7 @@ export const ClericRadiantStrike: IAbility = {
             context.showEnemyHit(context.target.id, finalDamage, isCrit)
             context.audioManager.playAttackSound()
         }
-        if (isCrit) showCritAnnouncement(context)
+        if (isCrit) showCritAnnouncement(context, finalDamage)
         context.addToLog(buildAttackLog('Luz Sagrada', finalDamage, isCrit))
         await sleep(context.animationDelay)
     }
@@ -262,7 +265,7 @@ export const ClericDivineSmite: IAbility = {
             context.showEnemyHit(context.target.id, finalDamage, isCrit)
             context.audioManager.playAttackSound()
         }
-        if (isCrit) showCritAnnouncement(context)
+        if (isCrit) showCritAnnouncement(context, finalDamage)
         context.addToLog(buildAttackLog('Castigo Divino', finalDamage, isCrit))
         await sleep(context.animationDelay)
     }

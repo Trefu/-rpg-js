@@ -102,6 +102,14 @@ function handleClickOutside(event: MouseEvent) {
   }
 }
 
+@media (min-width: 721px) {
+  .game-ui {
+    /* On desktop the turn-order bar appears at the top of combat.
+       Offset the gear button below it so they don't overlap. */
+    top: 3.5rem;
+  }
+}
+
 .settings {
   position: relative;
   display: flex;

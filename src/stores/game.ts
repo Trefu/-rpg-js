@@ -56,8 +56,8 @@ export const useGameStore = defineStore('game', {
     },
 
     setActiveHero(index: number) {
-      if (index < 0 || index >= MAX_HEROES) return
-      if (this.heroes[index] === null) return
+      if (index < -1 || index >= MAX_HEROES) return
+      if (index >= 0 && this.heroes[index] === null) return
       this.activeHeroIndex = index
     },
 

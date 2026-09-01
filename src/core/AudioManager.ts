@@ -42,12 +42,14 @@ export class AudioManager {
     private combatPool: CombatPool = { howls: [], currentIndex: 0 }
     private soundEffects: Partial<Record<SfxName, Howl>> = {}
     //pa no fakin escuchar la musica cuando desarrollo
-    private musicVolume: number = import.meta.env.DEV ? 0.0 : 0.3;
+    private musicVolume: number = import.meta.env.DEV ? 0 : 0.3;
     private sfxVolume: number = 1
     private isMuted: boolean = false
     private unlocked: boolean = false
 
     private constructor() {
+        this.unlocked = true
+        Howler.ctx?.resume().catch(() => { })
         this.bindAutoplayUnlock()
     }
 
@@ -64,6 +66,9 @@ export class AudioManager {
             const ctx = Howler.ctx
             if (ctx && ctx.state === 'suspended') {
                 ctx.resume().catch(() => { })
+            }
+            if (this.currentMusic === 'menu') {
+                this.tryPlay(this.getMenuHowl())
             }
         }
         window.addEventListener('pointerdown', unlock)

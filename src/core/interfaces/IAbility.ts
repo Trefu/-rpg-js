@@ -5,9 +5,10 @@ import type { AnnouncementVariant } from '@/composables/useAnnouncer'
 export interface AbilityContext {
   caster: ICharacter
   target: ICharacter
+  ability?: IAbility
   addToLog: (message: string) => void
   showEnemyHit: (id: string, value: number, isCrit?: boolean) => void
-  showAnnouncement: (text: string, variant?: AnnouncementVariant, duration?: number) => void
+  showAnnouncement: (text: string, variant?: AnnouncementVariant, duration?: number, opts?: { sticky?: boolean; priority?: number; id?: string; interrupt?: boolean }) => void
   audioManager: AudioManager
   /**
    * Duracion del delay post-ejecucion (ms) que la ability debe esperar
@@ -65,6 +66,12 @@ export interface RandomAttackSpec {
  * Si la ability no inflige daño (curas, buffs), dejar el campo en `undefined`.
  */
 export type DamageType = 'physical' | 'fire' | 'holy'
+
+export const DAMAGE_TYPE_LABELS: Record<DamageType, string> = {
+  physical: 'Físico',
+  fire: 'Fuego',
+  holy: 'Sagrado'
+}
 
 export interface IAbility {
   name: string

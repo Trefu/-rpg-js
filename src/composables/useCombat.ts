@@ -287,7 +287,7 @@ export function useCombat(config: CombatConfig = {}) {
       ? effectLabels.join(' + ')
       : effectLabels[0]
 
-    const critTag = wasCrit ? ' (CRÍTICO)' : ''
+    const critTag = wasCrit ? ' (Crítico)' : ''
     const blockLog = blockedFraction >= 1
       ? `¡Bloqueaste el ataque por completo (${effectLabelText})!`
       : blockedFraction > 0
@@ -376,7 +376,7 @@ export function useCombat(config: CombatConfig = {}) {
     showAbilitiesModal.value = false
   }
 
-  function selectAbility(ability: IAbility, index: number) {
+  function selectAbility(ability: IAbility, _index: number) {
     if (abilityCooldowns.value[ability.type] > 0) return
     if (!canAffordAbility(ability)) {
       closeAbilitiesModal()
@@ -497,7 +497,7 @@ export function useCombat(config: CombatConfig = {}) {
         caster,
         target,
         addToLog,
-        showAnnouncement: (text, variant, duration) => showAnnouncement(text, variant ?? 'info', duration),
+        showAnnouncement: (text, variant, duration) => { showAnnouncement(text, variant ?? 'info', duration) },
         audioManager,
         animationDelay: item.animationDurationMs ?? 900
       })
@@ -737,6 +737,8 @@ export function useCombat(config: CombatConfig = {}) {
     if (id) {
       turnState.value = advanceAfterTurn(turnState.value, turnActors.value, id)
     }
+    currentActorId.value = null
+    gameStore.setActiveHero(-1)
     setTimeout(() => { runNextTurn() }, config.isTraining ? 600 : 1000)
   }
 
@@ -862,13 +864,13 @@ export function useCombat(config: CombatConfig = {}) {
     attackedHeroIds.value = [target.id]
     attackingEnemyId.value = enemy.id
     const announceText = isCrit
-      ? `¡CRÍTICO! ${enemyLabel} va a usar ${attackName} contra ${target.name}!`
+      ? `Crítico ${enemyLabel} va a usar ${attackName} contra ${target.name}!`
       : `${enemyLabel} va a usar ${attackName} contra ${target.name}!`
     const announceDuration = (config.isTraining ? 800 : 1400) + (isCrit ? 500 : 0)
     const announceVariant: 'attack' | 'crit-attack' = isCrit ? 'crit-attack' : 'attack'
     showAnnouncement(announceText, announceVariant, announceDuration)
     addToLog(isCrit
-      ? `¡CRÍTICO! ${enemyLabel} va a usar ${attackName} contra ${target.name} (daño x2)`
+      ? `Crítico ${enemyLabel} va a usar ${attackName} contra ${target.name} (daño x2)`
       : `${enemyLabel} va a usar ${attackName} contra ${target.name}`)
     await delay(announceDuration)
     attackingEnemyId.value = null
@@ -903,7 +905,9 @@ export function useCombat(config: CombatConfig = {}) {
         endCombat(false)
         return
       }
-      addToLog(`¡${player.value.name} entra en combate!`)
+      if (player.value) {
+        addToLog(`¡${player.value.name} entra en combate!`)
+      }
     }
 
     await delay(config.isTraining ? 600 : 1500)
@@ -1181,9 +1185,10 @@ export function useCombat(config: CombatConfig = {}) {
       const abilityContext: AbilityContext = {
         caster: playerChar,
         target,
+        ability,
         addToLog,
         showEnemyHit,
-        showAnnouncement: (text, variant, duration) => showAnnouncement(text, variant ?? 'info', duration),
+        showAnnouncement: (text, variant, duration, opts) => showAnnouncement(text, variant ?? 'info', duration, opts),
         audioManager,
         animationDelay,
         energySpent

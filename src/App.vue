@@ -18,6 +18,8 @@ const expeditionStore = useExpeditionStore()
 const currentView = computed(() => gameStore.currentLocation)
 const audioManager = AudioManager.getInstance()
 
+audioManager.playMenuMusic()
+
 watch(currentView, (newView) => {
   if (newView === 'combat' || newView === 'shop') {
     audioManager.stopCurrentMusic()

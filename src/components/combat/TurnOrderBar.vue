@@ -37,7 +37,6 @@ const slots = computed(() => {
         }"
         :title="slot.actor?.name ?? ''"
       >
-        <div class="turn-slot-index">{{ idx + 1 }}</div>
         <img
           v-if="slot.actor?.icon"
           :src="slot.actor.icon"
@@ -134,25 +133,6 @@ const slots = computed(() => {
   filter: grayscale(0.6);
 }
 
-.turn-slot-index {
-  position: absolute;
-  top: -6px;
-  left: -6px;
-  width: 18px;
-  height: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'Courier New', monospace;
-  font-size: 0.65rem;
-  font-weight: 900;
-  color: #1a1a2e;
-  background: #ffe066;
-  border-radius: 50%;
-  border: 1.5px solid #1a1a2e;
-  z-index: 1;
-}
-
 .turn-slot-icon {
   width: 28px;
   height: 28px;
@@ -204,11 +184,6 @@ const slots = computed(() => {
   }
   .turn-slot-name {
     font-size: 0.65rem;
-  }
-  .turn-slot-index {
-    width: 16px;
-    height: 16px;
-    font-size: 0.6rem;
   }
 }
 </style>

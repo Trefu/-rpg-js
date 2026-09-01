@@ -28,7 +28,7 @@ export interface Announcer {
     text: string,
     variant?: AnnouncementVariant,
     duration?: number,
-    options?: { sticky?: boolean; priority?: number; id?: string }
+    options?: { sticky?: boolean; priority?: number; id?: string; interrupt?: boolean }
   ) => string
   enqueue: (spec: AnnouncementSpec) => string
   clear: () => void
@@ -103,8 +103,13 @@ function createAnnouncer(): Announcer {
     text: string,
     variant?: AnnouncementVariant,
     duration?: number,
-    options?: { sticky?: boolean; priority?: number; id?: string }
+    options?: { sticky?: boolean; priority?: number; id?: string; interrupt?: boolean }
   ): string {
+    if (options?.interrupt) {
+      clearTimer()
+      current.value = null
+      queue.length = 0
+    }
     return enqueue({
       text,
       variant,
