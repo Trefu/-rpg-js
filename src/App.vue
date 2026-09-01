@@ -72,6 +72,7 @@ const handleCombatEnded = (victory: boolean) => {
         if (!hero) continue
         if (!hero.isAlive) {
           hero.isAlive = true
+          // Revive fallen heroes at 25% health after victory
           hero.health = Math.floor(hero.maxHealth * 0.25)
         }
       }
@@ -80,9 +81,18 @@ const handleCombatEnded = (victory: boolean) => {
     if (expeditionStore.selectedNode?.type === 'boss') {
       expeditionStore.completeExpedition()
     }
+    gameStore.navigateTo('expedition-map')
+    checkSecondHeroJoin()
+  } else {
+    // [GAME OVER] All heroes have fallen - show thanks and return to start
+    const allDead = gameStore.heroes.every(h => !h || !h.isAlive)
+    if (allDead) {
+      window.alert('Gracias por jugar.下次好运！')
+      handleResetGame()
+      return
+    }
+    gameStore.navigateTo('expedition-map')
   }
-  gameStore.navigateTo('expedition-map')
-  checkSecondHeroJoin()
 }
 
 const checkSecondHeroJoin = () => {
@@ -90,10 +100,12 @@ const checkSecondHeroJoin = () => {
   if (!pending) return
   const exp = expeditionStore.currentExpedition
   if (!exp) return
+  // [DEMO] Hardcoded: second hero joins after exactly 3 combats
+  const DEMO_COMBATS_FOR_SECOND_HERO = 3
   const completedCombat = exp.nodes.filter(
     n => (n.type === 'combat' || n.type === 'boss') && n.completed
   ).length
-  if (completedCombat < 3) {
+  if (completedCombat < DEMO_COMBATS_FOR_SECOND_HERO) {
     const alreadyJoined = gameStore.heroes.some(h => h?.name === pending.name)
     if (alreadyJoined) gameStore.setPendingSecondHero(null)
     return
@@ -101,6 +113,7 @@ const checkSecondHeroJoin = () => {
   const ok = gameStore.addHeroToFirstFreeSlot(pending)
   gameStore.setPendingSecondHero(null)
   if (ok) {
+    // [DEMO] Hardcoded: using window.alert for demo purposes
     window.alert(`¡${pending.name} se une al grupo! (PRUEBAS)`)
   }
 }

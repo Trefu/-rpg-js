@@ -650,6 +650,12 @@ export function useCombat(config: CombatConfig = {}) {
     if (showAbilitiesModal.value) return
     if (showItemsModal.value) return
 
+    if (e.key.toLowerCase() === 'o' && isPlayerTurn.value && !isExecutingAction.value) {
+      openItemsModal()
+      e.preventDefault()
+      return
+    }
+
     if (e.key === 'Escape' && isSelectingTarget.value && (selectedAbility.value || selectedItem.value)) {
       cancelAction()
       e.preventDefault()
