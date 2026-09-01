@@ -29,7 +29,7 @@ export const DEFAULT_DEFENSE_MODIFIERS: DefenseModifiers = {
 
 export interface PlayerLikeForDefense {
   statusEffects: IStatusEffect[]
-  defenseValue: number
+  defense(): number
 }
 
 export interface EnemyLikeForDefense {
@@ -69,13 +69,14 @@ export function getDefenseModifiers(
   const modifiers: DefenseModifiers = { ...DEFAULT_DEFENSE_MODIFIERS }
 
   // TODO: mapear más stats del jugador a modifiers (fuerza → blockReductionBonus?,
-  // destreza → successZoneSizeBonus?, etc.). Por ahora solo status effects + defenseValue.
+  // destreza → successZoneSizeBonus?, etc.). Por ahora solo status effects + defensa.
 
   applyDefenseContributions(player.statusEffects, modifiers, 'player')
   applyDefenseContributions(enemy?.statusEffects, modifiers, 'enemy')
 
-  if (typeof player.defenseValue === 'number') {
-    const extra = Math.max(0, player.defenseValue - 10)
+  const defense = player.defense()
+  if (Number.isFinite(defense)) {
+    const extra = Math.max(0, defense - 10)
     modifiers.blockReductionBonus += extra * 0.005
   }
 

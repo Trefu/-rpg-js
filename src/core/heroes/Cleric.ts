@@ -14,7 +14,6 @@ export class Cleric extends Hero {
       level,
       maxHealth: 100,
       maxEnergy: 80,
-      defenseValue: 10,
       baseAttack: 6,
       agility:    { value: 9,  growthPerLevel: 0 },
       constitution: { value: 12, growthPerLevel: 2 },

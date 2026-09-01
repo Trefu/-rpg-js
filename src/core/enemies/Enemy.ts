@@ -4,6 +4,7 @@ import type { IStatusEffect } from '../interfaces/IStatusEffect'
 import type { DefensePatternConfig } from '../defense/types'
 import type { Hero } from '../Hero'
 import { getScalingStat, getScalingCoefficient, type UnifiedDamageType } from '../combat/damageTypes'
+import { computeDefense } from '../defense/computeDefense'
 
 export interface TargetScoreWeights {
   hpLow: number
@@ -59,6 +60,10 @@ export abstract class Enemy extends Character implements ICombatant {
   public attack(): number {
     if (!this.isAlive) return 0
     return this.baseAttack
+  }
+
+  public defense(): number {
+    return computeDefense(this.baseStats.body, this.baseStats.constitution)
   }
 
   public calculatePhaseDamage(pattern: DefensePatternConfig, isCrit: boolean = false): number {
@@ -149,6 +154,6 @@ export abstract class Enemy extends Character implements ICombatant {
   }
 
   protected normalizeDefense(hero: Hero): number {
-    return Math.min(1, hero.defenseValue / 30)
+    return Math.min(1, hero.defense() / 30)
   }
 }
