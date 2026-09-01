@@ -58,7 +58,7 @@ export const DEFAULT_ZONE: ZoneId = 'mountain-peak'
 export const ZONE_ENEMY_POOLS: Record<ZoneId, ZoneEnemyConfig> = {
   'mountain-peak': {
     id: 'mountain-peak',
-    displayName: 'Monte Pico 🥵',
+    displayName: 'Monte Pico',
     pools: {
       intro: [
         () => new GoblinArcher(1),
@@ -176,7 +176,7 @@ export const ZONE_ENEMY_POOLS: Record<ZoneId, ZoneEnemyConfig> = {
 
 export function determineEnemyTier(floor: number, totalFloors: number): EnemyTier {
   if (floor <= 1) return 'intro'
-  if (floor >= totalFloors - 1) return 'boss'
+  if (floor >= totalFloors) return 'boss'
   if (floor >= totalFloors - 3) return 'late'
   if (floor <= 2) return 'early'
   return 'mid'

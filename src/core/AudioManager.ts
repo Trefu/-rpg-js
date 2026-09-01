@@ -41,7 +41,8 @@ export class AudioManager {
     private bossHowl: Howl | null = null
     private combatPool: CombatPool = { howls: [], currentIndex: 0 }
     private soundEffects: Partial<Record<SfxName, Howl>> = {}
-    private musicVolume: number = 0.2
+    //pa no fakin escuchar la musica cuando desarrollo
+    private musicVolume: number = import.meta.env.DEV ? 0.0 : 0.3;
     private sfxVolume: number = 1
     private isMuted: boolean = false
     private unlocked: boolean = false
