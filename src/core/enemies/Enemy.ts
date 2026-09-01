@@ -3,6 +3,7 @@ import { ICharacter, ICombatant, type IEnemyStats, type IStat } from '../interfa
 import type { IStatusEffect } from '../interfaces/IStatusEffect'
 import type { DefensePatternConfig } from '../defense/types'
 import type { Hero } from '../Hero'
+import { getScalingStat, getScalingCoefficient, type UnifiedDamageType } from '../combat/damageTypes'
 
 export interface TargetScoreWeights {
   hpLow: number
@@ -62,11 +63,13 @@ export abstract class Enemy extends Character implements ICombatant {
 
   public calculatePhaseDamage(pattern: DefensePatternConfig, isCrit: boolean = false): number {
     if (!this.isAlive) return 0
-    const isPhysical = pattern.damageType !== 'magical'
-    const statValue = isPhysical
+    const damageType = (pattern.damageType ?? 'physical') as UnifiedDamageType
+    const scalingStat = getScalingStat(damageType)
+    const coefficient = getScalingCoefficient(scalingStat)
+    const statValue = scalingStat === 'body'
       ? this.baseStats.body.value
       : this.baseStats.mind.value
-    const statBonus = (statValue - 10) * (isPhysical ? 0.5 : 0.4)
+    const statBonus = (statValue - 10) * coefficient
     const levelBonus = this.level * 1
     const baseDamage = this.baseAttack + statBonus + levelBonus
     const finalDamage = Math.floor(baseDamage * pattern.damageMultiplier)

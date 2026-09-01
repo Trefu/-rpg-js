@@ -21,14 +21,14 @@ export const POISON_ARROW: DefensePatternConfig = {
     phases: [phase(20), phase(10)],
     onFailureEffect: {
         statusType: 'poison',
-        stacks: 16
+        stacks: 8
     }
 }
 
 export const EMBER: DefensePatternConfig = {
     name: 'Ascua',
     type: 'fire',
-    damageType: 'magical',
+    damageType: 'fire',
     waveSpeed: 60,
     baseMaxBlockReduction: 0.5,
     damageMultiplier: 0.7,
@@ -123,7 +123,7 @@ export const TRIPLE_COMBO: DefensePatternConfig = {
 export const FIRE_BREATH: DefensePatternConfig = {
     name: 'Aliento de Fuego',
     type: 'fire',
-    damageType: 'magical',
+    damageType: 'fire',
     baseMaxBlockReduction: 0.5,
     damageMultiplier: 2.0,
     phases: [
@@ -142,7 +142,7 @@ export const FIRE_BREATH: DefensePatternConfig = {
 export const GLACIAL_BREATH: DefensePatternConfig = {
     name: 'Aliento Glacial',
     type: 'frost',
-    damageType: 'magical',
+    damageType: 'frost',
     waveSpeed: 50,
     baseMaxBlockReduction: 0.5,
     damageMultiplier: 0.7,

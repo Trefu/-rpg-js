@@ -93,10 +93,10 @@ export const DEFAULT_BLOCK_EFFECT: DefenseBlockEffect = {
 
 export interface DefensePatternConfig {
   name?: string
-  /** Tipo elemental del ataque (mock por ahora). */
+  /** Tipo elemental del ataque. */
   type?: AttackType
   /** Tipo de daño para escalado: físico usa body, mágico usa mind. Default: 'physical' */
-  damageType?: 'physical' | 'magical'
+  damageType?: 'physical' | 'fire' | 'frost' | 'poison' | 'shadow' | 'arcane' | 'holy' | 'radiant' | 'magical'
   waveSpeed?: number
   /**
    * Tamaño por defecto de la zona de éxito en floats [0..1].
