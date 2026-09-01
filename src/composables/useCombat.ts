@@ -18,10 +18,8 @@ import type {
 import {
   applyModifiersToPattern,
   applyCritToPattern,
-  buildDefenseResult,
   pickZonesForPhases
 } from '@/core/defense/DefenseEngine'
-import { DEFAULT_BLOCK_EFFECT } from '@/core/defense/types'
 import { getDefenseModifiers } from '@/core/defense/modifiers'
 import { useAnnouncer } from './useAnnouncer'
 import type { AnnouncementVariant } from './useAnnouncer'
@@ -164,7 +162,6 @@ export function useCombat(config: CombatConfig = {}) {
   const defenseIsCrit = ref(false)
   let pendingDefenseResolve: ((result: DefenseChallengeResult | null) => void) | null = null
   let pendingDefensePattern: DefensePatternConfig | null = null
-  let pendingDefenseAttackDamage = 0
   let pendingDefenseEnemy: IEnemy | null = null
   let pendingDefenseTarget: Hero | null = null
   let pendingDefenseIsCrit = false
@@ -189,7 +186,6 @@ export function useCombat(config: CombatConfig = {}) {
   function startDefenseChallenge(
     enemy: IEnemy,
     target: Hero,
-    attackDamage: number,
     preSelectedPattern?: DefensePatternConfig,
     opts: { isCrit?: boolean } = {}
   ): Promise<DefenseChallengeResult | null> {
@@ -201,7 +197,6 @@ export function useCombat(config: CombatConfig = {}) {
       const zones = pickZonesForPhases(adjusted)
       pendingDefenseResolve = resolve
       pendingDefensePattern = adjusted
-      pendingDefenseAttackDamage = attackDamage
       pendingDefenseEnemy = enemy
       pendingDefenseTarget = target
       pendingDefenseIsCrit = !!opts.isCrit
@@ -220,8 +215,55 @@ export function useCombat(config: CombatConfig = {}) {
     if (result.outcome === 'success') {
       processPlayerOnBlockHooks(1)
     }
+
+    const enemy = pendingDefenseEnemy
+    const target = pendingDefenseTarget
+    const pattern = pendingDefensePattern
+    const wasCrit = pendingDefenseIsCrit
+
+    if (enemy && target && pattern) {
+      const phaseDamage = enemy.calculatePhaseDamage(pattern, wasCrit)
+
+      if (result.outcome === 'success') {
+        const blockedDmg = Math.floor(phaseDamage / 2)
+        target.takeDamage(blockedDmg)
+        showPlayerHit(blockedDmg, wasCrit)
+        audioManager.playBlockSound()
+        addToLog(`Bloqueaste el golpe. Recibes ${blockedDmg} de daño.`)
+      } else {
+        target.takeDamage(phaseDamage)
+        showPlayerHit(phaseDamage, wasCrit)
+        audioManager.playAttackSound()
+        audioManager.playHitSound()
+        addToLog(`¡El golpe atraviesa tu defensa! Recibes ${phaseDamage} de daño.`)
+
+        if (pattern.onFailureEffect) {
+          applyFailureEffect(target, pattern.onFailureEffect, { isCrit: wasCrit })
+          const fx = pattern.onFailureEffect
+          const template = StatusEffects.getByType(fx.statusType)
+          if (template) {
+            const applied = target.statusEffects.find((e: IStatusEffect) => e.type === fx.statusType)
+            const actualStacks = applied?.stacks ?? fx.stacks ?? 1
+            const stackLabel = actualStacks > 1 ? ` x${actualStacks}` : ''
+            const critLabel = wasCrit ? ' (crítico)' : ''
+            addToLog(`¡Sufres el efecto: ${template.name}${stackLabel}${critLabel}!`)
+            showAnnouncement(`¡${template.name}${stackLabel}${critLabel}!`, 'status', 1800)
+          }
+        }
+      }
+
+      if (!target.isAlive) {
+        closeDefenseChallenge()
+        attackedHeroIds.value = []
+        return
+      }
+    }
+
     if (defensePhaseIndex.value < (defensePattern.value?.phases?.length ?? 1) - 1) {
       defensePhaseIndex.value++
+    } else {
+      closeDefenseChallenge()
+      attackedHeroIds.value = []
     }
   }
 
@@ -253,85 +295,23 @@ export function useCombat(config: CombatConfig = {}) {
     const pattern = pendingDefensePattern
     const enemy = pendingDefenseEnemy
     const target = pendingDefenseTarget
-    const attackDamage = pendingDefenseAttackDamage
     const resolve = pendingDefenseResolve
-    const wasCrit = pendingDefenseIsCrit
-    pendingDefenseResolve = null
-    pendingDefensePattern = null
-    pendingDefenseEnemy = null
-    pendingDefenseTarget = null
-    pendingDefenseIsCrit = false
-    isDefenseActive.value = false
-    defensePattern.value = null
-    defenseZones.value = []
-    defenseEnemyId.value = null
-    defenseIsCrit.value = false
 
     if (!pattern || !enemy || !target || !resolve) return
 
-    const modifiers = getDefenseModifiers(target, enemy)
-    const result = buildDefenseResult(pattern, results, modifiers, attackDamage)
+    const totalDamage = results.reduce((sum, r) => {
+      const phaseDamage = enemy.calculatePhaseDamage(pattern, pendingDefenseIsCrit)
+      return sum + (r.outcome === 'success' ? Math.floor(phaseDamage / 2) : phaseDamage)
+    }, 0)
 
-    const finalDamage = Math.max(0, result.totalDamage)
-    const blockedFraction = attackDamage > 0
-      ? Math.max(0, Math.min(1, 1 - (finalDamage / attackDamage)))
-      : (finalDamage === 0 ? 1 : 0)
-    const blockPercent = Math.round(blockedFraction * 100)
-
-    const blockEffect = modifiers.blockEffectOverride
-      ?? pattern.onBlockEffect
-      ?? DEFAULT_BLOCK_EFFECT
-    const extraEffects = modifiers.additionalBlockEffects ?? []
-    const effectLabels = [blockEffect.label, ...extraEffects.map(e => e.label)]
-    const effectLabelText = effectLabels.length > 1
-      ? effectLabels.join(' + ')
-      : effectLabels[0]
-
-    const critTag = wasCrit ? ' (Crítico)' : ''
-    const blockLog = blockedFraction >= 1
-      ? `¡Bloqueaste el ataque por completo (${effectLabelText})!`
-      : blockedFraction > 0
-        ? `Bloqueaste ${blockPercent}% del daño (${effectLabelText}).`
-        : ''
-
-    if (blockedFraction > 0) {
-      audioManager.playBlockSound()
+    const challengeResult: DefenseChallengeResult = {
+      pattern,
+      phaseResults: results,
+      totalDamage,
+      appliedOnFailureEffect: results.some(r => r.outcome !== 'success'),
+      triggeredCounterAttack: false
     }
-
-    if (finalDamage > 0) {
-      target.takeDamage(finalDamage)
-      showPlayerHit(finalDamage)
-      audioManager.playAttackSound()
-      audioManager.playHitSound()
-      addToLog(blockLog
-        ? `${blockLog}${critTag} Recibes ${finalDamage} de daño.`
-        : `Recibes ${finalDamage} de daño${critTag}.`)
-    } else {
-      addToLog(blockLog || `¡Bloqueaste el ataque!`)
-    }
-
-    if (result.appliedOnFailureEffect && pattern.onFailureEffect) {
-      applyOnFailureEffectToPlayer(target, pattern.onFailureEffect, wasCrit)
-    }
-
-    resolve(result)
-  }
-
-  function applyOnFailureEffectToPlayer(p: any, fx: { statusType: string; stacks?: number }, isCrit: boolean = false) {
-    const template = StatusEffects.getByType(fx.statusType)
-    if (!template) {
-      throw new Error(
-        `[useCombat] Attack references unknown status effect "${fx.statusType}". Registered: ${StatusEffects.getRegisteredTypes().join(', ')}`
-      )
-    }
-
-    applyFailureEffect(p, fx, { isCrit })
-
-    const applied = p.statusEffects.find((e: IStatusEffect) => e.type === template.type)
-    const stackLabel = (applied?.stacks ?? 1) > 1 ? ` x${applied?.stacks}` : ''
-    const critLabel = isCrit ? ' (crítico)' : ''
-    addToLog(`¡Sufres el efecto: ${template.name}${stackLabel}${critLabel}!`)
-    showAnnouncement(`¡${template.name}${stackLabel}${critLabel}!`, 'status', 1800)
+    resolve(challengeResult)
   }
 
   function closeDefenseChallenge() {
@@ -883,9 +863,7 @@ export function useCombat(config: CombatConfig = {}) {
 
     await showEnemyStatusSequence(enemy)
 
-    const rawDamage = enemy.attack()
-    const damage = Math.floor(rawDamage * selectedPattern.damageMultiplier * (isCrit ? 2 : 1))
-    await startDefenseChallenge(enemy, target, damage, selectedPattern, { isCrit })
+    await startDefenseChallenge(enemy, target, selectedPattern, { isCrit })
 
     if (selectedPattern.multiHeroAttack) {
       await applyEnemyMultiHeroSplash(selectedPattern.multiHeroAttack, target, enemy)

@@ -1,5 +1,5 @@
 import { Character } from '../Character'
-import { ICharacter, ICombatant } from '../interfaces/ICharacter'
+import { ICharacter, ICombatant, type IEnemyStats, type IStat } from '../interfaces/ICharacter'
 import type { IStatusEffect } from '../interfaces/IStatusEffect'
 import type { DefensePatternConfig } from '../defense/types'
 import type { Hero } from '../Hero'
@@ -25,6 +25,7 @@ export interface EnemyOptions {
   critChance?: number
   /** Velocidad base para el motor de turnos. Default 10. */
   agility?: number
+  baseStats?: Partial<IEnemyStats>
 }
 
 export abstract class Enemy extends Character implements ICombatant {
@@ -35,6 +36,7 @@ export abstract class Enemy extends Character implements ICombatant {
   public agility: number
   public statusEffects: IStatusEffect[] = [];
   public attackPatterns: DefensePatternConfig[] = [];
+  public baseStats: IEnemyStats
 
   constructor(opts: EnemyOptions) {
     super(opts.id, opts.name, opts.level ?? 1, opts.maxHealth)
@@ -43,11 +45,32 @@ export abstract class Enemy extends Character implements ICombatant {
     this.goldReward = opts.goldReward
     this.critChance = opts.critChance ?? 0.05
     this.agility = opts.agility ?? 10
+    const stats = opts.baseStats ?? {}
+    const defaultStat = (value: number = 10): IStat => ({ value, growthPerLevel: 0, description: '' })
+    this.baseStats = {
+      agility: stats.agility ?? defaultStat(),
+      constitution: stats.constitution ?? defaultStat(),
+      mind: stats.mind ?? defaultStat(),
+      body: stats.body ?? defaultStat()
+    }
   }
 
   public attack(): number {
     if (!this.isAlive) return 0
     return this.baseAttack
+  }
+
+  public calculatePhaseDamage(pattern: DefensePatternConfig, isCrit: boolean = false): number {
+    if (!this.isAlive) return 0
+    const isPhysical = pattern.damageType !== 'magical'
+    const statValue = isPhysical
+      ? this.baseStats.body.value
+      : this.baseStats.mind.value
+    const statBonus = (statValue - 10) * (isPhysical ? 0.5 : 0.4)
+    const levelBonus = this.level * 1
+    const baseDamage = this.baseAttack + statBonus + levelBonus
+    const finalDamage = Math.floor(baseDamage * pattern.damageMultiplier)
+    return isCrit ? finalDamage * 2 : finalDamage
   }
 
   public rollCrit(): boolean {

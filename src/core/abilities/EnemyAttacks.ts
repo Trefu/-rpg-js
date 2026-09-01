@@ -4,40 +4,45 @@ import { fixedPhase, phase } from '../defense/attackPatterns'
 export const SLASH: DefensePatternConfig = {
     name: 'Espadazo',
     type: 'physical',
+    damageType: 'physical',
     baseMaxBlockReduction: 0.5,
     damageMultiplier: 2,
-    phases: [fixedPhase(1, 2, 3, 4, 5, 6)]
+    phases: [fixedPhase(1, 2, 3, 4, 5, 6), fixedPhase(1, 2, 3, 4, 5, 6)]
 }
 
 export const POISON_ARROW: DefensePatternConfig = {
     name: 'Flecha Venenosa',
     type: 'physical',
-    waveSpeed: 70,
+    damageType: 'physical',
+    waveSpeed: 60,
     baseMaxBlockReduction: 0.5,
     baseSuccessZoneSize: 0.2,
     damageMultiplier: 0.6,
-    phases: [phase(10)],
+    phases: [phase(20), phase(10)],
     onFailureEffect: {
         statusType: 'poison',
-        stacks: 10
+        stacks: 16
     }
 }
 
 export const EMBER: DefensePatternConfig = {
     name: 'Ascua',
     type: 'fire',
+    damageType: 'magical',
+    waveSpeed: 60,
     baseMaxBlockReduction: 0.5,
     damageMultiplier: 0.7,
-    phases: [phase(6)],
+    phases: [phase(6),phase(6)],
     onFailureEffect: {
         statusType: 'burn',
-        stacks: 12
+        stacks: 8
     }
 }
 
 export const FEROCIOUS_BITE: DefensePatternConfig = {
     name: 'Mordida Feroz',
     type: 'physical',
+    damageType: 'physical',
     baseMaxBlockReduction: 0.5,
     damageMultiplier: 0.8,
     phases: [
@@ -50,6 +55,7 @@ export const FEROCIOUS_BITE: DefensePatternConfig = {
 export const QUICK_CLAWS: DefensePatternConfig = {
     name: 'Zarpazos Rápidos',
     type: 'physical',
+    damageType: 'physical',
     waveSpeed: 40,
     baseMaxBlockReduction: 0.5,
     damageMultiplier: 0.5,
@@ -59,6 +65,7 @@ export const QUICK_CLAWS: DefensePatternConfig = {
 export const MULTIPLE_AXE_STRIKES: DefensePatternConfig = {
     name: 'Hachazos Múltiples',
     type: 'physical',
+    damageType: 'physical',
     baseMaxBlockReduction: 0.5,
     damageMultiplier: 0.8,
     phases: [phase(3), phase(3), phase(3), phase(3)]
@@ -67,6 +74,7 @@ export const MULTIPLE_AXE_STRIKES: DefensePatternConfig = {
 export const CRUSHING_BLOW: DefensePatternConfig = {
     name: 'Golpe Aplastante',
     type: 'physical',
+    damageType: 'physical',
     baseMaxBlockReduction: 0.5,
     damageMultiplier: 1.5,
     phases: [phase(3), phase(3)]
@@ -75,6 +83,7 @@ export const CRUSHING_BLOW: DefensePatternConfig = {
 export const GENTLE_STRIKE: DefensePatternConfig = {
     name: 'Golpe Suave',
     type: 'physical',
+    damageType: 'physical',
     waveSpeed: 25,
     baseMaxBlockReduction: 0.8,
     damageMultiplier: 1.0,
@@ -84,6 +93,7 @@ export const GENTLE_STRIKE: DefensePatternConfig = {
 export const QUICK_STRIKE: DefensePatternConfig = {
     name: 'Golpe Rápido',
     type: 'physical',
+    damageType: 'physical',
     waveSpeed: 55,
     baseMaxBlockReduction: 0.5,
     damageMultiplier: 0.7,
@@ -93,6 +103,7 @@ export const QUICK_STRIKE: DefensePatternConfig = {
 export const DOUBLE_COMBO: DefensePatternConfig = {
     name: 'Combo Doble',
     type: 'physical',
+    damageType: 'physical',
     waveSpeed: 35,
     baseMaxBlockReduction: 0.5,
     damageMultiplier: 1.2,
@@ -102,6 +113,7 @@ export const DOUBLE_COMBO: DefensePatternConfig = {
 export const TRIPLE_COMBO: DefensePatternConfig = {
     name: 'Combo Triple',
     type: 'physical',
+    damageType: 'physical',
     waveSpeed: 70,
     baseMaxBlockReduction: 0.4,
     damageMultiplier: 1.4,
@@ -111,24 +123,26 @@ export const TRIPLE_COMBO: DefensePatternConfig = {
 export const FIRE_BREATH: DefensePatternConfig = {
     name: 'Aliento de Fuego',
     type: 'fire',
+    damageType: 'magical',
     baseMaxBlockReduction: 0.5,
     damageMultiplier: 2.0,
     phases: [
         phase(6, { waveSpeed: 60 }),
-        phase(6, { waveSpeed: 80 }),
-        phase(6, { waveSpeed: 100 }),
-        phase(6, { waveSpeed: 120 }),
-        phase(6, { waveSpeed: 140 })
+        phase(6, { waveSpeed: 60 }),
+        phase(6, { waveSpeed: 60 }),
+        phase(6, { waveSpeed: 60 }),
+        phase(6, { waveSpeed: 60 })
     ],
     onFailureEffect: {
         statusType: 'burn',
-        stacks: 35
+        stacks: 20
     }
 }
 
 export const GLACIAL_BREATH: DefensePatternConfig = {
     name: 'Aliento Glacial',
     type: 'frost',
+    damageType: 'magical',
     waveSpeed: 50,
     baseMaxBlockReduction: 0.5,
     damageMultiplier: 0.7,
@@ -149,6 +163,7 @@ export const GLACIAL_BREATH: DefensePatternConfig = {
 export const DEEP_SLASH: DefensePatternConfig = {
     name: 'Tajo Profundo',
     type: 'physical',
+    damageType: 'physical',
     waveSpeed: 60,
     baseMaxBlockReduction: 0.5,
     damageMultiplier: 1.5,

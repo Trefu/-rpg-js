@@ -37,6 +37,13 @@ export interface IPlayerStats {
   body: IStat
 }
 
+export interface IEnemyStats {
+  agility: IStat
+  constitution: IStat
+  mind: IStat
+  body: IStat
+}
+
 export interface ICombatant extends ICharacter {
   attack: () => number
   takeDamage(amount: number): void
@@ -78,4 +85,5 @@ export interface IEnemy extends ICombatant {
   selectAttackPattern(player: ICharacter | null): DefensePatternConfig
   selectTarget(heroes: Hero[]): Hero | null
   rollCrit?(): boolean
+  calculatePhaseDamage(pattern: DefensePatternConfig, isCrit?: boolean): number
 }

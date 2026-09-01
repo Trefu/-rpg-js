@@ -95,6 +95,8 @@ export interface DefensePatternConfig {
   name?: string
   /** Tipo elemental del ataque (mock por ahora). */
   type?: AttackType
+  /** Tipo de daño para escalado: físico usa body, mágico usa mind. Default: 'physical' */
+  damageType?: 'physical' | 'magical'
   waveSpeed?: number
   /**
    * Tamaño por defecto de la zona de éxito en floats [0..1].
