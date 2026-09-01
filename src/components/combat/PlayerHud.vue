@@ -7,7 +7,7 @@ import hamburgerIcon from '@/assets/icons/hamburger-menu.png'
 
 interface Props {
   player: Hero | null
-  hitPopups: { value: number, key: number }[]
+  hitPopups: { value: number, key: number, isCrit?: boolean }[]
 }
 
 const props = defineProps<Props>()
@@ -103,7 +103,7 @@ onBeforeUnmount(() => {
         </div>
       </div>
       <transition-group name="hud-hit" tag="div" class="hud-hit-container">
-        <div v-for="popup in hitPopups" :key="popup.key" class="hud-hit-popup">
+        <div v-for="popup in hitPopups" :key="popup.key" class="hud-hit-popup" :class="{ crit: popup.isCrit }">
           -{{ popup.value }}
         </div>
       </transition-group>
@@ -274,6 +274,14 @@ onBeforeUnmount(() => {
   text-shadow: 0 0 8px rgba(0, 0, 0, 0.85), 0 2px 8px rgba(0, 0, 0, 0.85);
   pointer-events: none;
   font-family: 'Courier New', monospace;
+}
+
+.hud-hit-popup.crit {
+  color: #ffe066;
+  font-size: 1.6rem;
+  font-weight: 900;
+  text-shadow: 0 0 16px #ff8c00, 0 0 8px rgba(0, 0, 0, 0.85);
+  animation: hud-hit-crit 0.9s cubic-bezier(.68, -0.55, .27, 1.55);
 }
 
 .hud-menu-btn {
@@ -565,5 +573,18 @@ onBeforeUnmount(() => {
 .hud-hit-leave-to {
   opacity: 0;
   transform: translate(-50%, -160%) scale(0.85);
+}
+
+@keyframes hud-hit-crit {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+  15% { opacity: 1; transform: translate(-50%, -80%) scale(1.4); }
+  30% { transform: translate(-50%, -100%) scale(1.15); }
+  100% { opacity: 0; transform: translate(-50%, -180%) scale(1.0); }
+}
+
+@media (max-width: 720px) {
+  .hud-hit-popup.crit {
+    font-size: 1.3rem;
+  }
 }
 </style>

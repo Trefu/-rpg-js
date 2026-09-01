@@ -6,7 +6,7 @@ export interface AbilityContext {
   caster: ICharacter
   target: ICharacter
   addToLog: (message: string) => void
-  showEnemyHit: (id: string, value: number) => void
+  showEnemyHit: (id: string, value: number, isCrit?: boolean) => void
   showAnnouncement: (text: string, variant?: AnnouncementVariant, duration?: number) => void
   audioManager: AudioManager
   /**

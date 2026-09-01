@@ -66,6 +66,13 @@ const handleCombatEnded = (victory: boolean) => {
         hero.addGold(totalGold)
         restoreItemsToMax(hero)
       }
+      for (const hero of gameStore.heroes) {
+        if (!hero) continue
+        if (!hero.isAlive) {
+          hero.isAlive = true
+          hero.health = Math.floor(hero.maxHealth * 0.25)
+        }
+      }
     }
     expeditionStore.completeNode(expeditionStore.selectedNode?.id || '')
     if (expeditionStore.selectedNode?.type === 'boss') {

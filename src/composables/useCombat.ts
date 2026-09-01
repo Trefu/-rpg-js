@@ -75,8 +75,8 @@ export function useCombat(config: CombatConfig = {}) {
    */
   const attackedHeroIds = ref<string[]>([])
   const combatLogRef = ref<HTMLDivElement | null>(null)
-  const enemyHitPopups = ref<{ id: string, value: number, key: number }[]>([])
-  const playerHitPopups = ref<{ value: number, key: number }[]>([])
+  const enemyHitPopups = ref<{ id: string, value: number, key: number, isCrit?: boolean }[]>([])
+  const playerHitPopups = ref<{ value: number, key: number, isCrit?: boolean }[]>([])
   const showAbilitiesModal = ref(false)
   const abilityCooldowns = ref<{ [type: string]: number }>({})
 
@@ -693,17 +693,17 @@ export function useCombat(config: CombatConfig = {}) {
     }
   }
 
-  function showEnemyHit(enemyId: string, value: number) {
+  function showEnemyHit(enemyId: string, value: number, isCrit: boolean = false) {
     const key = popupKey++
-    enemyHitPopups.value.push({ id: enemyId, value, key })
+    enemyHitPopups.value.push({ id: enemyId, value, key, isCrit })
     setTimeout(() => {
       enemyHitPopups.value = enemyHitPopups.value.filter(p => p.key !== key)
     }, 900)
   }
 
-  function showPlayerHit(value: number) {
+  function showPlayerHit(value: number, isCrit: boolean = false) {
     const key = popupKey++
-    playerHitPopups.value.push({ value, key })
+    playerHitPopups.value.push({ value, key, isCrit })
     setTimeout(() => {
       playerHitPopups.value = playerHitPopups.value.filter(p => p.key !== key)
     }, 900)

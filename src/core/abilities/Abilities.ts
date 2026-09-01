@@ -36,11 +36,11 @@ export const BasicAttack: IAbility = {
     targetType: 'enemies-only',
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
-        const rawDamage = caster.baseStats.body.value * 0.7 + caster.level * 0.5
+        const rawDamage = caster.baseStats.body.value * 0.7 + caster.level
         const { finalDamage, isCrit } = rollAndApplyDamage(caster, rawDamage)
         if (finalDamage > 0) {
             context.target.takeDamage(finalDamage)
-            context.showEnemyHit(context.target.id, finalDamage)
+            context.showEnemyHit(context.target.id, finalDamage, isCrit)
             context.audioManager.playAttackSound()
         }
         if (isCrit) showCritAnnouncement(context)
@@ -63,7 +63,7 @@ export const StunStrike: IAbility = {
         const { finalDamage, isCrit } = rollAndApplyDamage(caster, rawDamage)
         if (finalDamage > 0) {
             context.target.takeDamage(finalDamage)
-            context.showEnemyHit(context.target.id, finalDamage)
+            context.showEnemyHit(context.target.id, finalDamage, isCrit)
             context.audioManager.playAttackSound()
         }
         if (isCrit) showCritAnnouncement(context)
@@ -86,7 +86,7 @@ export const StealthStrike: IAbility = {
         const { finalDamage, isCrit } = rollAndApplyDamage(caster, rawDamage)
         if (finalDamage > 0) {
             context.target.takeDamage(finalDamage)
-            context.showEnemyHit(context.target.id, finalDamage)
+            context.showEnemyHit(context.target.id, finalDamage, isCrit)
             context.audioManager.playAttackSound()
         }
         if (isCrit) showCritAnnouncement(context)
@@ -109,7 +109,7 @@ export const Fireball: IAbility = {
         const { finalDamage, isCrit } = rollAndApplyDamage(caster, rawDamage)
         if (finalDamage > 0) {
             context.target.takeDamage(finalDamage)
-            context.showEnemyHit(context.target.id, finalDamage)
+            context.showEnemyHit(context.target.id, finalDamage, isCrit)
             context.audioManager.playAttackSound()
         }
         if (isCrit) showCritAnnouncement(context)
@@ -135,7 +135,7 @@ export const WarriorInjuringStrike: IAbility = {
         const { finalDamage, isCrit } = rollAndApplyDamage(caster, rawDamage)
         if (finalDamage > 0) {
             target.takeDamage(finalDamage)
-            context.showEnemyHit(target.id, finalDamage)
+            context.showEnemyHit(target.id, finalDamage, isCrit)
             context.audioManager.playAttackSound()
         }
         if (isCrit) showCritAnnouncement(context)
@@ -237,7 +237,7 @@ export const ClericRadiantStrike: IAbility = {
         context.lastPrimaryBaseDamage = baseDamage
         if (finalDamage > 0) {
             context.target.takeDamage(finalDamage)
-            context.showEnemyHit(context.target.id, finalDamage)
+            context.showEnemyHit(context.target.id, finalDamage, isCrit)
             context.audioManager.playAttackSound()
         }
         if (isCrit) showCritAnnouncement(context)
@@ -259,7 +259,7 @@ export const ClericDivineSmite: IAbility = {
         const { finalDamage, isCrit } = rollAndApplyDamage(caster, caster.baseStats.mind.value * 4)
         if (finalDamage > 0) {
             context.target.takeDamage(finalDamage)
-            context.showEnemyHit(context.target.id, finalDamage)
+            context.showEnemyHit(context.target.id, finalDamage, isCrit)
             context.audioManager.playAttackSound()
         }
         if (isCrit) showCritAnnouncement(context)

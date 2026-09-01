@@ -41,6 +41,7 @@ export interface HeroOptions {
   constitution: IStatInput
   mind: IStatInput
   body: IStatInput
+  critChance?: number
   sprite?: string
 }
 
@@ -76,7 +77,7 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
     this.maxEnergy = opts.maxEnergy ?? 50
     this.energy = opts.startingEnergy ?? this.maxEnergy
     this.baseAttack = opts.baseAttack
-    this.critChance = 0.05
+    this.critChance = opts.critChance ?? 0.05
     this.critDamageMultiplier = 2.0
     this.sprite = opts.sprite ?? ''
     this.baseStats = {

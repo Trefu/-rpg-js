@@ -13,7 +13,7 @@ interface Props {
   isSelectingTarget: boolean
   isActionTargetRequired: boolean
   isAttacking: boolean
-  hitPopups: Array<{ id: string, value: number, key: number }>
+  hitPopups: Array<{ id: string, value: number, key: number, isCrit?: boolean }>
   showShortcut: boolean
 }
 
@@ -80,7 +80,7 @@ function onClick() {
       </div>
     </div>
     <transition-group name="hit-popup" tag="div" class="hit-popups-container">
-      <div v-for="popup in myHitPopups" :key="popup.key" class="hit-popup">
+      <div v-for="popup in myHitPopups" :key="popup.key" class="hit-popup" :class="{ crit: popup.isCrit }">
         -{{ popup.value }}
       </div>
     </transition-group>
@@ -225,6 +225,14 @@ function onClick() {
   animation: hit-pop 0.9s cubic-bezier(.68, -0.55, .27, 1.55);
 }
 
+.hit-popup.crit {
+  color: #ffe066;
+  font-size: 1.5em;
+  font-weight: 900;
+  text-shadow: 0 0 12px #ffa500, 0 2px 8px #000a;
+  animation: hit-pop-crit 0.9s cubic-bezier(.68, -0.55, .27, 1.55);
+}
+
 .enemy-shortcut-badge {
   position: absolute;
   bottom: -38px;
@@ -280,5 +288,18 @@ function onClick() {
   0% { opacity: 0; transform: translateX(-50%) translateY(0) scale(0.7); }
   20% { opacity: 1; transform: translateX(-50%) translateY(-12px) scale(1.1); }
   100% { opacity: 0; transform: translateX(-50%) translateY(-36px) scale(0.95); }
+}
+
+@keyframes hit-pop-crit {
+  0% { opacity: 0; transform: translateX(-50%) translateY(0) scale(0.5); }
+  15% { opacity: 1; transform: translateX(-50%) translateY(-8px) scale(1.3); }
+  30% { transform: translateX(-50%) translateY(-16px) scale(1.1); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-50px) scale(1.0); }
+}
+
+@media (max-width: 720px) {
+  .hit-popup.crit {
+    font-size: 1.2em;
+  }
 }
 </style>
