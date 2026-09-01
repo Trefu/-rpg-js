@@ -237,7 +237,7 @@ export function useCombat(config: CombatConfig = {}) {
         audioManager.playHitSound()
         addToLog(`¡El golpe atraviesa tu defensa! Recibes ${phaseDamage} de daño.`)
 
-        if (pattern.onFailureEffect) {
+        if (pattern.onFailureEffect && target.isAlive) {
           applyFailureEffect(target, pattern.onFailureEffect, { isCrit: wasCrit })
           const fx = pattern.onFailureEffect
           const template = StatusEffects.getByType(fx.statusType)
@@ -939,20 +939,20 @@ export function useCombat(config: CombatConfig = {}) {
   }
 
   function clearAllStatusEffects() {
-    if (!player.value) return
-    player.value.statusEffects = []
+    heroes.value.forEach(h => { h.statusEffects = [] })
     enemies.value.forEach(e => { e.statusEffects = [] })
     addToLog('Efectos de estado eliminados.')
   }
 
   function restoreAllEnergy() {
-    if (!player.value) return
-    const p = player.value as Hero
-    if (typeof p.maxEnergy !== 'number' || typeof p.restoreEnergy !== 'function') return
-    const restored = p.restoreEnergy(p.maxEnergy)
-    if (restored > 0) {
-      addToLog(`Energía restaurada (+${restored}).`)
-    }
+    heroes.value.forEach(h => {
+      const p = h as Hero
+      if (typeof p.maxEnergy !== 'number' || typeof p.restoreEnergy !== 'function') return
+      const restored = p.restoreEnergy(p.maxEnergy)
+      if (restored > 0) {
+        addToLog(`Energía de ${p.name} restaurada (+${restored}).`)
+      }
+    })
   }
 
   async function applyPlayerStatusTick() {

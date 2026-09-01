@@ -20,7 +20,7 @@ export class Warrior extends Hero {
       agility:    { value: 11, growthPerLevel: 2 },
       constitution: { value: 14, growthPerLevel: 5 },
       mind:       { value: 8,  growthPerLevel: 0 },
-      body:       { value: 166, growthPerLevel: 4 },
+      body:       { value: 16, growthPerLevel: 4 },
       critChance: 0.05,
       sprite: warriorSprite
     })
