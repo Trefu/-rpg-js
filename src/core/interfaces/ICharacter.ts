@@ -62,9 +62,6 @@ export interface ILevelable extends ICharacter {
 
 export interface IInventory {
   gold: number
-  items: string[]
-  addItem(item: string): void
-  removeItem(item: string): void
   addGold(amount: number): void
   spendGold(amount: number): boolean
 }

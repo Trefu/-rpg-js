@@ -242,11 +242,16 @@ const isProcessingDot = ref(false)
         target.takeDamage(blockedDmg)
         showPlayerHit(blockedDmg, wasCrit)
         audioManager.playBlockSound()
+        if (typeof target.restoreEnergy === 'function') {
+          const restored = target.restoreEnergy(5)
+          if (restored > 0) addToLog(`¡Bloqueo exitoso! +${restored} de energía.`)
+        }
         addToLog(`Bloqueaste el golpe. Recibes ${blockedDmg} de daño.`)
       } else {
         target.takeDamage(phaseDamage)
         showPlayerHit(phaseDamage, wasCrit)
-        audioManager.playAttackSound()
+        if (pattern.customSound) audioManager.playCustomSound(pattern.customSound)
+        else audioManager.playAttackSound()
         audioManager.playHitSound()
         addToLog(`¡El golpe atraviesa tu defensa! Recibes ${phaseDamage} de daño.`)
 
@@ -409,9 +414,7 @@ const isProcessingDot = ref(false)
   // ===== Objetos =====
 
   const inventory = computed<InventoryEntry[]>(() => {
-    const hero = player.value
-    if (!hero) return []
-    return getInventoryEntries(hero)
+    return getInventoryEntries(gameStore.teamItems)
   })
 
   function itemRequiresTarget(item: IItem): boolean {
@@ -485,7 +488,7 @@ const isProcessingDot = ref(false)
     if (!caster) return
     isExecutingAction.value = true
     try {
-      consumeItem(caster, item.id)
+      consumeItem(gameStore.teamItems, item.id)
       await item.execute({
         caster,
         target,

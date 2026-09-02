@@ -15,7 +15,19 @@ interface GameState {
   currentLocation: GameLocation
   gold: number
   experience: number
+  /**
+   * Bolsa compartida del equipo. Es el unico inventario de objetos
+   * consumibles: cualquier heroe del party puede usar cualquier pocion
+   * de aqui. `gold` sigue siendo per-hero.
+   */
+  teamItems: string[]
 }
+
+/**
+ * Pociones iniciales con las que arranca una run. Se re-aplican al
+ * vaciar la bolsa (por ejemplo tras gastar todos los frascos).
+ */
+const STARTER_TEAM_ITEMS: string[] = ['healing-flask', 'energy-potion']
 
 export const useGameStore = defineStore('game', {
   state: (): GameState => ({
@@ -24,7 +36,8 @@ export const useGameStore = defineStore('game', {
     isGameStarted: false,
     currentLocation: 'pre-game',
     gold: 0,
-    experience: 0
+    experience: 0,
+    teamItems: []
   }),
 
   getters: {
@@ -46,6 +59,7 @@ export const useGameStore = defineStore('game', {
       this.activeHeroIndex = 0
       this.isGameStarted = true
       this.currentLocation = 'city'
+      this.teamItems = [...STARTER_TEAM_ITEMS]
     },
 
     setActiveHero(index: number) {
@@ -79,6 +93,7 @@ export const useGameStore = defineStore('game', {
       this.currentLocation = 'pre-game'
       this.gold = 0
       this.experience = 0
+      this.teamItems = []
     }
   }
 })

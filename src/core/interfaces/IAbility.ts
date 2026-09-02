@@ -117,5 +117,11 @@ export interface IAbility {
    * La ability debe escribir `context.lastPrimaryFinalDamage` en su `execute`.
    */
   aoe?: boolean
+  /**
+   * Path a un SFX custom (ej. `/assets/sounds/Buffs_Heals_SFX/Def_buff.wav`)
+   * que se reproduce en lugar del `playAttackSound()` por defecto al ejecutar
+   * la habilidad. Si se omite, se usa el fallback `playAttackSound`.
+   */
+  customSound?: string
   execute: (context: AbilityContext) => Promise<void>
 }
