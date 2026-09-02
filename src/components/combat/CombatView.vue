@@ -387,6 +387,7 @@ onUnmounted(() => {
           <button
             class="action-btn cancel"
             :class="{ 'is-hidden': !canCancelTargeting }"
+            :inert="!canCancelTargeting"
             :aria-hidden="!canCancelTargeting"
             :tabindex="canCancelTargeting ? 0 : -1"
             @click="onCancelAbility"
