@@ -13,7 +13,6 @@ export class OrcArcher extends Enemy {
       name: 'Orco Arquero',
       level,
       maxHealth: 65 + (level * 10),
-      baseAttack: 14 + (level * 2),
       experienceReward: 28 + (level * 5),
       goldReward: { min: 16 + (level * 3), max: 26 + (level * 4) },
       classMultipliers: { body: 1.1, agility: 0.9, mind: 1.1 }

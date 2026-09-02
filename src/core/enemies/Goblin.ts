@@ -14,7 +14,6 @@ export class Goblin extends Enemy {
       name: 'Goblin',
       level,
       maxHealth: 70 + (level * 10),
-      baseAttack: 12 + (level * 1),
       experienceReward: 20 + (level * 5),
       goldReward: { min: 10 + (level * 2), max: 15 + (level * 3) },
       classMultipliers: { agility: 0.9 }

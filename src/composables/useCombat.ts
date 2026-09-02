@@ -1096,7 +1096,9 @@ export function useCombat(config: CombatConfig = {}) {
   /**
    * Multi-hero attack de un enemigo: tras la defensa contra el target principal,
    * golpea a N heroes adicionales al azar (excluyendo al principal) con daño
-   * `enemy.attack() * damageMultiplier`. Sin critico en splashes.
+   * `enemy.attack() * damageMultiplier`. `enemy.attack()` ahora escala desde
+   * la stat `body` del enemigo (mismo coeficiente que `calculatePhaseDamage`
+   * para daño fisico) — ya no hay `baseAttack` separado. Sin critico en splashes.
    */
   async function applyEnemyMultiHeroSplash(
     spec: NonNullable<DefensePatternConfig['multiHeroAttack']>,

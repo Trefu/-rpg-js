@@ -89,7 +89,7 @@ const gameStore = useGameStore()
 const dummy = ref<Dummy>(new Dummy(gameStore.activeHero?.level ?? 1))
 
 const selectedPatternIndex = ref<number>(-1)
-const damageValue = ref<number>(dummy.value.baseAttack)
+const damageValue = ref<number>(dummy.value.attack())
 const useCustomDamage = ref<boolean>(false)
 const critChanceValue = ref<number>(0)
 const useCustomCrit = ref<boolean>(false)
@@ -136,7 +136,7 @@ watch(useCustomCrit, () => applyCritChange())
 function resetDummy() {
   dummy.value.reset()
   selectedPatternIndex.value = -1
-  damageValue.value = dummy.value.baseAttack
+  damageValue.value = dummy.value.attack()
   useCustomDamage.value = false
   critChanceValue.value = 0
   useCustomCrit.value = false
@@ -230,7 +230,7 @@ function onTrainingEnded() {
             <input type="range" min="0" max="100" step="1" v-model.number="damageValue" />
             <span class="damage-value">{{ damageValue }}</span>
           </div>
-          <p v-else class="section-hint">Daño por defecto ({{ dummy.baseAttack + dummy.level }})</p>
+          <p v-else class="section-hint">Daño por defecto ({{ dummy.attack() }})</p>
         </section>
 
         <section class="panel-section crit-section">

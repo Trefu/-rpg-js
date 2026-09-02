@@ -48,18 +48,10 @@ export class Dummy extends Enemy implements IEnemy {
       name: 'Dummy de Entrenamiento',
       level,
       maxHealth: 1000,
-      baseAttack: 8,
       experienceReward: 0,
       goldReward: { min: 0, max: 0 },
       critChance: 0
     })
-  }
-
-  public override attack(): number {
-    if (this.damageOverride !== null) {
-      return Math.max(0, this.damageOverride)
-    }
-    return this.baseAttack + (this.level * 1)
   }
 
   public override selectAttackPattern(_player: ICharacter | null): DefensePatternConfig {

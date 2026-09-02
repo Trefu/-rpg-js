@@ -13,7 +13,6 @@ export class Orc extends Enemy {
       name: 'Orc',
       level,
       maxHealth: 80 + (level * 15),
-      baseAttack: 16 + (level * 1),
       experienceReward: 25 + (level * 4),
       goldReward: { min: 14 + (level * 2), max: 22 + (level * 3) },
       classMultipliers: { body: 1.2, agility: 0.6 }

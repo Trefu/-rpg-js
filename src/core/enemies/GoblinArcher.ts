@@ -13,7 +13,6 @@ export class GoblinArcher extends Enemy {
       name: 'Goblin Arquero',
       level,
       maxHealth: 40 + (level * 8),
-      baseAttack: 10 + (level * 2),
       experienceReward: 22 + (level * 5),
       goldReward: { min: 12 + (level * 2), max: 18 + (level * 3) },
       classMultipliers: { agility: 1.1, mind: 1.1 }

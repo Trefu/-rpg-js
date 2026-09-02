@@ -35,12 +35,21 @@ const FRIENDLY_DEBUFF_TYPES: ReadonlySet<string> = new Set([
  */
 export type EnemyClassMultipliers = Partial<Record<keyof IEnemyStats, number>>
 
+/**
+ * Baseline por defecto de la stat `body` para enemigos. Antes el daño base
+ * provenía de un campo `baseAttack` separado; ahora se calcula desde `body`
+ * (mismo rol estructural que `Hero.attack()` usa para el heroe), por eso el
+ * default sube a 22 para preservar el balance pre-cambio. `mind`, `agility` y
+ * `constitution` siguen en 10 para no buffear magic scaling indiscriminadamente;
+ * las subclases magicas los sobreescriben via `baseStats` o `classMultipliers`.
+ */
+const ENEMY_BODY_BASELINE = 22
+
 export interface EnemyOptions {
   id: string
   name: string
   level?: number
   maxHealth: number
-  baseAttack: number
   experienceReward: number
   goldReward: { min: number; max: number }
   critChance?: number
@@ -50,7 +59,6 @@ export interface EnemyOptions {
 }
 
 export abstract class Enemy extends Character implements ICombatant {
-  public baseAttack: number
   public readonly experienceReward: number
   public readonly goldReward: { min: number; max: number }
   public readonly critChance: number
@@ -60,20 +68,19 @@ export abstract class Enemy extends Character implements ICombatant {
 
   constructor(opts: EnemyOptions) {
     super(opts.id, opts.name, opts.level ?? 1, opts.maxHealth)
-    this.baseAttack = opts.baseAttack
     this.experienceReward = opts.experienceReward
     this.goldReward = opts.goldReward
     this.critChance = opts.critChance ?? 5
     const stats = opts.baseStats ?? {}
-    const defaultStat = (value: number = 10): IStat => ({
+    const defaultStat = (value: number): IStat => ({
       value,
       growthPerLevel: ENEMY_STAT_GROWTH_PER_LEVEL
     })
     this.baseStats = {
-      agility: stats.agility ?? defaultStat(),
-      constitution: stats.constitution ?? defaultStat(),
-      mind: stats.mind ?? defaultStat(),
-      body: stats.body ?? defaultStat()
+      agility: stats.agility ?? defaultStat(10),
+      constitution: stats.constitution ?? defaultStat(10),
+      mind: stats.mind ?? defaultStat(10),
+      body: stats.body ?? defaultStat(ENEMY_BODY_BASELINE)
     }
     this.applyLevelScalingToBaseStats()
     this.applyClassMultipliers(opts.classMultipliers)
@@ -109,9 +116,16 @@ export abstract class Enemy extends Character implements ICombatant {
     }
   }
 
+  /**
+   * Daño base del enemigo cuando no hay patron de ataque en juego. Escala por
+   * `body` (la stat de daño fisico por defecto) mas el bonus de nivel, sin
+   * termino `baseAttack` aparte — mismo coeficiente que
+   * `calculatePhaseDamage` para daño fisico, por consistencia con que el
+   * splash multi-hero (`useCombat.applyEnemyMultiHeroSplash`) tambien es fisico.
+   */
   public attack(): number {
     if (!this.isAlive) return 0
-    return this.baseAttack
+    return (this.baseStats.body.value - 10) * 0.5 + this.level * 1
   }
 
   public defense(): number {
@@ -128,7 +142,7 @@ export abstract class Enemy extends Character implements ICombatant {
       : this.baseStats.mind.value
     const statBonus = (statValue - 10) * coefficient
     const levelBonus = this.level * 1
-    const baseDamage = this.baseAttack + statBonus + levelBonus
+    const baseDamage = statBonus + levelBonus
     const finalDamage = Math.floor(baseDamage * pattern.damageMultiplier)
     return Math.floor(finalDamage * multiplier)
   }

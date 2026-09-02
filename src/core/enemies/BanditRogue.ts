@@ -13,7 +13,6 @@ export class BanditRogue extends Enemy {
       name: 'Bandido Pícaro',
       level,
       maxHealth: 50 + (level * 8),
-      baseAttack: 15 + (level * 1),
       experienceReward: 22 + (level * 4),
       goldReward: { min: 20 + (level * 3), max: 30 + (level * 4) },
       classMultipliers: { agility: 1.4, mind: 1.1 }

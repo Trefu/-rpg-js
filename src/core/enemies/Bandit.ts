@@ -13,7 +13,6 @@ export class Bandit extends Enemy {
       name: 'Bandido',
       level,
       maxHealth: 55 + (level * 9),
-      baseAttack: 14 + (level * 1),
       experienceReward: 18 + (level * 4),
       goldReward: { min: 18 + (level * 3), max: 28 + (level * 4) },
       classMultipliers: { agility: 1.2 }

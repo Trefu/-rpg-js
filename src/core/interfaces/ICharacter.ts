@@ -71,7 +71,6 @@ export interface IInventory {
 
 export interface IEnemy extends ICombatant {
   getRewards: () => { experience: number; gold: number }
-  baseAttack: number
   experienceReward: number
   goldReward: { min: number; max: number }
   critChance: number

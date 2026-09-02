@@ -13,7 +13,6 @@ export class BanditArcher extends Enemy {
       name: 'Bandido Arquero',
       level,
       maxHealth: 45 + (level * 7),
-      baseAttack: 13 + (level * 2),
       experienceReward: 20 + (level * 4),
       goldReward: { min: 16 + (level * 3), max: 26 + (level * 4) },
       classMultipliers: { agility: 1.2, mind: 1.1 }

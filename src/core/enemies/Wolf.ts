@@ -13,7 +13,6 @@ export class Wolf extends Enemy {
       name: 'Lobo',
       level,
       maxHealth: 45 + (level * 8),
-      baseAttack: 13 + (level * 1),
       experienceReward: 15 + (level * 4),
       goldReward: { min: 8 + (level * 2), max: 14 + (level * 3) },
       classMultipliers: { agility: 1.4, mind: 0.8 }
