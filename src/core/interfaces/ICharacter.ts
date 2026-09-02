@@ -28,7 +28,8 @@ export interface ICharacter {
 export interface IStat {
   value: number
   growthPerLevel: number
-  description: string
+  /** Tooltip/descripcion del stat. Opcional — solo Heroes lo setean para UI. */
+  description?: string
 }
 
 export interface IPlayerStats {
@@ -74,8 +75,7 @@ export interface IEnemy extends ICombatant {
   experienceReward: number
   goldReward: { min: number; max: number }
   critChance: number
-  /** Velocidad base para el motor de turnos (TurnActor.agility). */
-  agility: number
+  baseStats: IEnemyStats
   abilities?: IAbility[]
   statusEffects: IStatusEffect[]
   addStatusEffect(effect: IStatusEffect): void

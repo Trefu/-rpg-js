@@ -16,8 +16,7 @@ export class BanditCaptain extends Enemy {
       baseAttack: 22 + (level * 3),
       experienceReward: 45 + (level * 8),
       goldReward: { min: 35 + (level * 5), max: 55 + (level * 7) },
-      critChance: 12,
-      agility: 7
+      classMultipliers: { body: 1.2, constitution: 1.3, agility: 0.7 }
     })
   }
 }

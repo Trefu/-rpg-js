@@ -13,9 +13,27 @@ export interface TargetScoreWeights {
   lowDefense: number
 }
 
+/**
+ * Crecimiento por nivel por defecto de cada stat de enemigo. Se aplica sobre
+ * el valor inicial en el constructor — un enemigo de nivel N arranca con
+ * `base + (N-1) * ENEMY_STAT_GROWTH_PER_LEVEL` en cada stat.
+ * Heroes crecen a `STAT_BASE_GROWTH + growthPerLevel` por nivel, asi que este
+ * valor es deliberadamente menor para que los enemigos sientan "mobs".
+ */
+export const ENEMY_STAT_GROWTH_PER_LEVEL = 0.5
+
 const FRIENDLY_DEBUFF_TYPES: ReadonlySet<string> = new Set([
   'injured', 'freeze', 'slow', 'weakness', 'poison', 'burn'
 ])
+
+/**
+ * Multiplicadores por stat que dan "sabor" a cada clase de enemigo. Se
+ * aplican al FINAL del calculo (despues del growth uniforme), asi modifican
+ * el valor efectivo de cada stat sin tocar el crecimiento base. `1.0` = sin
+ * cambio. Pensado para tunear la identidad de cada subclase:
+ * `Goblin = { agility: 0.9 }`, `Orc = { body: 1.2 }`, etc.
+ */
+export type EnemyClassMultipliers = Partial<Record<keyof IEnemyStats, number>>
 
 export interface EnemyOptions {
   id: string
@@ -26,9 +44,9 @@ export interface EnemyOptions {
   experienceReward: number
   goldReward: { min: number; max: number }
   critChance?: number
-  /** Velocidad base para el motor de turnos. Default 10. */
-  agility?: number
   baseStats?: Partial<IEnemyStats>
+  /** Multiplicadores por stat que se aplican al final del calculo. */
+  classMultipliers?: EnemyClassMultipliers
 }
 
 export abstract class Enemy extends Character implements ICombatant {
@@ -36,7 +54,6 @@ export abstract class Enemy extends Character implements ICombatant {
   public readonly experienceReward: number
   public readonly goldReward: { min: number; max: number }
   public readonly critChance: number
-  public agility: number
   public statusEffects: IStatusEffect[] = [];
   public attackPatterns: DefensePatternConfig[] = [];
   public baseStats: IEnemyStats
@@ -47,14 +64,48 @@ export abstract class Enemy extends Character implements ICombatant {
     this.experienceReward = opts.experienceReward
     this.goldReward = opts.goldReward
     this.critChance = opts.critChance ?? 5
-    this.agility = opts.agility ?? 10
     const stats = opts.baseStats ?? {}
-    const defaultStat = (value: number = 10): IStat => ({ value, growthPerLevel: 0, description: '' })
+    const defaultStat = (value: number = 10): IStat => ({
+      value,
+      growthPerLevel: ENEMY_STAT_GROWTH_PER_LEVEL
+    })
     this.baseStats = {
-      agility: stats.agility ?? defaultStat(opts.agility ?? 10),
+      agility: stats.agility ?? defaultStat(),
       constitution: stats.constitution ?? defaultStat(),
       mind: stats.mind ?? defaultStat(),
       body: stats.body ?? defaultStat()
+    }
+    this.applyLevelScalingToBaseStats()
+    this.applyClassMultipliers(opts.classMultipliers)
+  }
+
+  /**
+   * Aplica el crecimiento acumulado por nivel al valor inicial de cada stat.
+   * Asi un enemigo de nivel N ya arranca con sus stats escaladas, en vez de
+   * tener que hardcodear valores por nivel en cada subclase. Las subclases
+   * siguen pudiendo tunear `growthPerLevel` por stat en `opts.baseStats`.
+   */
+  private applyLevelScalingToBaseStats(): void {
+    const levelsAboveBase = this.level - 1
+    if (levelsAboveBase <= 0) return
+    for (const stat of Object.values(this.baseStats)) {
+      stat.value += levelsAboveBase * stat.growthPerLevel
+    }
+  }
+
+  /**
+   * Aplica multiplicadores por stat al final del calculo. Sirve para dar
+   * identidad a cada subclase sin tocar la formula de crecimiento uniforme.
+   * `1.0` (o ausente) es identidad. Si un multiplicador es `<= 0` se ignora.
+   */
+  private applyClassMultipliers(multipliers?: EnemyClassMultipliers): void {
+    if (!multipliers) return
+    for (const key of Object.keys(multipliers) as Array<keyof IEnemyStats>) {
+      const mult = multipliers[key]
+      if (typeof mult !== 'number' || mult <= 0) continue
+      if (mult === 1) continue
+      const stat = this.baseStats[key]
+      if (stat) stat.value *= mult
     }
   }
 
@@ -91,7 +142,7 @@ export abstract class Enemy extends Character implements ICombatant {
   }
 
   public getEffectiveCritChance(): number {
-    return this.critChance
+    return this.critChance + computeAgilityCritBonus(this.baseStats.agility.value)
   }
 
   public selectAttackPattern(_player: ICharacter | null): DefensePatternConfig {

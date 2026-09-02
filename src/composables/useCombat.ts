@@ -101,7 +101,7 @@ export function useCombat(config: CombatConfig = {}) {
       id: e.id,
       name: e.name,
       kind: 'enemy',
-      agility: e.agility,
+      agility: e.baseStats.agility.value,
       isAlive: e.isAlive,
       activeEffectTypes: activeEffectTypesOf(e),
       icon: (e as any).sprite ?? ''

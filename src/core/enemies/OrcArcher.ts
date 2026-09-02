@@ -16,7 +16,7 @@ export class OrcArcher extends Enemy {
       baseAttack: 14 + (level * 2),
       experienceReward: 28 + (level * 5),
       goldReward: { min: 16 + (level * 3), max: 26 + (level * 4) },
-      critChance: 7
+      classMultipliers: { body: 1.1, agility: 0.9, mind: 1.1 }
     })
   }
 }
