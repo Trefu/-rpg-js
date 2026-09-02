@@ -23,6 +23,7 @@ import {
 import { getDefenseModifiers } from '@/core/defense/modifiers'
 import { useAnnouncer } from './useAnnouncer'
 import type { AnnouncementVariant } from './useAnnouncer'
+import type { CritResult } from '@/core/crit'
 import {
   initTurnState,
   nextActorId,
@@ -164,7 +165,7 @@ export function useCombat(config: CombatConfig = {}) {
   let pendingDefensePattern: DefensePatternConfig | null = null
   let pendingDefenseEnemy: IEnemy | null = null
   let pendingDefenseTarget: Hero | null = null
-  let pendingDefenseIsCrit = false
+  let pendingDefenseCrit: CritResult = { multiplier: 1, isCrit: false, isOvercrit: false }
   let popupKey = 0
 
   const abilities = computed(() => {
@@ -187,24 +188,25 @@ export function useCombat(config: CombatConfig = {}) {
     enemy: IEnemy,
     target: Hero,
     preSelectedPattern?: DefensePatternConfig,
-    opts: { isCrit?: boolean } = {}
+    opts: { crit?: CritResult } = {}
   ): Promise<DefenseChallengeResult | null> {
     return new Promise((resolve) => {
       const modifiers = getDefenseModifiers(target, enemy)
       const selectedPattern = preSelectedPattern ?? enemy.selectAttackPattern(target)
       const withModifiers = applyModifiersToPattern(selectedPattern, modifiers)
-      const adjusted = opts.isCrit ? applyCritToPattern(withModifiers, modifiers) : withModifiers
+      const crit: CritResult = opts.crit ?? { multiplier: 1, isCrit: false, isOvercrit: false }
+      const adjusted = crit.isCrit ? applyCritToPattern(withModifiers, modifiers) : withModifiers
       const zones = pickZonesForPhases(adjusted)
       pendingDefenseResolve = resolve
       pendingDefensePattern = adjusted
       pendingDefenseEnemy = enemy
       pendingDefenseTarget = target
-      pendingDefenseIsCrit = !!opts.isCrit
+      pendingDefenseCrit = crit
       defensePattern.value = adjusted
       defenseZones.value = zones
       defensePhaseIndex.value = 0
       defenseEnemyId.value = enemy.id
-      defenseIsCrit.value = pendingDefenseIsCrit
+      defenseIsCrit.value = crit.isCrit
       isDefenseActive.value = true
     })
   }
@@ -219,10 +221,12 @@ export function useCombat(config: CombatConfig = {}) {
     const enemy = pendingDefenseEnemy
     const target = pendingDefenseTarget
     const pattern = pendingDefensePattern
-    const wasCrit = pendingDefenseIsCrit
+    const crit = pendingDefenseCrit
+    const wasCrit = crit.isCrit
+    const multiplier = crit.multiplier
 
     if (enemy && target && pattern) {
-      const phaseDamage = enemy.calculatePhaseDamage(pattern, wasCrit)
+      const phaseDamage = enemy.calculatePhaseDamage(pattern, multiplier)
 
       if (result.outcome === 'success') {
         const blockedDmg = Math.floor(phaseDamage / 2)
@@ -300,7 +304,7 @@ export function useCombat(config: CombatConfig = {}) {
     if (!pattern || !enemy || !target || !resolve) return
 
     const totalDamage = results.reduce((sum, r) => {
-      const phaseDamage = enemy.calculatePhaseDamage(pattern, pendingDefenseIsCrit)
+      const phaseDamage = enemy.calculatePhaseDamage(pattern, pendingDefenseCrit.multiplier)
       return sum + (r.outcome === 'success' ? Math.floor(phaseDamage / 2) : phaseDamage)
     }, 0)
 
@@ -322,7 +326,7 @@ export function useCombat(config: CombatConfig = {}) {
     pendingDefensePattern = null
     pendingDefenseEnemy = null
     pendingDefenseTarget = null
-    pendingDefenseIsCrit = false
+    pendingDefenseCrit = { multiplier: 1, isCrit: false, isOvercrit: false }
     isDefenseActive.value = false
     defensePattern.value = null
     defenseZones.value = []
@@ -843,7 +847,11 @@ export function useCombat(config: CombatConfig = {}) {
     const enemyIndex = enemies.value.filter(e => e.name === enemy.name && e.isAlive).indexOf(enemy) + 1
     const enemyLabel = aliveEnemiesCount > 1 ? `${enemy.name} ${enemyIndex}` : enemy.name
 
-    const isCrit = typeof enemy.rollCrit === 'function' && enemy.rollCrit()
+    const crit = typeof enemy.rollCrit === 'function'
+      ? enemy.rollCrit()
+      : { multiplier: 1 as const, isCrit: false, isOvercrit: false }
+    const isCrit = crit.isCrit
+    const multiplierLabel = crit.isOvercrit ? 'x3' : (crit.isCrit ? 'x2' : '')
 
     // Marca al heroe target como atacado antes del anuncio/defensa para que
     // la UI pueda resaltarlo durante todo el tiempo que dura el ataque.
@@ -856,14 +864,14 @@ export function useCombat(config: CombatConfig = {}) {
     const announceVariant: 'attack' | 'crit-attack' = isCrit ? 'crit-attack' : 'attack'
     showAnnouncement(announceText, announceVariant, announceDuration)
     addToLog(isCrit
-      ? `Crítico ${enemyLabel} va a usar ${attackName} contra ${target.name} (daño x2)`
+      ? `Crítico ${enemyLabel} va a usar ${attackName} contra ${target.name} (daño ${multiplierLabel})`
       : `${enemyLabel} va a usar ${attackName} contra ${target.name}`)
     await delay(announceDuration)
     attackingEnemyId.value = null
 
     await showEnemyStatusSequence(enemy)
 
-    await startDefenseChallenge(enemy, target, selectedPattern, { isCrit })
+    await startDefenseChallenge(enemy, target, selectedPattern, { crit })
 
     if (selectedPattern.multiHeroAttack) {
       await applyEnemyMultiHeroSplash(selectedPattern.multiHeroAttack, target, enemy)

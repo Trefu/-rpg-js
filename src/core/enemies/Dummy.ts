@@ -107,7 +107,7 @@ export class Dummy extends Enemy implements IEnemy {
       this.critChanceOverride = null
       return
     }
-    const clamped = Math.max(0, Math.min(1, value))
+    const clamped = Math.max(0, Math.min(200, value))
     this.critChanceOverride = clamped
   }
 }

@@ -5,6 +5,7 @@ import type { DefensePatternConfig } from '../defense/types'
 import type { Hero } from '../Hero'
 import { getScalingStat, getScalingCoefficient, type UnifiedDamageType } from '../combat/damageTypes'
 import { computeDefense } from '../defense/computeDefense'
+import { computeAgilityCritBonus, rollCritFromChance, type CritResult } from '../crit'
 
 export interface TargetScoreWeights {
   hpLow: number
@@ -45,12 +46,12 @@ export abstract class Enemy extends Character implements ICombatant {
     this.baseAttack = opts.baseAttack
     this.experienceReward = opts.experienceReward
     this.goldReward = opts.goldReward
-    this.critChance = opts.critChance ?? 0.05
+    this.critChance = opts.critChance ?? 5
     this.agility = opts.agility ?? 10
     const stats = opts.baseStats ?? {}
     const defaultStat = (value: number = 10): IStat => ({ value, growthPerLevel: 0, description: '' })
     this.baseStats = {
-      agility: stats.agility ?? defaultStat(),
+      agility: stats.agility ?? defaultStat(opts.agility ?? 10),
       constitution: stats.constitution ?? defaultStat(),
       mind: stats.mind ?? defaultStat(),
       body: stats.body ?? defaultStat()
@@ -66,7 +67,7 @@ export abstract class Enemy extends Character implements ICombatant {
     return computeDefense(this.baseStats.body, this.baseStats.constitution)
   }
 
-  public calculatePhaseDamage(pattern: DefensePatternConfig, isCrit: boolean = false): number {
+  public calculatePhaseDamage(pattern: DefensePatternConfig, multiplier: number = 1): number {
     if (!this.isAlive) return 0
     const damageType = (pattern.damageType ?? 'physical') as UnifiedDamageType
     const scalingStat = getScalingStat(damageType)
@@ -78,13 +79,15 @@ export abstract class Enemy extends Character implements ICombatant {
     const levelBonus = this.level * 1
     const baseDamage = this.baseAttack + statBonus + levelBonus
     const finalDamage = Math.floor(baseDamage * pattern.damageMultiplier)
-    return isCrit ? finalDamage * 2 : finalDamage
+    return Math.floor(finalDamage * multiplier)
   }
 
-  public rollCrit(): boolean {
+  public rollCrit(): CritResult {
     const chance = this.getEffectiveCritChance()
-    if (chance <= 0) return false
-    return Math.random() < chance
+    if (chance <= 0) {
+      return { multiplier: 1, isCrit: false, isOvercrit: false }
+    }
+    return rollCritFromChance(chance)
   }
 
   public getEffectiveCritChance(): number {

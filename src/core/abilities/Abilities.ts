@@ -3,31 +3,37 @@ import type { AbilityContext } from '@/core/interfaces/IAbility'
 import { DAMAGE_TYPE_LABELS } from '@/core/interfaces/IAbility'
 import type { Hero } from '../Hero'
 import { StatusEffects, DOT_STATUS_TYPES } from '../StatusEffects'
+import type { CritResult } from '../crit'
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
-const showCritAnnouncement = (context: AbilityContext, damage: number) => {
+const showCritAnnouncement = (context: AbilityContext, damage: number, isOvercrit: boolean = false) => {
     const dmgType = context.ability?.damageType as DamageType | undefined
     const typeLabel = dmgType ? DAMAGE_TYPE_LABELS[dmgType] : 'Físico'
-    context.showAnnouncement(`Crítico ${damage} ${typeLabel}`, 'crit', 1800, { priority: 100, interrupt: true })
+    const prefix = isOvercrit ? '¡Overcrit!' : 'Crítico'
+    context.showAnnouncement(`${prefix} ${damage} ${typeLabel}`, 'crit', 1800, { priority: 100, interrupt: true })
 }
 
 const rollAndApplyDamage = (
     caster: Hero,
     rawDamage: number
-): { finalDamage: number, isCrit: boolean } => {
+): { finalDamage: number, crit: CritResult } => {
     const baseDamage = Math.floor(rawDamage)
-    if (baseDamage <= 0) return { finalDamage: 0, isCrit: false }
-    const isCrit = caster.rollCrit()
-    const finalDamage = isCrit
-        ? Math.floor(baseDamage * caster.critDamageMultiplier)
+    if (baseDamage <= 0) {
+        return { finalDamage: 0, crit: { multiplier: 1, isCrit: false, isOvercrit: false } }
+    }
+    const crit = caster.rollCrit()
+    const finalDamage = crit.isCrit
+        ? Math.floor(baseDamage * crit.multiplier)
         : baseDamage
-    return { finalDamage, isCrit }
+    return { finalDamage, crit }
 }
 
-const buildAttackLog = (abilityName: string, damage: number, isCrit: boolean): string => {
+const buildAttackLog = (abilityName: string, damage: number, crit: CritResult): string => {
     const base = `Usaste ${abilityName} causando ${damage} de daño.`
-    return isCrit ? `Crítico ${base}` : base
+    if (crit.isOvercrit) return `¡Overcrit! ${base}`
+    if (crit.isCrit) return `Crítico ${base}`
+    return base
 }
 
 export const BasicAttack: IAbility = {
@@ -40,14 +46,14 @@ export const BasicAttack: IAbility = {
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
         const rawDamage = caster.baseStats.body.value * 0.7 + caster.level
-        const { finalDamage, isCrit } = rollAndApplyDamage(caster, rawDamage)
+        const { finalDamage, crit } = rollAndApplyDamage(caster, rawDamage)
         if (finalDamage > 0) {
             context.target.takeDamage(finalDamage)
-            context.showEnemyHit(context.target.id, finalDamage, isCrit)
+            context.showEnemyHit(context.target.id, finalDamage, crit.isCrit)
             context.audioManager.playAttackSound()
         }
-        if (isCrit) showCritAnnouncement(context, finalDamage)
-        context.addToLog(buildAttackLog('Ataque Básico', finalDamage, isCrit))
+        if (crit.isCrit) showCritAnnouncement(context, finalDamage, crit.isOvercrit)
+        context.addToLog(buildAttackLog('Ataque Básico', finalDamage, crit))
         await sleep(context.animationDelay)
     }
 }
@@ -63,14 +69,14 @@ export const StunStrike: IAbility = {
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
         const rawDamage = (caster.baseStats.body.value * 0.7 + caster.level * 0.5) * 0.8
-        const { finalDamage, isCrit } = rollAndApplyDamage(caster, rawDamage)
+        const { finalDamage, crit } = rollAndApplyDamage(caster, rawDamage)
         if (finalDamage > 0) {
             context.target.takeDamage(finalDamage)
-            context.showEnemyHit(context.target.id, finalDamage, isCrit)
+            context.showEnemyHit(context.target.id, finalDamage, crit.isCrit)
             context.audioManager.playAttackSound()
         }
-        if (isCrit) showCritAnnouncement(context, finalDamage)
-        context.addToLog(buildAttackLog('Golpe Aturdidor', finalDamage, isCrit))
+        if (crit.isCrit) showCritAnnouncement(context, finalDamage, crit.isOvercrit)
+        context.addToLog(buildAttackLog('Golpe Aturdidor', finalDamage, crit))
         await sleep(context.animationDelay)
     }
 }
@@ -86,14 +92,14 @@ export const StealthStrike: IAbility = {
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
         const rawDamage = (caster.baseStats.body.value * 0.7 + caster.level * 0.5) * 1.5
-        const { finalDamage, isCrit } = rollAndApplyDamage(caster, rawDamage)
+        const { finalDamage, crit } = rollAndApplyDamage(caster, rawDamage)
         if (finalDamage > 0) {
             context.target.takeDamage(finalDamage)
-            context.showEnemyHit(context.target.id, finalDamage, isCrit)
+            context.showEnemyHit(context.target.id, finalDamage, crit.isCrit)
             context.audioManager.playAttackSound()
         }
-        if (isCrit) showCritAnnouncement(context, finalDamage)
-        context.addToLog(buildAttackLog('Golpe Sigiloso', finalDamage, isCrit))
+        if (crit.isCrit) showCritAnnouncement(context, finalDamage, crit.isOvercrit)
+        context.addToLog(buildAttackLog('Golpe Sigiloso', finalDamage, crit))
         await sleep(context.animationDelay)
     }
 }
@@ -109,14 +115,14 @@ export const Fireball: IAbility = {
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
         const rawDamage = caster.baseStats.mind.value * 2.5
-        const { finalDamage, isCrit } = rollAndApplyDamage(caster, rawDamage)
+        const { finalDamage, crit } = rollAndApplyDamage(caster, rawDamage)
         if (finalDamage > 0) {
             context.target.takeDamage(finalDamage)
-            context.showEnemyHit(context.target.id, finalDamage, isCrit)
+            context.showEnemyHit(context.target.id, finalDamage, crit.isCrit)
             context.audioManager.playAttackSound()
         }
-        if (isCrit) showCritAnnouncement(context, finalDamage)
-        context.addToLog(buildAttackLog('Bola de Fuego', finalDamage, isCrit))
+        if (crit.isCrit) showCritAnnouncement(context, finalDamage, crit.isOvercrit)
+        context.addToLog(buildAttackLog('Bola de Fuego', finalDamage, crit))
         await sleep(context.animationDelay)
     }
 }
@@ -135,14 +141,14 @@ export const WarriorInjuringStrike: IAbility = {
         const target = context.target as any
 
         const rawDamage = caster.baseStats.body.value * 0.7 + caster.level * 0.5
-        const { finalDamage, isCrit } = rollAndApplyDamage(caster, rawDamage)
+        const { finalDamage, crit } = rollAndApplyDamage(caster, rawDamage)
         if (finalDamage > 0) {
             target.takeDamage(finalDamage)
-            context.showEnemyHit(target.id, finalDamage, isCrit)
+            context.showEnemyHit(target.id, finalDamage, crit.isCrit)
             context.audioManager.playAttackSound()
         }
-        if (isCrit) showCritAnnouncement(context, finalDamage)
-        context.addToLog(buildAttackLog('Golpe Lesionador', finalDamage, isCrit))
+        if (crit.isCrit) showCritAnnouncement(context, finalDamage, crit.isOvercrit)
+        context.addToLog(buildAttackLog('Golpe Lesionador', finalDamage, crit))
 
         if (target && typeof target.addStatusEffect === 'function' && target.isAlive) {
             const template = StatusEffects.INJURED
@@ -170,9 +176,9 @@ export const WarriorDevastatingStrike: IAbility = {
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
         const rawDamage = caster.baseStats.body.value * 1.5 + caster.level * 4
-        const { finalDamage, isCrit } = rollAndApplyDamage(caster, rawDamage)
+        const { finalDamage, crit } = rollAndApplyDamage(caster, rawDamage)
         context.lastPrimaryFinalDamage = finalDamage
-        if (isCrit) showCritAnnouncement(context, finalDamage)
+        if (crit.isCrit) showCritAnnouncement(context, finalDamage, crit.isOvercrit)
     }
 }
 
@@ -236,15 +242,15 @@ export const ClericRadiantStrike: IAbility = {
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
         const baseDamage = caster.baseStats.mind.value * 2.6
-        const { finalDamage, isCrit } = rollAndApplyDamage(caster, baseDamage)
+        const { finalDamage, crit } = rollAndApplyDamage(caster, baseDamage)
         context.lastPrimaryBaseDamage = baseDamage
         if (finalDamage > 0) {
             context.target.takeDamage(finalDamage)
-            context.showEnemyHit(context.target.id, finalDamage, isCrit)
+            context.showEnemyHit(context.target.id, finalDamage, crit.isCrit)
             context.audioManager.playAttackSound()
         }
-        if (isCrit) showCritAnnouncement(context, finalDamage)
-        context.addToLog(buildAttackLog('Luz Sagrada', finalDamage, isCrit))
+        if (crit.isCrit) showCritAnnouncement(context, finalDamage, crit.isOvercrit)
+        context.addToLog(buildAttackLog('Luz Sagrada', finalDamage, crit))
         await sleep(context.animationDelay)
     }
 }
@@ -259,14 +265,14 @@ export const ClericDivineSmite: IAbility = {
     targetType: 'enemies-only',
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
-        const { finalDamage, isCrit } = rollAndApplyDamage(caster, caster.baseStats.mind.value * 4)
+        const { finalDamage, crit } = rollAndApplyDamage(caster, caster.baseStats.mind.value * 4)
         if (finalDamage > 0) {
             context.target.takeDamage(finalDamage)
-            context.showEnemyHit(context.target.id, finalDamage, isCrit)
+            context.showEnemyHit(context.target.id, finalDamage, crit.isCrit)
             context.audioManager.playAttackSound()
         }
-        if (isCrit) showCritAnnouncement(context, finalDamage)
-        context.addToLog(buildAttackLog('Castigo Divino', finalDamage, isCrit))
+        if (crit.isCrit) showCritAnnouncement(context, finalDamage, crit.isOvercrit)
+        context.addToLog(buildAttackLog('Castigo Divino', finalDamage, crit))
         await sleep(context.animationDelay)
     }
 }

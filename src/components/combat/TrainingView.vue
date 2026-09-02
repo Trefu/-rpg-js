@@ -104,11 +104,11 @@ const currentForcedLabel = computed(() => {
 const playerAbilitiesCount = computed(() => gameStore.activeHero?.abilities.length ?? 0)
 
 const critChancePercentProxy = computed<number>({
-  get: () => Math.round(critChanceValue.value * 100),
-  set: (percent: number) => { critChanceValue.value = Math.max(0, Math.min(1, percent / 100)) }
+  get: () => Math.round(critChanceValue.value),
+  set: (percent: number) => { critChanceValue.value = Math.max(0, Math.min(200, percent)) }
 })
 
-const critChancePercentLabel = computed(() => `${Math.round(critChanceValue.value * 100)}%`)
+const critChancePercentLabel = computed(() => `${Math.round(critChanceValue.value)}%`)
 
 function selectPattern(index: number) {
   selectedPatternIndex.value = index
@@ -243,7 +243,7 @@ function onTrainingEnded() {
             <input
               type="range"
               min="0"
-              max="100"
+              max="200"
               step="5"
               v-model.number="critChancePercentProxy"
               class="crit-range"

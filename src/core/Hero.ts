@@ -5,6 +5,7 @@ import type { ICombatant, IInventory, ILevelable, IPlayerStats, IStat } from './
 import { BasicAttack } from './abilities/Abilities'
 import { DOT_STATUS_TYPES } from './StatusEffects'
 import { computeDefense } from './defense/computeDefense'
+import { computeAgilityCritBonus, rollCritFromChance, type CritResult } from './crit'
 
 /**
  * Descripciones por defecto de cada stat. Viven en Hero porque son
@@ -25,17 +26,6 @@ const STAT_DESCRIPTIONS: Record<keyof IPlayerStats, string> = {
  * (0 = crecimiento estándar, 1 = un punto más rápido, etc.).
  */
 const STAT_BASE_GROWTH = 1
-
-/** Stat de agilidad neutral para bonuses derivados. */
-const AGILITY_NEUTRAL = 10
-/** Multiplicador del bonus de agilidad sobre la chance de critico. */
-const AGILITY_CRIT_SCALE = 0.02
-/**
- * Hard cap de crit chance efectiva (incluyendo bonus de agilidad y futuras
- * fuentes). Red de seguridad: con stats razonables nunca se llega, pero
- * blinda contra items/perks que acumulen agilidad absurda.
- */
-const EFFECTIVE_CRIT_CAP = 0.25
 
 /** Input de stat que pasan las subclases (sin description, lo completa Hero). */
 export type IStatInput = Omit<IStat, 'description'>
@@ -86,7 +76,7 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
     this.maxEnergy = opts.maxEnergy ?? 50
     this.energy = opts.startingEnergy ?? this.maxEnergy
     this.baseAttack = opts.baseAttack
-    this.critChance = opts.critChance ?? 0.05
+    this.critChance = opts.critChance ?? 5
     this.critDamageMultiplier = 2.0
     this.sprite = opts.sprite ?? ''
     this.baseStats = {
@@ -115,23 +105,23 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
   }
 
   /**
-   * Chance de critico efectiva: `critChance` base + bonus de agilidad
-   * (escala logaritmica sobre el neutro 10, igual que la defensa).
-   * Cap dura en `EFFECTIVE_CRIT_CAP` para prevenir combos abusivos.
+   * Chance de critico efectiva en puntos de porcentaje: `critChance` base +
+   * bonus de agilidad (escala logaritmica sobre el neutro 10). No tiene cap
+   * duro: si `critChance + bonus > 100` parte de los crits seran overcrits.
    */
   public getEffectiveCritChance(): number {
-    const agi = this.baseStats.agility.value
-    const agiBonus = Math.log(1 + Math.max(0, agi - AGILITY_NEUTRAL)) * AGILITY_CRIT_SCALE
-    return Math.min(EFFECTIVE_CRIT_CAP, this.critChance + agiBonus)
+    return this.critChance + computeAgilityCritBonus(this.baseStats.agility.value)
   }
 
   /**
    * Tirada probabilistica de critico del heroe.
    * Usa `getEffectiveCritChance()` (incluye bonus de agilidad).
    */
-  public rollCrit(): boolean {
-    if (!this.isAlive) return false
-    return Math.random() < this.getEffectiveCritChance()
+  public rollCrit(): CritResult {
+    if (!this.isAlive) {
+      return { multiplier: 1, isCrit: false, isOvercrit: false }
+    }
+    return rollCritFromChance(this.getEffectiveCritChance())
   }
 
   public gainExperience(amount: number): void {

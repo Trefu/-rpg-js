@@ -16,7 +16,7 @@ export class Orc extends Enemy {
       baseAttack: 16 + (level * 1),
       experienceReward: 25 + (level * 4),
       goldReward: { min: 14 + (level * 2), max: 22 + (level * 3) },
-      critChance: 0.08,
+      critChance: 8,
       agility: 6
     })
   }

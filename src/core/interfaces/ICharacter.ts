@@ -2,6 +2,7 @@ import type { IStatusEffect } from './IStatusEffect'
 import type { IAbility } from './IAbility'
 import type { DefensePatternConfig } from '../defense/types'
 import type { Hero } from '../Hero'
+import type { CritResult } from '../crit'
 
 export type AttackPatternSelector = (player: ICharacter | null) => DefensePatternConfig
 
@@ -84,6 +85,6 @@ export interface IEnemy extends ICombatant {
   attackPatterns: DefensePatternConfig[]
   selectAttackPattern(player: ICharacter | null): DefensePatternConfig
   selectTarget(heroes: Hero[]): Hero | null
-  rollCrit?(): boolean
-  calculatePhaseDamage(pattern: DefensePatternConfig, isCrit?: boolean): number
+  rollCrit?(): CritResult
+  calculatePhaseDamage(pattern: DefensePatternConfig, multiplier?: number): number
 }
