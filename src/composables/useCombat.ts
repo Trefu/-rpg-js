@@ -246,7 +246,8 @@ const isProcessingDot = ref(false)
       } else {
         target.takeDamage(phaseDamage)
         showPlayerHit(phaseDamage, wasCrit)
-        audioManager.playAttackSound()
+        if (pattern.customSound) audioManager.playCustomSound(pattern.customSound)
+        else audioManager.playAttackSound()
         audioManager.playHitSound()
         addToLog(`¡El golpe atraviesa tu defensa! Recibes ${phaseDamage} de daño.`)
 

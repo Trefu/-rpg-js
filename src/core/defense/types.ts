@@ -140,6 +140,12 @@ export interface DefensePatternConfig {
     /** Multiplicador de daño aplicado a cada objetivo extra (default 0.5). */
     damageMultiplier: number
   }
+  /**
+   * Path a un SFX custom (ej. `/assets/sounds/Battle_SFX/swing.wav`) que
+   * se reproduce cuando el enemigo lanza este patron, en lugar del
+   * fallback `playAttackSound()`. Si se omite, se usa el fallback.
+   */
+  customSound?: string
 }
 
 export type DefensePhaseOutcome = 'success' | 'fail' | 'timeout'

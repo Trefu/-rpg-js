@@ -47,6 +47,12 @@ export class AudioManager {
     private bossHowl: Howl | null = null
     private combatPool: CombatPool = { howls: [], currentIndex: 0 }
     private soundEffects: Partial<Record<SfxName, Howl>> = {}
+    /**
+     * Cache de Howls para sonidos custom (paths arbitrarios).
+     * Permite que una ability/ataque reproduzca su propio SFX sin
+     * re-crear el Howl en cada llamada.
+     */
+    private customSounds: Map<string, Howl> = new Map()
     //pa no fakin escuchar la musica cuando desarrollo
     private musicVolume: number = import.meta.env.DEV ? 0 : 0.3;
     private sfxVolume: number = 1
@@ -208,6 +214,29 @@ export class AudioManager {
         this.tryPlay(this.getSfx('dotIce'))
     }
 
+    /**
+     * Reproduce un SFX custom a partir de una ruta arbitraria (ej.
+     * `/assets/sounds/Buffs_Heals_SFX/Def_buff.wav`). Se cachea por
+     * path para evitar re-instanciar Howls en cada llamada.
+     *
+     * Usado como override opcional por abilities/ataques que quieren
+     * un sonido propio en lugar del fallback (`playAttackSound`).
+     */
+    public playCustomSound(src: string, volumeMultiplier: number = 1): void {
+        if (!src) return
+        let howl = this.customSounds.get(src)
+        if (!howl) {
+            howl = new Howl({
+                src: [src],
+                volume: this.sfxVolume * volumeMultiplier
+            })
+            this.customSounds.set(src, howl)
+        } else {
+            howl.volume(this.sfxVolume * volumeMultiplier)
+        }
+        this.tryPlay(howl)
+    }
+
     public setMusicVolume(volume: number): void {
         this.musicVolume = Math.max(0, Math.min(1, volume))
         if (this.menuHowl) this.menuHowl.volume(this.musicVolume)
@@ -246,5 +275,7 @@ export class AudioManager {
         this.bossHowl?.unload()
         this.combatPool.howls.forEach(h => h.unload())
         Object.values(this.soundEffects).forEach(sound => sound.unload())
+        this.customSounds.forEach(howl => howl.unload())
+        this.customSounds.clear()
     }
 }

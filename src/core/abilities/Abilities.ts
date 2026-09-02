@@ -36,6 +36,20 @@ const buildAttackLog = (abilityName: string, damage: number, crit: CritResult): 
     return base
 }
 
+/**
+ * Reproduce el SFX de la ability: si la ability define `customSound`,
+ * se reproduce ese (pasado al `playCustomSound` del AudioManager);
+ * si no, se usa el fallback generico `playAttackSound`.
+ */
+const playAbilitySfx = (
+    audioManager: AbilityContext['audioManager'],
+    ability: IAbility | undefined
+): void => {
+    const custom = ability?.customSound
+    if (custom) audioManager.playCustomSound(custom)
+    else audioManager.playAttackSound()
+}
+
 export const BasicAttack: IAbility = {
     name: 'Ataque Básico',
     description: 'Un ataque simple con daño bajo',
@@ -50,7 +64,7 @@ export const BasicAttack: IAbility = {
         if (finalDamage > 0) {
             context.target.takeDamage(finalDamage)
             context.showEnemyHit(context.target.id, finalDamage, crit.isCrit)
-            context.audioManager.playAttackSound()
+            playAbilitySfx(context.audioManager, context.ability)
         }
         if (crit.isCrit) showCritAnnouncement(context, finalDamage, crit.isOvercrit)
         context.addToLog(buildAttackLog('Ataque Básico', finalDamage, crit))
@@ -73,7 +87,7 @@ export const StunStrike: IAbility = {
         if (finalDamage > 0) {
             context.target.takeDamage(finalDamage)
             context.showEnemyHit(context.target.id, finalDamage, crit.isCrit)
-            context.audioManager.playAttackSound()
+            playAbilitySfx(context.audioManager, context.ability)
         }
         if (crit.isCrit) showCritAnnouncement(context, finalDamage, crit.isOvercrit)
         context.addToLog(buildAttackLog('Golpe Aturdidor', finalDamage, crit))
@@ -96,7 +110,7 @@ export const StealthStrike: IAbility = {
         if (finalDamage > 0) {
             context.target.takeDamage(finalDamage)
             context.showEnemyHit(context.target.id, finalDamage, crit.isCrit)
-            context.audioManager.playAttackSound()
+            playAbilitySfx(context.audioManager, context.ability)
         }
         if (crit.isCrit) showCritAnnouncement(context, finalDamage, crit.isOvercrit)
         context.addToLog(buildAttackLog('Golpe Sigiloso', finalDamage, crit))
@@ -119,7 +133,7 @@ export const Fireball: IAbility = {
         if (finalDamage > 0) {
             context.target.takeDamage(finalDamage)
             context.showEnemyHit(context.target.id, finalDamage, crit.isCrit)
-            context.audioManager.playAttackSound()
+            playAbilitySfx(context.audioManager, context.ability)
         }
         if (crit.isCrit) showCritAnnouncement(context, finalDamage, crit.isOvercrit)
         context.addToLog(buildAttackLog('Bola de Fuego', finalDamage, crit))
@@ -145,7 +159,7 @@ export const WarriorInjuringStrike: IAbility = {
         if (finalDamage > 0) {
             target.takeDamage(finalDamage)
             context.showEnemyHit(target.id, finalDamage, crit.isCrit)
-            context.audioManager.playAttackSound()
+            playAbilitySfx(context.audioManager, context.ability)
         }
         if (crit.isCrit) showCritAnnouncement(context, finalDamage, crit.isOvercrit)
         context.addToLog(buildAttackLog('Golpe Lesionador', finalDamage, crit))
@@ -195,6 +209,7 @@ export const SecondWind: IAbility = {
     targetType: 'allies-only',
     requiresTarget: false,
     animationDurationMs: 1200,
+    customSound: '/assets/sounds/Buffs_Heals_SFX/Def_buff.wav',
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
         if (!caster.isAlive) {
@@ -226,6 +241,7 @@ export const SecondWind: IAbility = {
             `Usaste Segundo Aliento: cura ${healAmount} HP y activa el buff (${maxCharges} cargas).`
         )
         context.showAnnouncement('Segundo Aliento!', 'info', 1500)
+        playAbilitySfx(context.audioManager, context.ability)
         await sleep(context.animationDelay)
     }
 }
@@ -251,7 +267,7 @@ export const ClericRadiantStrike: IAbility = {
         if (finalDamage > 0) {
             context.target.takeDamage(finalDamage)
             context.showEnemyHit(context.target.id, finalDamage, crit.isCrit)
-            context.audioManager.playAttackSound()
+            playAbilitySfx(context.audioManager, context.ability)
         }
         if (crit.isCrit) showCritAnnouncement(context, finalDamage, crit.isOvercrit)
         context.addToLog(buildAttackLog('Luz Sagrada', finalDamage, crit))
@@ -273,7 +289,7 @@ export const ClericDivineSmite: IAbility = {
         if (finalDamage > 0) {
             context.target.takeDamage(finalDamage)
             context.showEnemyHit(context.target.id, finalDamage, crit.isCrit)
-            context.audioManager.playAttackSound()
+            playAbilitySfx(context.audioManager, context.ability)
         }
         if (crit.isCrit) showCritAnnouncement(context, finalDamage, crit.isOvercrit)
         context.addToLog(buildAttackLog('Castigo Divino', finalDamage, crit))
