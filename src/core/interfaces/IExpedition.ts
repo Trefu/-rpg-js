@@ -15,7 +15,7 @@ export interface IZone {
 
 export interface INode {
   id: string
-  type: 'combat' | 'shop' | 'curiosity' | 'boss'
+  type: 'combat' | 'shop' | 'curiosity' | 'recruit-hero' | 'boss'
   position: {
     x: number
     y: number

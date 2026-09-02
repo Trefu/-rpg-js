@@ -44,6 +44,15 @@ export interface HeroOptions {
   body: IStatInput
   critChance?: number
   sprite?: string
+  /**
+   * Identificador estable de la clase del heroe (ej. 'warrior', 'cleric').
+   *
+   * Se usa para deduplicar/distinguir clases sin depender de
+   * `constructor.name`, que el bundler/minifier puede renombrar en
+   * build de produccion. Si la subclase no lo pasa, el constructor
+   * lo rellena a partir de `constructor.name` como fallback.
+   */
+  heroClassId?: string
 }
 
 export class Hero extends Character implements ICombatant, ILevelable, IInventory {
@@ -60,6 +69,15 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
   public critChance: number
   public critDamageMultiplier: number
   public sprite: string
+  /**
+   * Identificador estable de la clase del heroe (ej. 'warrior', 'cleric').
+   * Establecido por la subclase al construir el Hero. Se usa para
+   * deduplicar/distinguir clases sin depender de `constructor.name`.
+   *
+   * Es `readonly` para evitar mutaciones accidentales en runtime; el
+   * valor debe fijarse en la constructora de la subclase.
+   */
+  public readonly heroClassId: string
   /**
    * Regen pasiva de energia al final del turno del jugador.
    * Por defecto 0; clases, perks o equipo pueden modificarlo.
@@ -79,6 +97,10 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
     this.critChance = opts.critChance ?? 5
     this.critDamageMultiplier = 2.0
     this.sprite = opts.sprite ?? ''
+    // Fallback: si la subclase no pas explicito heroClassId, usamos
+    // constructor.name (estable en dev, posible renaming en prod).
+    this.heroClassId = opts.heroClassId
+      ?? (new.target?.name?.toLowerCase() || 'unknown')
     this.baseStats = {
       agility: { ...opts.agility, description: STAT_DESCRIPTIONS.agility },
       constitution: { ...opts.constitution, description: STAT_DESCRIPTIONS.constitution },

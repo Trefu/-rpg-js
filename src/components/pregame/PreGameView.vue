@@ -11,7 +11,7 @@ import clericSprite from '@/assets/sprites/heroes/cleric.png'
 import { MAX_HEROES } from '@/stores/game'
 
 const emit = defineEmits<{
-  (e: 'start', payload: { zoneId: ZoneId, heroes: Hero[], pendingJoinHero: Hero | null }): void
+  (e: 'start', payload: { zoneId: ZoneId, heroes: Hero[] }): void
 }>()
 
 const zones = listZones()
@@ -130,14 +130,9 @@ function selectZone(id: ZoneId) {
 
 function handleStart() {
   if (!canStart.value || !selectedZoneId.value) return
-  const chosenIds = new Set(selectedHeroIds.value)
-  const pendingChoice = heroes.find(h => !chosenIds.has(h.id))
-  const pendingJoinHero =
-    pendingChoice && !multiHeroMode.value ? pendingChoice.factory() : null
   emit('start', {
     zoneId: selectedZoneId.value,
-    heroes: previewHeroes.value,
-    pendingJoinHero
+    heroes: previewHeroes.value
   })
 }
 </script>

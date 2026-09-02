@@ -12,6 +12,7 @@ export class Cleric extends Hero {
       id: `cleric-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       name: 'Elara',
       level,
+      heroClassId: 'cleric',
       maxHealth: 100,
       maxEnergy: 80,
       baseAttack: 6,

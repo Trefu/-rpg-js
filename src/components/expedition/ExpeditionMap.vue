@@ -5,6 +5,7 @@ import { useExpeditionStore } from '@/stores/expedition'
 import combatIcon from '@/assets/icons/crossed-swords.png'
 import shopIcon from '@/assets/icons/chest.png'
 import curiosityIcon from '@/assets/icons/help.png'
+import recruitIcon from '@/assets/icons/shield.png'
 import bossIcon from '@/assets/icons/crown.png'
 
 const expeditionStore = useExpeditionStore()
@@ -18,6 +19,7 @@ const getNodeIcon = (type: INode['type']) => {
     case 'combat': return combatIcon
     case 'shop': return shopIcon
     case 'curiosity': return curiosityIcon
+    case 'recruit-hero': return recruitIcon
     case 'boss': return bossIcon
     default: return curiosityIcon
   }

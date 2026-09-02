@@ -15,12 +15,6 @@ interface GameState {
   currentLocation: GameLocation
   gold: number
   experience: number
-  /**
-   * Heroe que el jugador NO eligio al iniciar la partida y que se
-   * unira automaticamente al grupo tras unos combates. `null` si el
-   * jugador ya empezo con varios heroes (modo debug) o si ya se unio.
-   */
-  pendingSecondHero: Hero | null
 }
 
 export const useGameStore = defineStore('game', {
@@ -30,8 +24,7 @@ export const useGameStore = defineStore('game', {
     isGameStarted: false,
     currentLocation: 'pre-game',
     gold: 0,
-    experience: 0,
-    pendingSecondHero: null
+    experience: 0
   }),
 
   getters: {
@@ -68,10 +61,6 @@ export const useGameStore = defineStore('game', {
       return true
     },
 
-    setPendingSecondHero(hero: Hero | null) {
-      this.pendingSecondHero = hero
-    },
-
     navigateTo(location: GameLocation) {
       this.currentLocation = location
     },
@@ -90,7 +79,6 @@ export const useGameStore = defineStore('game', {
       this.currentLocation = 'pre-game'
       this.gold = 0
       this.experience = 0
-      this.pendingSecondHero = null
     }
   }
 })

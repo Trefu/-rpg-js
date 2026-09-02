@@ -8,6 +8,14 @@ interface GeneratorConfig {
   maxRetries: number
   maxParentsPerNode: number
   proximityThreshold: number
+  forcedSingleRows: number[]
+  forcedNodeTypes: Record<number, 'combat' | 'shop' | 'curiosity' | 'recruit-hero'>
+  /**
+   * Mapa de zoneId -> fila del mapa en la que se fuerza un nodo
+   * "recruit-hero". Pensado para zonas tutoriales (mountain-peak) donde
+   * el jugador consigue un segundo heroe a mitad de camino.
+   */
+  recruitHeroRowByZone: Partial<Record<ZoneId, number>>
 }
 
 const CONFIG: GeneratorConfig = {
@@ -16,7 +24,10 @@ const CONFIG: GeneratorConfig = {
   curiosityChance: 0.1,
   maxRetries: 50,
   maxParentsPerNode: 2,
-  proximityThreshold: 40
+  proximityThreshold: 40,
+  forcedSingleRows: [5],
+  forcedNodeTypes: {},
+  recruitHeroRowByZone: { 'mountain-peak': 2 }
 }
 
 function createNode(id: string, type: INode['type'], position: { x: number; y: number }, enemies: any[] = []): INode {
@@ -39,13 +50,33 @@ function buildRows(zoneId: ZoneId): INode[][] {
 
   for (let row = 0; row < CONFIG.minNodesBeforeBoss; row++) {
     const y = 15 + (row * 80) / CONFIG.minNodesBeforeBoss
-    const pathsCount = Math.floor(Math.random() * 3) + 1
+
+    const inRange = row >= 0 && row < CONFIG.minNodesBeforeBoss
+    const recruitRow = CONFIG.recruitHeroRowByZone[zoneId]
+    const isRecruitRow = inRange && recruitRow === row
+    const isForcedSingle = inRange && (CONFIG.forcedSingleRows.includes(row) || isRecruitRow)
+    const forcedType = inRange ? CONFIG.forcedNodeTypes[row] : undefined
+    const validForcedType =
+      forcedType === 'combat' || forcedType === 'shop' || forcedType === 'curiosity'
+        ? forcedType
+        : undefined
+
+    if (CONFIG.forcedSingleRows.includes(row) && !inRange) {
+      console.warn(`[useExpeditionGenerator] forcedSingleRows contains out-of-range index ${row}; ignoring`)
+    }
+    if (forcedType !== undefined && !validForcedType) {
+      console.warn(`[useExpeditionGenerator] forcedNodeTypes[${row}] is invalid: ${forcedType}; ignoring`)
+    }
+
+    const pathsCount = isForcedSingle ? 1 : Math.floor(Math.random() * 3) + 1
     const rowNodes: INode[] = []
 
     for (let p = 0; p < pathsCount; p++) {
       const baseX = pathsCount === 1 ? 50 : 15 + (p * 70 / (pathsCount - 1))
       const x = baseX + (Math.random() * 6 - 3)
-      const type = pickNodeType()
+      const type: INode['type'] = isRecruitRow
+        ? 'recruit-hero'
+        : (validForcedType ?? pickNodeType())
       const enemies = type === 'combat' ? getEnemiesForNode(zoneId, row + 2, totalNodes) : []
       const nodeId = pathsCount > 1 ? `node-${row}-${p}` : `node-${row}`
       const node = createNode(nodeId, type, { x, y }, enemies)

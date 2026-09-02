@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import ExpeditionMap from './components/expedition/ExpeditionMap.vue'
+import RecruitHeroModal from './components/expedition/RecruitHeroModal.vue'
 import CombatView from './components/combat/CombatView.vue'
 import TrainingView from './components/combat/TrainingView.vue'
 import PreGameView from './components/pregame/PreGameView.vue'
@@ -18,6 +19,15 @@ const expeditionStore = useExpeditionStore()
 const currentView = computed(() => gameStore.currentLocation)
 const audioManager = AudioManager.getInstance()
 
+/**
+ * Estado del modal de reclutamiento. Solo se abre cuando el jugador
+ * selecciona un nodo `recruit-hero` en el mapa. El modal vive en App.vue
+ * (no dentro de ExpeditionMap) para que la logica de transicion de
+ * vista/combate no se acople a la UI del mapa.
+ */
+const isRecruitModalOpen = ref(false)
+const pendingRecruitNodeId = ref<string | null>(null)
+
 audioManager.playMenuMusic()
 
 watch(currentView, (newView) => {
@@ -31,10 +41,11 @@ watch(currentView, (newView) => {
 const handleResetGame = () => {
   gameStore.resetGame()
   expeditionStore.resetExpedition()
+  isRecruitModalOpen.value = false
+  pendingRecruitNodeId.value = null
 }
 
-const handleStartRun = (payload: { zoneId: ZoneId, heroes: Hero[], pendingJoinHero: Hero | null }) => {
-  gameStore.setPendingSecondHero(payload.pendingJoinHero)
+const handleStartRun = (payload: { zoneId: ZoneId, heroes: Hero[] }) => {
   gameStore.beginRun({ zoneId: payload.zoneId, heroes: payload.heroes })
 }
 
@@ -44,10 +55,28 @@ const handleNodeSelected = (node: INode) => {
     gameStore.navigateTo('combat')
   } else if (node.type === 'combat' || node.type === 'boss') {
     gameStore.navigateTo('combat')
+  } else if (node.type === 'recruit-hero') {
+    // Abrimos el modal y dejamos el nodo pendiente; al cerrar
+    // (reclutar o saltar) lo marcaremos como completado.
+    pendingRecruitNodeId.value = node.id
+    isRecruitModalOpen.value = true
+    gameStore.navigateTo('expedition-map')
   } else if (node.type === 'shop' || node.type === 'curiosity') {
     expeditionStore.completeNode(node.id)
     gameStore.navigateTo('expedition-map')
   }
+}
+
+const handleRecruitModalClose = () => {
+  const nodeId = pendingRecruitNodeId.value
+  if (nodeId) expeditionStore.completeNode(nodeId)
+  isRecruitModalOpen.value = false
+  pendingRecruitNodeId.value = null
+}
+
+const handleHeroRecruited = (_hero: Hero) => {
+  // El modal ya invoco addHeroToFirstFreeSlot y se cerrara solo.
+  // Aqui podriamos emitir un toast/log si lo deseamos.
 }
 
 const handleCombatEnded = (victory: boolean) => {
@@ -82,7 +111,6 @@ const handleCombatEnded = (victory: boolean) => {
       expeditionStore.completeExpedition()
     }
     gameStore.navigateTo('expedition-map')
-    checkSecondHeroJoin()
   } else {
     // [GAME OVER] All heroes have fallen - show thanks and return to start
     const allDead = gameStore.heroes.every(h => !h || !h.isAlive)
@@ -92,29 +120,6 @@ const handleCombatEnded = (victory: boolean) => {
       return
     }
     gameStore.navigateTo('expedition-map')
-  }
-}
-
-const checkSecondHeroJoin = () => {
-  const pending = gameStore.pendingSecondHero
-  if (!pending) return
-  const exp = expeditionStore.currentExpedition
-  if (!exp) return
-  // [DEMO] Hardcoded: second hero joins after exactly 3 combats
-  const DEMO_COMBATS_FOR_SECOND_HERO = 3
-  const completedCombat = exp.nodes.filter(
-    n => (n.type === 'combat' || n.type === 'boss') && n.completed
-  ).length
-  if (completedCombat < DEMO_COMBATS_FOR_SECOND_HERO) {
-    const alreadyJoined = gameStore.heroes.some(h => h?.name === pending.name)
-    if (alreadyJoined) gameStore.setPendingSecondHero(null)
-    return
-  }
-  const ok = gameStore.addHeroToFirstFreeSlot(pending)
-  gameStore.setPendingSecondHero(null)
-  if (ok) {
-    // [DEMO] Hardcoded: using window.alert for demo purposes
-    window.alert(`¡${pending.name} se une al grupo! (PRUEBAS)`)
   }
 }
 
@@ -139,6 +144,12 @@ const handleTrainingEnded = () => {
       <h2>Tienda (En construccion)</h2>
       <button @click="gameStore.navigateTo('expedition-map')">Volver</button>
     </div>
+
+    <RecruitHeroModal
+      v-if="isRecruitModalOpen"
+      @close="handleRecruitModalClose"
+      @hero-recruited="handleHeroRecruited"
+    />
   </div>
 </template>
 
