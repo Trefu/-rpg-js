@@ -65,39 +65,37 @@ export const ZONE_ENEMY_POOLS: Record<ZoneId, ZoneEnemyConfig> = {
         () => new GoblinWarlock(1)
       ],
       early: [
-        () => new Goblin(1),
         () => new Goblin(2),
-        () => new GoblinArcher(1),
+        () => new Goblin(2),
         () => new GoblinArcher(2),
-        () => new GoblinWarlock(1),
+        () => new GoblinArcher(2),
         () => new GoblinWarlock(2),
-        () => new Wolf(2),
-        () => new Bandit(2)
+        () => new GoblinWarlock(2),
       ],
       mid: [
         () => new Wolf(3),
-        () => new Wolf(4),
-        () => new Wolf(4),
+        () => new Wolf(3),
+        () => new Wolf(3),
         () => new Bandit(3),
-        () => new Bandit(4),
-        () => new Bandit(4),
+        () => new Bandit(3),
+        () => new Bandit(3),
         () => new Orc(3),
-        () => new Orc(4),
-        () => new Orc(4),
-        elite('bandit-captain', () => new BanditCaptain(4))
+        () => new Orc(3),
+        () => new Orc(3),
+        elite('bandit-captain', () => new BanditCaptain(1))
       ],
       late: [
         () => new Wolf(4),
-        () => new Wolf(5),
-        () => new Wolf(5),
+        () => new Wolf(4),
+        () => new Wolf(4),
         () => new Bandit(4),
-        () => new Bandit(5),
-        () => new Bandit(5),
+        () => new Bandit(4),
+        () => new Bandit(4),
         () => new Orc(4),
-        () => new Orc(5),
-        () => new Orc(5),
-        () => new Orc(6),
-        elite('bandit-captain', () => new BanditCaptain(5))
+        () => new Orc(4),
+        () => new Orc(4),
+        () => new Orc(4),
+        elite('bandit-captain', () => new BanditCaptain(2))
       ],
       boss: [
         () => new Dragon(8)

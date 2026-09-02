@@ -115,7 +115,7 @@ const handleCombatEnded = (victory: boolean) => {
     // [GAME OVER] All heroes have fallen - show thanks and return to start
     const allDead = gameStore.heroes.every(h => !h || !h.isAlive)
     if (allDead) {
-      window.alert('Gracias por jugar.下次好运！')
+      window.alert('F')
       handleResetGame()
       return
     }

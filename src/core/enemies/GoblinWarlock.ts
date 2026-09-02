@@ -12,7 +12,7 @@ export class GoblinWarlock extends Enemy {
       id: `goblin-warlock-${Math.random().toString(36).substr(2, 9)}`,
       name: 'Goblin Warlock',
       level,
-      maxHealth: 60 + (level * 9),
+      maxHealth: 30 + (level * 9),
       baseAttack: 11 + (level * 1),
       experienceReward: 24 + (level * 5),
       goldReward: { min: 14 + (level * 2), max: 20 + (level * 3) },
