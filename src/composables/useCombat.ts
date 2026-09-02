@@ -128,6 +128,7 @@ export function useCombat(config: CombatConfig = {}) {
   // una habilidad inmediatamente despues. Solo se reinicia al
   // empezar el siguiente turno del jugador.
   const usedItemThisTurn = ref(false)
+const isProcessingDot = ref(false)
 
   const announcer = useAnnouncer()
   const announcement = computed(() => announcer.current.value)
@@ -181,7 +182,8 @@ export function useCombat(config: CombatConfig = {}) {
     return !isPlayerTurn.value ||
            isCombatEnded.value ||
            isExecutingAction.value ||
-           isDefenseActive.value
+           isDefenseActive.value ||
+           isProcessingDot.value
   })
 
   function startDefenseChallenge(
@@ -968,21 +970,37 @@ export function useCombat(config: CombatConfig = {}) {
     if (!p || !Array.isArray(p.statusEffects) || p.statusEffects.length === 0) return
 
     const active = p.statusEffects.filter(e => e.turns > 0 && DO_STATUS_TYPES.has(e.type))
-    for (const effect of active) {
-      const stacks = effect.stacks ?? 1
-      const dmg = stacks
-      p.takeDamage(dmg)
-      showPlayerHit(dmg)
-      audioManager.playHitSound()
-      playDotSfx(effect.type)
-      if (effect.turnLabel && effect.announceOnTurn) {
-        const stackSuffix = stacks > 1 ? ` (x${stacks})` : ''
-        showAnnouncement(`${effect.turnLabel}${stackSuffix}`, 'status', 1800)
-        addToLog(`${effect.name}${stackSuffix}: recibes ${dmg} de daño.`)
-        await delay(1800)
-      } else       if (effect.turnLabel) {
-        addToLog(`${effect.name}: recibes ${dmg} de daño.`)
+    if (active.length === 0) return
+
+    isProcessingDot.value = true
+    try {
+      // Espera a que termine el banner de "Turno de heroe" (y cualquier otro
+      // anuncio en pantalla/en cola) antes de mostrar el dano DoT.
+      while (announcer.current.value || announcer.pending() > 0) {
+        await delay(100)
       }
+
+      // Pacing por tick: banner aparece -> beat para que entre la animacion ->
+      // suena el SFX magico + golpe + danno -> resto del display.
+      const BANNER_LEAD_IN = 350
+      const BANNER_TOTAL = 1800
+
+      for (const effect of active) {
+        const stacks = effect.stacks ?? 1
+        const dmg = stacks
+
+        const stacksLabel = stacks > 1 ? ` ${stacks}` : ''
+        showAnnouncement(`${p.name} recibe${stacksLabel} de daño!`, 'status', BANNER_TOTAL)
+        addToLog(`${effect.name} x${stacks}: recibes ${dmg} de daño.`)
+        await delay(BANNER_LEAD_IN)
+        playDotSfx(effect.type)
+        audioManager.playHitSound()
+        p.takeDamage(dmg)
+        showPlayerHit(dmg)
+        await delay(BANNER_TOTAL - BANNER_LEAD_IN)
+      }
+    } finally {
+      isProcessingDot.value = false
     }
     // El decrement de turnos ocurre al final del turno del jugador (en
     // `endPlayerTurn`) para que los efectos sigan activos durante el ataque
@@ -1364,6 +1382,7 @@ export function useCombat(config: CombatConfig = {}) {
     selectedItem,
     inventory,
     usedItemThisTurn,
+    isProcessingDot,
     openItemsModal,
     closeItemsModal,
     selectItem,

@@ -31,7 +31,7 @@ const SFX_VOLUME_MULT: Record<SfxName, number> = {
     victory: 1,
     block: 1.6,
     dotFire: 0.7,
-    dotPoison: 0.7,
+    dotPoison: 1.2,
     dotIce: 0.7
 }
 
