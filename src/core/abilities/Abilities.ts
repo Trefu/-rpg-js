@@ -182,9 +182,13 @@ export const WarriorDevastatingStrike: IAbility = {
     }
 }
 
+const SECOND_WIND_HEAL_PCT = 0.20
+const SECOND_WIND_ENERGY_RESTORE_PCT = 0.10
+const SECOND_WIND_CHARGES = 3
+
 export const SecondWind: IAbility = {
     name: 'Segundo Aliento',
-    description: 'Cura 20% de vida maxima y aplica el buff Segundo Aliento: cada bloqueo siguiente restaura 2% de la energia maxima (5 bloqueos).',
+    description: `Cura ${Math.round(SECOND_WIND_HEAL_PCT * 100)}% de vida maxima y aplica el buff Segundo Aliento: cada bloqueo siguiente restaura ${Math.round(SECOND_WIND_ENERGY_RESTORE_PCT * 100)}% de la energia maxima (${SECOND_WIND_CHARGES} bloqueos).`,
     type: 'secondWind',
     cooldown: 2,
     energyCost: 0,
@@ -198,11 +202,11 @@ export const SecondWind: IAbility = {
             return
         }
         const mindBonus = Math.floor(caster.baseStats.mind.value * 0.5)
-        const healAmount = Math.floor(caster.maxHealth * 0.20) + mindBonus
+        const healAmount = Math.floor(caster.maxHealth * SECOND_WIND_HEAL_PCT) + mindBonus
         caster.heal(healAmount)
 
         const buffTemplate = StatusEffects.SECOND_WIND
-        const maxCharges = buffTemplate.maxCharges ?? buffTemplate.charges ?? 5
+        const maxCharges = SECOND_WIND_CHARGES
         const existing = caster.statusEffects.find(e => e.type === buffTemplate.type)
         if (existing) {
             existing.charges = maxCharges

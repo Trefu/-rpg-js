@@ -86,6 +86,6 @@ export abstract class Character implements ICharacter {
   }
 
   public getHealthPercentage(): number {
-    return (this.health / this.maxHealth) * 100
+    return this.maxHealth > 0 ? (this.health / this.maxHealth) * 100 : 0
   }
 } 

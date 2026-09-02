@@ -65,12 +65,13 @@ export interface RandomAttackSpec {
  *
  * Si la ability no inflige daño (curas, buffs), dejar el campo en `undefined`.
  */
-export type DamageType = 'physical' | 'fire' | 'holy'
+export type DamageType = 'physical' | 'fire' | 'holy' | 'frost'
 
 export const DAMAGE_TYPE_LABELS: Record<DamageType, string> = {
   physical: 'Físico',
   fire: 'Fuego',
-  holy: 'Sagrado'
+  holy: 'Sagrado',
+  frost: 'Hielo'
 }
 
 export interface IAbility {

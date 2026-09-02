@@ -137,22 +137,27 @@ export class StatusEffects {
     )
   }
 
-  static readonly SECOND_WIND: IStatusEffect = {
-    type: 'second_wind',
-    name: 'Segundo Aliento',
-    turns: Infinity,
-    charges: 3,
-    maxCharges: 3,
-    description: 'Cada bloqueo restaura 10% de la energia maxima. Se consume tras 3 bloqueos.',
-    icon: secondWindIcon,
-    isBuff: true,
-    turnLabel: '¡Su segundo aliento lo mantiene en pie!',
-    onBlock: (target, _blockedFraction) => {
-      const hero = target as Hero
-      const restore = Math.floor(hero.maxEnergy * 0.1)
-      hero.restoreEnergy(restore)
-    }
-  }
+  static readonly SECOND_WIND: IStatusEffect = (() => {
+    const energyRestorePct = 0.1
+    const charges = 3
+    const restorePctLabel = Math.round(energyRestorePct * 100)
+    return {
+      type: 'second_wind',
+      name: 'Segundo Aliento',
+      turns: Infinity,
+      charges,
+      maxCharges: charges,
+      description: `Cada bloqueo restaura ${restorePctLabel}% de la energia maxima. Se consume tras ${charges} bloqueos.`,
+      icon: secondWindIcon,
+      isBuff: true,
+      turnLabel: '¡Su segundo aliento lo mantiene en pie!',
+      onBlock: (target, _blockedFraction) => {
+        const hero = target as Hero
+        const restore = Math.floor(hero.maxEnergy * energyRestorePct)
+        hero.restoreEnergy(restore)
+      }
+    } satisfies IStatusEffect
+  })()
 
   // Ejemplo: bloquea y se cura HP en funcion del daño bloqueado. Sin cargos
   // (mientras dure `turns`, se mantiene). Solo se activa si `blockedFraction >= 1`.

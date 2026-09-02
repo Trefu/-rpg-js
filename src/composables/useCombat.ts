@@ -1045,7 +1045,7 @@ export function useCombat(config: CombatConfig = {}) {
   }
 
   function getHealthPercentage(current: number, max: number) {
-    return Math.max(0, (current / max) * 100)
+    return max > 0 ? Math.max(0, (current / max) * 100) : 0
   }
 
   function shuffle<T>(items: T[]): T[] {

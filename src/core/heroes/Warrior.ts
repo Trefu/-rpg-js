@@ -1,6 +1,5 @@
 import { Hero } from '../Hero'
 import {
-  BasicAttack,
   WarriorInjuringStrike,
   SecondWind,
   WarriorDevastatingStrike
@@ -26,7 +25,6 @@ export class Warrior extends Hero {
 
   static createStarter(): Warrior {
     const warrior = new Warrior(1)
-    warrior.learnAbility(BasicAttack)
     warrior.learnAbility(WarriorInjuringStrike)
     warrior.learnAbility(SecondWind)
     warrior.learnAbility(WarriorDevastatingStrike)
