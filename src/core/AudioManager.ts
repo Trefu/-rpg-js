@@ -14,7 +14,7 @@ const SFX_SRC: Record<SfxName, string> = {
     attack: '/assets/sounds/Stab 4-1.wav',
     hit: '/assets/sounds/Hit Generic 2-1.wav',
     victory: '/assets/sounds/Special Collectible 26-1.wav',
-    block: '/assets/sounds/Shield Metal Impact 1-3.wav'
+    block: '/assets/sounds/Battle_SFX/Impact_flesh.wav'
 }
 
 /**

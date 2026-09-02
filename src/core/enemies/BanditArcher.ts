@@ -12,7 +12,7 @@ export class BanditArcher extends Enemy {
       id: `bandit-archer-${Math.random().toString(36).substr(2, 9)}`,
       name: 'Bandido Arquero',
       level,
-      maxHealth: 45 + (level * 7),
+      maxHealth: 55 + (level * 7),
       experienceReward: 20 + (level * 4),
       goldReward: { min: 16 + (level * 3), max: 26 + (level * 4) },
       classMultipliers: { agility: 1.2, mind: 1.1 }
