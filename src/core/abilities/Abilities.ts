@@ -68,6 +68,10 @@ export const BasicAttack: IAbility = {
         }
         if (crit.isCrit) showCritAnnouncement(context, finalDamage, crit.isOvercrit)
         context.addToLog(buildAttackLog('Ataque Básico', finalDamage, crit))
+        if (typeof caster.restoreEnergy === 'function') {
+            const restored = caster.restoreEnergy(5)
+            if (restored > 0) context.addToLog(`+${restored} de energía.`)
+        }
         await sleep(context.animationDelay)
     }
 }

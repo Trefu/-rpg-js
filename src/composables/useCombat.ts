@@ -242,6 +242,10 @@ const isProcessingDot = ref(false)
         target.takeDamage(blockedDmg)
         showPlayerHit(blockedDmg, wasCrit)
         audioManager.playBlockSound()
+        if (typeof target.restoreEnergy === 'function') {
+          const restored = target.restoreEnergy(5)
+          if (restored > 0) addToLog(`¡Bloqueo exitoso! +${restored} de energía.`)
+        }
         addToLog(`Bloqueaste el golpe. Recibes ${blockedDmg} de daño.`)
       } else {
         target.takeDamage(phaseDamage)
