@@ -46,6 +46,13 @@ const DO_STATUS_TYPES: Set<string> = new Set([
   StatusEffects.FREEZE.type
 ])
 
+// Etiqueta legible del "tipo de daño" que se muestra en el banner del DoT.
+const DOT_KIND_LABEL: Record<string, string> = {
+  [StatusEffects.BURN.type]: 'fuego',
+  [StatusEffects.POISON.type]: 'veneno',
+  [StatusEffects.FREEZE.type]: 'frío'
+}
+
 export interface CombatConfig {
   isTraining?: boolean
   onCombatEnd?: (victory: boolean) => void
@@ -990,7 +997,12 @@ const isProcessingDot = ref(false)
         const dmg = stacks
 
         const stacksLabel = stacks > 1 ? ` ${stacks}` : ''
-        showAnnouncement(`${p.name} recibe${stacksLabel} de daño!`, 'status', BANNER_TOTAL)
+        const damageKindLabel = DOT_KIND_LABEL[effect.type] ?? 'daño'
+        showAnnouncement(
+          `${p.name} recibe${stacksLabel} de daño por ${damageKindLabel}!`,
+          'status',
+          BANNER_TOTAL
+        )
         addToLog(`${effect.name} x${stacks}: recibes ${dmg} de daño.`)
         await delay(BANNER_LEAD_IN)
         playDotSfx(effect.type)

@@ -32,7 +32,7 @@ export const EMBER: DefensePatternConfig = {
     waveSpeed: 60,
     baseMaxBlockReduction: 0.5,
     damageMultiplier: 0.7,
-    phases: [phase(6),phase(6)],
+    phases: [phase(8),phase(8)],
     onFailureEffect: {
         statusType: 'burn',
         stacks: 8
