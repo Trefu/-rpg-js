@@ -11,6 +11,7 @@ export interface TargetScoreWeights {
   hpLow: number
   friendlyDebuffs: number
   lowDefense: number
+  threatModifier: number
 }
 
 /**
@@ -194,7 +195,8 @@ export abstract class Enemy extends Character implements ICombatant {
   public readonly scoreWeights: TargetScoreWeights = {
     hpLow: 1.0,
     friendlyDebuffs: 0.5,
-    lowDefense: 0.3
+    lowDefense: 0.3,
+    threatModifier: 1.0
   }
 
   public selectTarget(heroes: Hero[]): Hero | null {
@@ -214,11 +216,20 @@ export abstract class Enemy extends Character implements ICombatant {
     const hpScore = (1 - hpRatio) * w.hpLow
     const debuffScore = this.countFriendlyDebuffs(hero) * w.friendlyDebuffs
     const defScore = (1 - this.normalizeDefense(hero)) * w.lowDefense
-    return hpScore + debuffScore + defScore
+    const threatScore = this.sumThreatModifiers(hero) * w.threatModifier
+    return hpScore + debuffScore + defScore + threatScore
   }
 
   protected countFriendlyDebuffs(hero: Hero): number {
     return hero.statusEffects.filter(e => e.turns > 0 && FRIENDLY_DEBUFF_TYPES.has(e.type)).length
+  }
+
+  protected sumThreatModifiers(hero: Hero): number {
+    return hero.statusEffects.reduce((sum, e) => {
+      if (e.turns <= 0) return sum
+      if (typeof e.threatModifier !== 'number') return sum
+      return sum + e.threatModifier
+    }, 0)
   }
 
   protected normalizeDefense(hero: Hero): number {

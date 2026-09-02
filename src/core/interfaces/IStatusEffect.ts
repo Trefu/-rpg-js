@@ -104,6 +104,13 @@ export interface IStatusEffect {
    * Si esta presente, `getDefenseModifiers` la invoca una vez por turno activo.
    */
   defenseContribution?: DefenseContributionFn
+  /**
+   * Bonus que se suma al puntaje de targeting del portador cuando el efecto
+   * esta activo (turns > 0 / charges > 0). Aplicado por `Enemy.scoreTarget`
+   * sobre heroes: cuanto mayor, mas probable es que el enemigo los elija.
+   * Pensado para buffs que el jugador quiere mantener activos (ej. Second Wind).
+   */
+  threatModifier?: number
 }
 
 /**
