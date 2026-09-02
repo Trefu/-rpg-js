@@ -59,7 +59,6 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
   public experience: number
   public experienceToNextLevel: number
   public gold: number
-  public items: string[]
   public abilities: IAbility[]
   public statusEffects: IStatusEffect[] = []
   public energy: number
@@ -89,7 +88,6 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
     this.experience = 0
     this.experienceToNextLevel = 100
     this.gold = 0
-    this.items = []
     this.abilities = []
     this.maxEnergy = opts.maxEnergy ?? 50
     this.energy = opts.startingEnergy ?? this.maxEnergy
@@ -196,17 +194,6 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
     if (this.gold < amount) return false
     this.gold -= amount
     return true
-  }
-
-  public addItem(item: string): void {
-    this.items.push(item)
-  }
-
-  public removeItem(item: string): void {
-    const index = this.items.indexOf(item)
-    if (index > -1) {
-      this.items.splice(index, 1)
-    }
   }
 
   public addStatusEffect(effect: IStatusEffect) {

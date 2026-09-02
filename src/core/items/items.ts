@@ -97,17 +97,18 @@ export const ITEM_MAX_USES: Record<string, number> = {
 }
 
 /**
- * Repone los usos de todos los objetos recargables del heroe hasta su maximo.
- * Solo afecta a ids presentes en ITEM_MAX_USES. Mantiene cualquier objeto
- * no registrado intacto (defensivo).
+ * Repone los usos de todos los objetos recargables de la bolsa compartida
+ * del equipo hasta su maximo. Solo afecta a ids presentes en
+ * ITEM_MAX_USES. Mantiene cualquier objeto no registrado intacto
+ * (defensivo).
  */
-export function restoreItemsToMax(hero: Hero): void {
+export function restoreItemsToMax(items: string[]): void {
   for (const id of Object.keys(ITEM_MAX_USES)) {
     const target = ITEM_MAX_USES[id]
     let count = 0
-    for (const entry of hero.items) if (entry === id) count++
+    for (const entry of items) if (entry === id) count++
     if (count >= target) continue
     const missing = target - count
-    for (let i = 0; i < missing; i++) hero.items.push(id)
+    for (let i = 0; i < missing; i++) items.push(id)
   }
 }

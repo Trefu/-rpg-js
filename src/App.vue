@@ -95,8 +95,8 @@ const handleCombatEnded = (victory: boolean) => {
         if (!hero) continue
         hero.gainExperience(totalXp)
         hero.addGold(totalGold)
-        restoreItemsToMax(hero)
       }
+      restoreItemsToMax(gameStore.teamItems)
       for (const hero of gameStore.heroes) {
         if (!hero) continue
         if (!hero.isAlive) {

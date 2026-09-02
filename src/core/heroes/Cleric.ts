@@ -29,8 +29,6 @@ export class Cleric extends Hero {
     cleric.learnAbility(ClericRadiantStrike)
     cleric.learnAbility(ClericDivineSmite)
     cleric.learnAbility(ClericHeal)
-    cleric.addItem('healing-flask')
-    cleric.addItem('energy-potion')
     return cleric
   }
 }

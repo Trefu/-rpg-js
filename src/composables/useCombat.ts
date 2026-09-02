@@ -409,9 +409,7 @@ const isProcessingDot = ref(false)
   // ===== Objetos =====
 
   const inventory = computed<InventoryEntry[]>(() => {
-    const hero = player.value
-    if (!hero) return []
-    return getInventoryEntries(hero)
+    return getInventoryEntries(gameStore.teamItems)
   })
 
   function itemRequiresTarget(item: IItem): boolean {
@@ -485,7 +483,7 @@ const isProcessingDot = ref(false)
     if (!caster) return
     isExecutingAction.value = true
     try {
-      consumeItem(caster, item.id)
+      consumeItem(gameStore.teamItems, item.id)
       await item.execute({
         caster,
         target,
