@@ -193,7 +193,7 @@ export const WarriorDevastatingStrike: IAbility = {
     aoe: true,
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
-        const rawDamage = caster.baseStats.body.value * 1.5 + caster.level * 4
+        const rawDamage = caster.baseStats.body.value * 1.5 + caster.level * 3
         const { finalDamage, crit } = rollAndApplyDamage(caster, rawDamage)
         context.lastPrimaryFinalDamage = finalDamage
         if (crit.isCrit) showCritAnnouncement(context, finalDamage, crit.isOvercrit)
