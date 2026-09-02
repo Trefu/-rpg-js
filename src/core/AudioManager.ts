@@ -1,7 +1,7 @@
 import { Howl, Howler } from 'howler'
 
 type MusicTrack = 'menu' | 'combat' | 'boss'
-type SfxName = 'attack' | 'hit' | 'victory' | 'block'
+type SfxName = 'attack' | 'hit' | 'victory' | 'block' | 'dotFire' | 'dotPoison' | 'dotIce'
 
 const MENU_SRC = '/assets/music/menu_ost.mp3'
 const COMBAT_SOURCES = [
@@ -14,7 +14,10 @@ const SFX_SRC: Record<SfxName, string> = {
     attack: '/assets/sounds/Stab 4-1.wav',
     hit: '/assets/sounds/Hit Generic 2-1.wav',
     victory: '/assets/sounds/Special Collectible 26-1.wav',
-    block: '/assets/sounds/Battle_SFX/Impact_flesh.wav'
+    block: '/assets/sounds/Battle_SFX/Impact_flesh.wav',
+    dotFire: '/assets/sounds/Magic_attacks_SFX/Fire_explosion_medium.wav',
+    dotPoison: '/assets/sounds/Magic_attacks_SFX/Poison.wav',
+    dotIce: '/assets/sounds/Magic_attacks_SFX/Ice_explosion.wav'
 }
 
 /**
@@ -26,7 +29,10 @@ const SFX_VOLUME_MULT: Record<SfxName, number> = {
     attack: 1,
     hit: 0.9,
     victory: 1,
-    block: 1.6
+    block: 1.6,
+    dotFire: 0.7,
+    dotPoison: 0.7,
+    dotIce: 0.7
 }
 
 interface CombatPool {
@@ -188,6 +194,18 @@ export class AudioManager {
 
     public playBlockSound(): void {
         this.tryPlay(this.getSfx('block'))
+    }
+
+    public playDotFireSound(): void {
+        this.tryPlay(this.getSfx('dotFire'))
+    }
+
+    public playDotPoisonSound(): void {
+        this.tryPlay(this.getSfx('dotPoison'))
+    }
+
+    public playDotIceSound(): void {
+        this.tryPlay(this.getSfx('dotIce'))
     }
 
     public setMusicVolume(volume: number): void {

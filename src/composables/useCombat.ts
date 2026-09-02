@@ -974,6 +974,7 @@ export function useCombat(config: CombatConfig = {}) {
       p.takeDamage(dmg)
       showPlayerHit(dmg)
       audioManager.playHitSound()
+      playDotSfx(effect.type)
       if (effect.turnLabel && effect.announceOnTurn) {
         const stackSuffix = stacks > 1 ? ` (x${stacks})` : ''
         showAnnouncement(`${effect.turnLabel}${stackSuffix}`, 'status', 1800)
@@ -986,6 +987,12 @@ export function useCombat(config: CombatConfig = {}) {
     // El decrement de turnos ocurre al final del turno del jugador (en
     // `endPlayerTurn`) para que los efectos sigan activos durante el ataque
     // del enemigo que le sigue.
+  }
+
+  function playDotSfx(type: string) {
+    if (type === StatusEffects.BURN.type) audioManager.playDotFireSound()
+    else if (type === StatusEffects.POISON.type) audioManager.playDotPoisonSound()
+    else if (type === StatusEffects.FREEZE.type) audioManager.playDotIceSound()
   }
 
   async function showEnemyStatusSequence(enemy: IEnemy) {
