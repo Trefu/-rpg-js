@@ -1,5 +1,5 @@
 ﻿<script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useGameStore } from '@/stores/game'
 import { AudioManager } from '@/core/AudioManager'
 import AudioControls from './AudioControls.vue'
@@ -14,6 +14,16 @@ const gameStore = useGameStore()
 const menuOpen = ref(false)
 const menuRef = ref<HTMLElement | null>(null)
 const isDev = import.meta.env.DEV
+
+/**
+ * En combate (o training) el boton se situa debajo del MobileCombatHud
+ * para no tapar el portrait del heroe. Fuera de combate va en la esquina
+ * superior izquierda, que es donde el usuario espera encontrarlo en mobile.
+ */
+const isInCombat = computed(() => {
+  const loc = gameStore.currentLocation
+  return loc === 'combat' || loc === 'training'
+})
 
 const audioManager = AudioManager.getInstance()
 const isMuted = ref(false)
@@ -53,7 +63,7 @@ function handleClickOutside(event: MouseEvent) {
 </script>
 
 <template>
-  <div class="game-ui">
+  <div class="game-ui" :class="{ 'in-combat': isInCombat }">
     <div class="settings" ref="menuRef">
       <button class="gear-btn" @click="toggleMenu" :class="{ open: menuOpen }" title="Ajustes">
         <img :src="cogIcon" alt="Ajustes" class="gear-icon" />
@@ -89,8 +99,11 @@ function handleClickOutside(event: MouseEvent) {
 @media (max-width: 720px) {
   .game-ui {
     padding: 0.4rem 0.5rem;
-    /* Sit just below the MobileCombatHud card so the gear clears the
-       hero portrait (turn-bar ~64px + mobile-hud card with portrait ~96px + gap). */
+    top: 0;
+  }
+  /* En combate (o training) el menu vuelve a la posicion previa debajo del
+     MobileCombatHud para no tapar el portrait del heroe activo. */
+  .game-ui.in-combat {
     top: 188px;
   }
   .gear-btn {
