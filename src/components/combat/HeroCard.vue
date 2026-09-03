@@ -3,6 +3,7 @@ import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import type { Hero } from '@/core/Hero'
 import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
 import { getEffectDescription } from '@/core/interfaces/IStatusEffect'
+import HeroStatChips from './HeroStatChips.vue'
 import hamburgerIcon from '@/assets/icons/hamburger-menu.png'
 import burnDotIcon from '@/assets/icons/fire.png'
 import poisonDotIcon from '@/assets/icons/poison-gas.png'
@@ -61,19 +62,6 @@ const dotEffects = computed<IStatusEffect[]>(() => {
 
 const buffDebuffEffects = computed<IStatusEffect[]>(() => {
   return activeEffects.value.filter(e => !DOT_TYPES.has(e.type))
-})
-
-const derivedStats = computed(() => {
-  const p = props.hero
-  if (!p) return []
-  return [
-    { label: 'Ataque', value: p.attack() },
-    { label: 'Defensa', value: p.defense() },
-    { label: 'Agilidad', value: p.baseStats.agility.value },
-    { label: 'Constitucion', value: p.baseStats.constitution.value },
-    { label: 'Mente', value: p.baseStats.mind.value },
-    { label: 'Cuerpo', value: p.baseStats.body.value }
-  ]
 })
 
 const isOpen = ref(false)
@@ -183,7 +171,6 @@ onBeforeUnmount(() => {
         type="button"
         class="hero-menu-btn"
         :class="{ open: isOpen, 'has-effects': buffDebuffEffects.length > 0 }"
-        :title="isOpen ? 'Cerrar menu' : 'Ver stats y efectos'"
         @click="toggleMenu"
       >
         <img :src="hamburgerIcon" alt="Menu" class="hero-menu-icon" />
@@ -222,12 +209,16 @@ onBeforeUnmount(() => {
 
           <section class="hero-dropdown-section">
             <h4 class="hero-dropdown-section-title">Stats</h4>
-            <ul class="hero-dropdown-stats">
-              <li v-for="stat in derivedStats" :key="stat.label">
-                <span class="stat-key">{{ stat.label }}</span>
-                <span class="stat-value">{{ stat.value }}</span>
-              </li>
-            </ul>
+            <div class="hero-dropdown-stats">
+              <HeroStatChips :hero="hero" show-all only="stats" tooltip-position="above" />
+            </div>
+          </section>
+
+          <section class="hero-dropdown-section">
+            <h4 class="hero-dropdown-section-title">Defensa</h4>
+            <div class="hero-dropdown-stats">
+              <HeroStatChips :hero="hero" show-all only="defense" tooltip-position="above" />
+            </div>
           </section>
 
           <section class="hero-dropdown-section">
@@ -264,13 +255,13 @@ onBeforeUnmount(() => {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.85rem;
   background: linear-gradient(135deg, rgba(40, 30, 60, 0.85) 0%, rgba(25, 15, 45, 0.95) 100%);
   border: 2px solid rgba(180, 160, 220, 0.25);
-  border-radius: 10px;
-  padding: 0.5rem 0.6rem;
-  padding-top: 1.6rem;
-  min-height: 96px;
+  border-radius: 14px;
+  padding: 0.75rem 1rem;
+  padding-top: 2rem;
+  min-height: 132px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
   transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
 }
@@ -312,9 +303,9 @@ onBeforeUnmount(() => {
 .being-attacked-badge {
   background: #ff3344;
   color: #fff;
-  font-size: 0.65rem;
+  font-size: 0.74rem;
   font-weight: 700;
-  padding: 2px 6px;
+  padding: 2px 7px;
   border-radius: 4px;
   letter-spacing: 0.05em;
   box-shadow: 0 0 6px rgba(255, 51, 68, 0.8);
@@ -355,13 +346,13 @@ onBeforeUnmount(() => {
   background: linear-gradient(180deg, #cce8ff 0%, #82b1ff 100%);
   color: #1a1a2e;
   font-weight: 900;
-  font-size: 0.95rem;
-  padding: 0.1rem 0.5rem;
-  border-radius: 5px;
+  font-size: 1.05rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 6px;
   border: 2px solid #1a1a2e;
   border-bottom-width: 3px;
   box-shadow: 0 2px 0 #4a76b8, 0 2px 4px #000a;
-  min-width: 24px;
+  min-width: 28px;
   text-align: center;
   font-family: 'Courier New', monospace;
   line-height: 1.1;
@@ -375,10 +366,10 @@ onBeforeUnmount(() => {
 
 .hero-portrait {
   position: relative;
-  width: 64px;
-  height: 64px;
+  width: 92px;
+  height: 92px;
   flex-shrink: 0;
-  border-radius: 8px;
+  border-radius: 12px;
   overflow: hidden;
   background: rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -396,20 +387,20 @@ onBeforeUnmount(() => {
 
 .hero-dot-icons {
   position: absolute;
-  top: -8px;
+  top: -10px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   flex-direction: row;
-  gap: 3px;
+  gap: 4px;
   z-index: 7;
   pointer-events: none;
 }
 
 .hero-dot-icon {
   position: relative;
-  width: 26px;
-  height: 26px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: radial-gradient(circle at 35% 30%, rgba(40, 20, 0, 0.95), rgba(0, 0, 0, 0.95));
   border: 1.5px solid rgba(255, 230, 102, 0.7);
@@ -444,8 +435,8 @@ onBeforeUnmount(() => {
 }
 
 .hero-dot-img {
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
   object-fit: contain;
   filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.9));
   pointer-events: none;
@@ -453,16 +444,16 @@ onBeforeUnmount(() => {
 
 .hero-dot-stack {
   position: absolute;
-  top: -6px;
-  right: -6px;
-  min-width: 16px;
-  height: 16px;
+  top: -7px;
+  right: -7px;
+  min-width: 18px;
+  height: 18px;
   padding: 0 4px;
-  border-radius: 8px;
+  border-radius: 9px;
   background: linear-gradient(180deg, #ffe066 0%, #ff8a00 100%);
   color: #1a1a2e;
   font-family: 'Courier New', monospace;
-  font-size: 0.62rem;
+  font-size: 0.72rem;
   font-weight: 900;
   display: flex;
   align-items: center;
@@ -519,9 +510,9 @@ onBeforeUnmount(() => {
 .active-badge {
   background: #ffe066;
   color: #1a1a2e;
-  font-size: 0.55rem;
+  font-size: 0.66rem;
   font-weight: 900;
-  padding: 1px 5px;
+  padding: 2px 6px;
   border-radius: 4px;
   letter-spacing: 0.05em;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
@@ -532,13 +523,13 @@ onBeforeUnmount(() => {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.28rem;
 }
 
 .hero-name {
   color: #fff;
   font-weight: 700;
-  font-size: 0.85rem;
+  font-size: 1.18rem;
   text-shadow: 0 1px 2px #000;
   white-space: nowrap;
   overflow: hidden;
@@ -547,7 +538,7 @@ onBeforeUnmount(() => {
 
 .hero-level {
   color: #b6f5b6;
-  font-size: 0.65rem;
+  font-size: 0.86rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
@@ -555,20 +546,20 @@ onBeforeUnmount(() => {
 .hero-bars {
   display: flex;
   flex-direction: column;
-  gap: 0.18rem;
+  gap: 0.24rem;
 }
 
 .bar-line {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.45rem;
 }
 
 .bar-track {
   flex: 1;
-  height: 7px;
+  height: 11px;
   background: rgba(0, 0, 0, 0.6);
-  border-radius: 4px;
+  border-radius: 5px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.08);
   min-width: 60px;
@@ -589,22 +580,27 @@ onBeforeUnmount(() => {
 
 .bar-value {
   font-family: 'Courier New', monospace;
-  font-size: 0.62rem;
+  font-size: 0.84rem;
   color: #fff;
   font-weight: 700;
   text-shadow: 0 1px 2px #000;
-  min-width: 46px;
+  min-width: 60px;
   text-align: right;
+}
+
+.stat-row-reduction {
+  background: rgba(255, 138, 58, 0.12);
+  border-left: 2px solid rgba(255, 138, 58, 0.7);
 }
 
 .hero-menu-btn {
   position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 28px;
-  height: 28px;
+  top: 6px;
+  right: 6px;
+  width: 34px;
+  height: 34px;
   flex-shrink: 0;
-  border-radius: 6px;
+  border-radius: 7px;
   border: 1.5px solid rgba(255, 230, 102, 0.55);
   background: linear-gradient(160deg, rgba(35, 25, 0, 0.92), rgba(15, 10, 0, 0.96));
   cursor: pointer;
@@ -631,8 +627,8 @@ onBeforeUnmount(() => {
 }
 
 .hero-menu-icon {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   object-fit: contain;
   filter: brightness(0) invert(1) sepia(1) saturate(5) hue-rotate(20deg);
   pointer-events: none;
@@ -645,15 +641,15 @@ onBeforeUnmount(() => {
 
 .hero-menu-badge {
   position: absolute;
-  top: -5px;
-  right: -5px;
-  min-width: 14px;
-  height: 14px;
-  padding: 0 3px;
-  border-radius: 7px;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
   background: #ff5252;
   color: #fff;
-  font-size: 0.55rem;
+  font-size: 0.66rem;
   font-weight: 800;
   display: flex;
   align-items: center;
@@ -665,17 +661,17 @@ onBeforeUnmount(() => {
 
 .hero-dropdown {
   position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  width: 240px;
-  max-height: 60vh;
+  top: calc(100% + 8px);
+  left: 0;
+  width: min(480px, calc(100vw - 4rem));
+  max-height: 70vh;
   overflow-y: auto;
   background: linear-gradient(145deg, #1e2035 0%, #23243a 100%);
   border: 1.5px solid rgba(255, 230, 102, 0.55);
-  border-radius: 10px;
+  border-radius: 14px;
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.55), 0 0 18px rgba(255, 200, 60, 0.25);
   z-index: 200;
-  padding: 0.65rem 0.8rem;
+  padding: 1.15rem 1.35rem;
 }
 
 .hero-dropdown-header {
@@ -690,30 +686,34 @@ onBeforeUnmount(() => {
 .hero-dropdown-title {
   color: #ffe066;
   font-family: 'Georgia', serif;
-  font-size: 0.95rem;
+  font-size: 1.28rem;
   font-weight: 700;
   text-shadow: 0 1px 2px #000;
 }
 
 .hero-dropdown-subtitle {
   color: #b6f5b6;
-  font-size: 0.7rem;
+  font-size: 0.92rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
 .hero-dropdown-section {
-  margin-bottom: 0.6rem;
+  margin-bottom: 0.85rem;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px dashed rgba(255, 230, 102, 0.18);
 }
 
 .hero-dropdown-section:last-child {
   margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
 }
 
 .hero-dropdown-section-title {
-  margin: 0 0 0.35rem;
+  margin: 0 0 0.45rem;
   color: #4CAF50;
-  font-size: 0.72rem;
+  font-size: 0.84rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   display: flex;
@@ -724,45 +724,16 @@ onBeforeUnmount(() => {
 .section-badge {
   background: rgba(255, 230, 102, 0.2);
   color: #ffe066;
-  font-size: 0.62rem;
-  padding: 0.05rem 0.4rem;
+  font-size: 0.72rem;
+  padding: 0.05rem 0.45rem;
   border-radius: 8px;
   font-family: 'Courier New', monospace;
   font-weight: 800;
 }
 
 .hero-dropdown-stats {
-  list-style: none;
   padding: 0;
   margin: 0;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.25rem 0.5rem;
-}
-
-.hero-dropdown-stats li {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 0.3rem;
-  background: rgba(0, 0, 0, 0.35);
-  padding: 0.22rem 0.45rem;
-  border-radius: 5px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.stat-key {
-  color: #aaa;
-  font-size: 0.68rem;
-  letter-spacing: 0.02em;
-}
-
-.stat-value {
-  color: #fff;
-  font-family: 'Courier New', monospace;
-  font-size: 0.74rem;
-  font-weight: 700;
-  text-shadow: 0 1px 2px #000;
 }
 
 .hero-dropdown-effects {
@@ -837,10 +808,13 @@ onBeforeUnmount(() => {
 }
 
 .hero-dropdown-empty {
-  color: #888;
+  color: #b6b6b6;
   font-style: italic;
-  font-size: 0.7rem;
+  font-size: 0.96rem;
   margin: 0;
+  padding: 0.4rem 0.2rem;
+  text-align: center;
+  letter-spacing: 0.02em;
 }
 
 .hero-dropdown::-webkit-scrollbar {

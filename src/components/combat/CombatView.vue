@@ -19,6 +19,7 @@ import EnemyCard from './EnemyCard.vue'
 import TurnOrderBar from './TurnOrderBar.vue'
 import MobileCombatHud from './MobileCombatHud.vue'
 import MobileActionBar from './MobileActionBar.vue'
+import EnemyDebugPanel from './EnemyDebugPanel.vue'
 import AbilitiesModal from '@/components/ui/AbilitiesModal.vue'
 import ItemsModal from '@/components/ui/ItemsModal.vue'
 import type { DefensePhaseResult } from '@/core/defense/types'
@@ -108,18 +109,8 @@ const actorsById = computed<Record<string, import('@/core/turn-engine/TurnEngine
 
 const isMobile = useMediaQuery('(max-width: 720px)')
 
-function rotateHero() {
-  const slots = gameStore.heroes
-  const total = slots.length
-  if (total <= 1) return
-  for (let off = 1; off <= total; off++) {
-    const idx = (gameStore.activeHeroIndex + off) % total
-    if (slots[idx] && slots[idx]!.isAlive) {
-      gameStore.setActiveHero(idx)
-      return
-    }
-  }
-}
+const isDev = import.meta.env.DEV
+const showEnemyDebug = computed(() => isDev && !isMobile.value && enemies.value.length > 0)
 
 function onMobileAbility(ability: IAbility, index: number) {
   selectAbility(ability, index)
@@ -329,8 +320,6 @@ onUnmounted(() => {
       :can-target-allies="(!!selectedItem && itemCanTargetAllies(selectedItem)) || (!!selectedAbility && canTargetAllies(selectedAbility))"
       :active-hero-index="gameStore.activeHeroIndex"
       :attacked-hero-ids="attackedHeroIds"
-      @rotate-hero="rotateHero"
-      @select-enemy="selectEnemy"
       @select-ally="selectAlly"
     />
 
@@ -419,6 +408,11 @@ onUnmounted(() => {
       class="combat-log-fab"
       :messages="combatLog"
       @open-full="showLogModal = true"
+    />
+
+    <EnemyDebugPanel
+      v-if="showEnemyDebug"
+      :enemies="enemies"
     />
 
     <DefenseChallenge

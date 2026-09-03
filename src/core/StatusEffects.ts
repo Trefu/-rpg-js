@@ -141,7 +141,7 @@ export class StatusEffects {
     const energyRestorePct = 0.1
     const charges = 3
     const restorePctLabel = Math.round(energyRestorePct * 100)
-    const threatModifier = 1.0
+    const threatModifier = 1.5
     return {
       type: 'second_wind',
       name: 'Segundo Aliento',

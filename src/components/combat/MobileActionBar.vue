@@ -258,8 +258,8 @@ function shortLabel(name: string, max = 5): string {
 .mobile-action-bar {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 3px;
-  padding: 4px 4px calc(4px + env(safe-area-inset-bottom)) 4px;
+  gap: 4px;
+  padding: 8px 6px calc(8px + env(safe-area-inset-bottom)) 6px;
   box-sizing: border-box;
   width: 100%;
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.85) 100%);
@@ -273,11 +273,11 @@ function shortLabel(name: string, max = 5): string {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1px;
-  min-height: 44px;
+  gap: 2px;
+  min-height: 58px;
   min-width: 0;
   max-width: 100%;
-  padding: 3px 1px;
+  padding: 5px 2px;
   box-sizing: border-box;
   background: linear-gradient(145deg, #292b44 0%, #2f324d 100%);
   border: 1.5px solid rgba(255, 255, 255, 0.08);
@@ -349,14 +349,14 @@ function shortLabel(name: string, max = 5): string {
 }
 
 .mab-icon {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   object-fit: contain;
   filter: drop-shadow(0 1px 2px #000a);
 }
 
 .mab-label {
-  font-size: 0.48rem;
+  font-size: 0.55rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.02em;

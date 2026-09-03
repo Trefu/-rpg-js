@@ -37,7 +37,7 @@ import {
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
-const TURN_QUEUE_SIZE = 6
+const TURN_QUEUE_SIZE = 8
 
 // Tipos de estado que infligen daño por turno. Cada stack = 1 de daño fijo.
 const DO_STATUS_TYPES: Set<string> = new Set([

@@ -89,8 +89,9 @@ function handleClickOutside(event: MouseEvent) {
 @media (max-width: 720px) {
   .game-ui {
     padding: 0.4rem 0.5rem;
-    /* Offset below the turn-order bar (≈46px) so the gear no longer overlaps it */
-    top: 144px;
+    /* Sit just below the MobileCombatHud card so the gear clears the
+       hero portrait (turn-bar ~64px + mobile-hud card with portrait ~96px + gap). */
+    top: 188px;
   }
   .gear-btn {
     width: 32px;
@@ -104,9 +105,8 @@ function handleClickOutside(event: MouseEvent) {
 
 @media (min-width: 721px) {
   .game-ui {
-    /* On desktop the turn-order bar appears at the top of combat.
-       Offset the gear button below it so they don't overlap. */
-    top: 3.5rem;
+    /* Below the desktop turn-order bar (≈64px) plus a small gap. */
+    top: 4.5rem;
   }
 }
 
