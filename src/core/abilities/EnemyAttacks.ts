@@ -32,7 +32,7 @@ export const EMBER: DefensePatternConfig = {
     waveSpeed: 60,
     baseMaxBlockReduction: 0.5,
     damageMultiplier: 0.7,
-    phases: [phase(8),phase(8)],
+    phases: [phase(8), phase(8)],
     onFailureEffect: {
         statusType: 'burn',
         stacks: 8
@@ -46,9 +46,9 @@ export const FEROCIOUS_BITE: DefensePatternConfig = {
     baseMaxBlockReduction: 0.5,
     damageMultiplier: 0.8,
     phases: [
-        phase(4, { waveSpeed: 30 }),
-        phase(4, { waveSpeed: 60 }),
-        phase(4, { waveSpeed: 120 })
+        phase(6, { waveSpeed: 40 }),
+        phase(6, { waveSpeed: 60 }),
+        phase(6, { waveSpeed: 80 })
     ]
 }
 
@@ -59,7 +59,7 @@ export const QUICK_CLAWS: DefensePatternConfig = {
     waveSpeed: 40,
     baseMaxBlockReduction: 0.5,
     damageMultiplier: 0.5,
-    phases: [phase(3), phase(3), phase(3)]
+    phases: [fixedPhase(1, 2, 3, 4), fixedPhase(1, 2, 3, 4, 5), fixedPhase(4, 5, 6, 8)]
 }
 
 export const MULTIPLE_AXE_STRIKES: DefensePatternConfig = {

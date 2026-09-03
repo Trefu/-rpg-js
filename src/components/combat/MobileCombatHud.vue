@@ -104,10 +104,12 @@ function onAllyRowClick(hero: Hero | null) {
         return
     }
     if (!hero.isAlive) return
-    allyStatsOpen.value = {
-        ...allyStatsOpen.value,
-        [hero.id]: !allyStatsOpen.value[hero.id]
-    }
+    // Solo un panel de stats abierto a la vez: si abro el de este heroe,
+    // cierro el de cualquier otro.
+    const wasOpen = !!allyStatsOpen.value[hero.id]
+    const next: Record<string, boolean> = {}
+    if (!wasOpen) next[hero.id] = true
+    allyStatsOpen.value = next
 }
 </script>
 
