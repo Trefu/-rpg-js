@@ -16,10 +16,10 @@ export class Warrior extends Hero {
       maxHealth: 140,
       maxEnergy: 60,
       baseAttack: 8,
-      agility:    { value: 30, growthPerLevel: 2 },
-      constitution: { value: 14, growthPerLevel: 5 },
-      mind:       { value: 8,  growthPerLevel: 0 },
-      body:       { value: 16, growthPerLevel: 4 },
+      agility:    { value: 8, growthPerLevel: 2 },
+      constitution: { value: 15, growthPerLevel: 5 },
+      mind:       { value: 8,  growthPerLevel: 1 },
+      body:       { value: 16, growthPerLevel: 7 },
       sprite: warriorSprite
     })
   }
