@@ -48,3 +48,5 @@ coverage
 .eslintcache
 .stylelintcache
 .prettiercache 
+
+.kilo/plans
