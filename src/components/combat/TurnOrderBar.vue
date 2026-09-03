@@ -206,16 +206,18 @@ const slots = computed(() => {
   }
 
   .turn-slot {
-    width: 110px;
+    width: 56px;
     padding: 0.25rem 0.35rem;
     gap: 0.4rem;
+    justify-content: center;
+  }
+  .turn-slot-body,
+  .turn-slot-name {
+    display: none;
   }
   .turn-slot-icon-wrap {
     width: 38px;
     height: 38px;
-  }
-  .turn-slot-name {
-    font-size: 0.7rem;
   }
 }
 </style>
