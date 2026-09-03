@@ -882,6 +882,15 @@ const isProcessingDot = ref(false)
     // Marca al heroe target como atacado antes del anuncio/defensa para que
     // la UI pueda resaltarlo durante todo el tiempo que dura el ataque.
     attackedHeroIds.value = [target.id]
+    // Mueve el indicador "ACTIVO" al heroe que va a defender. Asi, durante
+    // todo el desafio de defensa y hasta que tome el turno de otro heroe, el
+    // border amarillo sigue al defensor en vez de saltar al primer slot por
+    // la rotacion automatica que ocurre cuando activeHeroIndex == -1 al
+    // iniciar el turno enemigo.
+    const targetSlotIdx = gameStore.heroes.findIndex(h => h?.id === target.id)
+    if (targetSlotIdx >= 0) {
+      gameStore.setActiveHero(targetSlotIdx)
+    }
     attackingEnemyId.value = enemy.id
     const announceText = isCrit
       ? `Crítico ${enemyLabel} va a usar ${attackName} contra ${target.name}!`
