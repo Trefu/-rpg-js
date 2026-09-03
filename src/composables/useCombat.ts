@@ -273,7 +273,9 @@ const isProcessingDot = ref(false)
 
       if (!target.isAlive) {
         closeDefenseChallenge()
-        attackedHeroIds.value = []
+        // No limpiamos `attackedHeroIds` aqui: el heroe cae en mid-defensa
+        // pero la UI debe seguir mostrando el estado "Defendiendo" hasta
+        // que el turno pase a otro heroe o hasta que otro heroe sea atacado.
         return
       }
     }
@@ -282,7 +284,8 @@ const isProcessingDot = ref(false)
       defensePhaseIndex.value++
     } else {
       closeDefenseChallenge()
-      attackedHeroIds.value = []
+      // Mismo motivo: dejamos el badge "Defendiendo" hasta el siguiente
+      // turno de heroe o hasta el siguiente ataque enemigo.
     }
   }
 
@@ -813,6 +816,12 @@ const isProcessingDot = ref(false)
     // al heroe correcto y `applyPlayerStatusTick` le aplique el DoT.
     const heroIdx = gameStore.heroes.findIndex(h => h?.id === actor.id)
     if (heroIdx >= 0) gameStore.setActiveHero(heroIdx)
+
+    // Al cambiar de turno de heroe, el badge "Defendiendo" del heroe
+    // previamente atacado ya no es relevante. `startEnemyTurn` lo reasigna
+    // cuando un nuevo ataque enemigo empieza, asi cubrimos los dos casos
+    // del ciclo de vida del estado "siendo atacado".
+    attackedHeroIds.value = []
 
     const hero = heroes.value.find(h => h.id === actor.id)
     if (hero && typeof hero.reduceStatusEffects === 'function') {
