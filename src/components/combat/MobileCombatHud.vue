@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import type { Hero } from '@/core/Hero'
 import type { IEnemy } from '@/core/interfaces/ICharacter'
 import { MAX_HEROES } from '@/stores/game'
+import HeroDotIcons from './HeroDotIcons.vue'
 import EnemyStatusIcons from './EnemyStatusIcons.vue'
 import MobileHeroStats from './MobileHeroStats.vue'
 
@@ -148,6 +149,7 @@ function onAllyRowClick(hero: Hero | null) {
                     </span>
                 </div>
             </div>
+            <HeroDotIcons v-if="displayedHero" :effects="displayedHero.statusEffects" />
         </button>
 
         <transition name="panel-preview">
@@ -543,7 +545,8 @@ function onAllyRowClick(hero: Hero | null) {
     flex-shrink: 0;
 }
 
-.mobile-hud-ally-effects {
+.mobile-hud-ally-effects,
+.mobile-hud-ally-effects.enemy-status-icons {
     position: relative;
     top: auto;
     left: auto;
@@ -551,6 +554,21 @@ function onAllyRowClick(hero: Hero | null) {
     justify-content: flex-start;
     margin-top: 2px;
     background: rgba(0, 0, 0, 0.5);
+    padding: 0.1rem 0.3rem;
+    z-index: auto;
+    max-width: 100%;
+    flex-wrap: wrap;
+    gap: 0.2rem;
+}
+
+.mobile-hud-ally-effects .enemy-status-icon img {
+    width: 18px;
+    height: 18px;
+}
+
+.mobile-hud-info-status .enemy-status-icon img {
+    width: 18px;
+    height: 18px;
 }
 
 .panel-preview-enter-active,

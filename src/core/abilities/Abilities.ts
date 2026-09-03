@@ -267,9 +267,9 @@ export const WarriorInjuringStrike: IAbility = {
     previewDamage: (hero: Hero) => {
         const body = hero.baseStats.body.value
         const level = hero.level
-        const raw = body * 0.7 + level * 0.5
+        const raw = body * 1.2 + level * 0.5
         return buildPreview(
-            `(${body} × 0.7) + ${level} × 0.5 = ${raw.toFixed(1)}  → aplica "Lesionado"`,
+            `(${body} × 1.2) + ${level} × 0.5 = ${raw.toFixed(1)}  → aplica "Lesionado"`,
             raw,
             'physical'
         )
