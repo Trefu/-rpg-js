@@ -9,12 +9,20 @@ const props = defineProps<{
 }>()
 
 const slots = computed(() => {
+  // Solo el PRIMER slot del actor actual se marca como `current`. Un mismo
+  // combatiente puede aparecer varias veces en la cola (p.ej. 2x turnos extra);
+  // remarcar todas sus repeticiones como current hace creer al jugador que
+  // todas esas casillas son "el turno actual" y ensucia la lectura del orden.
+  let currentMarked = false
   return props.queue.map(entry => {
     const actor = props.actorsById[entry.actorId]
+    const isCurrentActor = entry.actorId === props.currentActorId
+    const isCurrent = isCurrentActor && !currentMarked
+    if (isCurrent) currentMarked = true
     return {
       entry,
       actor,
-      isCurrent: entry.actorId === props.currentActorId,
+      isCurrent,
       isSkip: entry.kind === 'skip'
     }
   })
