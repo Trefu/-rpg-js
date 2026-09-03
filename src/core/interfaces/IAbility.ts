@@ -74,6 +74,26 @@ export const DAMAGE_TYPE_LABELS: Record<DamageType, string> = {
   frost: 'Hielo'
 }
 
+/**
+ * Resultado del preview de daño de una ability ofensiva.
+ * El modal de habilidades lo muestra como `daño min–daño max` y, al tocarlo,
+ * expande una sola línea con la fórmula del daño (valores del caster ya
+ * sustituidos). Sin multiplicadores raros ni jargon: legible a primera vista.
+ */
+export interface AbilityDamagePreview {
+  /** Daño mínimo posible (floored) sin critico. */
+  min: number
+  /** Daño máximo posible (floored) sin critico. */
+  max: number
+  /**
+   * Fórmula del daño con los valores del caster ya sustituidos, en una sola
+   * línea legible. Ej. `(14 × 0.7) + 3 = 9.8`.
+   */
+  formula: string
+  /** Tipo de daño legible. `undefined` para abilities sin daño. */
+  damageTypeLabel?: string
+}
+
 export interface IAbility {
   name: string
   description: string
@@ -84,6 +104,11 @@ export interface IAbility {
    * que no causan daño (curas, buffs). Default: `undefined`.
    */
   damageType?: DamageType
+  /**
+   * Preview del daño para mostrar en el modal de habilidades (estilo LoL).
+   * Solo se define en abilities que infligen daño. Las curas/buffs lo omiten.
+   */
+  previewDamage?: (hero: import('../Hero').Hero) => AbilityDamagePreview
   /**
    * Costo fijo de energia que se cobra antes de ejecutar.
    * Si el caster no tiene suficiente energia, la accion se cancela antes de gastar el turno.

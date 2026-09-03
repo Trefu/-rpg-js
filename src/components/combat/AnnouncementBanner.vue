@@ -172,7 +172,7 @@ const variantClass = computed(() => `variant-${variant.value}`)
 
 @media (max-width: 720px) {
   .announcement-banner {
-    top: 150px;
+    top: 200px;
     bottom: auto;
   }
   .announcement-frame {

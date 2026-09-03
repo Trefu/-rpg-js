@@ -9,12 +9,20 @@ const props = defineProps<{
 }>()
 
 const slots = computed(() => {
+  // Solo el PRIMER slot del actor actual se marca como `current`. Un mismo
+  // combatiente puede aparecer varias veces en la cola (p.ej. 2x turnos extra);
+  // remarcar todas sus repeticiones como current hace creer al jugador que
+  // todas esas casillas son "el turno actual" y ensucia la lectura del orden.
+  let currentMarked = false
   return props.queue.map(entry => {
     const actor = props.actorsById[entry.actorId]
+    const isCurrentActor = entry.actorId === props.currentActorId
+    const isCurrent = isCurrentActor && !currentMarked
+    if (isCurrent) currentMarked = true
     return {
       entry,
       actor,
-      isCurrent: entry.actorId === props.currentActorId,
+      isCurrent,
       isSkip: entry.kind === 'skip'
     }
   })
@@ -23,7 +31,6 @@ const slots = computed(() => {
 
 <template>
   <div class="turn-order-bar" v-if="slots.length > 0">
-    <div class="turn-order-bar-label">Próximos turnos</div>
     <div class="turn-order-bar-slots">
       <div
         v-for="(slot, idx) in slots"
@@ -37,19 +44,26 @@ const slots = computed(() => {
         }"
         :title="slot.actor?.name ?? ''"
       >
-        <img
-          v-if="slot.actor?.icon"
-          :src="slot.actor.icon"
-          :alt="slot.actor.name"
-          class="turn-slot-icon"
-        />
-        <div v-else class="turn-slot-icon turn-slot-icon-fallback">
-          {{ slot.actor?.name?.charAt(0) ?? '?' }}
+        <div
+          class="turn-slot-icon-wrap"
+          :class="{ hero: slot.actor?.kind === 'hero', enemy: slot.actor?.kind === 'enemy' }"
+        >
+          <img
+            v-if="slot.actor?.icon"
+            :src="slot.actor.icon"
+            :alt="slot.actor.name"
+            class="turn-slot-icon"
+          />
+          <div v-else class="turn-slot-icon turn-slot-icon-fallback">
+            {{ slot.actor?.name?.charAt(0) ?? '?' }}
+          </div>
         </div>
-        <div class="turn-slot-name">
-          <span :class="{ 'turn-slot-strikethrough': slot.isSkip }">
-            {{ slot.actor?.name ?? '???' }}
-          </span>
+        <div class="turn-slot-body">
+          <div class="turn-slot-name">
+            <span :class="{ 'turn-slot-strikethrough': slot.isSkip }">
+              {{ slot.actor?.name ?? '???' }}
+            </span>
+          </div>
         </div>
       </div>
     </div>
@@ -61,21 +75,23 @@ const slots = computed(() => {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.5rem 0.75rem;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.65rem 0.85rem;
+  min-height: 64px;
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.65) 0%, rgba(0, 0, 0, 0.45) 100%);
   border-top: 1px solid rgba(255, 230, 102, 0.25);
   border-bottom: 1px solid rgba(255, 230, 102, 0.2);
   backdrop-filter: blur(4px);
 }
 
-.turn-order-bar-label {
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #ffe066;
-  white-space: nowrap;
-  opacity: 0.85;
+
+.turn-slot-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .turn-order-bar-slots {
@@ -84,8 +100,10 @@ const slots = computed(() => {
   flex: 1 1 auto;
   min-width: 0;
   overflow-x: auto;
-  scroll-snap-type: x mandatory;
+  overflow-y: hidden;
+  scroll-snap-type: x proximity;
   scrollbar-width: thin;
+  padding: 0 0.25rem;
 }
 
 .turn-order-bar-slots::-webkit-scrollbar {
@@ -98,19 +116,19 @@ const slots = computed(() => {
 
 .turn-slot {
   position: relative;
-  flex: 1 1 0;
-  min-width: 64px;
-  max-width: 110px;
+  flex: 0 0 auto;
+  width: 130px;
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.3rem 0.45rem;
+  gap: 0.6rem;
+  padding: 0.4rem 0.65rem;
   border-radius: 6px;
   border: 1.5px solid rgba(255, 255, 255, 0.08);
   background: rgba(0, 0, 0, 0.4);
   color: #fff;
-  scroll-snap-align: start;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  overflow: hidden;
+  scroll-snap-align: start;
 }
 
 .turn-slot.enemy {
@@ -133,14 +151,29 @@ const slots = computed(() => {
   filter: grayscale(0.6);
 }
 
+.turn-slot-icon-wrap {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 5px;
+  background: #000;
+}
+
 .turn-slot-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 4px;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
   image-rendering: pixelated;
-  background: #000;
-  flex-shrink: 0;
+  transform: scale(1.8);
+  transform-origin: center 25%;
+}
+
+.turn-slot-icon-wrap.enemy .turn-slot-icon {
+  transform-origin: center 35%;
 }
 
 .turn-slot-icon-fallback {
@@ -153,7 +186,7 @@ const slots = computed(() => {
 }
 
 .turn-slot-name {
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
@@ -167,23 +200,24 @@ const slots = computed(() => {
 
 @media (max-width: 720px) {
   .turn-order-bar {
-    padding: 0.3rem 0.5rem;
-    gap: 0.5rem;
+    padding: 0.4rem 0.6rem;
+    gap: 0.4rem;
+    min-height: 56px;
   }
-  .turn-order-bar-label {
+
+  .turn-slot {
+    width: 56px;
+    padding: 0.25rem 0.35rem;
+    gap: 0.4rem;
+    justify-content: center;
+  }
+  .turn-slot-body,
+  .turn-slot-name {
     display: none;
   }
-  .turn-slot {
-    min-width: 72px;
-    padding: 0.25rem 0.4rem;
-    gap: 0.3rem;
-  }
-  .turn-slot-icon {
-    width: 24px;
-    height: 24px;
-  }
-  .turn-slot-name {
-    font-size: 0.65rem;
+  .turn-slot-icon-wrap {
+    width: 38px;
+    height: 38px;
   }
 }
 </style>

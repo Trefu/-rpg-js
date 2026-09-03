@@ -1,4 +1,4 @@
-import type { IAbility, DamageType } from '@/core/interfaces/IAbility'
+import type { IAbility, DamageType, AbilityDamagePreview } from '@/core/interfaces/IAbility'
 import type { AbilityContext } from '@/core/interfaces/IAbility'
 import { DAMAGE_TYPE_LABELS } from '@/core/interfaces/IAbility'
 import type { Hero } from '../Hero'
@@ -6,6 +6,57 @@ import { StatusEffects, DOT_STATUS_TYPES } from '../StatusEffects'
 import type { CritResult } from '../crit'
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
+/**
+ * Multiplicador minimo y maximo aplicado al daño base antes del critico.
+ * Define la "ventana de variabilidad" del daño en este juego (estilo Diablo/LoL):
+ * el golpe real fluctúa dentro de este rango en cada uso, manteniendo el promedio
+ * igual al valor base. Centralizado aquí para que los enemigos (que copian la
+ * mecánica) y los heroes compartan el mismo balance.
+ */
+export const DAMAGE_VARIANCE_MIN = 0.90
+export const DAMAGE_VARIANCE_MAX = 1.10
+
+export interface DamageVarianceRange {
+    min: number
+    max: number
+}
+
+const DEFAULT_VARIANCE_RANGE: DamageVarianceRange = {
+    min: DAMAGE_VARIANCE_MIN,
+    max: DAMAGE_VARIANCE_MAX
+}
+
+/**
+ * Aplica la varianza aleatoria al daño base: lo multiplica por un factor uniforme
+ * en `[min, max]`. Se aplica ANTES del critico para que el critico escale un
+ * valor ya fluctuante (consistente con la mayoría de RPGs).
+ */
+export const applyDamageVariance = (
+    amount: number,
+    range: DamageVarianceRange = DEFAULT_VARIANCE_RANGE
+): number => {
+    if (amount <= 0) return 0
+    const { min, max } = range
+    const lo = Math.min(min, max)
+    const hi = Math.max(min, max)
+    const factor = lo + Math.random() * (hi - lo)
+    return Math.max(0, Math.floor(amount * factor))
+}
+
+/**
+ * Dado un daño base sin varianza, devuelve el rango min/max que el modal muestra.
+ * `min` usa el factor minimo de varianza, `max` el maximo.
+ */
+const computeDamageRange = (raw: number, range: DamageVarianceRange = DEFAULT_VARIANCE_RANGE): { min: number, max: number } => {
+    if (raw <= 0) return { min: 0, max: 0 }
+    const lo = Math.min(range.min, range.max)
+    const hi = Math.max(range.min, range.max)
+    return {
+        min: Math.max(0, Math.floor(raw * lo)),
+        max: Math.max(0, Math.floor(raw * hi))
+    }
+}
 
 const showCritAnnouncement = (context: AbilityContext, damage: number, isOvercrit: boolean = false) => {
     const dmgType = context.ability?.damageType as DamageType | undefined
@@ -16,17 +67,18 @@ const showCritAnnouncement = (context: AbilityContext, damage: number, isOvercri
 
 const rollAndApplyDamage = (
     caster: Hero,
-    rawDamage: number
-): { finalDamage: number, crit: CritResult } => {
-    const baseDamage = Math.floor(rawDamage)
+    rawDamage: number,
+    range: DamageVarianceRange = DEFAULT_VARIANCE_RANGE
+): { finalDamage: number, crit: CritResult, baseDamage: number } => {
+    const baseDamage = applyDamageVariance(rawDamage, range)
     if (baseDamage <= 0) {
-        return { finalDamage: 0, crit: { multiplier: 1, isCrit: false, isOvercrit: false } }
+        return { finalDamage: 0, crit: { multiplier: 1, isCrit: false, isOvercrit: false }, baseDamage: 0 }
     }
     const crit = caster.rollCrit()
     const finalDamage = crit.isCrit
         ? Math.floor(baseDamage * crit.multiplier)
         : baseDamage
-    return { finalDamage, crit }
+    return { finalDamage, crit, baseDamage }
 }
 
 const buildAttackLog = (abilityName: string, damage: number, crit: CritResult): string => {
@@ -34,6 +86,25 @@ const buildAttackLog = (abilityName: string, damage: number, crit: CritResult): 
     if (crit.isOvercrit) return `¡Overcrit! ${base}`
     if (crit.isCrit) return `Crítico ${base}`
     return base
+}
+
+/**
+ * Helper para construir el previewDamage de una ability. Centraliza la
+ * generación del rango y la metadata para que cada ability solo pase
+ * su fórmula con los valores del caster ya sustituidos.
+ */
+const buildPreview = (
+    formula: string,
+    raw: number,
+    damageType?: DamageType
+): AbilityDamagePreview => {
+    const { min, max } = computeDamageRange(raw)
+    return {
+        min,
+        max,
+        formula,
+        damageTypeLabel: damageType ? DAMAGE_TYPE_LABELS[damageType] : undefined
+    }
 }
 
 /**
@@ -57,6 +128,16 @@ export const BasicAttack: IAbility = {
     cooldown: 0,
     damageType: 'physical',
     targetType: 'enemies-only',
+    previewDamage: (hero: Hero) => {
+        const body = hero.baseStats.body.value
+        const level = hero.level
+        const raw = body * 0.7 + level
+        return buildPreview(
+            `(${body} × 0.7) + ${level} = ${raw.toFixed(1)}`,
+            raw,
+            'physical'
+        )
+    },
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
         const rawDamage = caster.baseStats.body.value * 0.7 + caster.level
@@ -84,6 +165,16 @@ export const StunStrike: IAbility = {
     energyCost: 15,
     damageType: 'physical',
     targetType: 'enemies-only',
+    previewDamage: (hero: Hero) => {
+        const body = hero.baseStats.body.value
+        const level = hero.level
+        const raw = (body * 0.7 + level * 0.5) * 0.8
+        return buildPreview(
+            `((${body} × 0.7) + ${level} × 0.5) × 0.8 = ${raw.toFixed(1)}`,
+            raw,
+            'physical'
+        )
+    },
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
         const rawDamage = (caster.baseStats.body.value * 0.7 + caster.level * 0.5) * 0.8
@@ -107,6 +198,16 @@ export const StealthStrike: IAbility = {
     energyCost: 15,
     damageType: 'physical',
     targetType: 'enemies-only',
+    previewDamage: (hero: Hero) => {
+        const body = hero.baseStats.body.value
+        const level = hero.level
+        const raw = (body * 0.7 + level * 0.5) * 1.5
+        return buildPreview(
+            `((${body} × 0.7) + ${level} × 0.5) × 1.5 = ${raw.toFixed(1)}`,
+            raw,
+            'physical'
+        )
+    },
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
         const rawDamage = (caster.baseStats.body.value * 0.7 + caster.level * 0.5) * 1.5
@@ -130,6 +231,15 @@ export const Fireball: IAbility = {
     energyCost: 25,
     damageType: 'fire',
     targetType: 'enemies-only',
+    previewDamage: (hero: Hero) => {
+        const mind = hero.baseStats.mind.value
+        const raw = mind * 2.5
+        return buildPreview(
+            `${mind} × 2.5 = ${raw.toFixed(1)}`,
+            raw,
+            'fire'
+        )
+    },
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
         const rawDamage = caster.baseStats.mind.value * 2.5
@@ -154,6 +264,16 @@ export const WarriorInjuringStrike: IAbility = {
     damageType: 'physical',
     targetType: 'enemies-only',
     animationDurationMs: 800,
+    previewDamage: (hero: Hero) => {
+        const body = hero.baseStats.body.value
+        const level = hero.level
+        const raw = body * 1.2 + level * 0.5
+        return buildPreview(
+            `(${body} × 1.2) + ${level} × 0.5 = ${raw.toFixed(1)}  → aplica "Lesionado"`,
+            raw,
+            'physical'
+        )
+    },
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
         const target = context.target as any
@@ -191,6 +311,16 @@ export const WarriorDevastatingStrike: IAbility = {
     damageType: 'physical',
     targetType: 'enemies-only',
     aoe: true,
+    previewDamage: (hero: Hero) => {
+        const body = hero.baseStats.body.value
+        const level = hero.level
+        const raw = body * 1.5 + level * 3
+        return buildPreview(
+            `(${body} × 1.5) + (${level} × 3) = ${raw.toFixed(1)}  → golpea a todos`,
+            raw,
+            'physical'
+        )
+    },
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
         const rawDamage = caster.baseStats.body.value * 1.5 + caster.level * 3
@@ -263,6 +393,16 @@ export const ClericRadiantStrike: IAbility = {
         maxExtraTargets: 2,
         damageMultiplier: 0.6
     },
+    previewDamage: (hero: Hero) => {
+        const mind = hero.baseStats.mind.value
+        const raw = mind * 2.6
+        const splash = raw * 0.6
+        return buildPreview(
+            `${mind} × 2.6 = ${raw.toFixed(1)}  (salta a 1-2 enemigos con ${splash.toFixed(1)})`,
+            raw,
+            'holy'
+        )
+    },
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
         const baseDamage = caster.baseStats.mind.value * 2.6
@@ -287,6 +427,15 @@ export const ClericDivineSmite: IAbility = {
     energyCost: 40,
     damageType: 'holy',
     targetType: 'enemies-only',
+    previewDamage: (hero: Hero) => {
+        const mind = hero.baseStats.mind.value
+        const raw = mind * 4
+        return buildPreview(
+            `${mind} × 4 = ${raw.toFixed(1)}`,
+            raw,
+            'holy'
+        )
+    },
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
         const { finalDamage, crit } = rollAndApplyDamage(caster, caster.baseStats.mind.value * 4)

@@ -9,6 +9,7 @@ import type { IItem, ItemTargetType } from '@/core/items/types'
 import { getItemOrThrow } from '@/core/items/items'
 import { consumeItem, getInventoryEntries, type InventoryEntry } from '@/core/items/inventory'
 import { StatusEffects, applyFailureEffect } from '@/core/StatusEffects'
+import { applyDamageVariance } from '@/core/abilities/Abilities'
 import type {
   DefenseChallengeResult,
   DefensePatternConfig,
@@ -37,7 +38,7 @@ import {
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
-const TURN_QUEUE_SIZE = 6
+const TURN_QUEUE_SIZE = 8
 
 // Tipos de estado que infligen daño por turno. Cada stack = 1 de daño fijo.
 const DO_STATUS_TYPES: Set<string> = new Set([
@@ -272,7 +273,9 @@ const isProcessingDot = ref(false)
 
       if (!target.isAlive) {
         closeDefenseChallenge()
-        attackedHeroIds.value = []
+        // No limpiamos `attackedHeroIds` aqui: el heroe cae en mid-defensa
+        // pero la UI debe seguir mostrando el estado "Defendiendo" hasta
+        // que el turno pase a otro heroe o hasta que otro heroe sea atacado.
         return
       }
     }
@@ -281,7 +284,8 @@ const isProcessingDot = ref(false)
       defensePhaseIndex.value++
     } else {
       closeDefenseChallenge()
-      attackedHeroIds.value = []
+      // Mismo motivo: dejamos el badge "Defendiendo" hasta el siguiente
+      // turno de heroe o hasta el siguiente ataque enemigo.
     }
   }
 
@@ -380,6 +384,11 @@ const isProcessingDot = ref(false)
       closeAbilitiesModal()
       return
     }
+    // Limpia cualquier sticky pendiente antes de empezar una nueva selección:
+    // si el jugador cambia de ability mientras se esperaba un objetivo, el
+    // cartel viejo ("Selecciona un objetivo para X") debe desaparecer y ser
+    // reemplazado por el de la nueva ability, no apilarse en la cola.
+    clearAnnouncement()
     selectedAbility.value = ability
     closeAbilitiesModal()
 
@@ -391,7 +400,6 @@ const isProcessingDot = ref(false)
       }
       currentAction.value = { ability, target: caster }
       isSelectingTarget.value = false
-      clearAnnouncement()
       triggerExecution(caster)
       return
     }
@@ -809,6 +817,12 @@ const isProcessingDot = ref(false)
     const heroIdx = gameStore.heroes.findIndex(h => h?.id === actor.id)
     if (heroIdx >= 0) gameStore.setActiveHero(heroIdx)
 
+    // Al cambiar de turno de heroe, el badge "Defendiendo" del heroe
+    // previamente atacado ya no es relevante. `startEnemyTurn` lo reasigna
+    // cuando un nuevo ataque enemigo empieza, asi cubrimos los dos casos
+    // del ciclo de vida del estado "siendo atacado".
+    attackedHeroIds.value = []
+
     const hero = heroes.value.find(h => h.id === actor.id)
     if (hero && typeof hero.reduceStatusEffects === 'function') {
       // Decrement de estados del heroe entre turnos (consistente con la logica
@@ -868,6 +882,15 @@ const isProcessingDot = ref(false)
     // Marca al heroe target como atacado antes del anuncio/defensa para que
     // la UI pueda resaltarlo durante todo el tiempo que dura el ataque.
     attackedHeroIds.value = [target.id]
+    // Mueve el indicador "ACTIVO" al heroe que va a defender. Asi, durante
+    // todo el desafio de defensa y hasta que tome el turno de otro heroe, el
+    // border amarillo sigue al defensor en vez de saltar al primer slot por
+    // la rotacion automatica que ocurre cuando activeHeroIndex == -1 al
+    // iniciar el turno enemigo.
+    const targetSlotIdx = gameStore.heroes.findIndex(h => h?.id === target.id)
+    if (targetSlotIdx >= 0) {
+      gameStore.setActiveHero(targetSlotIdx)
+    }
     attackingEnemyId.value = enemy.id
     const announceText = isCrit
       ? `Crítico ${enemyLabel} va a usar ${attackName} contra ${target.name}!`
@@ -1074,9 +1097,6 @@ const isProcessingDot = ref(false)
 
   function addToLog(message: string) {
     combatLog.value.push(message)
-    if (combatLog.value.length > 10) {
-      combatLog.value.shift()
-    }
     nextTick(() => {
       if (combatLogRef.value) {
         combatLogRef.value.scrollTop = combatLogRef.value.scrollHeight
@@ -1100,7 +1120,9 @@ const isProcessingDot = ref(false)
   /**
    * Splash de una ability de heroe: tras el impacto principal, golpea a
    * N objetivos aleatorios extra del campo enemigo (excluyendo al principal)
-   * con `primaryBaseDamage * damageMultiplier`. Sin critico en splashes.
+   * con `primaryBaseDamage * damageMultiplier`. Cada objetivo splash recibe
+   * su propia tirada de varianza (independiente) para que la fluctuación se
+   * sienta en todos los saltos. Sin critico en splashes.
    */
   async function applyHeroSplash(
     spec: NonNullable<IAbility['randomAttack']>,
@@ -1114,9 +1136,14 @@ const isProcessingDot = ref(false)
     if (cap < min) return
     const count = min + Math.floor(Math.random() * (cap - min + 1))
     const extras = shuffle(candidates).slice(0, count)
-    const splashDamage = Math.max(0, Math.floor(primaryBaseDamage * spec.damageMultiplier))
-    if (splashDamage <= 0) return
+    // Daño base nominal del splash (sin varianza). El redondeo se hace
+    // despues de aplicar varianza para que el ±10% se sienta aunque el
+    // nominal sea pequeño (ej. base 4 → rango real 3-4, no siempre 4).
+    const splashBase = Math.max(0, primaryBaseDamage * spec.damageMultiplier)
+    if (splashBase <= 0) return
     for (const enemy of extras) {
+      const splashDamage = applyDamageVariance(splashBase)
+      if (splashDamage <= 0) continue
       enemy.takeDamage(splashDamage)
       showEnemyHit(enemy.id, splashDamage)
       audioManager.playAttackSound()
@@ -1297,6 +1324,7 @@ const isProcessingDot = ref(false)
 
   function initializeCombat(enemyList: IEnemy[], isBoss: boolean = false) {
     enemies.value = enemyList
+    combatLog.value = []
     resetAbilityCooldowns()
     if (!config.isTraining) {
       if (isBoss) {

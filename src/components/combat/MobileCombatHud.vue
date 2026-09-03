@@ -3,11 +3,9 @@ import { computed, ref } from 'vue'
 import type { Hero } from '@/core/Hero'
 import type { IEnemy } from '@/core/interfaces/ICharacter'
 import { MAX_HEROES } from '@/stores/game'
+import HeroDotIcons from './HeroDotIcons.vue'
 import EnemyStatusIcons from './EnemyStatusIcons.vue'
-import heartIcon from '@/assets/icons/heart-bottle.png'
-import boltIcon from '@/assets/icons/bolt-shield.png'
-import ogreIcon from '@/assets/icons/ogre.png'
-import partyIcon from '@/assets/icons/team-idea.png'
+import MobileHeroStats from './MobileHeroStats.vue'
 
 const props = defineProps<{
     player: Hero | null
@@ -17,12 +15,10 @@ const props = defineProps<{
     isSelectingTarget?: boolean
     canTargetAllies?: boolean
     activeHeroIndex?: number
-    /** IDs de heroes recibiendo actualmente un ataque enemigo (incluye target principal y splashes). */
     attackedHeroIds?: string[]
 }>()
 
 const emit = defineEmits<{
-    (e: 'rotateHero'): void
     (e: 'selectEnemy', enemy: IEnemy): void
     (e: 'selectAlly', hero: Hero): void
 }>()
@@ -33,11 +29,12 @@ const heroSlots = computed<(Hero | null)[]>(() => {
     return slots
 })
 
-/**
- * Hero que esta recibiendo el ataque enemigo actual (target principal del
- * turno enemigo). Si no hay ninguno, devuelve null. Solo considera heroes
- * vivos: si el atacado cae durante el ataque, dejamos de mostrarlo.
- */
+const fallbackHero = computed<Hero | null>(() => {
+    return props.heroes.find(h => h.isAlive) ?? props.heroes[0] ?? null
+})
+
+const effectivePlayer = computed<Hero | null>(() => props.player ?? fallbackHero.value)
+
 const attackedHero = computed<Hero | null>(() => {
     const ids = props.attackedHeroIds ?? []
     if (ids.length === 0) return null
@@ -45,13 +42,7 @@ const attackedHero = computed<Hero | null>(() => {
     return props.heroes.find(h => h.id === targetId && h.isAlive) ?? null
 })
 
-/**
- * Heroe cuyo retrato se muestra en el slot principal del HUD.
- * Prioridad: el heroe que esta siendo atacado > el heroe activo del jugador.
- * Asi, durante el turno enemigo el jugador ve claramente QUIEN recibe el
- * golpe (con sombra roja), en lugar de seguir viendo al heroe "activo".
- */
-const displayedHero = computed<Hero | null>(() => attackedHero.value ?? props.player)
+const displayedHero = computed<Hero | null>(() => attackedHero.value ?? effectivePlayer.value)
 
 const isDisplayingAttackedHero = computed(() => !!attackedHero.value)
 
@@ -74,21 +65,6 @@ const energyDisplay = computed(() =>
     displayedHero.value ? `${displayedHero.value.energy}/${displayedHero.value.maxEnergy}` : ''
 )
 
-const aliveEnemies = computed(() => props.enemies.filter(e => e.isAlive))
-
-const aliveAllies = computed(() => props.heroes.filter(h => h.isAlive))
-
-const allyIndexByHeroId = computed<Record<string, number>>(() => {
-    const map: Record<string, number> = {}
-    aliveAllies.value.forEach((h, idx) => { map[h.id] = idx })
-    return map
-})
-
-function enemyHpPercent(e: IEnemy) {
-    if (e.maxHealth <= 0) return 0
-    return Math.max(0, (e.health / e.maxHealth) * 100)
-}
-
 function heroHpPercent(h: Hero) {
     if (h.maxHealth <= 0) return 0
     return Math.max(0, (h.health / h.maxHealth) * 100)
@@ -99,46 +75,46 @@ function heroEnergyPercent(h: Hero) {
     return Math.max(0, (h.energy / h.maxEnergy) * 100)
 }
 
-const showEnemyPreview = ref(false)
 const showAllyPreview = ref(false)
-function toggleEnemyPreview() {
-    showEnemyPreview.value = !showEnemyPreview.value
-    if (showEnemyPreview.value) showAllyPreview.value = false
-}
+const allyStatsOpen = ref<Record<string, boolean>>({})
+
 function toggleAllyPreview() {
     showAllyPreview.value = !showAllyPreview.value
-    if (showAllyPreview.value) showEnemyPreview.value = false
+    if (!showAllyPreview.value) allyStatsOpen.value = {}
 }
 
 const isAllyTargeting = computed(
     () => !!props.isSelectingTarget && !!props.canTargetAllies
 )
 
+function canPickAlly(hero: Hero | null): boolean {
+    return !!hero && hero.isAlive && isAllyTargeting.value
+}
+
 function onHeroPortraitClick() {
-    if (isAllyTargeting.value) {
-        toggleAllyPreview()
-        return
-    }
-    if (props.heroes.length > 1) emit('rotateHero')
+    toggleAllyPreview()
 }
 
 function onAllyRowClick(hero: Hero | null) {
     if (!hero) return
-    if (isAllyTargeting.value) {
-        if (!hero.isAlive) return
-        // Cierra el panel de equipo para que el jugador vea la animacion del
-        // buff/curacion sobre el campo en vez de quedarse con la lista tapando
-        // la mitad inferior del HUD mobile.
+    if (canPickAlly(hero)) {
         showAllyPreview.value = false
+        allyStatsOpen.value = {}
         emit('selectAlly', hero)
         return
     }
-    emit('rotateHero')
+    if (!hero.isAlive) return
+    // Solo un panel de stats abierto a la vez: si abro el de este heroe,
+    // cierro el de cualquier otro.
+    const wasOpen = !!allyStatsOpen.value[hero.id]
+    const next: Record<string, boolean> = {}
+    if (!wasOpen) next[hero.id] = true
+    allyStatsOpen.value = next
 }
 </script>
 
 <template>
-    <div v-if="player" class="mobile-hud">
+    <div v-if="effectivePlayer" class="mobile-hud">
         <button class="mobile-hud-hero" :class="{
             'mobile-hud-hero-targeting': isAllyTargeting,
             'mobile-hud-hero-being-attacked': isDisplayingAttackedHero
@@ -147,7 +123,7 @@ function onAllyRowClick(hero: Hero | null) {
                 ? 'Seleccionar aliado'
                 : (isDisplayingAttackedHero
                     ? `${displayedHero?.name} esta siendo atacado`
-                    : (heroSlots.length > 1 ? 'Cambiar héroe' : ''))"
+                    : 'Ver estado del equipo')"
             @click="onHeroPortraitClick">
             <img v-if="displayedHero?.sprite" :src="displayedHero.sprite" :alt="displayedHero.name"
                 class="mobile-hud-portrait" />
@@ -165,97 +141,67 @@ function onAllyRowClick(hero: Hero | null) {
                 <div class="mobile-hud-bar">
                     <div class="mobile-hud-bar-fill hp" :style="{ width: `${hpPercent}%` }"></div>
                     <span class="mobile-hud-bar-value">
-                        <img :src="heartIcon" alt="" class="mobile-hud-bar-icon" />
                         {{ hpDisplay }}
                     </span>
                 </div>
                 <div class="mobile-hud-bar">
                     <div class="mobile-hud-bar-fill energy" :style="{ width: `${energyPercent}%` }"></div>
                     <span class="mobile-hud-bar-value">
-                        <img :src="boltIcon" alt="" class="mobile-hud-bar-icon" />
                         {{ energyDisplay }}
                     </span>
                 </div>
             </div>
+            <HeroDotIcons v-if="displayedHero" :effects="displayedHero.statusEffects" />
         </button>
 
-        <div class="mobile-hud-side">
-            <button class="mobile-hud-side-btn mobile-hud-party" type="button" @click="toggleAllyPreview"
-                :aria-expanded="showAllyPreview" :title="'Ver estado de los héroes'">
-                <span class="mobile-hud-side-count">{{heroes.filter(h => h).length}}/{{ MAX_HEROES }}</span>
-                <img :src="partyIcon" alt="" class="mobile-hud-side-icon" />
-                <!--         <span class="mobile-hud-side-label">equipo</span> -->
-            </button>
-
-            <button class="mobile-hud-side-btn mobile-hud-enemies" type="button" @click="toggleEnemyPreview"
-                :aria-expanded="showEnemyPreview">
-                <span class="mobile-hud-side-count">{{ aliveEnemies.length }}</span>
-                <img :src="ogreIcon" alt="" class="mobile-hud-side-icon" />
-                <!--                 <span class="mobile-hud-side-label">enemigos</span> -->
-            </button>
-        </div>
-
-        <transition name="enemy-preview">
-            <div v-if="showEnemyPreview" class="mobile-hud-enemy-preview">
-                <button v-for="(enemy, idx) in enemies" :key="enemy.id" type="button" class="mobile-hud-enemy-row"
-                    :class="{ dead: !enemy.isAlive }" @click="enemy.isAlive && emit('selectEnemy', enemy)">
-                    <span class="mobile-hud-enemy-key">{{ idx + 1 }}</span>
-                    <img v-if="enemy.sprite" :src="enemy.sprite" :alt="enemy.name" class="mobile-hud-enemy-sprite" />
-                    <span class="mobile-hud-enemy-name">{{ enemy.name }}</span>
-                    <div class="mobile-hud-enemy-bar">
-                        <div class="mobile-hud-enemy-bar-fill" :style="{ width: `${enemyHpPercent(enemy)}%` }"></div>
-                    </div>
-                    <span class="mobile-hud-enemy-hp">{{ enemy.health }}/{{ enemy.maxHealth }}</span>
-                </button>
-            </div>
-        </transition>
-
-        <transition name="enemy-preview">
-            <div v-if="showAllyPreview" class="mobile-hud-enemy-preview mobile-hud-ally-preview">
+        <transition name="panel-preview">
+            <div v-if="showAllyPreview" class="mobile-hud-panel mobile-hud-ally-preview">
                 <div class="mobile-hud-ally-hint">
-                    {{ isAllyTargeting ? 'Toca un aliado para seleccionarlo' : 'Toca un héroe para cambiarlo' }}
+                    {{ isAllyTargeting ? 'Toca un aliado para seleccionarlo' : 'Toca un héroe para ver sus stats' }}
                 </div>
-                <button v-for="(hero, idx) in heroSlots" :key="hero?.id ?? `empty-${idx}`" type="button"
-                    class="mobile-hud-ally-row" :class="{
-                        dead: !hero || !hero.isAlive,
-                        active: hero && props.activeHeroIndex === idx,
-                        targeting: isAllyTargeting && hero && hero.isAlive,
-                        empty: !hero,
-                        'being-attacked': !!hero && (props.attackedHeroIds ?? []).includes(hero.id)
-                    }" :disabled="!hero || (!hero.isAlive && !isAllyTargeting)" @click="onAllyRowClick(hero)">
-                    <span class="mobile-hud-ally-slot">#{{ idx + 1 }}</span>
-                    <img v-if="hero?.sprite" :src="hero.sprite" :alt="hero?.name ?? ''"
-                        class="mobile-hud-ally-sprite" />
-                    <span v-else class="mobile-hud-ally-sprite mobile-hud-ally-sprite-empty">—</span>
-                    <div class="mobile-hud-ally-body">
-                        <div class="mobile-hud-ally-head">
-                            <span class="mobile-hud-ally-name">{{ hero?.name ?? 'Vacío' }}</span>
-                            <span v-if="hero" class="mobile-hud-ally-level">Nv {{ hero.level }}</span>
-                            <span v-if="hero && (props.attackedHeroIds ?? []).includes(hero.id)"
-                                class="mobile-hud-ally-being-attacked">Defendiendo</span>
-                        </div>
-                        <template v-if="hero">
-                            <div class="mobile-hud-ally-bar">
-                                <div class="mobile-hud-ally-bar-fill hp" :style="{ width: `${heroHpPercent(hero)}%` }">
+                <div v-for="(hero, idx) in heroSlots" :key="hero?.id ?? `empty-${idx}`"
+                    class="mobile-hud-ally-wrapper">
+                    <button type="button"
+                        class="mobile-hud-ally-row" :class="{
+                            dead: !hero || !hero.isAlive,
+                            active: hero && props.activeHeroIndex === idx,
+                            targeting: canPickAlly(hero),
+                            empty: !hero,
+                            'being-attacked': !!hero && (props.attackedHeroIds ?? []).includes(hero.id),
+                            'stats-open': hero && allyStatsOpen[hero.id]
+                        }" :disabled="!hero || (!hero.isAlive && !isAllyTargeting)" @click="onAllyRowClick(hero)">
+                        <img v-if="hero?.sprite" :src="hero.sprite" :alt="hero?.name ?? ''"
+                            class="mobile-hud-ally-sprite" />
+                        <span v-else class="mobile-hud-ally-sprite mobile-hud-ally-sprite-empty">—</span>
+                        <div class="mobile-hud-ally-body">
+                            <div class="mobile-hud-ally-head">
+                                <span class="mobile-hud-ally-name">{{ hero?.name ?? 'Vacío' }}</span>
+                                <span v-if="hero" class="mobile-hud-ally-level">Nv {{ hero.level }}</span>
+                                <span v-if="hero && (props.attackedHeroIds ?? []).includes(hero.id)"
+                                    class="mobile-hud-ally-being-attacked">Defendiendo</span>
+                            </div>
+                            <template v-if="hero">
+                                <div class="mobile-hud-ally-bar">
+                                    <div class="mobile-hud-ally-bar-fill hp" :style="{ width: `${heroHpPercent(hero)}%` }">
+                                    </div>
+                                    <span class="mobile-hud-ally-bar-value">
+                                        {{ hero.health }}/{{ hero.maxHealth }}
+                                    </span>
                                 </div>
-                                <span class="mobile-hud-ally-bar-value">
-                                    <img :src="heartIcon" alt="" class="mobile-hud-ally-bar-icon" />
-                                    {{ hero.health }}/{{ hero.maxHealth }}
-                                </span>
-                            </div>
-                            <div v-if="hero.maxEnergy" class="mobile-hud-ally-bar">
-                                <div class="mobile-hud-ally-bar-fill energy"
-                                    :style="{ width: `${heroEnergyPercent(hero)}%` }"></div>
-                                <span class="mobile-hud-ally-bar-value">
-                                    <img :src="boltIcon" alt="" class="mobile-hud-ally-bar-icon" />
-                                    {{ hero.energy }}/{{ hero.maxEnergy }}
-                                </span>
-                            </div>
-                            <EnemyStatusIcons v-if="hero.statusEffects && hero.statusEffects.length"
-                                :effects="hero.statusEffects" class="mobile-hud-ally-effects" />
-                        </template>
-                    </div>
-                </button>
+                                <div v-if="hero.maxEnergy" class="mobile-hud-ally-bar">
+                                    <div class="mobile-hud-ally-bar-fill energy"
+                                        :style="{ width: `${heroEnergyPercent(hero)}%` }"></div>
+                                    <span class="mobile-hud-ally-bar-value">
+                                        {{ hero.energy }}/{{ hero.maxEnergy }}
+                                    </span>
+                                </div>
+                                <EnemyStatusIcons v-if="hero.statusEffects && hero.statusEffects.length"
+                                    :effects="hero.statusEffects" class="mobile-hud-ally-effects" />
+                            </template>
+                        </div>
+                    </button>
+                    <MobileHeroStats v-if="hero && allyStatsOpen[hero.id]" :hero="hero" />
+                </div>
             </div>
         </transition>
     </div>
@@ -267,20 +213,20 @@ function onAllyRowClick(hero: Hero | null) {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.5rem 0.75rem 0.5rem 3.25rem;
+    padding: 0.5rem 0.75rem 1.6rem 0.75rem;
     background: linear-gradient(180deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.55) 100%);
     border-bottom: 1px solid rgba(255, 230, 102, 0.35);
     backdrop-filter: blur(6px);
 }
 
 .mobile-hud-hero {
-    flex: 1 1 auto;
+    flex: 1 1 100%;
     min-width: 0;
     display: flex;
     align-items: center;
-    gap: 0.55rem;
-    padding: 0.35rem 0.5rem;
-    border-radius: 8px;
+    gap: 0.85rem;
+    padding: 0.55rem 0.7rem;
+    border-radius: 10px;
     border: 1.5px solid rgba(255, 230, 102, 0.35);
     background: linear-gradient(145deg, #2a1f4a 0%, #1a1230 100%);
     color: #fff;
@@ -290,9 +236,9 @@ function onAllyRowClick(hero: Hero | null) {
 }
 
 .mobile-hud-portrait {
-    width: 44px;
-    height: 44px;
-    border-radius: 6px;
+    width: 64px;
+    height: 64px;
+    border-radius: 9px;
     object-fit: cover;
     flex-shrink: 0;
     image-rendering: pixelated;
@@ -304,7 +250,7 @@ function onAllyRowClick(hero: Hero | null) {
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 5px;
 }
 
 .mobile-hud-name {
@@ -316,7 +262,7 @@ function onAllyRowClick(hero: Hero | null) {
 }
 
 .mobile-hud-name-text {
-    font-size: 0.78rem;
+    font-size: 1rem;
     font-weight: 700;
     white-space: nowrap;
     overflow: hidden;
@@ -324,7 +270,7 @@ function onAllyRowClick(hero: Hero | null) {
 }
 
 .mobile-hud-level {
-    font-size: 0.6rem;
+    font-size: 0.74rem;
     color: #b6f5b6;
     letter-spacing: 0.04em;
     flex-shrink: 0;
@@ -332,9 +278,9 @@ function onAllyRowClick(hero: Hero | null) {
 
 .mobile-hud-bar {
     position: relative;
-    height: 12px;
+    height: 18px;
     background: rgba(0, 0, 0, 0.6);
-    border-radius: 6px;
+    border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.08);
     overflow: hidden;
 }
@@ -360,111 +306,19 @@ function onAllyRowClick(hero: Hero | null) {
     justify-content: center;
     gap: 4px;
     font-family: 'Courier New', monospace;
-    font-size: 0.6rem;
-    font-weight: 700;
+    font-size: 0.78rem;
+    font-weight: 800;
     color: #fff;
     text-shadow: 0 1px 2px #000;
     pointer-events: none;
 }
 
 .mobile-hud-bar-icon {
-    width: 11px;
-    height: 11px;
+    width: 14px;
+    height: 14px;
     object-fit: contain;
     filter: drop-shadow(0 1px 1px #000a);
     flex-shrink: 0;
-}
-
-.mobile-hud-side {
-    flex: 0 0 auto;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.mobile-hud-side-btn {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 1px;
-    width: 56px;
-    height: 38px;
-    border-radius: 10px;
-    border: 1.5px solid rgba(255, 230, 102, 0.45);
-    background: linear-gradient(145deg, #2a1f4a 0%, #1a1230 100%);
-    color: #fff;
-    cursor: pointer;
-    font-family: inherit;
-    padding: 2px;
-}
-
-.mobile-hud-party {
-    border-color: rgba(102, 255, 178, 0.55);
-    background: linear-gradient(145deg, #16302a 0%, #0c1c18 100%);
-}
-
-.mobile-hud-enemies {
-    border-color: rgba(255, 80, 80, 0.55);
-    background: linear-gradient(145deg, #2a0e0e 0%, #180606 100%);
-}
-
-.mobile-hud-side-count {
-    font-family: 'Courier New', monospace;
-    font-size: 0.78rem;
-    font-weight: 900;
-    color: #ffe066;
-    line-height: 1;
-}
-
-.mobile-hud-side-icon {
-    width: 16px;
-    height: 16px;
-    object-fit: contain;
-    filter: drop-shadow(0 1px 1px #000a);
-}
-
-.mobile-hud-side-label {
-    font-size: 0.5rem;
-    letter-spacing: 0.04em;
-    color: #b6f5b6;
-    text-transform: uppercase;
-    line-height: 1;
-}
-
-.mobile-hud-enemies .mobile-hud-side-label {
-    color: #ff9a9a;
-}
-
-.mobile-hud-enemy-preview {
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 0.5rem;
-    right: 0.5rem;
-    background: linear-gradient(145deg, #1e2035 0%, #23243a 100%);
-    border: 1.5px solid rgba(255, 230, 102, 0.45);
-    border-radius: 10px;
-    padding: 0.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-    z-index: 25;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
-    max-height: 60vh;
-    overflow-y: auto;
-}
-
-.mobile-hud-ally-preview {
-    border-color: rgba(102, 255, 178, 0.55);
-}
-
-.mobile-hud-ally-hint {
-    font-size: 0.7rem;
-    color: #b6f5b6;
-    text-align: center;
-    padding: 0.15rem 0.25rem 0.35rem;
-    border-bottom: 1px solid rgba(102, 255, 178, 0.25);
-    margin-bottom: 0.15rem;
 }
 
 .mobile-hud-hero-targeting {
@@ -491,98 +345,31 @@ function onAllyRowClick(hero: Hero | null) {
     }
 }
 
-.mobile-hud-enemy-row {
-    display: grid;
-    grid-template-columns: 18px 32px 1fr 1fr auto;
-    gap: 0.5rem;
-    align-items: center;
-    padding: 0.35rem 0.5rem;
-    border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    background: rgba(0, 0, 0, 0.4);
-    color: #fff;
-    font-family: inherit;
-    cursor: pointer;
-    text-align: left;
+.mobile-hud-panel {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0.5rem;
+    right: 0.5rem;
+    background: linear-gradient(145deg, #1e2035 0%, #23243a 100%);
+    border: 1.5px solid rgba(102, 255, 178, 0.55);
+    border-radius: 10px;
+    padding: 0.65rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    z-index: 25;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+    max-height: 65vh;
+    overflow-y: auto;
 }
 
-.mobile-hud-enemy-row.dead {
-    opacity: 0.4;
-    cursor: default;
-    filter: grayscale(0.8);
-}
-
-.mobile-hud-enemy-key {
-    font-family: 'Courier New', monospace;
-    font-size: 0.75rem;
-    font-weight: 900;
-    color: #ffe066;
-    background: rgba(255, 230, 0, 0.12);
-    border: 1px solid rgba(255, 230, 0, 0.4);
-    border-radius: 4px;
-    text-align: center;
-    padding: 1px 0;
-}
-
-.mobile-hud-enemy-sprite {
-    width: 32px;
-    height: 32px;
-    object-fit: contain;
-    background: rgba(0, 0, 0, 0.4);
-    border-radius: 4px;
-}
-
-.mobile-hud-enemy-name {
+.mobile-hud-ally-hint {
     font-size: 0.72rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.mobile-hud-enemy-bar {
-    height: 8px;
-    background: rgba(0, 0, 0, 0.6);
-    border-radius: 4px;
-    overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.mobile-hud-enemy-bar-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #66bb6a, #43a047);
-    transition: width 0.3s ease;
-}
-
-.mobile-hud-enemy-hp {
-    font-family: 'Courier New', monospace;
-    font-size: 0.65rem;
-    color: #fff;
-}
-
-.mobile-hud-ally-row {
-    display: grid;
-    grid-template-columns: 28px 40px 1fr;
-    gap: 0.5rem;
-    align-items: center;
-    padding: 0.45rem 0.5rem;
-    border-radius: 8px;
-    border: 1px solid rgba(102, 255, 178, 0.25);
-    background: linear-gradient(145deg, rgba(22, 48, 42, 0.7) 0%, rgba(12, 28, 24, 0.7) 100%);
-    color: #fff;
-    font-family: inherit;
-    cursor: pointer;
-    text-align: left;
-}
-
-.mobile-hud-ally-row.active {
-    border-color: rgba(255, 230, 102, 0.7);
-    box-shadow: 0 0 0 1.5px rgba(255, 230, 102, 0.35);
-}
-
-.mobile-hud-ally-row.being-attacked {
-    border-color: rgba(255, 68, 85, 0.95);
-    box-shadow: 0 0 0 2px rgba(255, 68, 85, 0.55), 0 0 14px rgba(255, 51, 68, 0.6);
-    animation: mobile-hud-being-attacked-pulse 0.8s ease-in-out infinite;
+    color: #b6f5b6;
+    text-align: center;
+    padding: 0.15rem 0.25rem 0.4rem;
+    border-bottom: 1px solid rgba(102, 255, 178, 0.25);
+    margin-bottom: 0.2rem;
 }
 
 @keyframes mobile-hud-being-attacked-pulse {
@@ -597,13 +384,49 @@ function onAllyRowClick(hero: Hero | null) {
     }
 }
 
+.mobile-hud-ally-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.mobile-hud-ally-row {
+    display: grid;
+    grid-template-columns: 48px 1fr;
+    gap: 0.55rem;
+    align-items: center;
+    padding: 0.55rem 0.65rem;
+    border-radius: 8px;
+    border: 1px solid rgba(102, 255, 178, 0.25);
+    background: linear-gradient(145deg, rgba(22, 48, 42, 0.7) 0%, rgba(12, 28, 24, 0.7) 100%);
+    color: #fff;
+    font-family: inherit;
+    cursor: pointer;
+    text-align: left;
+}
+
+.mobile-hud-ally-row.stats-open {
+    border-color: rgba(255, 230, 102, 0.55);
+}
+
+.mobile-hud-ally-row.active {
+    border-color: rgba(255, 230, 102, 0.7);
+    box-shadow: 0 0 0 1.5px rgba(255, 230, 102, 0.35);
+}
+
+.mobile-hud-ally-row.being-attacked {
+    border-color: rgba(255, 68, 85, 0.95);
+    box-shadow: 0 0 0 2px rgba(255, 68, 85, 0.55), 0 0 14px rgba(255, 51, 68, 0.6);
+    animation: mobile-hud-being-attacked-pulse 0.8s ease-in-out infinite;
+}
+
 .mobile-hud-ally-being-attacked {
     display: inline-block;
     background: #ff3344;
     color: #fff;
-    font-size: 0.6rem;
+    font-size: 0.64rem;
     font-weight: 700;
-    padding: 1px 5px;
+    padding: 1px 6px;
     border-radius: 3px;
     letter-spacing: 0.04em;
     margin-left: 0.4rem;
@@ -632,24 +455,12 @@ function onAllyRowClick(hero: Hero | null) {
     cursor: default;
 }
 
-.mobile-hud-ally-slot {
-    font-family: 'Courier New', monospace;
-    font-size: 0.7rem;
-    font-weight: 900;
-    color: #ffe066;
-    background: rgba(255, 230, 0, 0.1);
-    border: 1px solid rgba(255, 230, 0, 0.35);
-    border-radius: 4px;
-    text-align: center;
-    padding: 2px 0;
-}
-
 .mobile-hud-ally-sprite {
-    width: 40px;
-    height: 40px;
+    width: 48px;
+    height: 48px;
     object-fit: contain;
     background: rgba(0, 0, 0, 0.5);
-    border-radius: 6px;
+    border-radius: 7px;
     image-rendering: pixelated;
 }
 
@@ -664,7 +475,7 @@ function onAllyRowClick(hero: Hero | null) {
 .mobile-hud-ally-body {
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 4px;
     min-width: 0;
 }
 
@@ -677,7 +488,7 @@ function onAllyRowClick(hero: Hero | null) {
 }
 
 .mobile-hud-ally-name {
-    font-size: 0.78rem;
+    font-size: 0.94rem;
     font-weight: 700;
     white-space: nowrap;
     overflow: hidden;
@@ -685,7 +496,7 @@ function onAllyRowClick(hero: Hero | null) {
 }
 
 .mobile-hud-ally-level {
-    font-size: 0.6rem;
+    font-size: 0.74rem;
     color: #b6f5b6;
     letter-spacing: 0.04em;
     flex-shrink: 0;
@@ -693,7 +504,7 @@ function onAllyRowClick(hero: Hero | null) {
 
 .mobile-hud-ally-bar {
     position: relative;
-    height: 10px;
+    height: 14px;
     background: rgba(0, 0, 0, 0.6);
     border-radius: 5px;
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -721,7 +532,7 @@ function onAllyRowClick(hero: Hero | null) {
     justify-content: center;
     gap: 3px;
     font-family: 'Courier New', monospace;
-    font-size: 0.58rem;
+    font-size: 0.72rem;
     font-weight: 700;
     color: #fff;
     text-shadow: 0 1px 2px #000;
@@ -729,14 +540,15 @@ function onAllyRowClick(hero: Hero | null) {
 }
 
 .mobile-hud-ally-bar-icon {
-    width: 10px;
-    height: 10px;
+    width: 12px;
+    height: 12px;
     object-fit: contain;
     filter: drop-shadow(0 1px 1px #000a);
     flex-shrink: 0;
 }
 
-.mobile-hud-ally-effects {
+.mobile-hud-ally-effects,
+.mobile-hud-ally-effects.enemy-status-icons {
     position: relative;
     top: auto;
     left: auto;
@@ -744,15 +556,30 @@ function onAllyRowClick(hero: Hero | null) {
     justify-content: flex-start;
     margin-top: 2px;
     background: rgba(0, 0, 0, 0.5);
+    padding: 0.1rem 0.3rem;
+    z-index: auto;
+    max-width: 100%;
+    flex-wrap: wrap;
+    gap: 0.2rem;
 }
 
-.enemy-preview-enter-active,
-.enemy-preview-leave-active {
+.mobile-hud-ally-effects .enemy-status-icon img {
+    width: 18px;
+    height: 18px;
+}
+
+.mobile-hud-info-status .enemy-status-icon img {
+    width: 18px;
+    height: 18px;
+}
+
+.panel-preview-enter-active,
+.panel-preview-leave-active {
     transition: opacity 0.18s ease, transform 0.18s ease;
 }
 
-.enemy-preview-enter-from,
-.enemy-preview-leave-to {
+.panel-preview-enter-from,
+.panel-preview-leave-to {
     opacity: 0;
     transform: translateY(-6px);
 }

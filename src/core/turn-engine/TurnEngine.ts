@@ -99,6 +99,10 @@ export function advanceAfterTurn(
  * Devuelve los proximos N turnos en orden como una cola discreta.
  * - Muertos se filtran.
  * - Si el combatiente esta stunned/disabled, su entrada se marca como 'skip'.
+ * - A diferencia de un sort estatico, aqui se simula la progresion de turnos:
+ *   se elige al actor con menor cost, se marca, y se avanza el estado igual
+ *   que haria `advanceAfterTurn`. Asi un mismo actor puede aparecer varias
+ *   veces en la cola, igual que ocurre en la batalla real.
  * El primer slot NO necesariamente es el actor actual; el caller decide
  * quien marca como "current" en la UI.
  */
@@ -109,14 +113,45 @@ export function predictNextTurns(
 ): TurnQueueEntry[] {
   if (n <= 0) return []
   const alive = actors.filter(a => a.isAlive)
-  const sorted = alive.slice().sort((a, b) => {
-    const ca = state.costs[a.id] ?? Infinity
-    const cb = state.costs[b.id] ?? Infinity
-    if (ca !== cb) return ca - cb
-    return alive.indexOf(a) - alive.indexOf(b)
-  })
-  return sorted.slice(0, n).map<TurnQueueEntry>(a => ({
-    actorId: a.id,
-    kind: a.activeEffectTypes.has(STUN_EFFECT_TYPE) ? 'skip' : 'act'
-  }))
+  if (alive.length === 0) return []
+
+  let costs: Record<string, number> = { ...state.costs }
+  const out: TurnQueueEntry[] = []
+
+  for (let i = 0; i < n; i++) {
+    const aliveNow = alive.filter(a => typeof costs[a.id] === 'number')
+    if (aliveNow.length === 0) break
+
+    let best: TurnActor | null = null
+    let bestCost = Infinity
+    let bestIdx = Infinity
+    for (let j = 0; j < aliveNow.length; j++) {
+      const a = aliveNow[j]
+      const c = costs[a.id]
+      if (c < bestCost || (c === bestCost && j < bestIdx)) {
+        best = a
+        bestCost = c
+        bestIdx = j
+      }
+    }
+    if (!best) break
+
+    out.push({
+      actorId: best.id,
+      kind: best.activeEffectTypes.has(STUN_EFFECT_TYPE) ? 'skip' : 'act'
+    })
+
+    const elapsed = turnCostBase(best)
+    for (const a of alive) {
+      const previous = costs[a.id] ?? elapsed
+      if (a.id === best.id) {
+        const overflow = previous - elapsed
+        costs[a.id] = elapsed + overflow
+      } else {
+        costs[a.id] = previous - elapsed
+      }
+    }
+  }
+
+  return out
 }

@@ -286,6 +286,7 @@ onBeforeUnmount(() => {
 
 .hud-menu-btn {
   position: relative;
+  z-index: 6;
   width: 44px;
   height: 100%;
   min-height: 44px;
