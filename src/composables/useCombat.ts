@@ -1097,9 +1097,6 @@ const isProcessingDot = ref(false)
 
   function addToLog(message: string) {
     combatLog.value.push(message)
-    if (combatLog.value.length > 10) {
-      combatLog.value.shift()
-    }
     nextTick(() => {
       if (combatLogRef.value) {
         combatLogRef.value.scrollTop = combatLogRef.value.scrollHeight
@@ -1327,6 +1324,7 @@ const isProcessingDot = ref(false)
 
   function initializeCombat(enemyList: IEnemy[], isBoss: boolean = false) {
     enemies.value = enemyList
+    combatLog.value = []
     resetAbilityCooldowns()
     if (!config.isTraining) {
       if (isBoss) {
