@@ -6,6 +6,7 @@ import type { Hero } from '../Hero'
 import { getScalingStat, getScalingCoefficient, type UnifiedDamageType } from '../combat/damageTypes'
 import { computeDefense } from '../defense/computeDefense'
 import { computeAgilityCritBonus, rollCritFromChance, type CritResult } from '../crit'
+import { applyDamageVariance } from '../abilities/Abilities'
 
 export interface TargetScoreWeights {
   hpLow: number
@@ -123,10 +124,13 @@ export abstract class Enemy extends Character implements ICombatant {
    * termino `baseAttack` aparte — mismo coeficiente que
    * `calculatePhaseDamage` para daño fisico, por consistencia con que el
    * splash multi-hero (`useCombat.applyEnemyMultiHeroSplash`) tambien es fisico.
+   *
+   * Aplica varianza ±10% para que cada golpe fluctúe (consistente con heroes).
    */
   public attack(): number {
     if (!this.isAlive) return 0
-    return (this.baseStats.body.value - 10) * 0.5 + this.level * 1
+    const raw = (this.baseStats.body.value - 10) * 0.5 + this.level * 1
+    return applyDamageVariance(raw)
   }
 
   public defense(): number {
@@ -145,7 +149,10 @@ export abstract class Enemy extends Character implements ICombatant {
     const levelBonus = this.level * 1
     const baseDamage = statBonus + levelBonus
     const finalDamage = Math.floor(baseDamage * pattern.damageMultiplier)
-    return Math.floor(finalDamage * multiplier)
+    // Varianza se aplica ANTES del multiplicador de critico para que el crit
+    // escale un valor ya fluctuante (mismo criterio que en heroes).
+    const variable = applyDamageVariance(finalDamage)
+    return Math.floor(variable * multiplier)
   }
 
   public rollCrit(): CritResult {

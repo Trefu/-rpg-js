@@ -28,6 +28,12 @@ const heroSlots = computed<(Hero | null)[]>(() => {
     return slots
 })
 
+const fallbackHero = computed<Hero | null>(() => {
+    return props.heroes.find(h => h.isAlive) ?? props.heroes[0] ?? null
+})
+
+const effectivePlayer = computed<Hero | null>(() => props.player ?? fallbackHero.value)
+
 const attackedHero = computed<Hero | null>(() => {
     const ids = props.attackedHeroIds ?? []
     if (ids.length === 0) return null
@@ -35,7 +41,7 @@ const attackedHero = computed<Hero | null>(() => {
     return props.heroes.find(h => h.id === targetId && h.isAlive) ?? null
 })
 
-const displayedHero = computed<Hero | null>(() => attackedHero.value ?? props.player)
+const displayedHero = computed<Hero | null>(() => attackedHero.value ?? effectivePlayer.value)
 
 const isDisplayingAttackedHero = computed(() => !!attackedHero.value)
 
@@ -105,7 +111,7 @@ function onAllyRowClick(hero: Hero | null) {
 </script>
 
 <template>
-    <div v-if="player" class="mobile-hud">
+    <div v-if="effectivePlayer" class="mobile-hud">
         <button class="mobile-hud-hero" :class="{
             'mobile-hud-hero-targeting': isAllyTargeting,
             'mobile-hud-hero-being-attacked': isDisplayingAttackedHero

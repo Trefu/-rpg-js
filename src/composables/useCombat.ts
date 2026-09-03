@@ -9,6 +9,7 @@ import type { IItem, ItemTargetType } from '@/core/items/types'
 import { getItemOrThrow } from '@/core/items/items'
 import { consumeItem, getInventoryEntries, type InventoryEntry } from '@/core/items/inventory'
 import { StatusEffects, applyFailureEffect } from '@/core/StatusEffects'
+import { applyDamageVariance } from '@/core/abilities/Abilities'
 import type {
   DefenseChallengeResult,
   DefensePatternConfig,
@@ -380,6 +381,11 @@ const isProcessingDot = ref(false)
       closeAbilitiesModal()
       return
     }
+    // Limpia cualquier sticky pendiente antes de empezar una nueva selección:
+    // si el jugador cambia de ability mientras se esperaba un objetivo, el
+    // cartel viejo ("Selecciona un objetivo para X") debe desaparecer y ser
+    // reemplazado por el de la nueva ability, no apilarse en la cola.
+    clearAnnouncement()
     selectedAbility.value = ability
     closeAbilitiesModal()
 
@@ -391,7 +397,6 @@ const isProcessingDot = ref(false)
       }
       currentAction.value = { ability, target: caster }
       isSelectingTarget.value = false
-      clearAnnouncement()
       triggerExecution(caster)
       return
     }
@@ -1100,7 +1105,9 @@ const isProcessingDot = ref(false)
   /**
    * Splash de una ability de heroe: tras el impacto principal, golpea a
    * N objetivos aleatorios extra del campo enemigo (excluyendo al principal)
-   * con `primaryBaseDamage * damageMultiplier`. Sin critico en splashes.
+   * con `primaryBaseDamage * damageMultiplier`. Cada objetivo splash recibe
+   * su propia tirada de varianza (independiente) para que la fluctuación se
+   * sienta en todos los saltos. Sin critico en splashes.
    */
   async function applyHeroSplash(
     spec: NonNullable<IAbility['randomAttack']>,
@@ -1114,9 +1121,14 @@ const isProcessingDot = ref(false)
     if (cap < min) return
     const count = min + Math.floor(Math.random() * (cap - min + 1))
     const extras = shuffle(candidates).slice(0, count)
-    const splashDamage = Math.max(0, Math.floor(primaryBaseDamage * spec.damageMultiplier))
-    if (splashDamage <= 0) return
+    // Daño base nominal del splash (sin varianza). El redondeo se hace
+    // despues de aplicar varianza para que el ±10% se sienta aunque el
+    // nominal sea pequeño (ej. base 4 → rango real 3-4, no siempre 4).
+    const splashBase = Math.max(0, primaryBaseDamage * spec.damageMultiplier)
+    if (splashBase <= 0) return
     for (const enemy of extras) {
+      const splashDamage = applyDamageVariance(splashBase)
+      if (splashDamage <= 0) continue
       enemy.takeDamage(splashDamage)
       showEnemyHit(enemy.id, splashDamage)
       audioManager.playAttackSound()

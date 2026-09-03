@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import type { IAbility } from '@/core/interfaces/IAbility'
+import type { AbilityDamagePreview } from '@/core/interfaces/IAbility'
+import type { Hero } from '@/core/Hero'
 import { getAbilityIcon } from '@/core/abilities/abilityIcons'
 import backpackIcon from '@/assets/icons/backpack.png'
 import boltIcon from '@/assets/icons/bolt-shield.png'
 import hourglassIcon from '@/assets/icons/hourglass.png'
 
 type Slot =
-  | { kind: 'attack' }
   | { kind: 'ability', ability: IAbility, index: number }
   | { kind: 'object' }
   | { kind: 'empty' }
@@ -20,6 +21,8 @@ const props = defineProps<{
   selectedAbility: IAbility | null
   isSelectingTarget: boolean
   usedItemThisTurn: boolean
+  /** Heroe activo cuyas stats alimentan el preview de daño. */
+  caster: Hero | null
 }>()
 
 const emit = defineEmits<{
@@ -29,17 +32,16 @@ const emit = defineEmits<{
   (e: 'cancel'): void
 }>()
 
-const attackIcon = computed(() => getAbilityIcon('attack'))
-
 const slots = computed<Slot[]>(() => {
   const list: Slot[] = []
-  list.push({ kind: 'attack' })
-  const filtered = props.abilities.filter(a => a.type !== 'attack')
-  for (let i = 0; i < 4; i++) {
-    const ab = filtered[i]
+  // 5 slots para abilities (incluye BasicAttack, que ya viene en `props.abilities`
+  // porque Hero.learnAbility(BasicAttack) se llama en su constructor). Asi el
+  // ataque basico sigue el mismo flujo que las demas habilidades en mobile:
+  // tap en el icono abre la tarjeta con su preview, tap en el cuerpo la usa.
+  for (let i = 0; i < 5; i++) {
+    const ab = props.abilities[i]
     if (ab) {
-      const originalIndex = props.abilities.indexOf(ab)
-      list.push({ kind: 'ability', ability: ab, index: originalIndex })
+      list.push({ kind: 'ability', ability: ab, index: i })
     } else list.push({ kind: 'empty' })
   }
   list.push({ kind: 'object' })
@@ -55,12 +57,19 @@ function isSlotDisabled(slot: Slot): boolean {
 
 function handleSlotClick(slot: Slot, event: MouseEvent | TouchEvent) {
   event.preventDefault()
-  event.stopPropagation()
   if (isSlotDisabled(slot)) return
-  if (slot.kind === 'attack') {
-    emit('attack')
-  } else if (slot.kind === 'ability') {
-    onAbilityClick(slot.ability, slot.index)
+  if (slot.kind === 'ability') {
+    // Si la ability ya está marcada para seleccionar objetivo, el tap la
+    // cancela (consistente con el cartel "toca para cancelar" que se muestra
+    // encima del slot). En cualquier otro caso, abre la tarjeta con su info
+    // y preview de daño. Confirmar la acción requiere pulsar "Usar" dentro
+    // de la tarjeta — asi evitamos disparar announcements pegados al
+    // seleccionar por accidente en touch.
+    if (isSelectedForTarget(slot.ability)) {
+      emit('cancel')
+      return
+    }
+    showAbilityInfo(slot.ability, slot.index)
   } else if (slot.kind === 'object') {
     emit('object')
   }
@@ -92,9 +101,26 @@ function abilityState(ability: IAbility, index: number) {
 
 const infoAbility = ref<IAbility | null>(null)
 const infoAbilityIndex = ref(-1)
+const infoFormulaOpen = ref(false)
 
-function showAbilityInfo(ability: IAbility, index: number, event: Event) {
+const infoPreview = computed<AbilityDamagePreview | null>(() => {
+  const a = infoAbility.value
+  if (!a || !props.caster || typeof a.previewDamage !== 'function') return null
+  try {
+    return a.previewDamage(props.caster)
+  } catch {
+    return null
+  }
+})
+
+function toggleInfoFormula(event: Event) {
   event.stopPropagation()
+  infoFormulaOpen.value = !infoFormulaOpen.value
+}
+
+function showAbilityInfo(ability: IAbility, index: number) {
+  // Reset al cambiar de ability para que la formula no quede abierta del anterior.
+  infoFormulaOpen.value = false
   infoAbility.value = ability
   infoAbilityIndex.value = index
 }
@@ -102,6 +128,7 @@ function showAbilityInfo(ability: IAbility, index: number, event: Event) {
 function closeInfo() {
   infoAbility.value = null
   infoAbilityIndex.value = -1
+  infoFormulaOpen.value = false
 }
 
 function useFromInfo() {
@@ -109,7 +136,7 @@ function useFromInfo() {
   const ab = infoAbility.value
   const idx = infoAbilityIndex.value
   closeInfo()
-  onAbilityClick(ab, idx)
+  emit('selectAbility', ab, idx)
 }
 
 function canUseInfo() {
@@ -121,20 +148,9 @@ function canUseInfo() {
   return true
 }
 
-function onAbilityClick(ability: IAbility, index: number) {
-  if (props.isPlayerInputLocked) return
-  if (isOnCooldown(ability)) return
-  if (!isAffordable(ability)) return
-  if (props.isSelectingTarget && props.selectedAbility?.type === ability.type) {
-    emit('cancel')
-    return
-  }
-  emit('selectAbility', ability, index)
-}
-
 function slotClasses(slot: Slot) {
   return {
-    'mab-attack': slot.kind === 'attack',
+    'mab-attack': slot.kind === 'ability' && slot.ability.type === 'attack',
     'mab-object': slot.kind === 'object',
     'mab-object-used': slot.kind === 'object' && props.usedItemThisTurn,
     'mab-cooldown': slot.kind === 'ability' && abilityState(slot.ability, slot.index) === 'cooldown',
@@ -144,15 +160,6 @@ function slotClasses(slot: Slot) {
     'mab-info-open': slot.kind === 'ability' && infoAbility.value?.type === slot.ability.type,
     'mab-selected': slot.kind === 'ability' && isSelectedForTarget(slot.ability)
   }
-}
-
-function onAbilityIconClick(ability: IAbility, index: number, event: Event) {
-  event.stopPropagation()
-  if (isSelectedForTarget(ability)) {
-    emit('cancel')
-    return
-  }
-  showAbilityInfo(ability, index, event)
 }
 
 function isSelectedForTarget(ability: IAbility): boolean {
@@ -176,19 +183,12 @@ function shortLabel(name: string, max = 5): string {
       :class="slotClasses(slot)"
       :disabled="isSlotDisabled(slot)"
       @click="handleSlotClick(slot, $event)"
-      @contextmenu.prevent="slot.kind === 'ability' && showAbilityInfo(slot.ability, slot.index, $event)"
     >
-      <template v-if="slot.kind === 'attack'">
-        <img :src="attackIcon" alt="" class="mab-icon" />
-        <span class="mab-label">Atk</span>
-      </template>
-
-      <template v-else-if="slot.kind === 'ability'">
+      <template v-if="slot.kind === 'ability'">
         <img
           :src="iconFor(slot.ability.type)"
           :alt="slot.ability.name"
           class="mab-icon"
-          @click.stop="onAbilityIconClick(slot.ability, slot.index, $event)"
         />
         <span class="mab-label" :title="slot.ability.name">{{ shortLabel(slot.ability.name) }}</span>
         <span v-if="cooldownOf(slot.ability.type) > 0" class="mab-cd-badge">
@@ -227,6 +227,24 @@ function shortLabel(name: string, max = 5): string {
             <button class="mab-info-close" type="button" aria-label="Cerrar" @click="closeInfo">✕</button>
           </header>
           <p class="mab-info-desc">{{ infoAbility.description }}</p>
+
+          <button
+            v-if="infoPreview"
+            type="button"
+            class="mab-info-damage"
+            :class="{ 'is-open': infoFormulaOpen }"
+            :aria-expanded="infoFormulaOpen"
+            :aria-label="`Toca para ver la fórmula de daño de ${infoAbility.name}`"
+            @click="toggleInfoFormula"
+          >
+            <span class="mab-info-damage-label">Daño</span>
+            <span class="mab-info-damage-values">{{ infoPreview.min }}–{{ infoPreview.max }}</span>
+            <span v-if="infoPreview.damageTypeLabel" class="mab-info-damage-type">{{ infoPreview.damageTypeLabel }}</span>
+          </button>
+          <div v-if="infoPreview && infoFormulaOpen" class="mab-info-formula" @click.stop>
+            <div class="mab-info-formula-line">{{ infoPreview.formula }}</div>
+          </div>
+
           <footer class="mab-info-footer">
             <span v-if="infoAbility.energyCost" class="mab-info-cost">
               <img :src="boltIcon" alt="" class="mab-info-cost-icon" />
@@ -550,6 +568,68 @@ function shortLabel(name: string, max = 5): string {
 
 .mab-info-use:not(:disabled):active {
   transform: scale(0.97);
+}
+
+.mab-info-damage {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(255, 107, 107, 0.12);
+  border: 1px solid rgba(255, 107, 107, 0.32);
+  padding: 0.22em 0.6em;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  align-self: flex-start;
+  font-family: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.mab-info-damage:hover {
+  background: rgba(255, 107, 107, 0.2);
+  border-color: rgba(255, 107, 107, 0.55);
+}
+
+.mab-info-damage.is-open {
+  background: rgba(130, 177, 255, 0.18);
+  border-color: rgba(130, 177, 255, 0.55);
+}
+
+.mab-info-damage-label {
+  color: #ffb3b3;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.7rem;
+}
+
+.mab-info-damage-values {
+  color: #ff8a8a;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.mab-info-damage-type {
+  color: #b8b8d0;
+  font-size: 0.7rem;
+  opacity: 0.85;
+}
+
+.mab-info-formula {
+  background: rgba(20, 22, 38, 0.55);
+  border: 1px solid rgba(130, 177, 255, 0.22);
+  border-radius: 8px;
+  padding: 0.5rem 0.6rem;
+  font-size: 0.78rem;
+  color: #d8d8e8;
+}
+
+.mab-info-formula-line {
+  font-family: 'Consolas', 'Menlo', monospace;
+  color: #ffe600;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  word-break: break-word;
 }
 
 .mab-info-open {

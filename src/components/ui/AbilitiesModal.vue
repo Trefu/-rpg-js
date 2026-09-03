@@ -1,5 +1,8 @@
 <script setup lang="ts">
+import { computed, ref } from 'vue'
 import type { IAbility } from '@/core/interfaces/IAbility'
+import type { AbilityDamagePreview } from '@/core/interfaces/IAbility'
+import type { Hero } from '@/core/Hero'
 import closeIcon from '@/assets/icons/cross-mark.png'
 import hourglassIcon from '@/assets/icons/hourglass.png'
 import boltIcon from '@/assets/icons/bolt-shield.png'
@@ -11,6 +14,8 @@ interface Props {
   abilities: IAbility[]
   abilityCooldowns: { [type: string]: number }
   abilityShortcuts: string[]
+  /** Heroe activo cuyas stats alimentan el preview de daño. */
+  caster: Hero | null
 }
 
 interface Emits {
@@ -33,6 +38,31 @@ const handleModalOverlayClick = (e: MouseEvent) => {
   if ((e.target as HTMLElement).classList.contains('modal-overlay')) {
     closeModal()
   }
+}
+
+/**
+ * Preview de daño por ability (null para curas/buffs). Se recalcula
+ * automáticamente cuando `props.caster` o `props.abilities` cambian
+ * (rotación de heroe activo o level-up alteran los stats).
+ */
+const previews = computed<(AbilityDamagePreview | null)[]>(() => {
+  const caster = props.caster
+  return props.abilities.map(a => {
+    if (!caster || typeof a.previewDamage !== 'function') return null
+    try {
+      return a.previewDamage(caster)
+    } catch {
+      return null
+    }
+  })
+})
+
+/** Tipo de ability cuyo popover está expandido (solo uno a la vez). */
+const expandedType = ref<string | null>(null)
+
+function togglePreview(ability: IAbility, event?: MouseEvent) {
+  event?.stopPropagation()
+  expandedType.value = expandedType.value === ability.type ? null : ability.type
 }
 </script>
 
@@ -67,6 +97,26 @@ const handleModalOverlayClick = (e: MouseEvent) => {
                 <span class="shortcut-badge">{{ abilityShortcuts[idx].toUpperCase() }}</span>
               </div>
               <p class="ability-desc">{{ ability.description }}</p>
+
+              <div v-if="previews[idx]" class="ability-damage-row">
+                <button
+                  type="button"
+                  class="damage-range"
+                  :class="{ 'is-open': expandedType === ability.type }"
+                  :aria-expanded="expandedType === ability.type"
+                  :aria-label="`Toca para ver la fórmula de daño de ${ability.name}`"
+                  @click="togglePreview(ability, $event)"
+                >
+                  <span class="damage-range-label">Daño</span>
+                  <span class="damage-range-values">{{ previews[idx]!.min }}–{{ previews[idx]!.max }}</span>
+                  <span v-if="previews[idx]!.damageTypeLabel" class="damage-type-tag">{{ previews[idx]!.damageTypeLabel }}</span>
+                </button>
+              </div>
+
+              <div v-if="previews[idx] && expandedType === ability.type" class="ability-formula-popover" @click.stop>
+                <div class="formula-line">{{ previews[idx]!.formula }}</div>
+              </div>
+
               <div class="ability-footer">
                 <span v-if="ability.energyCost" class="energy-badge">
                   <img :src="boltIcon" alt="" class="energy-icon" /> {{ ability.energyCost }}
@@ -322,6 +372,80 @@ const handleModalOverlayClick = (e: MouseEvent) => {
   color: #ff6b6b;
 }
 
+/* === Damage preview (Daño min–max) === */
+
+.ability-damage-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0.45rem 0 0.1rem;
+  flex-wrap: wrap;
+}
+
+.damage-range {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(255, 107, 107, 0.12);
+  border: 1px solid rgba(255, 107, 107, 0.32);
+  padding: 0.22em 0.65em;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  line-height: 1.2;
+  font-family: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.damage-range:hover {
+  background: rgba(255, 107, 107, 0.2);
+  border-color: rgba(255, 107, 107, 0.55);
+}
+
+.damage-range.is-open {
+  background: rgba(130, 177, 255, 0.18);
+  border-color: rgba(130, 177, 255, 0.55);
+}
+
+.damage-range-label {
+  color: #ffb3b3;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.75rem;
+}
+
+.damage-range-values {
+  color: #ff8a8a;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.damage-type-tag {
+  color: #b8b8d0;
+  font-size: 0.75rem;
+  opacity: 0.85;
+}
+
+.ability-formula-popover {
+  margin: 0.5rem 0 0.2rem;
+  padding: 0.65rem 0.85rem;
+  background: linear-gradient(135deg, rgba(20, 22, 38, 0.85) 0%, rgba(28, 30, 48, 0.85) 100%);
+  border: 1px solid rgba(130, 177, 255, 0.22);
+  border-radius: 8px;
+  text-align: left;
+  font-size: 0.85rem;
+  color: #d8d8e8;
+  word-break: break-word;
+}
+
+.formula-line {
+  font-family: 'Consolas', 'Menlo', monospace;
+  color: #ffe600;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
 .modal-hotkey-hint {
   margin-top: 1.5rem;
   color: #666;
@@ -345,6 +469,15 @@ const handleModalOverlayClick = (e: MouseEvent) => {
   .ability-icon {
     width: 44px;
     height: 44px;
+  }
+
+  .ability-formula-popover {
+    padding: 0.6rem 0.7rem;
+    font-size: 0.8rem;
+  }
+
+  .formula-line {
+    font-size: 0.85rem;
   }
 }
 </style>

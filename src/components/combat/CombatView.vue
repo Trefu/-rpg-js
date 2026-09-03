@@ -397,6 +397,7 @@ onUnmounted(() => {
       :selected-ability="selectedAbility"
       :is-selecting-target="isSelectingTarget"
       :used-item-this-turn="usedItemThisTurn"
+      :caster="player"
       @attack="onMobileAttack"
       @select-ability="onMobileAbility"
       @object="onMobileObject"
@@ -431,6 +432,7 @@ onUnmounted(() => {
       :abilities="abilities"
       :ability-cooldowns="abilityCooldowns"
       :ability-shortcuts="abilityShortcuts"
+      :caster="player"
       @close="closeAbilitiesModal"
       @select-ability="handleAbilitySelect"
     />
