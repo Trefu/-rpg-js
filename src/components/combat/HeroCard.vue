@@ -24,6 +24,7 @@ interface Props {
   isTargetSelectable: boolean
   /** Cuando true, marca visualmente al heroe como objetivo de un ataque enemigo en curso. */
   isBeingAttacked?: boolean
+  hitPopups?: { value: number, key: number, isCrit?: boolean, variant?: 'damage' | 'crit' | 'blocked', heroId?: string | null }[]
 }
 
 const props = defineProps<Props>()
@@ -263,6 +264,17 @@ defineExpose({
 
       <div v-if="isTargetSelectable" class="hero-shortcut-badge">
         <span class="key-cap">{{ index + 1 }}</span>
+      </div>
+
+      <div class="hero-hit-container">
+        <div
+          v-for="popup in hitPopups"
+          :key="popup.key"
+          class="hero-hit-popup"
+          :class="{ crit: popup.variant === 'crit' || popup.isCrit, blocked: popup.variant === 'blocked' }"
+        >
+          -{{ popup.value }}
+        </div>
       </div>
 
       <Teleport to="body">
@@ -903,5 +915,61 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.hero-hit-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 9;
+}
+
+.hero-hit-popup {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  color: #ff3333;
+  font-size: 1.55rem;
+  font-weight: 900;
+  text-shadow: 0 0 8px rgba(0, 0, 0, 0.85), 0 2px 6px rgba(0, 0, 0, 0.85);
+  pointer-events: none;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  transform: translate(-50%, -50%);
+  opacity: 1;
+}
+
+.hero-hit-popup.crit {
+  color: #ffe066;
+  font-size: 2rem;
+  text-shadow: 0 0 16px #ff8c00, 0 0 8px rgba(0, 0, 0, 0.85), 0 2px 6px rgba(0, 0, 0, 0.85);
+}
+
+.hero-hit-popup.blocked {
+  color: #4ea3ff;
+  font-size: 1.15rem;
+  font-weight: 800;
+  text-shadow: 0 0 10px rgba(78, 163, 255, 0.9), 0 2px 6px rgba(0, 0, 0, 0.85);
+}
+
+.hero-hit-enter-active {
+  animation: hero-hit-rise 0.95s ease-out forwards;
+}
+
+@keyframes hero-hit-rise {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -30%);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -55%);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -110%);
+  }
 }
 </style>

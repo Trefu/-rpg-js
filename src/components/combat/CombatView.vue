@@ -57,6 +57,7 @@ const {
   isSelectingTarget,
   attackingEnemyId,
   attackedHeroIds,
+  playerHitPopups,
   showAbilitiesModal,
   abilityCooldowns,
   announcement,
@@ -303,6 +304,7 @@ onUnmounted(() => {
           :is-active="!!hero && idx === gameStore.activeHeroIndex"
           :is-target-selectable="isAllySelectable(hero)"
           :is-being-attacked="!!hero && attackedHeroIds.includes(hero.id)"
+          :hit-popups="hero ? playerHitPopups.filter(p => p.heroId === hero.id) : []"
           @select="(h) => selectAlly(h)"
         />
       </div>
