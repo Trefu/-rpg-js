@@ -163,7 +163,7 @@ function handleStart() {
             :class="{ selected: isHeroSelected(hero.id) }"
             @click="toggleHero(hero.id)"
           >
-            <img :src="hero.sprite" :alt="hero.name" class="card__sprite" />
+            <img :src="hero.sprite" :alt="hero.name" class="card__sprite" decoding="async" />
             <div class="card__body">
               <h3>{{ hero.name }}</h3>
               <p>{{ hero.description }}</p>
@@ -209,7 +209,7 @@ function handleStart() {
           :key="hero.id + '-' + idx"
           class="summary__hero"
         >
-          <img :src="hero.sprite" :alt="hero.name" />
+          <img :src="hero.sprite" :alt="hero.name" decoding="async" />
           <div>
             <strong>{{ hero.name }}</strong>
             <span>

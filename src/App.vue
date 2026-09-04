@@ -1,10 +1,7 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import ExpeditionMap from './components/expedition/ExpeditionMap.vue'
-import RecruitHeroModal from './components/expedition/RecruitHeroModal.vue'
-import CombatView from './components/combat/CombatView.vue'
-import TrainingView from './components/combat/TrainingView.vue'
+import { computed, defineAsyncComponent, ref, watch } from 'vue'
 import PreGameView from './components/pregame/PreGameView.vue'
+import RecruitHeroModal from './components/expedition/RecruitHeroModal.vue'
 import GameUI from './components/ui/GameUI.vue'
 import { useGameStore } from './stores/game'
 import { useExpeditionStore } from './stores/expedition'
@@ -13,6 +10,10 @@ import type { ZoneId } from './core/zones/EnemyPools'
 import type { INode } from './core/interfaces/IExpedition'
 import type { Hero } from './core/Hero'
 import { restoreItemsToMax } from './core/items/items'
+
+const CombatView = defineAsyncComponent(() => import('./components/combat/CombatView.vue'))
+const ExpeditionMap = defineAsyncComponent(() => import('./components/expedition/ExpeditionMap.vue'))
+const TrainingView = defineAsyncComponent(() => import('./components/combat/TrainingView.vue'))
 
 const gameStore = useGameStore()
 const expeditionStore = useExpeditionStore()

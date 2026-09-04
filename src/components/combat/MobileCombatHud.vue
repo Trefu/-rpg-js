@@ -126,7 +126,7 @@ function onAllyRowClick(hero: Hero | null) {
                     : 'Ver estado del equipo')"
             @click="onHeroPortraitClick">
             <img v-if="displayedHero?.sprite" :src="displayedHero.sprite" :alt="displayedHero.name"
-                class="mobile-hud-portrait" />
+                class="mobile-hud-portrait" decoding="async" />
             <div class="mobile-hud-info">
                 <div class="mobile-hud-name">
                     <span class="mobile-hud-name-text">
@@ -171,7 +171,7 @@ function onAllyRowClick(hero: Hero | null) {
                             'stats-open': hero && allyStatsOpen[hero.id]
                         }" :disabled="!hero || (!hero.isAlive && !isAllyTargeting)" @click="onAllyRowClick(hero)">
                         <img v-if="hero?.sprite" :src="hero.sprite" :alt="hero?.name ?? ''"
-                            class="mobile-hud-ally-sprite" />
+                            class="mobile-hud-ally-sprite" loading="lazy" decoding="async" />
                         <span v-else class="mobile-hud-ally-sprite mobile-hud-ally-sprite-empty">—</span>
                         <div class="mobile-hud-ally-body">
                             <div class="mobile-hud-ally-head">

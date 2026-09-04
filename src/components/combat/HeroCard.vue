@@ -105,7 +105,7 @@ onBeforeUnmount(() => {
         <div v-if="isBeingAttacked" class="being-attacked-badge">Defendiendo</div>
       </div>
       <div class="hero-portrait">
-        <img :src="hero.sprite" :alt="hero.name" class="hero-sprite" />
+        <img :src="hero.sprite" :alt="hero.name" class="hero-sprite" loading="lazy" decoding="async" />
       </div>
       <div class="hero-info">
         <div class="hero-name">{{ hero.name }}</div>

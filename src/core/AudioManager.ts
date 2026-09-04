@@ -60,8 +60,7 @@ export class AudioManager {
     private unlocked: boolean = false
 
     private constructor() {
-        this.unlocked = true
-        Howler.ctx?.resume().catch(() => { })
+        this.unlocked = false
         this.bindAutoplayUnlock()
     }
 
@@ -74,6 +73,7 @@ export class AudioManager {
 
     private bindAutoplayUnlock(): void {
         const unlock = () => {
+            if (this.unlocked) return
             this.unlocked = true
             const ctx = Howler.ctx
             if (ctx && ctx.state === 'suspended') {
@@ -83,9 +83,9 @@ export class AudioManager {
                 this.tryPlay(this.getMenuHowl())
             }
         }
-        window.addEventListener('pointerdown', unlock)
-        window.addEventListener('keydown', unlock)
-        window.addEventListener('touchstart', unlock)
+        window.addEventListener('pointerdown', unlock, { once: false, passive: true })
+        window.addEventListener('keydown', unlock, { once: false })
+        window.addEventListener('touchstart', unlock, { once: false, passive: true })
     }
 
     private getMenuHowl(): Howl {

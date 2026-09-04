@@ -72,7 +72,7 @@ function onClick() {
   }" @click="onClick">
     <div v-if="!isDead" class="enemy-name-top">{{ enemy.name }}</div>
     <EnemyStatusIcons v-if="statusEffects.length > 0" :effects="statusEffects" />
-    <img :src="sprite" :alt="enemy.name" class="enemy-sprite-img" />
+    <img :src="sprite" :alt="enemy.name" class="enemy-sprite-img" loading="lazy" decoding="async" />
     <div class="enemy-health">
       <div class="health-bar">
         <div class="health-fill" :style="{ width: `${hpPercent}%` }"></div>
