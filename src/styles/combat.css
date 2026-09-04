@@ -1,5 +1,93 @@
 /* Estilos compartidos para CombatView y TrainingView */
 
+/* =========================================================================
+   FloatingDamage (popups de daño flotantes sobre heroes / enemigos).
+   Estilos globales a proposito: las clases viven bajo el namespace
+   `floating-damage`. Se renderizan inline dentro de cada card (mismo patron
+   que el viejo .hit-popup que ya funcionaba), con position:absolute sobre
+   la card. Asi evitamos problemas de Teleport a <body> en algunas builds.
+   ========================================================================= */
+.floating-damage {
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  z-index: 9999;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  font-family: 'Courier New', ui-monospace, monospace;
+  font-weight: 900;
+  font-size: clamp(1.05rem, 2.4vw, 1.55rem);
+  line-height: 1;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  user-select: none;
+  text-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.85),
+    0 0 4px rgba(0, 0, 0, 0.9);
+  animation: fd-pop 1.1s cubic-bezier(0.18, 0.9, 0.32, 1.15) forwards;
+  will-change: transform, opacity;
+  background: rgba(255, 0, 0, 0.4);
+  border: 2px solid lime;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.floating-damage.variant-damage {
+  color: #ff5252;
+}
+
+.floating-damage.variant-crit {
+  color: #ffe066;
+  font-size: clamp(1.6rem, 3.6vw, 2.4rem);
+  text-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.9),
+    0 0 14px rgba(255, 165, 0, 0.85),
+    0 0 4px rgba(0, 0, 0, 0.9);
+}
+
+.floating-damage.variant-blocked {
+  color: #7df0a0;
+  font-size: clamp(0.95rem, 2vw, 1.2rem);
+  text-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.85),
+    0 0 10px rgba(125, 240, 160, 0.6);
+}
+
+.floating-damage.variant-heal {
+  color: #6cffb0;
+}
+
+.floating-damage.variant-miss {
+  color: #b0b8c8;
+  font-size: clamp(0.9rem, 1.8vw, 1.1rem);
+  font-style: italic;
+}
+
+@keyframes fd-pop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.55);
+  }
+  18% {
+    opacity: 1;
+    transform: translate(-50%, calc(-50% - 18px)) scale(1.3);
+  }
+  32% {
+    opacity: 1;
+    transform: translate(-50%, calc(-50% - 26px)) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% - 60px)) scale(0.95);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .floating-damage {
+    animation-duration: 1ms;
+  }
+}
+
 .combat-view {
   width: 100%;
   height: 100vh;
@@ -28,10 +116,10 @@
 .heroes-column {
   grid-area: heroes;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  padding: 1rem 0.75rem;
-  z-index: 1;
+  padding: 1.5rem 0.75rem 1rem;
+  z-index: 4;
 }
 
 .heroes-container {
@@ -40,8 +128,10 @@
   gap: 1rem;
   width: 100%;
   max-width: 380px;
-  content-visibility: auto;
-  contain-intrinsic-size: 0 320px;
+}
+
+.heroes-container > .hero-card:first-child {
+  margin-top: 0.5rem;
 }
 
 .enemies-column {

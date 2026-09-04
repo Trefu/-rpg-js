@@ -96,8 +96,6 @@ function onClick() {
       :key="popup.key"
       :value="popup.value"
       :variant="popup.variant ?? (popup.isCrit ? 'crit' : 'damage')"
-      :target-el="rootEl"
-      :stack-index="popup.stackIndex ?? 0"
     />
     <div v-if="showAlwaysShortcut" class="enemy-shortcut-badge">
       <span class="key-cap">{{ index + 1 }}</span>

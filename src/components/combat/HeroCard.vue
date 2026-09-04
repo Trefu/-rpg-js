@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
+import { computed, ref, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import type { Hero } from '@/core/Hero'
 import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
 import { getEffectDescription } from '@/core/interfaces/IStatusEffect'
@@ -81,8 +81,18 @@ const buffDebuffEffects = computed<IStatusEffect[]>(() => {
 
 const isOpen = ref(false)
 const rootEl = ref<HTMLElement | null>(null)
+const menuButtonEl = ref<HTMLElement | null>(null)
+const dropdownEl = ref<HTMLElement | null>(null)
 const hoveredDot = ref<string | null>(null)
 const touchedDot = ref<string | null>(null)
+const dropdownStyle = ref<{ top: string; left: string; width: string; placement: 'above' | 'below' }>({
+  top: '-9999px',
+  left: '-9999px',
+  width: '520px',
+  placement: 'below'
+})
+
+const DROPDOWN_PREFERRED_WIDTH = 520
 
 function toggleMenu(e: MouseEvent) {
   e.stopPropagation()
@@ -91,6 +101,36 @@ function toggleMenu(e: MouseEvent) {
 
 function closeMenu() {
   isOpen.value = false
+}
+
+function updateDropdownPosition() {
+  if (!isOpen.value || !menuButtonEl.value) return
+  const rect = menuButtonEl.value.getBoundingClientRect()
+  const margin = 8
+  const vw = window.innerWidth
+  const vh = window.innerHeight
+  const width = Math.min(DROPDOWN_PREFERRED_WIDTH, vw - 2 * margin)
+
+  // Medir la altura real del dropdown para decidir placement.
+  const tip = dropdownEl.value
+  const measuredHeight = tip ? tip.getBoundingClientRect().height : Math.min(vh * 0.7, 600)
+
+  let placement: 'above' | 'below' = 'below'
+  let top = rect.bottom + margin
+  if (top + measuredHeight > vh - 4) {
+    placement = 'above'
+    top = Math.max(4, rect.top - margin - measuredHeight)
+  }
+
+  let left = rect.left + rect.width / 2 - width / 2
+  left = Math.max(margin, Math.min(left, vw - width - margin))
+
+  dropdownStyle.value = {
+    top: `${top}px`,
+    left: `${left}px`,
+    width: `${width}px`,
+    placement
+  }
 }
 
 function dotStacks(effect: IStatusEffect): number {
@@ -119,10 +159,12 @@ function isDotTooltipVisible(type: string): boolean {
 
 function onDocClick(e: MouseEvent) {
   const target = e.target as Node
-  if (isOpen.value && rootEl.value && !rootEl.value.contains(target)) {
+  const insideRoot = rootEl.value?.contains(target) ?? false
+  const insideDropdown = dropdownEl.value?.contains(target) ?? false
+  if (isOpen.value && !insideRoot && !insideDropdown) {
     closeMenu()
   }
-  if (touchedDot.value && rootEl.value && !rootEl.value.contains(target)) {
+  if (touchedDot.value && rootEl.value && !insideRoot && !insideDropdown) {
     touchedDot.value = null
   }
 }
@@ -133,12 +175,23 @@ function onCardClick() {
   }
 }
 
+watch(isOpen, async (open) => {
+  if (open) {
+    await nextTick()
+    updateDropdownPosition()
+  }
+})
+
 onMounted(() => {
   document.addEventListener('click', onDocClick)
+  window.addEventListener('resize', updateDropdownPosition)
+  window.addEventListener('scroll', updateDropdownPosition, true)
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', onDocClick)
+  window.removeEventListener('resize', updateDropdownPosition)
+  window.removeEventListener('scroll', updateDropdownPosition, true)
 })
 
 defineExpose({
@@ -187,6 +240,7 @@ defineExpose({
       </div>
 
       <button
+        ref="menuButtonEl"
         type="button"
         class="hero-menu-btn"
         :class="{ open: isOpen, 'has-effects': buffDebuffEffects.length > 0 }"
@@ -219,52 +273,60 @@ defineExpose({
         <span class="key-cap">{{ index + 1 }}</span>
       </div>
 
-      <transition name="hero-dropdown">
-        <div v-if="isOpen" class="hero-dropdown" @click.stop>
-          <header class="hero-dropdown-header">
-            <span class="hero-dropdown-title">{{ hero.name }}</span>
-            <span class="hero-dropdown-subtitle">Nivel {{ hero.level }}</span>
-          </header>
+      <Teleport to="body">
+        <transition name="hero-dropdown">
+          <div
+            v-if="isOpen"
+            ref="dropdownEl"
+            class="hero-dropdown"
+            :class="['hero-dropdown-' + dropdownStyle.placement]"
+            :style="{ top: dropdownStyle.top, left: dropdownStyle.left, width: dropdownStyle.width }"
+            @click.stop
+          >
+            <header class="hero-dropdown-header">
+              <span class="hero-dropdown-title">{{ hero.name }}</span>
+              <span class="hero-dropdown-subtitle">Nivel {{ hero.level }}</span>
+            </header>
 
-          <section class="hero-dropdown-section">
-            <h4 class="hero-dropdown-section-title">Stats</h4>
-            <div class="hero-dropdown-stats">
-              <HeroStatChips :hero="hero" show-all tooltip-position="above" />
-            </div>
-          </section>
+            <section class="hero-dropdown-section">
+              <h4 class="hero-dropdown-section-title">Stats</h4>
+              <div class="hero-dropdown-stats">
+                <HeroStatChips :hero="hero" show-all tooltip-position="above" />
+              </div>
+            </section>
 
-          <section class="hero-dropdown-section">
-            <h4 class="hero-dropdown-section-title">
-              Buffs / Debuffs
-              <span class="section-badge">{{ buffDebuffEffects.length }}</span>
-            </h4>
-            <ul v-if="buffDebuffEffects.length > 0" class="hero-dropdown-effects">
-              <li v-for="effect in buffDebuffEffects" :key="effect.type" class="hero-effect-row">
-                <div class="hero-effect-info">
-                  <span class="hero-effect-name">{{ effect.name }}</span> 
-                  <span class="hero-effect-desc">{{ getEffectDescription(effect, 'player') }}</span>
-                </div>
-                <div class="hero-effect-tags">
-                  <span v-if="effect.stacks && effect.stacks > 1" class="effect-tag stack">x{{ effect.stacks }}</span>
-                  <span v-if="typeof effect.charges === 'number'" class="effect-tag charges">{{ effect.charges }}/{{ effect.maxCharges ?? effect.charges }}c</span>
-                  <span v-else-if="effect.turns !== undefined" class="effect-tag turns">{{ effect.turns }}t</span>
-                </div>
-              </li>
-            </ul>
-            <p v-else class="hero-dropdown-empty">Sin buffs ni debuffs activos</p>
-          </section>
-        </div>
-      </transition>
+            <section class="hero-dropdown-section">
+              <h4 class="hero-dropdown-section-title">
+                Buffs / Debuffs
+                <span class="section-badge">{{ buffDebuffEffects.length }}</span>
+              </h4>
+              <ul v-if="buffDebuffEffects.length > 0" class="hero-dropdown-effects">
+                <li v-for="effect in buffDebuffEffects" :key="effect.type" class="hero-effect-row">
+                  <div class="hero-effect-info">
+                    <span class="hero-effect-name">{{ effect.name }}</span>
+                    <span class="hero-effect-desc">{{ getEffectDescription(effect, 'player') }}</span>
+                  </div>
+                  <div class="hero-effect-tags">
+                    <span v-if="effect.stacks && effect.stacks > 1" class="effect-tag stack">x{{ effect.stacks }}</span>
+                    <span v-if="typeof effect.charges === 'number'" class="effect-tag charges">{{ effect.charges }}/{{ effect.maxCharges ?? effect.charges }}c</span>
+                    <span v-else-if="effect.turns !== undefined" class="effect-tag turns">{{ effect.turns }}t</span>
+                  </div>
+                </li>
+              </ul>
+              <p v-else class="hero-dropdown-empty">Sin buffs ni debuffs activos</p>
+            </section>
+          </div>
+        </transition>
+      </Teleport>
 
       <FloatingDamage
         v-for="popup in myHitPopups"
         :key="popup.key"
         :value="popup.value"
         :variant="popup.variant ?? (popup.isCrit ? 'crit' : 'damage')"
-        :target-el="rootEl"
-        :stack-index="popup.stackIndex ?? 0"
         :prefix="popup.variant === 'blocked' ? '⇩ ' : (popup.variant === 'heal' ? '+' : (popup.variant === 'miss' ? '' : '-'))"
       />
+      <FloatingDamage :value="999" variant="crit" prefix="★" />
     </template>
     <template v-else>
       <div class="empty-slot"></div>
@@ -682,11 +744,7 @@ defineExpose({
 }
 
 .hero-dropdown {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(520px, calc(100vw - 2rem));
+  position: fixed;
   max-height: 70vh;
   overflow-y: auto;
   background: linear-gradient(145deg, #1e2035 0%, #23243a 100%);
@@ -848,13 +906,12 @@ defineExpose({
 
 .hero-dropdown-enter-active,
 .hero-dropdown-leave-active {
-  transition: opacity 0.18s ease, transform 0.18s ease;
+  transition: opacity 0.18s ease;
 }
 
 .hero-dropdown-enter-from,
 .hero-dropdown-leave-to {
   opacity: 0;
-  transform: translateY(-6px);
 }
 
 .empty-slot {

@@ -175,8 +175,6 @@ function onAllyRowClick(hero: Hero | null) {
             :key="popup.key"
             :value="popup.value"
             :variant="popup.variant ?? (popup.isCrit ? 'crit' : 'damage')"
-            :target-el="portraitEl"
-            :stack-index="popup.stackIndex ?? 0"
             :prefix="popup.variant === 'blocked' ? '⇩ ' : (popup.variant === 'heal' ? '+' : (popup.variant === 'miss' ? '' : '-'))"
         />
 
