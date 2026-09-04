@@ -383,7 +383,7 @@ const isProcessingDot = ref(false)
   }
 
   function openAbilitiesModal() {
-    if (!isPlayerTurn.value || isCombatEnded.value || isExecutingAction.value) return
+    if (isPlayerInputLocked.value) return
     showAbilitiesModal.value = true
   }
 
@@ -392,6 +392,7 @@ const isProcessingDot = ref(false)
   }
 
   function selectAbility(ability: IAbility, _index: number) {
+    if (isPlayerInputLocked.value) return
     if (abilityCooldowns.value[ability.type] > 0) return
     if (!canAffordAbility(ability)) {
       closeAbilitiesModal()
@@ -453,7 +454,7 @@ const isProcessingDot = ref(false)
    * requiere objetivo, la cancela primero (no consume turno).
    */
   function openItemsModal() {
-    if (!isPlayerTurn.value || isCombatEnded.value || isExecutingAction.value) return
+    if (isPlayerInputLocked.value) return
     if (usedItemThisTurn.value) {
       showAnnouncement('Ya usaste un objeto este turno.', 'status', 1500)
       addToLog('Ya usaste un objeto este turno.')
@@ -642,7 +643,7 @@ const isProcessingDot = ref(false)
 
   function handleAbilitiesModalShortcuts(e: KeyboardEvent) {
     if (!showAbilitiesModal.value) {
-      if (e.key.toLowerCase() === 'a' && isPlayerTurn.value && !isExecutingAction.value) {
+      if (e.key.toLowerCase() === 'a' && !isPlayerInputLocked.value) {
         openAbilitiesModal()
         e.preventDefault()
       }
@@ -667,7 +668,7 @@ const isProcessingDot = ref(false)
     if (showAbilitiesModal.value) return
     if (showItemsModal.value) return
 
-    if (e.key.toLowerCase() === 'o' && isPlayerTurn.value && !isExecutingAction.value) {
+    if (e.key.toLowerCase() === 'o' && !isPlayerInputLocked.value) {
       openItemsModal()
       e.preventDefault()
       return
@@ -1319,7 +1320,7 @@ const isProcessingDot = ref(false)
   }
 
   function selectAction(action: string) {
-    if (!isPlayerTurn.value || isCombatEnded.value || isExecutingAction.value) return
+    if (isPlayerInputLocked.value) return
 
     if (action === 'Objeto') {
       if (config.isTraining) {
