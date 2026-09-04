@@ -13,6 +13,7 @@ export interface ItemContext {
   /** Heroe seleccionado como beneficiario (cuando el objeto requiere objetivo). */
   target: ICharacter
   addToLog: (message: string) => void
+  showPlayerHit: (value: number, options?: { heroId?: string | null, isCrit?: boolean, variant?: 'damage' | 'crit' | 'blocked' | 'heal' }) => void
   showAnnouncement: (text: string, variant?: AnnouncementVariant, duration?: number) => void
   audioManager: AudioManager
   /**

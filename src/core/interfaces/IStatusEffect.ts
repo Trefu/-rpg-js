@@ -4,6 +4,32 @@ export type StatusEffectSide = 'enemy' | 'player'
 export type DefenseEffectSide = 'player' | 'enemy'
 
 /**
+ * Payload del popup flotante disparado por un `onBlock` (o cualquier hook de
+ * efecto de estado). Se reusa el mismo sistema de popups del jugador para
+ * que las autocuraciones / auto-restauraciones de energia de los buffs
+ * muestren el numero verde sin tener que tocar el orquestador de combate.
+ */
+export interface StatusEffectPopupOptions {
+  /** Sufijo legible mostrado tras el numero (ej. 'HP', 'EN'). Default: ''. */
+  suffix?: string
+  isCrit?: boolean
+  variant?: 'damage' | 'crit' | 'blocked' | 'heal' | 'energy'
+}
+
+/**
+ * Hooks que el orquestador de combate inyecta en los callbacks de los
+ * efectos de estado (`onBlock`, y a futuro `onTurnEnd`, etc.). Permite que
+ * cualquier buff/disparo defina su propio popup sin acoplarse a
+ * `useCombat` directamente.
+ */
+export interface StatusEffectHooks {
+  showPlayerHit: (
+    value: number,
+    options?: { heroId?: string | null; isCrit?: boolean; variant?: StatusEffectPopupOptions['variant']; suffix?: string }
+  ) => void
+}
+
+/**
  * Contribucion declarativa al sistema de modificadores de defensa.
  * Se invoca una vez por efecto activo (`turns > 0`) durante el calculo de
  * `getDefenseModifiers` (modifiers.ts). El objeto retornado se SUMA a los
@@ -97,8 +123,13 @@ export interface IStatusEffect {
    * Se invoca cuando el portador bloquea al menos una fraccion del dano
    * (`blockedFraction > 0`). Dentro del hook, decrementar `charges` consume
    * el efecto. Si `charges` baja a 0, el orquestador lo elimina.
+   *
+   * El tercer parametro `hooks` expone utilidades de UI (popups flotantes)
+   * para que las autocuraciones / auto-restauraciones de buffs muestren
+   * el numero sin acoplarse a `useCombat`. Es opcional para mantener
+   * compatibilidad con hooks definidos antes de la extension.
    */
-  onBlock?: (target: ICharacter, blockedFraction: number) => void
+  onBlock?: (target: ICharacter, blockedFraction: number, hooks?: StatusEffectHooks) => void
   /**
    * Contribucion al pool de modificadores de defensa. Ver `DefenseContributionFn`.
    * Si esta presente, `getDefenseModifiers` la invoca una vez por turno activo.

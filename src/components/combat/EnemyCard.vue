@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import type { IEnemy } from '@/core/interfaces/ICharacter'
 import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
 import EnemyStatusIcons from './EnemyStatusIcons.vue'
@@ -13,8 +13,8 @@ interface Props {
   isSelectingTarget: boolean
   isActionTargetRequired: boolean
   isAttacking: boolean
-  hitPopups: Array<{ id: string, value: number, key: number, isCrit?: boolean }>
   showShortcut: boolean
+  hitPopups?: { value: number, key: number, isCrit?: boolean }[]
 }
 
 const props = defineProps<Props>()
@@ -47,7 +47,9 @@ const isTargetAll = computed(() => {
   return props.isSelectingTarget && !props.isActionTargetRequired && props.enemy.isAlive
 })
 
-const myHitPopups = computed(() => props.hitPopups.filter(p => p.id === props.enemy.id))
+const rootEl = ref<HTMLElement | null>(null)
+
+defineExpose({ rootEl })
 
 const isMobileLayout = useMediaQuery('(max-width: 720px)')
 
@@ -69,7 +71,7 @@ function onClick() {
     'target-selectable': isTargetSelectable,
     'target-all': isTargetAll,
     'mobile-layout': isMobileLayout
-  }" @click="onClick">
+  }" ref="rootEl" @click="onClick">
     <div v-if="!isDead" class="enemy-name-top">{{ enemy.name }}</div>
     <EnemyStatusIcons v-if="statusEffects.length > 0" :effects="statusEffects" />
     <img :src="sprite" :alt="enemy.name" class="enemy-sprite-img" loading="lazy" decoding="async" />
@@ -79,13 +81,21 @@ function onClick() {
         <span class="health-text">{{ hpLabel }}</span>
       </div>
     </div>
-    <transition-group name="hit-popup" tag="div" class="hit-popups-container">
-      <div v-for="popup in myHitPopups" :key="popup.key" class="hit-popup" :class="{ crit: popup.isCrit }">
-        -{{ popup.value }}
-      </div>
-    </transition-group>
     <div v-if="showAlwaysShortcut" class="enemy-shortcut-badge">
       <span class="key-cap">{{ index + 1 }}</span>
+    </div>
+    <div v-if="hitPopups && hitPopups.length > 0" class="enemy-hit-container">
+      <TransitionGroup name="enemy-hit" tag="div" class="enemy-hit-layer">
+        <div
+          v-for="popup in hitPopups"
+          :key="popup.key"
+          class="enemy-hit-popup"
+          :class="{ crit: popup.isCrit, heal: popup.variant === 'heal' }"
+          :style="{ left: `${50 + (popup.stackIndex ?? 0) * 14}%` }"
+        >
+          {{ popup.variant === 'heal' ? '+' : '-' }}{{ popup.value }}
+        </div>
+      </TransitionGroup>
     </div>
   </div>
 </template>
@@ -205,32 +215,62 @@ function onClick() {
 }
 
 .hit-popups-container {
+  display: none;
+}
+
+.enemy-hit-container {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  overflow: visible;
+  z-index: 9;
 }
 
-.hit-popup {
+.enemy-hit-popup {
   position: absolute;
-  left: 50%;
-  top: -10px;
-  transform: translateX(-50%);
+  top: 50%;
   color: #ff3333;
-  font-size: 1.1em;
-  font-weight: bold;
-  text-shadow: 0 2px 8px #000a;
+  font-size: 1.55rem;
+  font-weight: 900;
+  text-shadow: 0 0 8px rgba(0, 0, 0, 0.85), 0 2px 6px rgba(0, 0, 0, 0.85);
   pointer-events: none;
-  opacity: 0.95;
-  z-index: 20;
-  animation: hit-pop 0.9s cubic-bezier(.68, -0.55, .27, 1.55);
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  transform: translate(-50%, -50%);
+  opacity: 1;
 }
 
-.hit-popup.crit {
+.enemy-hit-popup.crit {
   color: #ffe066;
-  font-size: 1.5em;
+  font-size: 2rem;
+  text-shadow: 0 0 16px #ff8c00, 0 0 8px rgba(0, 0, 0, 0.85), 0 2px 6px rgba(0, 0, 0, 0.85);
+}
+
+.enemy-hit-popup.heal {
+  color: #5cff8a;
+  font-size: 1.55rem;
   font-weight: 900;
-  text-shadow: 0 0 12px #ffa500, 0 2px 8px #000a;
-  animation: hit-pop-crit 0.9s cubic-bezier(.68, -0.55, .27, 1.55);
+  text-shadow: 0 0 14px rgba(92, 255, 138, 0.85), 0 0 6px rgba(0, 0, 0, 0.85), 0 2px 6px rgba(0, 0, 0, 0.85);
+}
+
+.enemy-hit-enter-active {
+  animation: enemy-hit-rise 0.95s ease-out forwards;
+}
+
+@keyframes enemy-hit-rise {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -30%);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -55%);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -110%);
+  }
 }
 
 .enemy-shortcut-badge {
@@ -282,24 +322,5 @@ function onClick() {
 @keyframes attack-glow {
   0% { box-shadow: 0 0 8px 2px #ff3333, 0 0 0 4px #ff3333 inset; }
   100% { box-shadow: 0 0 32px 12px #ff3333, 0 0 0 4px #ff3333 inset; }
-}
-
-@keyframes hit-pop {
-  0% { opacity: 0; transform: translateX(-50%) translateY(0) scale(0.7); }
-  20% { opacity: 1; transform: translateX(-50%) translateY(-12px) scale(1.1); }
-  100% { opacity: 0; transform: translateX(-50%) translateY(-36px) scale(0.95); }
-}
-
-@keyframes hit-pop-crit {
-  0% { opacity: 0; transform: translateX(-50%) translateY(0) scale(0.5); }
-  15% { opacity: 1; transform: translateX(-50%) translateY(-8px) scale(1.3); }
-  30% { transform: translateX(-50%) translateY(-16px) scale(1.1); }
-  100% { opacity: 0; transform: translateX(-50%) translateY(-50px) scale(1.0); }
-}
-
-@media (max-width: 720px) {
-  .hit-popup.crit {
-    font-size: 1.2em;
-  }
 }
 </style>

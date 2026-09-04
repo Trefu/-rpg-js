@@ -16,6 +16,7 @@ const props = defineProps<{
     canTargetAllies?: boolean
     activeHeroIndex?: number
     attackedHeroIds?: string[]
+    hitPopups?: { heroId: string | null, value: number, key: number, isCrit?: boolean, variant?: 'damage' | 'crit' | 'blocked' | 'heal' | 'energy', suffix?: string }[]
 }>()
 
 const emit = defineEmits<{
@@ -45,6 +46,12 @@ const attackedHero = computed<Hero | null>(() => {
 const displayedHero = computed<Hero | null>(() => attackedHero.value ?? effectivePlayer.value)
 
 const isDisplayingAttackedHero = computed(() => !!attackedHero.value)
+
+const displayedHeroPopups = computed(() => {
+    const popups = props.hitPopups ?? []
+    const id = displayedHero.value?.id ?? null
+    return popups.filter(p => p.heroId === id)
+})
 
 const hpPercent = computed(() => {
     const h = displayedHero.value
@@ -77,6 +84,7 @@ function heroEnergyPercent(h: Hero) {
 
 const showAllyPreview = ref(false)
 const allyStatsOpen = ref<Record<string, boolean>>({})
+const portraitEl = ref<HTMLElement | null>(null)
 
 function toggleAllyPreview() {
     showAllyPreview.value = !showAllyPreview.value
@@ -124,6 +132,7 @@ function onAllyRowClick(hero: Hero | null) {
                 : (isDisplayingAttackedHero
                     ? `${displayedHero?.name} esta siendo atacado`
                     : 'Ver estado del equipo')"
+            ref="portraitEl"
             @click="onHeroPortraitClick">
             <img v-if="displayedHero?.sprite" :src="displayedHero.sprite" :alt="displayedHero.name"
                 class="mobile-hud-portrait" decoding="async" />
@@ -153,6 +162,20 @@ function onAllyRowClick(hero: Hero | null) {
             </div>
             <HeroDotIcons v-if="displayedHero" :effects="displayedHero.statusEffects" />
         </button>
+
+        <Teleport to="body">
+            <TransitionGroup name="mobile-hit" tag="div" class="mobile-hit-layer">
+                <div
+                    v-for="popup in displayedHeroPopups"
+                    :key="popup.key"
+                    class="mobile-hit-popup"
+                    :class="{ crit: popup.variant === 'crit' || popup.isCrit, blocked: popup.variant === 'blocked', heal: popup.variant === 'heal' || popup.variant === 'energy' }"
+                    :style="{ '--stack': popup.stackIndex ?? 0 }"
+                >
+                    <span class="mobile-hit-value">{{ popup.variant === 'heal' || popup.variant === 'energy' ? '+' : '-' }}{{ popup.value }}{{ popup.suffix ?? '' }}</span>
+                </div>
+            </TransitionGroup>
+        </Teleport>
 
         <transition name="panel-preview">
             <div v-if="showAllyPreview" class="mobile-hud-panel mobile-hud-ally-preview">
@@ -233,6 +256,108 @@ function onAllyRowClick(hero: Hero | null) {
     cursor: pointer;
     text-align: left;
     font-family: inherit;
+    position: relative;
+    overflow: visible;
+}
+
+.mobile-hit-layer {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 18%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    pointer-events: none;
+    z-index: 9999;
+}
+
+.mobile-hit-popup {
+    display: inline-flex;
+    align-items: baseline;
+    justify-content: center;
+    padding: 0.45rem 1.4rem;
+    border-radius: 14px;
+    background: rgba(0, 0, 0, 0.78);
+    border: 2px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.7);
+    color: #ff3b3b;
+    font-family: 'Courier New', monospace;
+    font-weight: 900;
+    font-size: 3.2rem;
+    line-height: 1;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    transform: translateY(calc(var(--stack, 0) * -1.05rem));
+    text-shadow: 0 0 18px rgba(255, 59, 59, 0.7), 0 2px 8px rgba(0, 0, 0, 0.9);
+}
+
+.mobile-hit-popup.crit {
+    color: #ffe066;
+    font-size: 4rem;
+    border-color: rgba(255, 224, 102, 0.55);
+    text-shadow: 0 0 22px #ff8c00, 0 0 10px rgba(0, 0, 0, 0.9), 0 2px 8px rgba(0, 0, 0, 0.9);
+}
+
+.mobile-hit-popup.blocked {
+    color: #4ea3ff;
+    font-size: 2.2rem;
+    border-color: rgba(78, 163, 255, 0.55);
+    text-shadow: 0 0 12px rgba(78, 163, 255, 0.9), 0 2px 6px rgba(0, 0, 0, 0.9);
+}
+
+.mobile-hit-popup.heal {
+    color: #5cff8a;
+    font-size: 3.2rem;
+    border-color: rgba(92, 255, 138, 0.55);
+    text-shadow: 0 0 18px rgba(92, 255, 138, 0.85), 0 2px 6px rgba(0, 0, 0, 0.9);
+}
+
+.mobile-hit-popup.energy {
+    color: #6ee7ff;
+    font-size: 2.8rem;
+    border-color: rgba(110, 231, 255, 0.55);
+    text-shadow: 0 0 18px rgba(110, 231, 255, 0.85), 0 2px 6px rgba(0, 0, 0, 0.9);
+}
+
+.mobile-hit-value {
+    display: inline-block;
+}
+
+.mobile-hit-enter-active {
+    animation: mobile-hit-pop 1.05s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
+}
+
+.mobile-hit-leave-active {
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.mobile-hit-leave-to {
+    opacity: 0;
+    transform: translateY(-2rem) scale(0.85);
+}
+
+@keyframes mobile-hit-pop {
+    0% {
+        opacity: 0;
+        transform: translateY(1.2rem) scale(0.55);
+    }
+
+    18% {
+        opacity: 1;
+        transform: translateY(-0.4rem) scale(1.15);
+    }
+
+    35% {
+        opacity: 1;
+        transform: translateY(-0.7rem) scale(1);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translateY(-3rem) scale(0.95);
+    }
 }
 
 .mobile-hud-portrait {

@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
+import { computed, ref, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import type { Hero } from '@/core/Hero'
 import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
 import { getEffectDescription } from '@/core/interfaces/IStatusEffect'
+import { useExclusiveToggle } from '@/composables/useExclusiveToggle'
 import HeroStatChips from './HeroStatChips.vue'
 import hamburgerIcon from '@/assets/icons/hamburger-menu.png'
 import burnDotIcon from '@/assets/icons/fire.png'
@@ -23,6 +24,7 @@ interface Props {
   isTargetSelectable: boolean
   /** Cuando true, marca visualmente al heroe como objetivo de un ataque enemigo en curso. */
   isBeingAttacked?: boolean
+  hitPopups?: { value: number, key: number, isCrit?: boolean, variant?: 'damage' | 'crit' | 'blocked' | 'heal' | 'energy', suffix?: string, heroId?: string | null }[]
 }
 
 const props = defineProps<Props>()
@@ -64,18 +66,64 @@ const buffDebuffEffects = computed<IStatusEffect[]>(() => {
   return activeEffects.value.filter(e => !DOT_TYPES.has(e.type))
 })
 
-const isOpen = ref(false)
-const rootEl = ref<HTMLElement | null>(null)
-const hoveredDot = ref<string | null>(null)
-const touchedDot = ref<string | null>(null)
-
+const exclusiveToggle = useExclusiveToggle(`hero-card-${props.index}`)
+const isOpen = exclusiveToggle.isOpen
+const openMenu = exclusiveToggle.open
+const closeMenu = exclusiveToggle.close
 function toggleMenu(e: MouseEvent) {
   e.stopPropagation()
-  isOpen.value = !isOpen.value
+  exclusiveToggle.toggle()
 }
+const rootEl = ref<HTMLElement | null>(null)
+const menuButtonEl = ref<HTMLElement | null>(null)
+const dropdownEl = ref<HTMLElement | null>(null)
+const hoveredDot = ref<string | null>(null)
+const touchedDot = ref<string | null>(null)
+const dropdownStyle = ref<{ top: string; left: string; width: string; placement: 'above' | 'below' }>({
+  top: '-9999px',
+  left: '-9999px',
+  width: '520px',
+  placement: 'below'
+})
 
-function closeMenu() {
-  isOpen.value = false
+const DROPDOWN_PREFERRED_WIDTH = 520
+
+function updateDropdownPosition() {
+  if (!isOpen.value || !rootEl.value || !menuButtonEl.value) return
+  const menuRect = menuButtonEl.value.getBoundingClientRect()
+  const cardRect = rootEl.value.getBoundingClientRect()
+  const margin = 8
+  const vw = window.innerWidth
+  const vh = window.innerHeight
+  const width = Math.min(DROPDOWN_PREFERRED_WIDTH, vw - 2 * margin)
+
+  // Medir la altura real del dropdown para decidir placement.
+  const tip = dropdownEl.value
+  const measuredHeight = tip ? tip.getBoundingClientRect().height : Math.min(vh * 0.7, 600)
+
+  let placement: 'above' | 'below' = 'below'
+  let top = menuRect.bottom + margin
+  if (top + measuredHeight > vh - 4) {
+    placement = 'above'
+    top = Math.max(4, menuRect.top - margin - measuredHeight)
+  }
+
+  // Abrir "hacia el medio": anclar el borde izquierdo del dropdown al borde
+  // derecho del card + gap, asi el panel se proyecta hacia el centro de la
+  // pantalla en vez de superponerse con el card.
+  let left = cardRect.right + margin
+  if (left + width > vw - margin) {
+    // Si no entra hacia la derecha, recentrear sobre el menu button como fallback.
+    left = menuRect.left + menuRect.width / 2 - width / 2
+  }
+  left = Math.max(margin, Math.min(left, vw - width - margin))
+
+  dropdownStyle.value = {
+    top: `${top}px`,
+    left: `${left}px`,
+    width: `${width}px`,
+    placement
+  }
 }
 
 function dotStacks(effect: IStatusEffect): number {
@@ -104,10 +152,12 @@ function isDotTooltipVisible(type: string): boolean {
 
 function onDocClick(e: MouseEvent) {
   const target = e.target as Node
-  if (isOpen.value && rootEl.value && !rootEl.value.contains(target)) {
+  const insideRoot = rootEl.value?.contains(target) ?? false
+  const insideDropdown = dropdownEl.value?.contains(target) ?? false
+  if (isOpen.value && !insideRoot && !insideDropdown) {
     closeMenu()
   }
-  if (touchedDot.value && rootEl.value && !rootEl.value.contains(target)) {
+  if (touchedDot.value && rootEl.value && !insideRoot && !insideDropdown) {
     touchedDot.value = null
   }
 }
@@ -118,12 +168,27 @@ function onCardClick() {
   }
 }
 
+watch(isOpen, async (open) => {
+  if (open) {
+    await nextTick()
+    updateDropdownPosition()
+  }
+})
+
 onMounted(() => {
   document.addEventListener('click', onDocClick)
+  window.addEventListener('resize', updateDropdownPosition)
+  window.addEventListener('scroll', updateDropdownPosition, true)
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', onDocClick)
+  window.removeEventListener('resize', updateDropdownPosition)
+  window.removeEventListener('scroll', updateDropdownPosition, true)
+})
+
+defineExpose({
+  rootEl
 })
 </script>
 
@@ -168,6 +233,7 @@ onBeforeUnmount(() => {
       </div>
 
       <button
+        ref="menuButtonEl"
         type="button"
         class="hero-menu-btn"
         :class="{ open: isOpen, 'has-effects': buffDebuffEffects.length > 0 }"
@@ -200,42 +266,62 @@ onBeforeUnmount(() => {
         <span class="key-cap">{{ index + 1 }}</span>
       </div>
 
-      <transition name="hero-dropdown">
-        <div v-if="isOpen" class="hero-dropdown" @click.stop>
-          <header class="hero-dropdown-header">
-            <span class="hero-dropdown-title">{{ hero.name }}</span>
-            <span class="hero-dropdown-subtitle">Nivel {{ hero.level }}</span>
-          </header>
-
-          <section class="hero-dropdown-section">
-            <h4 class="hero-dropdown-section-title">Stats</h4>
-            <div class="hero-dropdown-stats">
-              <HeroStatChips :hero="hero" show-all tooltip-position="above" />
-            </div>
-          </section>
-
-          <section class="hero-dropdown-section">
-            <h4 class="hero-dropdown-section-title">
-              Buffs / Debuffs
-              <span class="section-badge">{{ buffDebuffEffects.length }}</span>
-            </h4>
-            <ul v-if="buffDebuffEffects.length > 0" class="hero-dropdown-effects">
-              <li v-for="effect in buffDebuffEffects" :key="effect.type" class="hero-effect-row">
-                <div class="hero-effect-info">
-                  <span class="hero-effect-name">{{ effect.name }}</span> 
-                  <span class="hero-effect-desc">{{ getEffectDescription(effect, 'player') }}</span>
-                </div>
-                <div class="hero-effect-tags">
-                  <span v-if="effect.stacks && effect.stacks > 1" class="effect-tag stack">x{{ effect.stacks }}</span>
-                  <span v-if="typeof effect.charges === 'number'" class="effect-tag charges">{{ effect.charges }}/{{ effect.maxCharges ?? effect.charges }}c</span>
-                  <span v-else-if="effect.turns !== undefined" class="effect-tag turns">{{ effect.turns }}t</span>
-                </div>
-              </li>
-            </ul>
-            <p v-else class="hero-dropdown-empty">Sin buffs ni debuffs activos</p>
-          </section>
+      <div class="hero-hit-container">
+        <div
+          v-for="popup in hitPopups"
+          :key="popup.key"
+          class="hero-hit-popup"
+          :class="{ crit: popup.variant === 'crit' || popup.isCrit, blocked: popup.variant === 'blocked', heal: popup.variant === 'heal' }"
+        >
+          {{ popup.variant === 'heal' || popup.variant === 'energy' ? '+' : '-' }}{{ popup.value }}{{ popup.suffix ?? '' }}
         </div>
-      </transition>
+      </div>
+
+      <Teleport to="body">
+        <transition name="hero-dropdown">
+          <div
+            v-if="isOpen"
+            ref="dropdownEl"
+            class="hero-dropdown"
+            :class="['hero-dropdown-' + dropdownStyle.placement]"
+            :style="{ top: dropdownStyle.top, left: dropdownStyle.left, width: dropdownStyle.width }"
+            @click.stop
+          >
+            <header class="hero-dropdown-header">
+              <span class="hero-dropdown-title">{{ hero.name }}</span>
+              <span class="hero-dropdown-subtitle">Nivel {{ hero.level }}</span>
+            </header>
+
+            <section class="hero-dropdown-section">
+              <h4 class="hero-dropdown-section-title">Stats</h4>
+              <div class="hero-dropdown-stats">
+                <HeroStatChips :hero="hero" show-all tooltip-position="above" />
+              </div>
+            </section>
+
+            <section class="hero-dropdown-section">
+              <h4 class="hero-dropdown-section-title">
+                Buffs / Debuffs
+                <span class="section-badge">{{ buffDebuffEffects.length }}</span>
+              </h4>
+              <ul v-if="buffDebuffEffects.length > 0" class="hero-dropdown-effects">
+                <li v-for="effect in buffDebuffEffects" :key="effect.type" class="hero-effect-row">
+                  <div class="hero-effect-info">
+                    <span class="hero-effect-name">{{ effect.name }}</span>
+                    <span class="hero-effect-desc">{{ getEffectDescription(effect, 'player') }}</span>
+                  </div>
+                  <div class="hero-effect-tags">
+                    <span v-if="effect.stacks && effect.stacks > 1" class="effect-tag stack">x{{ effect.stacks }}</span>
+                    <span v-if="typeof effect.charges === 'number'" class="effect-tag charges">{{ effect.charges }}/{{ effect.maxCharges ?? effect.charges }}c</span>
+                    <span v-else-if="effect.turns !== undefined" class="effect-tag turns">{{ effect.turns }}t</span>
+                  </div>
+                </li>
+              </ul>
+              <p v-else class="hero-dropdown-empty">Sin buffs ni debuffs activos</p>
+            </section>
+          </div>
+        </transition>
+      </Teleport>
     </template>
     <template v-else>
       <div class="empty-slot"></div>
@@ -653,11 +739,7 @@ onBeforeUnmount(() => {
 }
 
 .hero-dropdown {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(520px, calc(100vw - 2rem));
+  position: fixed;
   max-height: 70vh;
   overflow-y: auto;
   background: linear-gradient(145deg, #1e2035 0%, #23243a 100%);
@@ -819,13 +901,12 @@ onBeforeUnmount(() => {
 
 .hero-dropdown-enter-active,
 .hero-dropdown-leave-active {
-  transition: opacity 0.18s ease, transform 0.18s ease;
+  transition: opacity 0.18s ease;
 }
 
 .hero-dropdown-enter-from,
 .hero-dropdown-leave-to {
   opacity: 0;
-  transform: translateY(-6px);
 }
 
 .empty-slot {
@@ -834,5 +915,75 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.hero-hit-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 9;
+}
+
+.hero-hit-popup {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  color: #ff3333;
+  font-size: 1.55rem;
+  font-weight: 900;
+  text-shadow: 0 0 8px rgba(0, 0, 0, 0.85), 0 2px 6px rgba(0, 0, 0, 0.85);
+  pointer-events: none;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  transform: translate(-50%, -50%);
+  opacity: 1;
+}
+
+.hero-hit-popup.crit {
+  color: #ffe066;
+  font-size: 2rem;
+  text-shadow: 0 0 16px #ff8c00, 0 0 8px rgba(0, 0, 0, 0.85), 0 2px 6px rgba(0, 0, 0, 0.85);
+}
+
+.hero-hit-popup.blocked {
+  color: #4ea3ff;
+  font-size: 1.15rem;
+  font-weight: 800;
+  text-shadow: 0 0 10px rgba(78, 163, 255, 0.9), 0 2px 6px rgba(0, 0, 0, 0.85);
+}
+
+.hero-hit-popup.heal {
+  color: #5cff8a;
+  font-size: 1.55rem;
+  font-weight: 900;
+  text-shadow: 0 0 14px rgba(92, 255, 138, 0.85), 0 0 6px rgba(0, 0, 0, 0.85), 0 2px 6px rgba(0, 0, 0, 0.85);
+}
+
+.hero-hit-popup.energy {
+  color: #6ee7ff;
+  font-size: 1.35rem;
+  font-weight: 900;
+  text-shadow: 0 0 14px rgba(110, 231, 255, 0.85), 0 0 6px rgba(0, 0, 0, 0.85), 0 2px 6px rgba(0, 0, 0, 0.85);
+}
+
+.hero-hit-enter-active {
+  animation: hero-hit-rise 0.95s ease-out forwards;
+}
+
+@keyframes hero-hit-rise {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -30%);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -55%);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -110%);
+  }
 }
 </style>

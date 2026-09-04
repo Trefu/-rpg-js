@@ -82,8 +82,22 @@ export function useCombat(config: CombatConfig = {}) {
    */
   const attackedHeroIds = ref<string[]>([])
   const combatLogRef = ref<HTMLDivElement | null>(null)
-  const enemyHitPopups = ref<{ id: string, value: number, key: number, isCrit?: boolean }[]>([])
-  const playerHitPopups = ref<{ value: number, key: number, isCrit?: boolean }[]>([])
+  const enemyHitPopups = ref<{
+    id: string
+    value: number
+    key: number
+    isCrit?: boolean
+    stackIndex?: number
+  }[]>([])
+  const playerHitPopups = ref<{
+    heroId: string | null
+    value: number
+    key: number
+    isCrit?: boolean
+    variant?: 'damage' | 'crit' | 'blocked' | 'heal' | 'energy'
+    suffix?: string
+    stackIndex?: number
+  }[]>([])
   const showAbilitiesModal = ref(false)
   const abilityCooldowns = ref<{ [type: string]: number }>({})
 
@@ -241,7 +255,7 @@ const isProcessingDot = ref(false)
       if (result.outcome === 'success') {
         const blockedDmg = Math.floor(phaseDamage / 2)
         target.takeDamage(blockedDmg)
-        showPlayerHit(blockedDmg, wasCrit)
+        showPlayerHit(blockedDmg, { heroId: target.id, variant: 'blocked' })
         audioManager.playBlockSound()
         if (typeof target.restoreEnergy === 'function') {
           const restored = target.restoreEnergy(5)
@@ -249,8 +263,9 @@ const isProcessingDot = ref(false)
         }
         addToLog(`Bloqueaste el golpe. Recibes ${blockedDmg} de daño.`)
       } else {
-        target.takeDamage(phaseDamage)
-        showPlayerHit(phaseDamage, wasCrit)
+        const dmg = Math.max(1, phaseDamage)
+        target.takeDamage(dmg)
+        showPlayerHit(dmg, { heroId: target.id, isCrit: wasCrit, variant: wasCrit ? 'crit' : 'damage' })
         if (pattern.customSound) audioManager.playCustomSound(pattern.customSound)
         else audioManager.playAttackSound()
         audioManager.playHitSound()
@@ -298,11 +313,12 @@ const isProcessingDot = ref(false)
   function processPlayerOnBlockHooks(blockedFraction: number) {
     const p = player.value
     if (!p) return
+    const hooks = { showPlayerHit }
     const consumed: string[] = []
     for (const effect of p.statusEffects) {
       if (typeof effect.onBlock !== 'function') continue
       if (typeof effect.charges === 'number' && effect.charges <= 0) continue
-      effect.onBlock(p, blockedFraction)
+      effect.onBlock(p, blockedFraction, hooks)
       if (typeof effect.charges === 'number') {
         effect.charges -= 1
         if (effect.charges <= 0) consumed.push(effect.type)
@@ -370,7 +386,7 @@ const isProcessingDot = ref(false)
   }
 
   function openAbilitiesModal() {
-    if (!isPlayerTurn.value || isCombatEnded.value || isExecutingAction.value) return
+    if (isPlayerInputLocked.value) return
     showAbilitiesModal.value = true
   }
 
@@ -379,6 +395,7 @@ const isProcessingDot = ref(false)
   }
 
   function selectAbility(ability: IAbility, _index: number) {
+    if (isPlayerInputLocked.value) return
     if (abilityCooldowns.value[ability.type] > 0) return
     if (!canAffordAbility(ability)) {
       closeAbilitiesModal()
@@ -440,7 +457,7 @@ const isProcessingDot = ref(false)
    * requiere objetivo, la cancela primero (no consume turno).
    */
   function openItemsModal() {
-    if (!isPlayerTurn.value || isCombatEnded.value || isExecutingAction.value) return
+    if (isPlayerInputLocked.value) return
     if (usedItemThisTurn.value) {
       showAnnouncement('Ya usaste un objeto este turno.', 'status', 1500)
       addToLog('Ya usaste un objeto este turno.')
@@ -501,6 +518,7 @@ const isProcessingDot = ref(false)
         caster,
         target,
         addToLog,
+        showPlayerHit,
         showAnnouncement: (text, variant, duration) => { showAnnouncement(text, variant ?? 'info', duration) },
         audioManager,
         animationDelay: item.animationDurationMs ?? 900
@@ -629,7 +647,7 @@ const isProcessingDot = ref(false)
 
   function handleAbilitiesModalShortcuts(e: KeyboardEvent) {
     if (!showAbilitiesModal.value) {
-      if (e.key.toLowerCase() === 'a' && isPlayerTurn.value && !isExecutingAction.value) {
+      if (e.key.toLowerCase() === 'a' && !isPlayerInputLocked.value) {
         openAbilitiesModal()
         e.preventDefault()
       }
@@ -654,7 +672,7 @@ const isProcessingDot = ref(false)
     if (showAbilitiesModal.value) return
     if (showItemsModal.value) return
 
-    if (e.key.toLowerCase() === 'o' && isPlayerTurn.value && !isExecutingAction.value) {
+    if (e.key.toLowerCase() === 'o' && !isPlayerInputLocked.value) {
       openItemsModal()
       e.preventDefault()
       return
@@ -705,18 +723,25 @@ const isProcessingDot = ref(false)
 
   function showEnemyHit(enemyId: string, value: number, isCrit: boolean = false) {
     const key = popupKey++
-    enemyHitPopups.value.push({ id: enemyId, value, key, isCrit })
+    const stackIndex = enemyHitPopups.value.filter(p => p.id === enemyId).length
+    enemyHitPopups.value.push({ id: enemyId, value, key, isCrit, stackIndex })
     setTimeout(() => {
       enemyHitPopups.value = enemyHitPopups.value.filter(p => p.key !== key)
-    }, 900)
+    }, 1100)
   }
 
-  function showPlayerHit(value: number, isCrit: boolean = false) {
+  function showPlayerHit(value: number, options: { heroId?: string | null, isCrit?: boolean, variant?: 'damage' | 'crit' | 'blocked' | 'heal' | 'energy', suffix?: string } = {}) {
+    const { heroId = null, isCrit = false, variant, suffix } = options
     const key = popupKey++
-    playerHitPopups.value.push({ value, key, isCrit })
+    const resolvedVariant: 'damage' | 'crit' | 'blocked' | 'heal' | 'energy' =
+      variant ?? (isCrit ? 'crit' : 'damage')
+    const stackIndex = heroId
+      ? playerHitPopups.value.filter(p => p.heroId === heroId).length
+      : 0
+    playerHitPopups.value.push({ heroId, value, key, isCrit, variant: resolvedVariant, suffix, stackIndex })
     setTimeout(() => {
       playerHitPopups.value = playerHitPopups.value.filter(p => p.key !== key)
-    }, 900)
+    }, 1100)
   }
 
   function actionRequiresTarget(ability: IAbility | null): boolean {
@@ -1034,7 +1059,7 @@ const isProcessingDot = ref(false)
         playDotSfx(effect.type)
         audioManager.playHitSound()
         p.takeDamage(dmg)
-        showPlayerHit(dmg)
+        showPlayerHit(dmg, { heroId: p.id })
         await delay(BANNER_TOTAL - BANNER_LEAD_IN)
       }
     } finally {
@@ -1188,7 +1213,7 @@ const isProcessingDot = ref(false)
     for (const hero of extras) {
       const dmg = Math.max(0, baseDmg)
       hero.takeDamage(dmg)
-      showPlayerHit(dmg)
+      showPlayerHit(dmg, { heroId: hero.id })
       audioManager.playAttackSound()
       audioManager.playHitSound()
       addToLog(`¡${enemy.name} golpea a ${hero.name}! ${dmg} de daño.`)
@@ -1249,6 +1274,7 @@ const isProcessingDot = ref(false)
         ability,
         addToLog,
         showEnemyHit,
+        showPlayerHit,
         showAnnouncement: (text, variant, duration, opts) => showAnnouncement(text, variant ?? 'info', duration, opts),
         audioManager,
         animationDelay,
@@ -1299,7 +1325,7 @@ const isProcessingDot = ref(false)
   }
 
   function selectAction(action: string) {
-    if (!isPlayerTurn.value || isCombatEnded.value || isExecutingAction.value) return
+    if (isPlayerInputLocked.value) return
 
     if (action === 'Objeto') {
       if (config.isTraining) {

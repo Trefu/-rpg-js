@@ -153,10 +153,13 @@ export class StatusEffects {
       isBuff: true,
       turnLabel: '¡Su segundo aliento lo mantiene en pie!',
       threatModifier,
-      onBlock: (target, _blockedFraction) => {
+      onBlock: (target, _blockedFraction, hooks) => {
         const hero = target as Hero
+        const before = hero.energy
         const restore = Math.floor(hero.maxEnergy * energyRestorePct)
         hero.restoreEnergy(restore)
+        const restored = hero.energy - before
+        if (restored > 0) hooks?.showPlayerHit(restored, { heroId: hero.id, variant: 'energy', suffix: ' EN' })
       }
     } satisfies IStatusEffect
   })()
@@ -171,13 +174,16 @@ export class StatusEffects {
     icon: secondWindIcon,
     isBuff: true,
     turnLabel: '¡Su escudo vampírico le roba vida al enemigo!',
-    onBlock: (target, blockedFraction) => {
+    onBlock: (target, blockedFraction, hooks) => {
       if (blockedFraction < 1) return
       const hero = target as Hero
       // El daño bloqueado exacto no llega al hook; estimamos con maxHealth * factor.
       // Si necesitas el valor exacto, hay que extender el hook para recibirlo.
+      const before = hero.health
       const heal = Math.floor(hero.maxHealth * 0.05 * blockedFraction)
       hero.heal(heal)
+      const restored = hero.health - before
+      if (restored > 0) hooks?.showPlayerHit(restored, { heroId: hero.id, variant: 'heal', suffix: ' HP' })
     }
   }
 

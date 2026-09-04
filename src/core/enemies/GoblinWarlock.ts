@@ -15,7 +15,14 @@ export class GoblinWarlock extends Enemy {
       maxHealth: 30 + (level * 9),
       experienceReward: 24 + (level * 5),
       goldReward: { min: 14 + (level * 2), max: 20 + (level * 3) },
-      classMultipliers: { mind: 1.4, agility: 1.1 }
+      // `mind` se setea en baseStats (no via classMultipliers) porque el default
+      // es 10 y el multiplier 1.4 -> 14 daba un statBonus magico demasiado bajo:
+      // con EMBER (damageMultiplier 0.7) resultaba en finalDamage 0-1 y,
+      // bloqueado, siempre 0. Alineamos con el body baseline fisico (22).
+      baseStats: {
+        mind: { value: 22, growthPerLevel: 0.5 }
+      },
+      classMultipliers: { agility: 1.1 }
     })
   }
 }

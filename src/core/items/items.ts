@@ -26,6 +26,7 @@ export const createHealingFlask = (): IItem => ({
     const before = target.health
     target.heal(healAmount)
     const restored = target.health - before
+    if (restored > 0) context.showPlayerHit(restored, { heroId: target.id, variant: 'heal' })
     context.addToLog(
       `${context.caster.name} usa Frasco de curacion sobre ${target.name}: +${restored} HP (${target.health}/${target.maxHealth}).`
     )

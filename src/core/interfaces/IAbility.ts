@@ -8,6 +8,7 @@ export interface AbilityContext {
   ability?: IAbility
   addToLog: (message: string) => void
   showEnemyHit: (id: string, value: number, isCrit?: boolean) => void
+  showPlayerHit: (value: number, options?: { heroId?: string | null, isCrit?: boolean, variant?: 'damage' | 'crit' | 'blocked' | 'heal' }) => void
   showAnnouncement: (text: string, variant?: AnnouncementVariant, duration?: number, opts?: { sticky?: boolean; priority?: number; id?: string; interrupt?: boolean }) => void
   audioManager: AudioManager
   /**
