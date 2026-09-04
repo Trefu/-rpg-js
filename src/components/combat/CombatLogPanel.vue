@@ -94,6 +94,8 @@ onBeforeUnmount(() => {
   flex-direction: column;
   overflow: hidden;
   min-width: 0;
+  content-visibility: auto;
+  contain-intrinsic-size: 0 120px;
   max-width: 100%;
   backdrop-filter: blur(4px);
 }
