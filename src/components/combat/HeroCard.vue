@@ -24,7 +24,7 @@ interface Props {
   isTargetSelectable: boolean
   /** Cuando true, marca visualmente al heroe como objetivo de un ataque enemigo en curso. */
   isBeingAttacked?: boolean
-  hitPopups?: { value: number, key: number, isCrit?: boolean, variant?: 'damage' | 'crit' | 'blocked', heroId?: string | null }[]
+  hitPopups?: { value: number, key: number, isCrit?: boolean, variant?: 'damage' | 'crit' | 'blocked' | 'heal' | 'energy', suffix?: string, heroId?: string | null }[]
 }
 
 const props = defineProps<Props>()
@@ -273,7 +273,7 @@ defineExpose({
           class="hero-hit-popup"
           :class="{ crit: popup.variant === 'crit' || popup.isCrit, blocked: popup.variant === 'blocked', heal: popup.variant === 'heal' }"
         >
-          {{ popup.variant === 'heal' ? '+' : '-' }}{{ popup.value }}
+          {{ popup.variant === 'heal' || popup.variant === 'energy' ? '+' : '-' }}{{ popup.value }}{{ popup.suffix ?? '' }}
         </div>
       </div>
 
@@ -959,6 +959,13 @@ defineExpose({
   font-size: 1.55rem;
   font-weight: 900;
   text-shadow: 0 0 14px rgba(92, 255, 138, 0.85), 0 0 6px rgba(0, 0, 0, 0.85), 0 2px 6px rgba(0, 0, 0, 0.85);
+}
+
+.hero-hit-popup.energy {
+  color: #6ee7ff;
+  font-size: 1.35rem;
+  font-weight: 900;
+  text-shadow: 0 0 14px rgba(110, 231, 255, 0.85), 0 0 6px rgba(0, 0, 0, 0.85), 0 2px 6px rgba(0, 0, 0, 0.85);
 }
 
 .hero-hit-enter-active {

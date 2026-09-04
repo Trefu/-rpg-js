@@ -94,7 +94,8 @@ export function useCombat(config: CombatConfig = {}) {
     value: number
     key: number
     isCrit?: boolean
-    variant?: 'damage' | 'crit' | 'blocked' | 'heal'
+    variant?: 'damage' | 'crit' | 'blocked' | 'heal' | 'energy'
+    suffix?: string
     stackIndex?: number
   }[]>([])
   const showAbilitiesModal = ref(false)
@@ -311,11 +312,12 @@ const isProcessingDot = ref(false)
   function processPlayerOnBlockHooks(blockedFraction: number) {
     const p = player.value
     if (!p) return
+    const hooks = { showPlayerHit }
     const consumed: string[] = []
     for (const effect of p.statusEffects) {
       if (typeof effect.onBlock !== 'function') continue
       if (typeof effect.charges === 'number' && effect.charges <= 0) continue
-      effect.onBlock(p, blockedFraction)
+      effect.onBlock(p, blockedFraction, hooks)
       if (typeof effect.charges === 'number') {
         effect.charges -= 1
         if (effect.charges <= 0) consumed.push(effect.type)
@@ -727,15 +729,15 @@ const isProcessingDot = ref(false)
     }, 1100)
   }
 
-  function showPlayerHit(value: number, options: { heroId?: string | null, isCrit?: boolean, variant?: 'damage' | 'crit' | 'blocked' | 'heal' } = {}) {
-    const { heroId = null, isCrit = false, variant } = options
+  function showPlayerHit(value: number, options: { heroId?: string | null, isCrit?: boolean, variant?: 'damage' | 'crit' | 'blocked' | 'heal' | 'energy', suffix?: string } = {}) {
+    const { heroId = null, isCrit = false, variant, suffix } = options
     const key = popupKey++
-    const resolvedVariant: 'damage' | 'crit' | 'blocked' | 'heal' =
+    const resolvedVariant: 'damage' | 'crit' | 'blocked' | 'heal' | 'energy' =
       variant ?? (isCrit ? 'crit' : 'damage')
     const stackIndex = heroId
       ? playerHitPopups.value.filter(p => p.heroId === heroId).length
       : 0
-    playerHitPopups.value.push({ heroId, value, key, isCrit, variant: resolvedVariant, stackIndex })
+    playerHitPopups.value.push({ heroId, value, key, isCrit, variant: resolvedVariant, suffix, stackIndex })
     setTimeout(() => {
       playerHitPopups.value = playerHitPopups.value.filter(p => p.key !== key)
     }, 1100)

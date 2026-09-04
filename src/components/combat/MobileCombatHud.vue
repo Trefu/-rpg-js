@@ -16,7 +16,7 @@ const props = defineProps<{
     canTargetAllies?: boolean
     activeHeroIndex?: number
     attackedHeroIds?: string[]
-    hitPopups?: { heroId: string | null, value: number, key: number, isCrit?: boolean, variant?: 'damage' | 'crit' | 'blocked' }[]
+    hitPopups?: { heroId: string | null, value: number, key: number, isCrit?: boolean, variant?: 'damage' | 'crit' | 'blocked' | 'heal' | 'energy', suffix?: string }[]
 }>()
 
 const emit = defineEmits<{
@@ -166,9 +166,9 @@ function onAllyRowClick(hero: Hero | null) {
                     v-for="popup in displayedHeroPopups"
                     :key="popup.key"
                     class="mobile-hit-popup"
-                    :class="{ crit: popup.variant === 'crit' || popup.isCrit, blocked: popup.variant === 'blocked', heal: popup.variant === 'heal' }"
+                    :class="{ crit: popup.variant === 'crit' || popup.isCrit, blocked: popup.variant === 'blocked', heal: popup.variant === 'heal' || popup.variant === 'energy' }"
                 >
-                    {{ popup.variant === 'heal' ? '+' : '-' }}{{ popup.value }}
+                    {{ popup.variant === 'heal' || popup.variant === 'energy' ? '+' : '-' }}{{ popup.value }}{{ popup.suffix ?? '' }}
                 </div>
             </TransitionGroup>
         </button>
@@ -298,6 +298,13 @@ function onAllyRowClick(hero: Hero | null) {
     font-size: 1.4rem;
     font-weight: 900;
     text-shadow: 0 0 14px rgba(92, 255, 138, 0.85), 0 0 6px rgba(0, 0, 0, 0.85), 0 2px 6px rgba(0, 0, 0, 0.85);
+}
+
+.mobile-hit-popup.energy {
+    color: #6ee7ff;
+    font-size: 1.2rem;
+    font-weight: 900;
+    text-shadow: 0 0 14px rgba(110, 231, 255, 0.85), 0 0 6px rgba(0, 0, 0, 0.85), 0 2px 6px rgba(0, 0, 0, 0.85);
 }
 
 .mobile-hit-enter-active {
