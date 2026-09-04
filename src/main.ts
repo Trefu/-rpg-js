@@ -32,8 +32,6 @@ function mountApp(): void {
   queueMicrotask(mountApp)
 }
 
-const startBtn = document.getElementById('splash-btn') as HTMLButtonElement | null
-
 async function bootstrap(): Promise<void> {
   try {
     await preloadMenuMusic()
@@ -43,15 +41,7 @@ async function bootstrap(): Promise<void> {
     return
   }
 
-  if (startBtn) {
-    startBtn.disabled = false
-    startBtn.addEventListener('click', () => {
-      startBtn.disabled = true
-      splash?.ready()
-    }, { once: true })
-  } else {
-    splash?.ready()
-  }
+  splash?.ready()
 }
 
 void bootstrap()
