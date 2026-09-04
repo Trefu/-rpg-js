@@ -3,7 +3,6 @@ import { computed, ref } from 'vue'
 import type { IEnemy } from '@/core/interfaces/ICharacter'
 import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
 import EnemyStatusIcons from './EnemyStatusIcons.vue'
-import FloatingDamage, { type FloatingDamageVariant } from './FloatingDamage.vue'
 import goblinSprite from '@/assets/sprites/enemies/goblin.png'
 import { useMediaQuery } from '@/composables/useMediaQuery'
 
@@ -14,14 +13,6 @@ interface Props {
   isSelectingTarget: boolean
   isActionTargetRequired: boolean
   isAttacking: boolean
-  hitPopups: Array<{
-    id: string
-    value: number
-    key: number
-    isCrit?: boolean
-    variant?: FloatingDamageVariant
-    stackIndex?: number
-  }>
   showShortcut: boolean
 }
 
@@ -54,8 +45,6 @@ const isTargetSelectable = computed(() => {
 const isTargetAll = computed(() => {
   return props.isSelectingTarget && !props.isActionTargetRequired && props.enemy.isAlive
 })
-
-const myHitPopups = computed(() => props.hitPopups.filter(p => p.id === props.enemy.id))
 
 const rootEl = ref<HTMLElement | null>(null)
 
@@ -91,12 +80,6 @@ function onClick() {
         <span class="health-text">{{ hpLabel }}</span>
       </div>
     </div>
-    <FloatingDamage
-      v-for="popup in myHitPopups"
-      :key="popup.key"
-      :value="popup.value"
-      :variant="popup.variant ?? (popup.isCrit ? 'crit' : 'damage')"
-    />
     <div v-if="showAlwaysShortcut" class="enemy-shortcut-badge">
       <span class="key-cap">{{ index + 1 }}</span>
     </div>
