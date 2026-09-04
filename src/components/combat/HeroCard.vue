@@ -3,6 +3,7 @@ import { computed, ref, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import type { Hero } from '@/core/Hero'
 import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
 import { getEffectDescription } from '@/core/interfaces/IStatusEffect'
+import { useExclusiveToggle } from '@/composables/useExclusiveToggle'
 import HeroStatChips from './HeroStatChips.vue'
 import hamburgerIcon from '@/assets/icons/hamburger-menu.png'
 import burnDotIcon from '@/assets/icons/fire.png'
@@ -79,7 +80,14 @@ const buffDebuffEffects = computed<IStatusEffect[]>(() => {
   return activeEffects.value.filter(e => !DOT_TYPES.has(e.type))
 })
 
-const isOpen = ref(false)
+const exclusiveToggle = useExclusiveToggle(`hero-card-${props.index}`)
+const isOpen = exclusiveToggle.isOpen
+const openMenu = exclusiveToggle.open
+const closeMenu = exclusiveToggle.close
+function toggleMenu(e: MouseEvent) {
+  e.stopPropagation()
+  exclusiveToggle.toggle()
+}
 const rootEl = ref<HTMLElement | null>(null)
 const menuButtonEl = ref<HTMLElement | null>(null)
 const dropdownEl = ref<HTMLElement | null>(null)
@@ -94,18 +102,10 @@ const dropdownStyle = ref<{ top: string; left: string; width: string; placement:
 
 const DROPDOWN_PREFERRED_WIDTH = 520
 
-function toggleMenu(e: MouseEvent) {
-  e.stopPropagation()
-  isOpen.value = !isOpen.value
-}
-
-function closeMenu() {
-  isOpen.value = false
-}
-
 function updateDropdownPosition() {
-  if (!isOpen.value || !menuButtonEl.value) return
-  const rect = menuButtonEl.value.getBoundingClientRect()
+  if (!isOpen.value || !rootEl.value || !menuButtonEl.value) return
+  const menuRect = menuButtonEl.value.getBoundingClientRect()
+  const cardRect = rootEl.value.getBoundingClientRect()
   const margin = 8
   const vw = window.innerWidth
   const vh = window.innerHeight
@@ -116,13 +116,20 @@ function updateDropdownPosition() {
   const measuredHeight = tip ? tip.getBoundingClientRect().height : Math.min(vh * 0.7, 600)
 
   let placement: 'above' | 'below' = 'below'
-  let top = rect.bottom + margin
+  let top = menuRect.bottom + margin
   if (top + measuredHeight > vh - 4) {
     placement = 'above'
-    top = Math.max(4, rect.top - margin - measuredHeight)
+    top = Math.max(4, menuRect.top - margin - measuredHeight)
   }
 
-  let left = rect.left + rect.width / 2 - width / 2
+  // Abrir "hacia el medio": anclar el borde izquierdo del dropdown al borde
+  // derecho del card + gap, asi el panel se proyecta hacia el centro de la
+  // pantalla en vez de superponerse con el card.
+  let left = cardRect.right + margin
+  if (left + width > vw - margin) {
+    // Si no entra hacia la derecha, recentrear sobre el menu button como fallback.
+    left = menuRect.left + menuRect.width / 2 - width / 2
+  }
   left = Math.max(margin, Math.min(left, vw - width - margin))
 
   dropdownStyle.value = {
