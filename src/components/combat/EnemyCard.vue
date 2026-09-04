@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import type { IEnemy } from '@/core/interfaces/ICharacter'
 import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
 import EnemyStatusIcons from './EnemyStatusIcons.vue'
+import FloatingDamage, { type FloatingDamageVariant } from './FloatingDamage.vue'
 import goblinSprite from '@/assets/sprites/enemies/goblin.png'
 import { useMediaQuery } from '@/composables/useMediaQuery'
 
@@ -13,7 +14,14 @@ interface Props {
   isSelectingTarget: boolean
   isActionTargetRequired: boolean
   isAttacking: boolean
-  hitPopups: Array<{ id: string, value: number, key: number, isCrit?: boolean }>
+  hitPopups: Array<{
+    id: string
+    value: number
+    key: number
+    isCrit?: boolean
+    variant?: FloatingDamageVariant
+    stackIndex?: number
+  }>
   showShortcut: boolean
 }
 
@@ -49,6 +57,10 @@ const isTargetAll = computed(() => {
 
 const myHitPopups = computed(() => props.hitPopups.filter(p => p.id === props.enemy.id))
 
+const rootEl = ref<HTMLElement | null>(null)
+
+defineExpose({ rootEl })
+
 const isMobileLayout = useMediaQuery('(max-width: 720px)')
 
 const showAlwaysShortcut = computed(() =>
@@ -69,7 +81,7 @@ function onClick() {
     'target-selectable': isTargetSelectable,
     'target-all': isTargetAll,
     'mobile-layout': isMobileLayout
-  }" @click="onClick">
+  }" ref="rootEl" @click="onClick">
     <div v-if="!isDead" class="enemy-name-top">{{ enemy.name }}</div>
     <EnemyStatusIcons v-if="statusEffects.length > 0" :effects="statusEffects" />
     <img :src="sprite" :alt="enemy.name" class="enemy-sprite-img" loading="lazy" decoding="async" />
@@ -79,11 +91,14 @@ function onClick() {
         <span class="health-text">{{ hpLabel }}</span>
       </div>
     </div>
-    <transition-group name="hit-popup" tag="div" class="hit-popups-container">
-      <div v-for="popup in myHitPopups" :key="popup.key" class="hit-popup" :class="{ crit: popup.isCrit }">
-        -{{ popup.value }}
-      </div>
-    </transition-group>
+    <FloatingDamage
+      v-for="popup in myHitPopups"
+      :key="popup.key"
+      :value="popup.value"
+      :variant="popup.variant ?? (popup.isCrit ? 'crit' : 'damage')"
+      :target-el="rootEl"
+      :stack-index="popup.stackIndex ?? 0"
+    />
     <div v-if="showAlwaysShortcut" class="enemy-shortcut-badge">
       <span class="key-cap">{{ index + 1 }}</span>
     </div>
@@ -205,32 +220,7 @@ function onClick() {
 }
 
 .hit-popups-container {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.hit-popup {
-  position: absolute;
-  left: 50%;
-  top: -10px;
-  transform: translateX(-50%);
-  color: #ff3333;
-  font-size: 1.1em;
-  font-weight: bold;
-  text-shadow: 0 2px 8px #000a;
-  pointer-events: none;
-  opacity: 0.95;
-  z-index: 20;
-  animation: hit-pop 0.9s cubic-bezier(.68, -0.55, .27, 1.55);
-}
-
-.hit-popup.crit {
-  color: #ffe066;
-  font-size: 1.5em;
-  font-weight: 900;
-  text-shadow: 0 0 12px #ffa500, 0 2px 8px #000a;
-  animation: hit-pop-crit 0.9s cubic-bezier(.68, -0.55, .27, 1.55);
+  display: none;
 }
 
 .enemy-shortcut-badge {
@@ -282,24 +272,5 @@ function onClick() {
 @keyframes attack-glow {
   0% { box-shadow: 0 0 8px 2px #ff3333, 0 0 0 4px #ff3333 inset; }
   100% { box-shadow: 0 0 32px 12px #ff3333, 0 0 0 4px #ff3333 inset; }
-}
-
-@keyframes hit-pop {
-  0% { opacity: 0; transform: translateX(-50%) translateY(0) scale(0.7); }
-  20% { opacity: 1; transform: translateX(-50%) translateY(-12px) scale(1.1); }
-  100% { opacity: 0; transform: translateX(-50%) translateY(-36px) scale(0.95); }
-}
-
-@keyframes hit-pop-crit {
-  0% { opacity: 0; transform: translateX(-50%) translateY(0) scale(0.5); }
-  15% { opacity: 1; transform: translateX(-50%) translateY(-8px) scale(1.3); }
-  30% { transform: translateX(-50%) translateY(-16px) scale(1.1); }
-  100% { opacity: 0; transform: translateX(-50%) translateY(-50px) scale(1.0); }
-}
-
-@media (max-width: 720px) {
-  .hit-popup.crit {
-    font-size: 1.2em;
-  }
 }
 </style>

@@ -6,6 +6,7 @@ import { MAX_HEROES } from '@/stores/game'
 import HeroDotIcons from './HeroDotIcons.vue'
 import EnemyStatusIcons from './EnemyStatusIcons.vue'
 import MobileHeroStats from './MobileHeroStats.vue'
+import FloatingDamage, { type FloatingDamageVariant } from './FloatingDamage.vue'
 
 const props = defineProps<{
     player: Hero | null
@@ -16,6 +17,14 @@ const props = defineProps<{
     canTargetAllies?: boolean
     activeHeroIndex?: number
     attackedHeroIds?: string[]
+    hitPopups?: Array<{
+        heroId: string | null
+        value: number
+        key: number
+        isCrit?: boolean
+        variant?: FloatingDamageVariant
+        stackIndex?: number
+    }>
 }>()
 
 const emit = defineEmits<{
@@ -77,6 +86,13 @@ function heroEnergyPercent(h: Hero) {
 
 const showAllyPreview = ref(false)
 const allyStatsOpen = ref<Record<string, boolean>>({})
+const portraitEl = ref<HTMLElement | null>(null)
+
+const myHitPopups = computed(() => {
+    const target = displayedHero.value
+    if (!target) return []
+    return (props.hitPopups ?? []).filter(p => p.heroId === target.id)
+})
 
 function toggleAllyPreview() {
     showAllyPreview.value = !showAllyPreview.value
@@ -124,6 +140,7 @@ function onAllyRowClick(hero: Hero | null) {
                 : (isDisplayingAttackedHero
                     ? `${displayedHero?.name} esta siendo atacado`
                     : 'Ver estado del equipo')"
+            ref="portraitEl"
             @click="onHeroPortraitClick">
             <img v-if="displayedHero?.sprite" :src="displayedHero.sprite" :alt="displayedHero.name"
                 class="mobile-hud-portrait" decoding="async" />
@@ -153,6 +170,15 @@ function onAllyRowClick(hero: Hero | null) {
             </div>
             <HeroDotIcons v-if="displayedHero" :effects="displayedHero.statusEffects" />
         </button>
+        <FloatingDamage
+            v-for="popup in myHitPopups"
+            :key="popup.key"
+            :value="popup.value"
+            :variant="popup.variant ?? (popup.isCrit ? 'crit' : 'damage')"
+            :target-el="portraitEl"
+            :stack-index="popup.stackIndex ?? 0"
+            :prefix="popup.variant === 'blocked' ? '⇩ ' : (popup.variant === 'heal' ? '+' : (popup.variant === 'miss' ? '' : '-'))"
+        />
 
         <transition name="panel-preview">
             <div v-if="showAllyPreview" class="mobile-hud-panel mobile-hud-ally-preview">

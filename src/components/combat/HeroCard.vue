@@ -8,6 +8,7 @@ import hamburgerIcon from '@/assets/icons/hamburger-menu.png'
 import burnDotIcon from '@/assets/icons/fire.png'
 import poisonDotIcon from '@/assets/icons/poison-gas.png'
 import freezeDotIcon from '@/assets/icons/frostfire.png'
+import FloatingDamage, { type FloatingDamageVariant } from './FloatingDamage.vue'
 
 const DOT_ICONS: Record<string, { icon: string; name: string }> = {
   burn: { icon: burnDotIcon, name: 'Quemadura' },
@@ -23,9 +24,23 @@ interface Props {
   isTargetSelectable: boolean
   /** Cuando true, marca visualmente al heroe como objetivo de un ataque enemigo en curso. */
   isBeingAttacked?: boolean
+  /** Popups de daño flotante para este heroe. Se filtran por heroId en el padre. */
+  hitPopups?: Array<{
+    heroId: string | null
+    value: number
+    key: number
+    isCrit?: boolean
+    variant?: FloatingDamageVariant
+    stackIndex?: number
+  }>
 }
 
 const props = defineProps<Props>()
+
+const myHitPopups = computed(() => {
+  if (!props.hero) return []
+  return (props.hitPopups ?? []).filter(p => p.heroId === props.hero?.id)
+})
 
 const emit = defineEmits<{
   (e: 'select', hero: Hero): void
@@ -124,6 +139,10 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', onDocClick)
+})
+
+defineExpose({
+  rootEl
 })
 </script>
 
@@ -236,6 +255,16 @@ onBeforeUnmount(() => {
           </section>
         </div>
       </transition>
+
+      <FloatingDamage
+        v-for="popup in myHitPopups"
+        :key="popup.key"
+        :value="popup.value"
+        :variant="popup.variant ?? (popup.isCrit ? 'crit' : 'damage')"
+        :target-el="rootEl"
+        :stack-index="popup.stackIndex ?? 0"
+        :prefix="popup.variant === 'blocked' ? '⇩ ' : (popup.variant === 'heal' ? '+' : (popup.variant === 'miss' ? '' : '-'))"
+      />
     </template>
     <template v-else>
       <div class="empty-slot"></div>

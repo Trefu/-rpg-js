@@ -58,6 +58,7 @@ const {
   attackingEnemyId,
   attackedHeroIds,
   enemyHitPopups,
+  playerHitPopups,
   showAbilitiesModal,
   abilityCooldowns,
   announcement,
@@ -304,6 +305,7 @@ onUnmounted(() => {
           :is-active="!!hero && idx === gameStore.activeHeroIndex"
           :is-target-selectable="isAllySelectable(hero)"
           :is-being-attacked="!!hero && attackedHeroIds.includes(hero.id)"
+          :hit-popups="playerHitPopups"
           @select="(h) => selectAlly(h)"
         />
       </div>
@@ -320,6 +322,7 @@ onUnmounted(() => {
       :can-target-allies="(!!selectedItem && itemCanTargetAllies(selectedItem)) || (!!selectedAbility && canTargetAllies(selectedAbility))"
       :active-hero-index="gameStore.activeHeroIndex"
       :attacked-hero-ids="attackedHeroIds"
+      :hit-popups="playerHitPopups"
       @select-ally="selectAlly"
     />
 

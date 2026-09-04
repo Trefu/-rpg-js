@@ -50,24 +50,6 @@ const currentZone = computed<DefensePhaseZone | null>(() => {
   return props.zones[props.phaseIndex] ?? null
 })
 
-const feedbackClass = computed(() => {
-  switch (phaseOutcome.value) {
-    case 'success': return 'success'
-    case 'fail': return 'fail'
-    case 'timeout': return 'timeout'
-    default: return ''
-  }
-})
-
-const feedbackLabel = computed(() => {
-  switch (phaseOutcome.value) {
-    case 'success': return '¡BLOQUEADO!'
-    case 'fail': return '¡FALLASTE!'
-    case 'timeout': return '¡TIEMPO!'
-    default: return ''
-  }
-})
-
 const isLastPhase = computed(() => props.phaseIndex >= (props.pattern?.phases?.length ?? 1) - 1)
 
 const phaseHeader = computed(() => `Fase ${props.phaseIndex + 1} / ${props.pattern?.phases?.length ?? 1}`)
@@ -228,7 +210,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div v-if="show && pattern" class="defense-overlay" :class="[feedbackClass, { 'is-crit': isCrit }]" @pointerdown="onPointerDown">
+  <div v-if="show && pattern" class="defense-overlay" :class="[phaseOutcome ?? '', { 'is-crit': isCrit }]" @pointerdown="onPointerDown">
     <div class="defense-modal">
       <div class="defense-header">
         <h3>¡DEFENDE!</h3>
@@ -280,12 +262,6 @@ onUnmounted(() => {
         <span class="cta-key">ESPACIO</span>
         <span class="cta-text">para bloquear</span>
       </div>
-
-      <transition name="defense-feedback">
-        <div v-if="phaseOutcome" class="defense-feedback" :class="feedbackClass">
-          <div class="defense-feedback-text">{{ feedbackLabel }}</div>
-        </div>
-      </transition>
 
       <div v-if="showDebug" class="defense-debug">
         <div class="defense-debug-row"><span>attack</span><b>{{ pattern?.name }}</b></div>
@@ -547,102 +523,5 @@ onUnmounted(() => {
 
 .cta-text {
   text-shadow: 0 1px 3px #000a;
-}
-
-.defense-feedback {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-  z-index: 5;
-  contain: layout paint;
-  will-change: transform, opacity;
-}
-
-.defense-feedback-text {
-  font-weight: 900;
-  font-size: 3.5rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  text-shadow: 0 0 10px currentColor, 0 3px 6px rgba(0, 0, 0, 0.85);
-  color: #fff;
-  text-align: center;
-  will-change: transform, opacity;
-  transform: translateZ(0);
-  backface-visibility: hidden;
-}
-
-.defense-feedback.success .defense-feedback-text {
-  color: #4CAF50;
-  animation: success-pulse 0.6s ease-out;
-}
-
-.defense-overlay.is-crit .defense-feedback.success .defense-feedback-text {
-  color: #b388ff;
-  text-shadow: 0 0 10px #b388ff, 0 3px 6px rgba(0, 0, 0, 0.85);
-}
-
-.defense-feedback.fail .defense-feedback-text,
-.defense-feedback.timeout .defense-feedback-text {
-  color: #ff3333;
-  animation: fail-pulse 0.6s ease-out;
-}
-
-.defense-feedback-enter-active {
-  transition: transform 0.15s cubic-bezier(.68, -0.55, .27, 1.55), opacity 0.15s ease-out;
-}
-
-.defense-feedback-leave-active {
-  transition: opacity 0.25s ease-in;
-}
-
-.defense-feedback-enter-from {
-  opacity: 0;
-  transform: translate(-50%, -50%) scale(0.4);
-}
-
-.defense-feedback-enter-to {
-  opacity: 1;
-  transform: translate(-50%, -50%) scale(1.15);
-}
-
-.defense-feedback-leave-from {
-  opacity: 1;
-  transform: translate(-50%, -50%) scale(1);
-}
-
-.defense-feedback-leave-to {
-  opacity: 0;
-  transform: translate(-50%, -50%) scale(1.4);
-}
-
-@keyframes success-pulse {
-  0%   { transform: scale(0.5);  opacity: 0.4; }
-  50%  { transform: scale(1.2);  opacity: 1; }
-  100% { transform: scale(1);    opacity: 1; }
-}
-
-@keyframes fail-pulse {
-  0%, 100% { transform: scale(1); }
-  25% { transform: translateX(-6px) scale(1); }
-  50% { transform: translateX(6px) scale(1); }
-  75% { transform: translateX(-4px) scale(1); }
-}
-
-@media (max-width: 720px) {
-  .defense-feedback-text {
-    font-size: 2.4rem;
-    letter-spacing: 0.04em;
-    text-shadow: 0 0 8px currentColor, 0 2px 4px rgba(0, 0, 0, 0.85);
-  }
-  .defense-overlay.is-crit .defense-feedback.success .defense-feedback-text {
-    text-shadow: 0 0 8px #b388ff, 0 2px 4px rgba(0, 0, 0, 0.85);
-  }
-  .defense-feedback.success .defense-feedback-text,
-  .defense-feedback.fail .defense-feedback-text,
-  .defense-feedback.timeout .defense-feedback-text {
-    animation-duration: 0.45s;
-  }
 }
 </style>

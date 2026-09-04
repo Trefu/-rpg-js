@@ -505,64 +505,6 @@
   box-shadow: 0 2px 8px #ffe60022;
 }
 
-.hit-popup {
-  position: absolute;
-  left: 50%;
-  top: -28px;
-  transform: translateX(-50%);
-  color: #ff3333;
-  font-size: 1.3em;
-  font-weight: bold;
-  text-shadow: 0 2px 8px #000a;
-  pointer-events: none;
-  opacity: 0.95;
-  z-index: 20;
-  animation: hit-pop 0.9s cubic-bezier(.68, -0.55, .27, 1.55);
-}
-
-.player-hit-popup-container {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 0;
-  height: 0;
-  pointer-events: none;
-}
-
-.player-hit-popup {
-  color: #ff3333;
-  font-size: 1.5em;
-  text-shadow: 0 2px 12px #000a;
-  position: absolute;
-  left: 50%;
-  top: -28px;
-  transform: translateX(-50%);
-  white-space: nowrap;
-}
-
-@keyframes hit-pop {
-  0% {
-    opacity: 0;
-    transform: translateX(-50%) translateY(10px) scale(0.8);
-  }
-
-  30% {
-    opacity: 1;
-    transform: translateX(-50%) translateY(-10px) scale(1.1);
-  }
-
-  80% {
-    opacity: 1;
-    transform: translateX(-50%) translateY(-24px) scale(1);
-  }
-
-  100% {
-    opacity: 0;
-    transform: translateX(-50%) translateY(-40px) scale(0.8);
-  }
-}
-
 .status-float-enter-active, .status-float-leave-active {
   transition: all 0.4s cubic-bezier(.68,-0.55,.27,1.55);
 }
