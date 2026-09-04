@@ -352,7 +352,10 @@ export const SecondWind: IAbility = {
         }
         const mindBonus = Math.floor(caster.baseStats.mind.value * 0.5)
         const healAmount = Math.floor(caster.maxHealth * SECOND_WIND_HEAL_PCT) + mindBonus
+        const beforeHeal = caster.health
         caster.heal(healAmount)
+        const restored = caster.health - beforeHeal
+        if (restored > 0) context.showPlayerHit(restored, { heroId: caster.id, variant: 'heal' })
 
         const buffTemplate = StatusEffects.SECOND_WIND
         const maxCharges = SECOND_WIND_CHARGES
@@ -468,6 +471,7 @@ export const ClericHeal: IAbility = {
         const before = target.health
         target.heal(healAmount)
         const restored = target.health - before
+        if (restored > 0) context.showPlayerHit(restored, { heroId: target.id, variant: 'heal' })
 
         const cleansed: string[] = []
         const dotEffects = target.statusEffects.filter(e => DOT_STATUS_TYPES.has(e.type))

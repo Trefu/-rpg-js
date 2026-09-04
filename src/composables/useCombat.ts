@@ -94,7 +94,7 @@ export function useCombat(config: CombatConfig = {}) {
     value: number
     key: number
     isCrit?: boolean
-    variant?: 'damage' | 'crit' | 'blocked'
+    variant?: 'damage' | 'crit' | 'blocked' | 'heal'
     stackIndex?: number
   }[]>([])
   const showAbilitiesModal = ref(false)
@@ -515,6 +515,7 @@ const isProcessingDot = ref(false)
         caster,
         target,
         addToLog,
+        showPlayerHit,
         showAnnouncement: (text, variant, duration) => { showAnnouncement(text, variant ?? 'info', duration) },
         audioManager,
         animationDelay: item.animationDurationMs ?? 900
@@ -726,10 +727,10 @@ const isProcessingDot = ref(false)
     }, 1100)
   }
 
-  function showPlayerHit(value: number, options: { heroId?: string | null, isCrit?: boolean, variant?: 'damage' | 'crit' | 'blocked' } = {}) {
+  function showPlayerHit(value: number, options: { heroId?: string | null, isCrit?: boolean, variant?: 'damage' | 'crit' | 'blocked' | 'heal' } = {}) {
     const { heroId = null, isCrit = false, variant } = options
     const key = popupKey++
-    const resolvedVariant: 'damage' | 'crit' | 'blocked' =
+    const resolvedVariant: 'damage' | 'crit' | 'blocked' | 'heal' =
       variant ?? (isCrit ? 'crit' : 'damage')
     const stackIndex = heroId
       ? playerHitPopups.value.filter(p => p.heroId === heroId).length
@@ -1270,6 +1271,7 @@ const isProcessingDot = ref(false)
         ability,
         addToLog,
         showEnemyHit,
+        showPlayerHit,
         showAnnouncement: (text, variant, duration, opts) => showAnnouncement(text, variant ?? 'info', duration, opts),
         audioManager,
         animationDelay,

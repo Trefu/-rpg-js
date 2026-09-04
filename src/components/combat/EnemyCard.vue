@@ -14,6 +14,7 @@ interface Props {
   isActionTargetRequired: boolean
   isAttacking: boolean
   showShortcut: boolean
+  hitPopups?: { value: number, key: number, isCrit?: boolean }[]
 }
 
 const props = defineProps<Props>()
@@ -82,6 +83,19 @@ function onClick() {
     </div>
     <div v-if="showAlwaysShortcut" class="enemy-shortcut-badge">
       <span class="key-cap">{{ index + 1 }}</span>
+    </div>
+    <div v-if="hitPopups && hitPopups.length > 0" class="enemy-hit-container">
+      <TransitionGroup name="enemy-hit" tag="div" class="enemy-hit-layer">
+        <div
+          v-for="popup in hitPopups"
+          :key="popup.key"
+          class="enemy-hit-popup"
+          :class="{ crit: popup.isCrit, heal: popup.variant === 'heal' }"
+          :style="{ left: `${50 + (popup.stackIndex ?? 0) * 14}%` }"
+        >
+          {{ popup.variant === 'heal' ? '+' : '-' }}{{ popup.value }}
+        </div>
+      </TransitionGroup>
     </div>
   </div>
 </template>
@@ -202,6 +216,61 @@ function onClick() {
 
 .hit-popups-container {
   display: none;
+}
+
+.enemy-hit-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 9;
+}
+
+.enemy-hit-popup {
+  position: absolute;
+  top: 50%;
+  color: #ff3333;
+  font-size: 1.55rem;
+  font-weight: 900;
+  text-shadow: 0 0 8px rgba(0, 0, 0, 0.85), 0 2px 6px rgba(0, 0, 0, 0.85);
+  pointer-events: none;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  transform: translate(-50%, -50%);
+  opacity: 1;
+}
+
+.enemy-hit-popup.crit {
+  color: #ffe066;
+  font-size: 2rem;
+  text-shadow: 0 0 16px #ff8c00, 0 0 8px rgba(0, 0, 0, 0.85), 0 2px 6px rgba(0, 0, 0, 0.85);
+}
+
+.enemy-hit-popup.heal {
+  color: #5cff8a;
+  font-size: 1.55rem;
+  font-weight: 900;
+  text-shadow: 0 0 14px rgba(92, 255, 138, 0.85), 0 0 6px rgba(0, 0, 0, 0.85), 0 2px 6px rgba(0, 0, 0, 0.85);
+}
+
+.enemy-hit-enter-active {
+  animation: enemy-hit-rise 0.95s ease-out forwards;
+}
+
+@keyframes enemy-hit-rise {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -30%);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -55%);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -110%);
+  }
 }
 
 .enemy-shortcut-badge {

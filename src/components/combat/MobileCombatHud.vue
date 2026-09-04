@@ -16,6 +16,7 @@ const props = defineProps<{
     canTargetAllies?: boolean
     activeHeroIndex?: number
     attackedHeroIds?: string[]
+    hitPopups?: { heroId: string | null, value: number, key: number, isCrit?: boolean, variant?: 'damage' | 'crit' | 'blocked' }[]
 }>()
 
 const emit = defineEmits<{
@@ -45,6 +46,12 @@ const attackedHero = computed<Hero | null>(() => {
 const displayedHero = computed<Hero | null>(() => attackedHero.value ?? effectivePlayer.value)
 
 const isDisplayingAttackedHero = computed(() => !!attackedHero.value)
+
+const displayedHeroPopups = computed(() => {
+    const popups = props.hitPopups ?? []
+    const id = displayedHero.value?.id ?? null
+    return popups.filter(p => p.heroId === id)
+})
 
 const hpPercent = computed(() => {
     const h = displayedHero.value
@@ -154,6 +161,16 @@ function onAllyRowClick(hero: Hero | null) {
                 </div>
             </div>
             <HeroDotIcons v-if="displayedHero" :effects="displayedHero.statusEffects" />
+            <TransitionGroup name="mobile-hit" tag="div" class="mobile-hit-layer">
+                <div
+                    v-for="popup in displayedHeroPopups"
+                    :key="popup.key"
+                    class="mobile-hit-popup"
+                    :class="{ crit: popup.variant === 'crit' || popup.isCrit, blocked: popup.variant === 'blocked', heal: popup.variant === 'heal' }"
+                >
+                    {{ popup.variant === 'heal' ? '+' : '-' }}{{ popup.value }}
+                </div>
+            </TransitionGroup>
         </button>
 
         <transition name="panel-preview">
@@ -235,6 +252,73 @@ function onAllyRowClick(hero: Hero | null) {
     cursor: pointer;
     text-align: left;
     font-family: inherit;
+    position: relative;
+    overflow: visible;
+}
+
+.mobile-hit-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: visible;
+    z-index: 5;
+}
+
+.mobile-hit-popup {
+    position: absolute;
+    left: 50%;
+    top: 30%;
+    color: #ff3333;
+    font-size: 1.3rem;
+    font-weight: 900;
+    text-shadow: 0 0 8px rgba(0, 0, 0, 0.85), 0 2px 6px rgba(0, 0, 0, 0.85);
+    pointer-events: none;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    transform: translate(-50%, -50%);
+    opacity: 1;
+}
+
+.mobile-hit-popup.crit {
+    color: #ffe066;
+    font-size: 1.65rem;
+    text-shadow: 0 0 16px #ff8c00, 0 0 8px rgba(0, 0, 0, 0.85), 0 2px 6px rgba(0, 0, 0, 0.85);
+}
+
+.mobile-hit-popup.blocked {
+    color: #4ea3ff;
+    font-size: 1rem;
+    font-weight: 800;
+    text-shadow: 0 0 10px rgba(78, 163, 255, 0.9), 0 2px 6px rgba(0, 0, 0, 0.85);
+}
+
+.mobile-hit-popup.heal {
+    color: #5cff8a;
+    font-size: 1.4rem;
+    font-weight: 900;
+    text-shadow: 0 0 14px rgba(92, 255, 138, 0.85), 0 0 6px rgba(0, 0, 0, 0.85), 0 2px 6px rgba(0, 0, 0, 0.85);
+}
+
+.mobile-hit-enter-active {
+    animation: mobile-hit-rise 0.95s ease-out forwards;
+}
+
+@keyframes mobile-hit-rise {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -10%);
+    }
+
+    20% {
+        opacity: 1;
+        transform: translate(-50%, -45%);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -100%);
+    }
 }
 
 .mobile-hud-portrait {

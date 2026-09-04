@@ -271,9 +271,9 @@ defineExpose({
           v-for="popup in hitPopups"
           :key="popup.key"
           class="hero-hit-popup"
-          :class="{ crit: popup.variant === 'crit' || popup.isCrit, blocked: popup.variant === 'blocked' }"
+          :class="{ crit: popup.variant === 'crit' || popup.isCrit, blocked: popup.variant === 'blocked', heal: popup.variant === 'heal' }"
         >
-          -{{ popup.value }}
+          {{ popup.variant === 'heal' ? '+' : '-' }}{{ popup.value }}
         </div>
       </div>
 
@@ -952,6 +952,13 @@ defineExpose({
   font-size: 1.15rem;
   font-weight: 800;
   text-shadow: 0 0 10px rgba(78, 163, 255, 0.9), 0 2px 6px rgba(0, 0, 0, 0.85);
+}
+
+.hero-hit-popup.heal {
+  color: #5cff8a;
+  font-size: 1.55rem;
+  font-weight: 900;
+  text-shadow: 0 0 14px rgba(92, 255, 138, 0.85), 0 0 6px rgba(0, 0, 0, 0.85), 0 2px 6px rgba(0, 0, 0, 0.85);
 }
 
 .hero-hit-enter-active {
