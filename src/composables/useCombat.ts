@@ -263,8 +263,9 @@ const isProcessingDot = ref(false)
         }
         addToLog(`Bloqueaste el golpe. Recibes ${blockedDmg} de daño.`)
       } else {
-        target.takeDamage(phaseDamage)
-        showPlayerHit(phaseDamage, { heroId: target.id, isCrit: wasCrit, variant: wasCrit ? 'crit' : 'damage' })
+        const dmg = Math.max(1, phaseDamage)
+        target.takeDamage(dmg)
+        showPlayerHit(dmg, { heroId: target.id, isCrit: wasCrit, variant: wasCrit ? 'crit' : 'damage' })
         if (pattern.customSound) audioManager.playCustomSound(pattern.customSound)
         else audioManager.playAttackSound()
         audioManager.playHitSound()
