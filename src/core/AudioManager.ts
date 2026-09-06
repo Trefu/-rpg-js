@@ -2,6 +2,7 @@ import { Howl, Howler } from 'howler'
 
 type MusicTrack = 'menu' | 'combat' | 'boss'
 type SfxName = 'attack' | 'hit' | 'victory' | 'block' | 'dotFire' | 'dotPoison' | 'dotIce'
+type CuriositySfx = 'curiosityOpen' | 'curiosityConfirm' | 'curiosityReward' | 'curiosityPunishment' | 'curiosityAmbush' | 'curiosityNoop'
 
 const MENU_SRC = '/assets/music/menu_ost.mp3'
 const COMBAT_SOURCES = [
@@ -21,6 +22,20 @@ const SFX_SRC: Record<SfxName, string> = {
 }
 
 /**
+ * SFX dedicados al sistema de eventos "?" (curiosidades). Se mapean a
+ * archivos existentes en `public/assets/sounds/` para evitar meter
+ * assets nuevos.
+ */
+const CURIOSITY_SFX_SRC: Record<CuriositySfx, string> = {
+    curiosityOpen: '/assets/sounds/UI_Menu_SFX/Confirm.wav',
+    curiosityConfirm: '/assets/sounds/UI_Menu_SFX/Hover.wav',
+    curiosityReward: '/assets/sounds/Buffs_Heals_SFX/Heal.wav',
+    curiosityPunishment: '/assets/sounds/Buffs_Heals_SFX/Debuff.wav',
+    curiosityAmbush: '/assets/sounds/Battle_SFX/Encounter.wav',
+    curiosityNoop: '/assets/sounds/UI_Menu_SFX/Decline.wav'
+}
+
+/**
  * Multiplicador de volumen por SFX, relativo al `sfxVolume` maestro.
  * Se usa para que sonidos cortos como el `block` (que compiten con el
  * `hit` del mismo impacto) se escuchen por encima del resto.
@@ -35,6 +50,15 @@ const SFX_VOLUME_MULT: Record<SfxName, number> = {
     dotIce: 0.7
 }
 
+const CURIOSITY_SFX_VOLUME_MULT: Record<CuriositySfx, number> = {
+    curiosityOpen: 0.8,
+    curiosityConfirm: 0.6,
+    curiosityReward: 1,
+    curiosityPunishment: 1,
+    curiosityAmbush: 1.1,
+    curiosityNoop: 0.8
+}
+
 interface CombatPool {
     howls: Howl[]
     currentIndex: number
@@ -47,6 +71,7 @@ export class AudioManager {
     private bossHowl: Howl | null = null
     private combatPool: CombatPool = { howls: [], currentIndex: 0 }
     private soundEffects: Partial<Record<SfxName, Howl>> = {}
+    private curiositySfx: Partial<Record<CuriositySfx, Howl>> = {}
     /**
      * Cache de Howls para sonidos custom (paths arbitrarios).
      * Permite que una ability/ataque reproduzca su propio SFX sin
@@ -131,6 +156,16 @@ export class AudioManager {
         return this.soundEffects[name]!
     }
 
+    private getCuriositySfx(name: CuriositySfx): Howl {
+        if (!this.curiositySfx[name]) {
+            this.curiositySfx[name] = new Howl({
+                src: [CURIOSITY_SFX_SRC[name]],
+                volume: this.sfxVolume * CURIOSITY_SFX_VOLUME_MULT[name]
+            })
+        }
+        return this.curiositySfx[name]!
+    }
+
     private tryPlay(howl: Howl): void {
         if (!this.unlocked) return
         const ctx = Howler.ctx
@@ -212,6 +247,36 @@ export class AudioManager {
 
     public playDotIceSound(): void {
         this.tryPlay(this.getSfx('dotIce'))
+    }
+
+    /** SFX al abrir el modal de un evento "?". */
+    public playCuriosityOpenSound(): void {
+        this.tryPlay(this.getCuriositySfx('curiosityOpen'))
+    }
+
+    /** SFX al pulsar una eleccion del evento "?". */
+    public playCuriosityConfirmSound(): void {
+        this.tryPlay(this.getCuriositySfx('curiosityConfirm'))
+    }
+
+    /** SFX cuando el outcome del evento es una recompensa. */
+    public playCuriosityRewardSound(): void {
+        this.tryPlay(this.getCuriositySfx('curiosityReward'))
+    }
+
+    /** SFX cuando el outcome del evento es un castigo. */
+    public playCuriosityPunishmentSound(): void {
+        this.tryPlay(this.getCuriositySfx('curiosityPunishment'))
+    }
+
+    /** SFX cuando el outcome del evento es una emboscada. */
+    public playCuriosityAmbushSound(): void {
+        this.tryPlay(this.getCuriositySfx('curiosityAmbush'))
+    }
+
+    /** SFX cuando el outcome del evento es no-op (elegir "pasar de largo"). */
+    public playCuriosityNoopSound(): void {
+        this.tryPlay(this.getCuriositySfx('curiosityNoop'))
     }
 
     /**

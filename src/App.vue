@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, onUnmounted, ref, watch } from 'vue'
 import PreGameView from './components/pregame/PreGameView.vue'
 import RecruitHeroModal from './components/expedition/RecruitHeroModal.vue'
 import CuriosityEventModal from './components/expedition/CuriosityEventModal.vue'
+import CuriosityEventToast from './components/expedition/CuriosityEventToast.vue'
 import GameUI from './components/ui/GameUI.vue'
 import { useGameStore } from './stores/game'
 import { useExpeditionStore } from './stores/expedition'
@@ -11,6 +12,11 @@ import type { ZoneId } from './core/zones/EnemyPools'
 import type { INode } from './core/interfaces/IExpedition'
 import type { Hero } from './core/Hero'
 import { restoreItemsToMax } from './core/items/items'
+import {
+  summarizeCuriosityResult,
+  type CuriosityResultSummary
+} from './core/events/curiosityResultSummary'
+import type { ResolveResult } from './core/events/curiosityEvents'
 
 const CombatView = defineAsyncComponent(() => import('./components/combat/CombatView.vue'))
 const ExpeditionMap = defineAsyncComponent(() => import('./components/expedition/ExpeditionMap.vue'))
@@ -32,7 +38,7 @@ const pendingRecruitNodeId = ref<string | null>(null)
 
 /**
  * Estado del modal de eventos "?". Se abre al hacer click en un nodo
- * `Curiosity`. Tras elegir una opcion, el modal emite:
+ * `curiosity`. Tras elegir una opcion, el modal emite:
  *   - `resolved` cuando el outcome se aplico (cerramos y completamos).
  *   - `ambush` cuando la opcion dispara un combate (rellenamos los
  *     enemigos del nodo y navegamos a combat; `handleCombatEnded`
@@ -40,6 +46,40 @@ const pendingRecruitNodeId = ref<string | null>(null)
  */
 const isCuriosityModalOpen = ref(false)
 const pendingCuriosityNodeId = ref<string | null>(null)
+
+/**
+ * Toast informativo que aparece al volver al mapa tras un evento.
+ * Se popula desde `handleCuriosityResolved` (reward/noop) y se
+ * extiende desde `handleCombatEnded` (recompensas de emboscada
+ * cuando el combate termina en victoria). Auto-dismiss a los 6s.
+ */
+const curiosityToast = ref<CuriosityResultSummary | null>(null)
+let curiosityToastTimer: number | null = null
+
+function showCuriosityToast(summary: CuriosityResultSummary) {
+  curiosityToast.value = summary
+  if (curiosityToastTimer !== null) {
+    window.clearTimeout(curiosityToastTimer)
+  }
+  curiosityToastTimer = window.setTimeout(() => {
+    curiosityToast.value = null
+    curiosityToastTimer = null
+  }, 6000)
+}
+
+function dismissCuriosityToast() {
+  curiosityToast.value = null
+  if (curiosityToastTimer !== null) {
+    window.clearTimeout(curiosityToastTimer)
+    curiosityToastTimer = null
+  }
+}
+
+onUnmounted(() => {
+  if (curiosityToastTimer !== null) {
+    window.clearTimeout(curiosityToastTimer)
+  }
+})
 
 audioManager.playMenuMusic()
 
@@ -58,6 +98,7 @@ const handleResetGame = () => {
   pendingRecruitNodeId.value = null
   isCuriosityModalOpen.value = false
   pendingCuriosityNodeId.value = null
+  dismissCuriosityToast()
 }
 
 const handleStartRun = (payload: { zoneId: ZoneId, heroes: Hero[] }) => {
@@ -105,11 +146,29 @@ const handleCuriosityClose = () => {
   pendingCuriosityNodeId.value = null
 }
 
+/**
+ * Recibe el resultado resuelto del modal (despues de que el jugador
+ * pulsa "Seguir"). Lo convierte en un resumen legible y lo muestra
+ * como toast al volver al mapa.
+ */
+const handleCuriosityResolved = (payload: { eventId: string, title: string, result: ResolveResult }) => {
+  showCuriosityToast(summarizeCuriosityResult(payload.title, payload.result))
+}
+
 const handleCuriosityAmbush = (payload: { nodeId: string, enemies: any[] }) => {
   const node = expeditionStore.currentExpedition?.nodes.find(n => n.id === payload.nodeId)
   if (node) {
     node.enemies = payload.enemies
   }
+  // Guardamos un placeholder de emboscada en el toast para que al
+  // volver del combate el jugador recuerde el contexto. Se reemplazara
+  // por el resumen de victoria si gana, o se borrara si pierde.
+  showCuriosityToast({
+    kind: 'ambush',
+    title: 'Emboscada',
+    flavor: 'Algo se mueve entre las sombras...',
+    lines: ['Combate en curso']
+  })
   isCuriosityModalOpen.value = false
   pendingCuriosityNodeId.value = null
   gameStore.navigateTo('combat')
@@ -141,6 +200,23 @@ const handleCombatEnded = (victory: boolean) => {
           hero.health = Math.floor(hero.maxHealth * 0.25)
         }
       }
+      // Si el combate vino de una emboscada de curiosidad, extendemos
+      // el toast con los premios de combate. Asi el jugador ve ambos:
+      // el contexto narrativo y el botin.
+      if (node.type === 'curiosity' && (totalXp > 0 || totalGold > 0)) {
+        const lines: string[] = []
+        if (totalXp > 0) lines.push(`+${totalXp} XP por combate`)
+        if (totalGold > 0) lines.push(`+${totalGold} oro por combate`)
+        const existing = curiosityToast.value
+        const title = existing?.title ?? 'Emboscada'
+        const flavor = existing?.flavor ?? 'Sales victorioso del combate.'
+        showCuriosityToast({
+          kind: 'reward',
+          title,
+          flavor,
+          lines: [...(existing?.lines ?? []), ...lines]
+        })
+      }
     }
     expeditionStore.completeNode(expeditionStore.selectedNode?.id || '')
     if (expeditionStore.selectedNode?.type === 'boss') {
@@ -154,6 +230,11 @@ const handleCombatEnded = (victory: boolean) => {
       window.alert('F')
       handleResetGame()
       return
+    }
+    // Si pierdes la emboscada pero sigues vivo, limpiamos el toast
+    // narrativo para no confundir al volver al mapa.
+    if (curiosityToast.value?.kind === 'ambush') {
+      dismissCuriosityToast()
     }
     gameStore.navigateTo('expedition-map')
   }
@@ -191,6 +272,12 @@ const handleTrainingEnded = () => {
       v-if="isCuriosityModalOpen"
       @close="handleCuriosityClose"
       @ambush="handleCuriosityAmbush"
+      @resolved="handleCuriosityResolved"
+    />
+
+    <CuriosityEventToast
+      :summary="curiosityToast"
+      @dismiss="dismissCuriosityToast"
     />
   </div>
 </template>

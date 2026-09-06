@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useGameStore } from '@/stores/game'
 import { useExpeditionStore } from '@/stores/expedition'
 import { getEnemiesForNode } from '@/core/zones/EnemyPools'
+import { AudioManager } from '@/core/AudioManager'
 import {
   pickRandomCuriosityEvent,
   resolveCuriosityChoice,
-  type CuriosityChoice
+  type CuriosityChoice,
+  type ResolveResult
 } from '@/core/events/curiosityEvents'
 import curiosityIcon from '@/assets/icons/magic-portal.png'
 import closeIcon from '@/assets/icons/cross-mark.png'
@@ -14,22 +16,30 @@ import closeIcon from '@/assets/icons/cross-mark.png'
 const emit = defineEmits<{
   (e: 'close'): void
   (e: 'ambush', payload: { nodeId: string, enemies: any[] }): void
+  (e: 'resolved', payload: { eventId: string, title: string, result: ResolveResult }): void
 }>()
 
 const gameStore = useGameStore()
 const expeditionStore = useExpeditionStore()
+const audioManager = AudioManager.getInstance()
 
 /** Evento elegido al abrir el modal; persiste durante toda la interaccion. */
 const event = pickRandomCuriosityEvent()
 
 /**
- * Despues de elegir una opcion guardamos el resultado para mostrar
- * el flavor de resolucion. `null` mientras el jugador sigue decidiendo.
+ * Despues de elegir una opcion guardamos el resultado completo para
+ * mostrar el flavor de resolucion y, al cerrar, alimentar el toast
+ * informativo del mapa. `null` mientras el jugador sigue decidiendo.
  */
 type Resolution =
-  | { kind: 'effects-applied' | 'noop', flavor: string }
+  | { kind: 'effects-applied', flavor: string, effects: import('@/core/events/curiosityEvents').AppliedEffect[] }
+  | { kind: 'noop', flavor: string }
   | { kind: 'ambush-ready', flavor: string }
 const resolution = ref<Resolution | null>(null)
+
+onMounted(() => {
+  audioManager.playCuriosityOpenSound()
+})
 
 /**
  * Mapa de piso coherente con el que usa `useExpeditionGenerator` para
@@ -47,18 +57,41 @@ function floorForNode(nodeId: string): number {
 }
 
 function choose(choice: CuriosityChoice) {
+  audioManager.playCuriosityConfirmSound()
   const result = resolveCuriosityChoice(choice, {
     heroes: gameStore.activeHeroes,
     teamItems: gameStore.teamItems
   })
 
   if (result.kind === 'ambush') {
+    audioManager.playCuriosityAmbushSound()
     resolution.value = { kind: 'ambush-ready', flavor: result.flavor }
+  } else if (result.kind === 'noop') {
+    audioManager.playCuriosityNoopSound()
+    resolution.value = { kind: 'noop', flavor: result.flavor }
   } else {
-    resolution.value = {
-      kind: result.kind === 'noop' ? 'noop' : 'effects-applied',
-      flavor: result.kind === 'noop' ? result.flavor : (result.log[0] ?? '')
+    // effects-applied: el outcome es reward o punishment (puede incluir
+    // ambos tipos). Reproducimos el sonido segun la naturaleza del
+    // primer efecto para que el jugador reciba feedback inmediato.
+    const hasDamage = result.effects.some(e =>
+      e.kind === 'damage' || e.kind === 'energyLoss' || e.kind === 'loseItem'
+    )
+    const hasReward = result.effects.some(e =>
+      e.kind === 'heal' || e.kind === 'fullHeal' || e.kind === 'restoreEnergy'
+        || e.kind === 'grantItem' || e.kind === 'gold' || e.kind === 'xp'
+    )
+    if (hasDamage && !hasReward) {
+      audioManager.playCuriosityPunishmentSound()
+    } else if (hasReward && !hasDamage) {
+      audioManager.playCuriosityRewardSound()
+    } else if (hasDamage && hasReward) {
+      // Tradeoff (dano + item, energyLoss + xp, etc.): sonido de
+      // castigo porque suele ser el efecto dominante perceptivamente.
+      audioManager.playCuriosityPunishmentSound()
+    } else {
+      audioManager.playCuriosityNoopSound()
     }
+    resolution.value = { kind: 'effects-applied', flavor: result.log[0] ?? '', effects: result.effects }
   }
 }
 
@@ -74,6 +107,16 @@ function continueAfterResolution() {
     const enemies = getEnemiesForNode(zoneId, floor, floor + 3)
     emit('ambush', { nodeId, enemies })
     return
+  }
+  // Emitimos el resultado resuelto para que App.vue muestre el toast
+  // informativo al volver al mapa. El modal ya hizo su trabajo; lo
+  // cerramos a continuacion.
+  if (resolution.value) {
+    const r = resolution.value
+    const lastResult: ResolveResult = r.kind === 'noop'
+      ? { kind: 'noop', flavor: r.flavor }
+      : { kind: 'effects-applied', log: [r.flavor], effects: r.effects }
+    emit('resolved', { eventId: event.id, title: event.title, result: lastResult })
   }
   emit('close')
 }
