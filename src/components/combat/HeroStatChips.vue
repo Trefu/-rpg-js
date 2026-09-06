@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import type { Hero } from '@/core/Hero'
+import '@/styles/hint-colors.css'
 
 interface Props {
   hero: Hero | null
@@ -8,10 +9,11 @@ interface Props {
   tooltipPosition?: 'below' | 'above'
   /**
    * Filtra los chips renderizados. Default `all`.
-   * - `stats`: solo las stats base (ATQ, DEF, AGI, CUE, CON, MEN)
-   * - `defense`: solo los derivados de defensa (FÍS, MAG)
+   * - `atributos`: solo la sección ATRIBUTOS (AGI, CUE, CON, MEN)
+   * - `stats`:     solo la sección STATS (ATQ, CRIT, DEF FÍS, DEF MÁG)
+   * - `defense`:  solo los chips de reducción (DEF FÍS y DEF MÁG)
    */
-  only?: 'all' | 'stats' | 'defense'
+  only?: 'all' | 'atributos' | 'stats' | 'defense'
 }
 const props = withDefaults(defineProps<Props>(), {
   tooltipPosition: 'below',
@@ -33,122 +35,239 @@ interface StatChip {
   label: string
   value: string
   hint: string
-  kind: 'agi' | 'phys' | 'mag' | 'atk' | 'def' | 'body' | 'con' | 'mind'
+  kind: 'agi' | 'phys' | 'mag' | 'atk' | 'atk-mag' | 'body' | 'con' | 'mind' | 'crit'
+  section: 'atributos' | 'stats'
+}
+
+interface ChipGroup {
+  section: 'atributos' | 'stats'
+  label: string
+  chips: StatChip[]
 }
 
 function reductionPct(def: number): number {
   return Math.max(0, Math.min(50, Math.floor((def - 10) * 0.5 * 10) / 10))
 }
 
-const chips = computed<StatChip[]>(() => {
+function round1(n: number): number {
+  return Math.round(n * 10) / 10
+}
+
+/**
+ * Helpers de coloreo para los hints. Cada color coincide con el chip/badge
+ * de su stat para que el ojo identifique al instante qué número viene
+ * de dónde. Familias de color:
+ *   - Cuerpo (orange)   → CUE, ATQ, DEF FÍS
+ *   - Mente  (azul)     → MEN, ATQ MAG, DEF MÁG
+ *   - Agi    (amarillo) → AGI, CRIT
+ *   - Vida   (verde)    → CON, DEF crudo
+ *
+ * `v-html` se usa en el render del tooltip y los inputs son cálculos +
+ * strings estáticos, así que no hay riesgo de inyección.
+ */
+const T = {
+  base: (n: string | number) => `<span class="hint-base">${n}</span>`,
+  lvl:  (n: string | number) => `<span class="hint-lvl">${n}</span>`,
+  atk:  (n: string | number) => `<span class="hint-atk">${n}</span>`,
+  def:  (n: string | number) => `<span class="hint-def">${n}</span>`,
+  mdef: (n: string | number) => `<span class="hint-mdef">${n}</span>`,
+  phys: (n: string | number) => `<span class="hint-phys">${n}</span>`,
+  mag:  (n: string | number) => `<span class="hint-mag">${n}</span>`,
+  cue:  (n: string | number) => `<span class="hint-cue">${n}</span>`,
+  con:  (n: string | number) => `<span class="hint-con">${n}</span>`,
+  mind: (n: string | number) => `<span class="hint-mind">${n}</span>`,
+  agi:  (n: string | number) => `<span class="hint-agi">${n}</span>`
+}
+
+const chipGroups = computed<ChipGroup[]>(() => {
   const p = props.hero
   if (!p) return []
   const def = p.defense()
+  const magicDef = typeof p.magicDefense === 'function' ? p.magicDefense() : def
   const rpct = reductionPct(def)
+  const mpct = reductionPct(magicDef)
   const agi = p.baseStats.agility.value
-  if (!props.showAll) {
-    return [
-      {
-        key: 'phys',
-        label: 'FÍS',
-        value: `${rpct}%`,
-        kind: 'phys',
-        hint: `Reducción de daño físico: ${rpct}%\nFórmula: max(0, defense - 10) × 0.5% (cap 50%).\nDefense = 10 + ln(1 + max(0, body - 10)) × 4 + max(0, constitution - 10) × 0.5.\nSe aplica como bonus al max block reduction del patrón enemigo (cap 50% por stat, más el base del patrón).`
-      },
-      {
-        key: 'mag',
-        label: 'MAG',
-        value: `${rpct}%`,
-        kind: 'mag',
-        hint: `Reducción de daño mágico: ${rpct}%\nEste juego usa defensa unificada: la reducción mágica se calcula con la misma fórmula que la física (defensa del personaje).\nSi en el futuro se separa, se aplicará mind × coeficiente aquí.`
-      },
-      {
-        key: 'agi',
-        label: 'AGI',
-        value: String(agi),
-        kind: 'agi',
-        hint: `Agilidad: ${agi}\nDefine cuándo actúas y suma chance de crítico.\nFórmula: critChance base + bonus(agi).\nBonus(agi) = (ln(1 + max(0, agi - 10)) × 5)%`
-      }
-    ]
-  }
-  const allChips: StatChip[] = [
-    {
-      key: 'atk',
-      label: 'ATQ',
-      value: String(p.attack()),
-      kind: 'atk',
-      hint: `Ataque: ${p.attack()}\nFórmula: baseAttack + (body - 10) × 0.5 + nivel × 1.`
-    },
-    {
-      key: 'def',
-      label: 'DEF',
-      value: String(def),
-      kind: 'def',
-      hint: `Defensa: ${def}\nFórmula: 10 + ln(1 + max(0, body - 10)) × 4 + max(0, constitution - 10) × 0.5.`
-    },
-    {
-      key: 'phys',
-      label: 'FÍS',
-      value: `${rpct}%`,
-      kind: 'phys',
-      hint: `Reducción de daño físico: ${rpct}%\nFórmula: max(0, defense - 10) × 0.5% (cap 50%).\nDefense = 10 + ln(1 + max(0, body - 10)) × 4 + max(0, constitution - 10) × 0.5.\nSe aplica como bonus al max block reduction del patrón enemigo (cap 50% por stat, más el base del patrón).`
-    },
-    {
-      key: 'mag',
-      label: 'MAG',
-      value: `${rpct}%`,
-      kind: 'mag',
-      hint: `Reducción de daño mágico: ${rpct}%\nEste juego usa defensa unificada: la reducción mágica se calcula con la misma fórmula que la física (defensa del personaje).\nSi en el futuro se separa, se aplicará mind × coeficiente aquí.`
-    },
-    {
-      key: 'agi',
-      label: 'AGI',
-      value: String(agi),
-      kind: 'agi',
-      hint: `Agilidad: ${agi}\nDefine cuándo actúas y suma chance de crítico.\nFórmula: critChance base + bonus(agi).\nBonus(agi) = (ln(1 + max(0, agi - 10)) × 5)%`
-    },
+  const bodyV = p.baseStats.body.value
+  const conV = p.baseStats.constitution.value
+  const mindV = p.baseStats.mind.value
+  const bodyBonus = round1(Math.log(1 + Math.max(0, bodyV - 10)) * 4)
+  const constiBonus = round1(Math.max(0, conV - 10) * 0.5)
+  const mindBonus = round1(Math.log(1 + Math.max(0, mindV - 10)) * 4)
+  const atk = p.attack()
+  const atkFromBody = round1((bodyV - 10) * 0.5)
+  const atkFromLevel = p.level * 1
+  const physDefExtra = Math.max(0, def - 10)
+  const magDefExtra = Math.max(0, magicDef - 10)
+  const critBonus = round1(Math.log(1 + Math.max(0, agi - 10)) * 2)
+  const critPct = round1(p.getEffectiveCritChance())
+  const matk = p.magicAttack()
+  const matkFromMind = round1(Math.max(0, mindV - 10) * 0.4)
+  const matkFromLevel = p.level * 1
+
+  /**
+   * ATRIBUTOS — las stats puras que alimentan todo lo demás:
+   * Cuerpo (daño/defensa), Mente (daño mágico/defensa mágica),
+   * Agilidad (orden de turno/crítico) y Constitución (defensa física/vida).
+   */
+  const atributosChips: StatChip[] = [
     {
       key: 'body',
       label: 'CUE',
-      value: String(Math.round(p.baseStats.body.value)),
+      value: String(Math.round(bodyV)),
       kind: 'body',
-      hint: `Cuerpo: ${p.baseStats.body.value}\nStat de daño físico y defensivo (logarítmico sobre 10).`
-    },
-    {
-      key: 'con',
-      label: 'CON',
-      value: String(Math.round(p.baseStats.constitution.value)),
-      kind: 'con',
-      hint: `Constitución: ${p.baseStats.constitution.value}\nResistencia física y vitalidad. Bonus lineal ×0.5 sobre 10 a la defensa.`
+      section: 'atributos',
+      hint:
+        `${T.cue('Cuerpo')}: ${T.cue(Math.round(bodyV))}\n` +
+        `Alimenta ${T.atk('ATQ')} (${T.atk(atkFromBody + ' de daño')}) y ${T.def('DEF FÍS')} (${T.def(bodyBonus + ' de defensa')}).`
     },
     {
       key: 'mind',
       label: 'MEN',
-      value: String(Math.round(p.baseStats.mind.value)),
+      value: String(Math.round(mindV)),
       kind: 'mind',
-      hint: `Mente: ${p.baseStats.mind.value}\nPoder mágico. Escala daño de hechizos (coeficiente 0.4 sobre 10).`
+      section: 'atributos',
+      hint:
+        `${T.mind('Mente')}: ${T.mind(Math.round(mindV))}\n` +
+        `Alimenta ${T.mag('ATQ MAG')} (${T.mag(matkFromMind + ' de daño mágico')}) y ${T.mdef('DEF MÁG')} (${T.mdef(mindBonus + ' de defensa')}).`
+    },
+    {
+      key: 'con',
+      label: 'CON',
+      value: String(Math.round(conV)),
+      kind: 'con',
+      section: 'atributos',
+      hint:
+        `${T.con('Constitución')}: ${T.con(Math.round(conV))}\n` +
+        `Aporta ${T.def(constiBonus + ' a la Defensa física')}\n` +
+        `y +${T.con(Math.max(0, Math.round(conV) - 10) * 4 + ' HP')} a la vida máxima.`
+    },
+    {
+      key: 'agi',
+      label: 'AGI',
+      value: String(Math.round(agi)),
+      kind: 'agi',
+      section: 'atributos',
+      hint:
+        `${T.agi('Agilidad')}: ${T.agi(Math.round(agi))}\n` +
+        `Alimenta ${T.agi('CRIT')} (bonus de crit ≈ ${T.agi(critBonus + '%')}) y el orden de turno.`
     }
   ]
+
+  /**
+   * STATS — todo lo derivado que ves en combate. Las defensas absorben el %
+   * como valor principal; el número crudo de defensa aparece en el tooltip.
+   */
+  const statsChips: StatChip[] = [
+    {
+      key: 'atk',
+      label: 'ATQ',
+      value: String(atk),
+      kind: 'atk',
+      section: 'stats',
+      hint:
+        `${T.atk('Ataque físico')}: ${T.atk(atk)}\n` +
+        `Suma: ${T.cue(atkFromBody + ' de Cuerpo')} + ${T.lvl(atkFromLevel + '')} de ${T.lvl('nivel')}.\n` +
+        `Solo ${T.cue('Cuerpo')} y ${T.lvl('nivel')} (sin baseAttack, igual que enemigos).`
+    },
+    {
+      key: 'atk-mag',
+      label: 'ATQ MAG',
+      value: String(matk),
+      kind: 'atk-mag',
+      section: 'stats',
+      hint:
+        `${T.mag('Ataque mágico')}: ${T.mag(matk)}\n` +
+        `Suma: ${T.mind(matkFromMind + ' de Mente')} (×0.4) + ${T.lvl(matkFromLevel + '')} de ${T.lvl('nivel')}.\n` +
+        `Es la base que usan tus hechizos/abilities antes de aplicar el modificador de la habilidad.`
+    },
+    {
+      key: 'phys',
+      label: 'DEF FÍS',
+      value: `${rpct}%`,
+      kind: 'phys',
+      section: 'stats',
+      hint:
+        `Reducción de daño físico: ${T.phys(rpct + '%')}\n` +
+        `Tu ${T.cue('Cuerpo')} y ${T.con('Constitución')} se vuelven ${T.def('Defensa física')}.\n` +
+        `DEF física = ${T.def(def)} (piso ${T.base('10')} + ${T.cue(bodyBonus + ' de Cuerpo')} + ${T.con(constiBonus + ' de Constitución')})\n` +
+        `Reducción = (${T.def(def)} − piso ${T.base('10')}) × 0.5% = ${T.phys(rpct + '%')}.`
+    },
+    {
+      key: 'mag',
+      label: 'DEF MÁG',
+      value: `${mpct}%`,
+      kind: 'mag',
+      section: 'stats',
+      hint:
+        `Reducción de daño mágico: ${T.mag(mpct + '%')}\n` +
+        `Depende de tu ${T.mind('Mente')} (no del ${T.cue('Cuerpo')}).\n` +
+        `DEF mágica = ${T.mdef(magicDef)} (piso ${T.base('10')} + ${T.mind(mindBonus + ' de Mente')})\n` +
+        `Reducción = (${T.mdef(magicDef)} − piso ${T.base('10')}) × 0.5% = ${T.mag(mpct + '%')}.\n` +
+        `Aplica contra hechizos, fuego, frío, veneno, arcano, holy y radiant.`
+    },
+    {
+      key: 'crit',
+      label: 'CRIT',
+      value: `${critPct}%`,
+      kind: 'crit',
+      section: 'stats',
+      hint:
+        `${T.agi('Crítico')}: ${T.agi(critPct + '%')}\n` +
+        `Chance efectiva de crítico (base ${T.agi(p.critChance + '%')} + ${T.agi(critBonus + '%')} de ${T.agi('Agilidad')}).\n` +
+        `Si supera 100% parte de los golpes son overcrits (×3 de daño).`
+    }
+  ]
+
+  // Vista reducida: solo los derivados que el jugador necesita en combate.
+  if (!props.showAll) {
+    return [{ section: 'stats', label: 'Stats', chips: statsChips }]
+  }
+
+  // Filtros explícitos.
+  if (props.only === 'atributos') {
+    return [{ section: 'atributos', label: 'Atributos', chips: atributosChips }]
+  }
   if (props.only === 'stats') {
-    return allChips.filter(c => c.kind !== 'phys' && c.kind !== 'mag')
+    return [{ section: 'stats', label: 'Stats', chips: statsChips }]
   }
   if (props.only === 'defense') {
-    return allChips.filter(c => c.kind === 'phys' || c.kind === 'mag')
+    return [{
+      section: 'stats',
+      label: 'Stats',
+      chips: statsChips.filter(c => c.kind === 'phys' || c.kind === 'mag')
+    }]
   }
-  return allChips
+  return [
+    { section: 'atributos', label: 'Atributos', chips: atributosChips },
+    { section: 'stats', label: 'Stats', chips: statsChips }
+  ]
 })
+
+const showAtributosHeader = computed(() =>
+  props.showAll && props.only !== 'stats' && props.only !== 'defense'
+)
+const showStatsHeader = computed(() => props.only !== 'atributos')
 
 const activeKey = computed(() => hovered.value ?? touched.value)
 const activeChip = computed<StatChip | null>(() => {
   const k = activeKey.value
   if (!k) return null
-  return chips.value.find(c => c.key === k) ?? null
+  for (const group of chipGroups.value) {
+    const found = group.chips.find(c => c.key === k)
+    if (found) return found
+  }
+  return null
 })
 
 function setChipRef(key: string) {
-  return (el: Element | null) => {
-    if (el) chipEls.value[key] = el as HTMLElement
-    else delete chipEls.value[key]
+  // Vue 3 pasa `Element | ComponentPublicInstance | null` al ref callback.
+  // Lo casteamos a HTMLElement porque solo guardamos refs a <button>s.
+  return (el: unknown) => {
+    if (el instanceof HTMLElement) {
+      chipEls.value[key] = el
+    } else {
+      delete chipEls.value[key]
+    }
   }
 }
 
@@ -230,24 +349,31 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="hero-stat-chips" @click.stop>
-    <button
-      v-for="chip in chips"
-      :key="chip.key"
-      type="button"
-      class="stat-chip"
-      :class="[
-        'stat-chip-' + chip.kind,
-        { 'tooltip-open': isOpen(chip.key) }
-      ]"
-      :ref="setChipRef(chip.key)"
-      @mouseenter="openTooltip(chip.key)"
-      @mouseleave="closeTooltip(chip.key)"
-      @click.stop="toggle(chip.key)"
+  <div class="hero-stat-chips-stack" @click.stop>
+    <div
+      v-for="group in chipGroups"
+      :key="group.section"
+      class="hero-stat-chips"
     >
-      <span class="stat-chip-label">{{ chip.label }}</span>
-      <span class="stat-chip-value">{{ chip.value }}</span>
-    </button>
+      <div class="stat-chip-section-label">{{ group.label }}</div>
+      <button
+        v-for="chip in group.chips"
+        :key="chip.key"
+        type="button"
+        class="stat-chip"
+        :class="[
+          'stat-chip-' + chip.kind,
+          { 'tooltip-open': isOpen(chip.key) }
+        ]"
+        :ref="setChipRef(chip.key)"
+        @mouseenter="openTooltip(chip.key)"
+        @mouseleave="closeTooltip(chip.key)"
+        @click.stop="toggle(chip.key)"
+      >
+        <span class="stat-chip-label">{{ chip.label }}</span>
+        <span class="stat-chip-value">{{ chip.value }}</span>
+      </button>
+    </div>
   </div>
 
   <Teleport to="body">
@@ -260,12 +386,18 @@ onBeforeUnmount(() => {
       @click.stop
       @mouseenter="recomputeTooltipPosition"
     >
-      <div class="stat-chip-tooltip-line">{{ activeChip.hint }}</div>
+      <div class="stat-chip-tooltip-line" v-html="activeChip.hint"></div>
     </div>
   </Teleport>
 </template>
 
 <style scoped>
+.hero-stat-chips-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
 .hero-stat-chips {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(105px, 1fr));
@@ -327,12 +459,12 @@ onBeforeUnmount(() => {
 }
 
 .stat-chip-atk {
-  border-color: rgba(255, 102, 102, 0.5);
-  background: linear-gradient(135deg, rgba(255, 102, 102, 0.16), rgba(160, 40, 40, 0.28));
+  border-color: rgba(255, 138, 58, 0.65);
+  background: linear-gradient(135deg, rgba(255, 138, 58, 0.24), rgba(180, 60, 0, 0.34));
 }
 .stat-chip-atk:hover,
 .stat-chip-atk.tooltip-open {
-  box-shadow: 0 0 8px rgba(255, 102, 102, 0.55);
+  box-shadow: 0 0 10px rgba(255, 138, 58, 0.7);
 }
 
 .stat-chip-def {
@@ -345,30 +477,69 @@ onBeforeUnmount(() => {
 }
 
 .stat-chip-body {
-  border-color: rgba(255, 167, 38, 0.5);
-  background: linear-gradient(135deg, rgba(255, 167, 38, 0.16), rgba(160, 80, 0, 0.28));
+  border-color: rgba(255, 138, 58, 0.55);
+  background: linear-gradient(135deg, rgba(255, 138, 58, 0.18), rgba(180, 60, 0, 0.28));
 }
 .stat-chip-body:hover,
 .stat-chip-body.tooltip-open {
-  box-shadow: 0 0 8px rgba(255, 167, 38, 0.5);
+  box-shadow: 0 0 8px rgba(255, 138, 58, 0.6);
 }
 
 .stat-chip-con {
-  border-color: rgba(174, 213, 129, 0.5);
-  background: linear-gradient(135deg, rgba(174, 213, 129, 0.16), rgba(80, 130, 60, 0.28));
+  border-color: rgba(102, 187, 106, 0.65);
+  background: linear-gradient(135deg, rgba(102, 187, 106, 0.22), rgba(46, 125, 50, 0.34));
 }
 .stat-chip-con:hover,
 .stat-chip-con.tooltip-open {
-  box-shadow: 0 0 8px rgba(174, 213, 129, 0.5);
+  box-shadow: 0 0 10px rgba(102, 187, 106, 0.65);
 }
 
 .stat-chip-mind {
-  border-color: rgba(186, 104, 200, 0.55);
-  background: linear-gradient(135deg, rgba(186, 104, 200, 0.16), rgba(90, 30, 120, 0.28));
+  border-color: rgba(130, 177, 255, 0.55);
+  background: linear-gradient(135deg, rgba(130, 177, 255, 0.18), rgba(40, 90, 180, 0.28));
 }
 .stat-chip-mind:hover,
 .stat-chip-mind.tooltip-open {
-  box-shadow: 0 0 8px rgba(186, 104, 200, 0.55);
+  box-shadow: 0 0 8px rgba(130, 177, 255, 0.6);
+}
+
+.stat-chip-atk-mag {
+  border-color: rgba(130, 177, 255, 0.65);
+  background: linear-gradient(135deg, rgba(130, 177, 255, 0.24), rgba(40, 90, 180, 0.34));
+}
+.stat-chip-atk-mag:hover,
+.stat-chip-atk-mag.tooltip-open {
+  box-shadow: 0 0 10px rgba(130, 177, 255, 0.7);
+}
+
+.stat-chip-crit {
+  border-color: rgba(255, 230, 102, 0.7);
+  background: linear-gradient(135deg, rgba(255, 230, 102, 0.22), rgba(255, 200, 60, 0.34));
+}
+.stat-chip-crit:hover,
+.stat-chip-crit.tooltip-open {
+  box-shadow: 0 0 10px rgba(255, 230, 102, 0.7);
+}
+
+.stat-chip-section-label {
+  grid-column: 1 / -1;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: #4CAF50;
+  text-transform: uppercase;
+  padding: 0.15rem 0 0.05rem;
+  border-top: 1px dashed rgba(255, 230, 102, 0.25);
+  margin-top: 0.2rem;
+}
+
+.stat-chip-section-label:first-child {
+  border-top: none;
+  margin-top: 0;
+}
+
+.stat-chip-section-label-stats {
+  margin-top: 0.4rem;
 }
 
 .stat-chip-label {
@@ -425,6 +596,18 @@ onBeforeUnmount(() => {
   line-height: 1.55;
   text-shadow: 0 1px 2px #000;
 }
+
+/*
+ * Coloreo de los números en los hints de los chips. Cada color matchea el
+ * badge de su stat para que sea fácil seguir el origen de cada sumando.
+ * Se aplican como fondo + texto para buen contraste sobre el tooltip oscuro.
+ *
+ * NOTA: estos estilos van en un <style> NO scoped (más abajo) porque el
+ * tooltip se inyecta vía <Teleport to="body"> y su contenido v-html no
+ * recibe el atributo data-v del scope, así que un selector .hint-base[data-v-XXX]
+ * no aplicaría. Por eso las clases son globales y se limitan al árbol del
+ * tooltip vía `.stat-chip-tooltip .hint-base { ... }`.
+ */
 
 @keyframes stat-chip-tooltip-in {
   from { opacity: 0; transform: scale(0.95); }

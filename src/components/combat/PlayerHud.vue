@@ -206,7 +206,9 @@ onBeforeUnmount(() => {
 
 .hud-level {
   font-size: 0.7rem;
-  color: #b6f5b6;
+  color: #ffd54f;
+  font-weight: 700;
+  text-shadow: 0 1px 2px #000;
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
@@ -240,7 +242,7 @@ onBeforeUnmount(() => {
 }
 
 .resource-bar-fill.bar-hp {
-  background: linear-gradient(90deg, #ff6b6b, #ff3a3a);
+  background: linear-gradient(90deg, #66bb6a, #2e7d32);
 }
 
 .resource-bar-fill.bar-energy {
@@ -382,7 +384,9 @@ onBeforeUnmount(() => {
 }
 
 .hud-dropdown-subtitle {
-  color: #b6f5b6;
+  color: #ffd54f;
+  font-weight: 700;
+  text-shadow: 0 1px 2px #000;
   font-size: 0.72rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;

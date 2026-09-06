@@ -215,8 +215,10 @@ const isProcessingDot = ref(false)
     opts: { crit?: CritResult } = {}
   ): Promise<DefenseChallengeResult | null> {
     return new Promise((resolve) => {
-      const modifiers = getDefenseModifiers(target, enemy)
       const selectedPattern = preSelectedPattern ?? enemy.selectAttackPattern(target)
+      // Pasamos el damageType para que la defensa use mind ante daño mágico
+      // (fire/frost/poison/shadow/arcane/holy/radiant) o body ante daño físico.
+      const modifiers = getDefenseModifiers(target, enemy, selectedPattern.damageType)
       const withModifiers = applyModifiersToPattern(selectedPattern, modifiers)
       const crit: CritResult = opts.crit ?? { multiplier: 1, isCrit: false, isOvercrit: false }
       const adjusted = crit.isCrit ? applyCritToPattern(withModifiers, modifiers) : withModifiers

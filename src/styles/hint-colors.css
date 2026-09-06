@@ -1,0 +1,51 @@
+/*
+ * Coloreo de los números en los tooltips de stats.
+ *
+ * Importante: estos estilos son GLOBALES (no scoped) porque el contenido
+ * se inyecta con v-html y/o vive dentro de <Teleport to="body"> y los
+ * spans resultantes NO reciben el atributo data-v del scope de Vue.
+ *
+ * Familias de color por mecánica (coherente con los badges):
+ *   - Cuerpo (orange)   → hint-atk, hint-cue, hint-phys
+ *   - Mente  (azul)     → hint-mag, hint-mind
+ *   - Agi    (amarillo) → hint-agi (CRIT también lo usa indirectamente)
+ *   - Verde (vida)      → hint-con
+ *   - Otros             → hint-base (gris), hint-lvl (gold), hint-def/hint-mdef (verdes distintos)
+ */
+
+/* Tooltip de HeroStatChips (desktop) — v-html dentro de <Teleport> */
+.stat-chip-tooltip .hint-base { color: #b0bec5; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.stat-chip-tooltip .hint-lvl  { color: #ffd54f; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.stat-chip-tooltip .hint-atk  { color: #ff8a3a; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.stat-chip-tooltip .hint-def  { color: #81c784; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.stat-chip-tooltip .hint-mdef { color: #4dd0e1; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.stat-chip-tooltip .hint-phys { color: #ff8a3a; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.stat-chip-tooltip .hint-mag  { color: #82b1ff; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.stat-chip-tooltip .hint-cue  { color: #ff8a3a; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.stat-chip-tooltip .hint-con { color: #5cff8a; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.stat-chip-tooltip .hint-mind { color: #82b1ff; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.stat-chip-tooltip .hint-agi  { color: #ffe066; font-weight: 700; text-shadow: 0 1px 2px #000; }
+
+/* Tooltip de MobileHeroStats — v-html dentro de <Teleport> */
+.mobile-hero-stats-tooltip .hint-base { color: #b0bec5; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.mobile-hero-stats-tooltip .hint-lvl  { color: #ffd54f; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.mobile-hero-stats-tooltip .hint-atk  { color: #ff8a3a; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.mobile-hero-stats-tooltip .hint-def  { color: #81c784; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.mobile-hero-stats-tooltip .hint-mdef { color: #4dd0e1; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.mobile-hero-stats-tooltip .hint-phys { color: #ff8a3a; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.mobile-hero-stats-tooltip .hint-mag  { color: #82b1ff; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.mobile-hero-stats-tooltip .hint-cue  { color: #ff8a3a; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.mobile-hero-stats-tooltip .hint-con { color: #5cff8a; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.mobile-hero-stats-tooltip .hint-mind { color: #82b1ff; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.mobile-hero-stats-tooltip .hint-agi  { color: #ffe066; font-weight: 700; text-shadow: 0 1px 2px #000; }
+
+/* Modal PlayerStatsPanel — v-html dentro del modal (no teleport, pero igual
+   tree-shakeado porque Vue no rastrea el contenido v-html). */
+.stat-hint .hint-base { color: #b0bec5; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.stat-hint .hint-lvl  { color: #ffd54f; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.stat-hint .hint-atk  { color: #ff8a3a; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.stat-hint .hint-def  { color: #81c784; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.stat-hint .hint-mdef { color: #4dd0e1; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.stat-hint .hint-cue  { color: #ff8a3a; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.stat-hint .hint-con { color: #5cff8a; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.stat-hint .hint-mind { color: #82b1ff; font-weight: 700; text-shadow: 0 1px 2px #000; }
