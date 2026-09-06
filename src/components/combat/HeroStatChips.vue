@@ -260,9 +260,14 @@ const activeChip = computed<StatChip | null>(() => {
 })
 
 function setChipRef(key: string) {
-  return (el: Element | null) => {
-    if (el) chipEls.value[key] = el as HTMLElement
-    else delete chipEls.value[key]
+  // Vue 3 pasa `Element | ComponentPublicInstance | null` al ref callback.
+  // Lo casteamos a HTMLElement porque solo guardamos refs a <button>s.
+  return (el: unknown) => {
+    if (el instanceof HTMLElement) {
+      chipEls.value[key] = el
+    } else {
+      delete chipEls.value[key]
+    }
   }
 }
 
