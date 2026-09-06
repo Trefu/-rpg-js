@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import type { IPlayerStats, IStat } from '@/core/interfaces/ICharacter'
 import type { Hero } from '@/core/Hero'
+import '@/styles/hint-colors.css'
 import heartIcon from '@/assets/icons/heart-drop.png'
 import energyIcon from '@/assets/icons/bolt-drop.png'
 import attackIcon from '@/assets/icons/crossed-swords.png'
@@ -64,14 +65,73 @@ const statRows = computed<StatRow[]>(() => {
   }))
 })
 
+const T = {
+  base: (n: string | number) => `<span class="hint-base">${n}</span>`,
+  lvl:  (n: string | number) => `<span class="hint-lvl">${n}</span>`,
+  atk:  (n: string | number) => `<span class="hint-atk">${n}</span>`,
+  def:  (n: string | number) => `<span class="hint-def">${n}</span>`,
+  mdef: (n: string | number) => `<span class="hint-mdef">${n}</span>`,
+  cue:  (n: string | number) => `<span class="hint-cue">${n}</span>`,
+  con:  (n: string | number) => `<span class="hint-con">${n}</span>`,
+  mind: (n: string | number) => `<span class="hint-mind">${n}</span>`
+}
+
 const derived = computed<PlayerDerivedStat[]>(() => {
   if (!props.player) return []
   const p = props.player
+  const def = p.defense()
+  const magicDef = typeof p.magicDefense === 'function' ? p.magicDefense() : def
+  const bodyV = p.baseStats.body.value
+  const conV = p.baseStats.constitution.value
+  const mindV = p.baseStats.mind.value
+  const round1 = (n: number) => Math.round(n * 10) / 10
+  const bodyBonus = round1(Math.log(1 + Math.max(0, bodyV - 10)) * 4)
+  const constiBonus = round1(Math.max(0, conV - 10) * 0.5)
+  const mindBonus = round1(Math.log(1 + Math.max(0, mindV - 10)) * 4)
+  const atkFromBody = round1((bodyV - 10) * 0.5)
+  const atkFromLevel = p.level * 1
+  const atk = p.attack()
+  const matk = p.magicAttack()
+  const matkFromMind = round1(Math.max(0, mindV - 10) * 0.4)
+  const matkFromLevel = p.level * 1
   return [
     { key: 'hp',    label: 'Vida',     icon: heartIcon, value: p.maxHealth, hint: 'Salud máxima' },
     { key: 'energy',label: 'Energía',  icon: energyIcon, value: p.maxEnergy, hint: 'Recurso para habilidades' },
-    { key: 'atk',   label: 'Ataque',   icon: attackIcon, value: p.attack(), hint: 'Daño base' },
-    { key: 'def',   label: 'Defensa',  icon: defenseIcon, value: p.defense(), hint: 'Mitigación' },
+    {
+      key: 'atk',
+      label: 'Ataque',
+      icon: attackIcon,
+      value: atk,
+      hint:
+        `${T.atk(atk)} = ${T.cue(atkFromBody + ' de Cuerpo')} + ${T.lvl(atkFromLevel + '')} de ${T.lvl('nivel')}. ` +
+        `Sin baseAttack (igual que enemigos).`
+    },
+    {
+      key: 'matk',
+      label: 'Atq. mágico',
+      icon: attackIcon,
+      value: matk,
+      hint:
+        `${T.mag(matk)} = ${T.mind(matkFromMind + ' de Mente')} (×0.4) + ${T.lvl(matkFromLevel + '')} de ${T.lvl('nivel')}. ` +
+        `Base de tus hechizos/abilities.`
+    },
+    {
+      key: 'def',
+      label: 'Defensa',
+      icon: defenseIcon,
+      value: def,
+      hint:
+        `${T.def(def)} = ${T.base('10')} + ${T.cue(bodyBonus + ' de Cuerpo')} + ${T.con(constiBonus + ' de Constitución')}.`
+    },
+    {
+      key: 'mdef',
+      label: 'Def. mágica',
+      icon: defenseIcon,
+      value: magicDef,
+      hint:
+        `${T.mdef(magicDef)} = ${T.base('10')} + ${T.mind(mindBonus + ' de Mente')}. ` +
+        `Aplica contra hechizos, fuego, frío, veneno, arcano, holy y radiant.`
+    },
     { key: 'lvl',   label: 'Nivel',    icon: levelIcon, value: p.level, hint: 'Nivel del héroe' }
   ]
 })
@@ -112,6 +172,7 @@ function onBackdropClick(e: MouseEvent) {
                 <span class="stat-icon"><img :src="d.icon" alt="" /></span>
                 <span class="stat-label">{{ d.label }}</span>
                 <span class="stat-value">{{ d.value }}</span>
+                <span v-if="d.hint" class="stat-hint" v-html="d.hint"></span>
               </li>
             </ul>
           </section>
@@ -236,6 +297,21 @@ function onBackdropClick(e: MouseEvent) {
 }
 
 .stat-row.derived { border-left-color: rgba(76, 175, 80, 0.5); }
+
+.stat-hint {
+  grid-column: 1 / -1;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: #cfd8dc;
+  font-family: 'Courier New', monospace;
+  white-space: pre-line;
+  text-shadow: 0 1px 2px #000;
+}
+
+/* Mismo coloreo que HeroStatChips: las reglas reales viven en
+   `src/styles/hint-colors.css` (global, importado en <script setup>)
+   porque v-html escapa al scope data-v de Vue. */
 
 .stat-icon { font-size: 0.95rem; text-align: center; display: inline-flex; align-items: center; justify-content: center; }
 .stat-icon img { width: 18px; height: 18px; object-fit: contain; }

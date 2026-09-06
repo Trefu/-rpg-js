@@ -4,7 +4,7 @@ import type { IStatusEffect } from '../interfaces/IStatusEffect'
 import type { DefensePatternConfig } from '../defense/types'
 import type { Hero } from '../Hero'
 import { getScalingStat, getScalingCoefficient, type UnifiedDamageType } from '../combat/damageTypes'
-import { computeDefense } from '../defense/computeDefense'
+import { computeDefense, computeMagicDefense } from '../defense/computeDefense'
 import { computeAgilityCritBonus, rollCritFromChance, type CritResult } from '../crit'
 import { applyDamageVariance } from '../abilities/Abilities'
 
@@ -135,6 +135,16 @@ export abstract class Enemy extends Character implements ICombatant {
 
   public defense(): number {
     return computeDefense(this.baseStats.body, this.baseStats.constitution)
+  }
+
+  /**
+   * Defensa mágica del enemigo (escala con `mind`). Simétrica a
+   * `Hero.magicDefense` por consistencia, aunque el motor de defensa actual
+   * no la usa (los enemigos defienden solo del ataque básico del jugador,
+   * no de hechizos).
+   */
+  public magicDefense(): number {
+    return computeMagicDefense(this.baseStats.mind)
   }
 
   public calculatePhaseDamage(pattern: DefensePatternConfig, multiplier: number = 1): number {

@@ -1,5 +1,5 @@
 import type { IStatusEffect, DefenseEffectSide, DefenseContribution } from '../interfaces/IStatusEffect'
-import type { DefenseBlockEffect } from './types'
+import type { AttackType, DefenseBlockEffect } from './types'
 
 export interface DefenseModifiers {
   waveSpeedMultiplier: number
@@ -30,10 +30,30 @@ export const DEFAULT_DEFENSE_MODIFIERS: DefenseModifiers = {
 export interface PlayerLikeForDefense {
   statusEffects: IStatusEffect[]
   defense(): number
+  /**
+   * Defensa contra daño mágico. Opcional: si está ausente y el ataque
+   * entrante es mágico, se cae al `defense()` físico como fallback
+   * (compatibilidad hacia atrás con mocks/tests sin magicDefense).
+   */
+  magicDefense?(): number
 }
 
 export interface EnemyLikeForDefense {
   statusEffects: IStatusEffect[]
+}
+
+/** Tipos de daño que se consideran mágicos para la elección de stat. */
+const MAGIC_DAMAGE_TYPES: ReadonlySet<string> = new Set([
+  'fire', 'frost', 'poison', 'shadow', 'arcane', 'holy', 'radiant', 'magical'
+])
+
+/**
+ * Indica si un `damageType` representa daño mágico (se reduce con `mind`).
+ * Default `false` (incluye 'physical' y undefined → defensa física).
+ */
+export function isMagicalDamageType(damageType: string | undefined | null): boolean {
+  if (!damageType) return false
+  return MAGIC_DAMAGE_TYPES.has(damageType)
 }
 
 /**
@@ -62,9 +82,28 @@ function applyDefenseContributions(
   }
 }
 
+/**
+ * Resuelve qué stat de defensa aplica según el `damageType` entrante.
+ * Mágico → `magicDefense()` (basada en mind); físico → `defense()` (body+con).
+ * Si el player no implementa `magicDefense` pero el ataque es mágico, fallback
+ * a `defense()` para no romper callers viejos / tests.
+ */
+function resolveDefenseValue(
+  player: PlayerLikeForDefense,
+  damageType: string | undefined
+): number {
+  if (isMagicalDamageType(damageType)) {
+    if (typeof player.magicDefense === 'function') {
+      return player.magicDefense()
+    }
+  }
+  return player.defense()
+}
+
 export function getDefenseModifiers(
   player: PlayerLikeForDefense,
-  enemy?: EnemyLikeForDefense | null
+  enemy?: EnemyLikeForDefense | null,
+  damageType?: AttackType | string | null
 ): DefenseModifiers {
   const modifiers: DefenseModifiers = { ...DEFAULT_DEFENSE_MODIFIERS }
 
@@ -74,7 +113,7 @@ export function getDefenseModifiers(
   applyDefenseContributions(player.statusEffects, modifiers, 'player')
   applyDefenseContributions(enemy?.statusEffects, modifiers, 'enemy')
 
-  const defense = player.defense()
+  const defense = resolveDefenseValue(player, damageType ?? undefined)
   if (Number.isFinite(defense)) {
     const extra = Math.max(0, defense - 10)
     modifiers.blockReductionBonus += extra * 0.005

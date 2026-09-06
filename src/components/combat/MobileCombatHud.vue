@@ -396,7 +396,9 @@ function onAllyRowClick(hero: Hero | null) {
 
 .mobile-hud-level {
     font-size: 0.74rem;
-    color: #b6f5b6;
+    color: #ffd54f;
+    font-weight: 700;
+    text-shadow: 0 1px 2px #000;
     letter-spacing: 0.04em;
     flex-shrink: 0;
 }
@@ -416,7 +418,7 @@ function onAllyRowClick(hero: Hero | null) {
 }
 
 .mobile-hud-bar-fill.hp {
-    background: linear-gradient(90deg, #ff6b6b, #ff3a3a);
+  background: linear-gradient(90deg, #66bb6a, #2e7d32);
 }
 
 .mobile-hud-bar-fill.energy {
@@ -642,7 +644,7 @@ function onAllyRowClick(hero: Hero | null) {
 }
 
 .mobile-hud-ally-bar-fill.hp {
-    background: linear-gradient(90deg, #ff6b6b, #ff3a3a);
+  background: linear-gradient(90deg, #66bb6a, #2e7d32);
 }
 
 .mobile-hud-ally-bar-fill.energy {

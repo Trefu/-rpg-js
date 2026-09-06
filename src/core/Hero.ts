@@ -4,8 +4,23 @@ import type { IStatusEffect } from './interfaces/IStatusEffect'
 import type { ICombatant, IInventory, ILevelable, IPlayerStats, IStat } from './interfaces/ICharacter'
 import { BasicAttack } from './abilities/Abilities'
 import { DOT_STATUS_TYPES } from './StatusEffects'
-import { computeDefense } from './defense/computeDefense'
+import { computeDefense, computeMagicDefense } from './defense/computeDefense'
 import { computeAgilityCritBonus, rollCritFromChance, type CritResult } from './crit'
+
+/** Multiplicador lineal del bonus de Constitución sobre la vida máxima. */
+const CONSTITUTION_HP_SCALE = 4
+
+/** Ganancia base de vida por nivel (independiente de stats). */
+const HP_PER_LEVEL = 20
+
+/**
+ * Bonus lineal de Constitución sobre la vida máxima. Misma forma que
+ * `CONSTITUTION_DEFENSE_SCALE` en defensa física: por debajo del neutro
+ * (10) no resta; por encima aporta `×CONSTITUTION_HP_SCALE` HP.
+ */
+function computeConstitutionHpBonus(con: IStat): number {
+  return Math.max(0, con.value - 10) * CONSTITUTION_HP_SCALE
+}
 
 /**
  * Descripciones por defecto de cada stat. Viven en Hero porque son
@@ -35,7 +50,6 @@ export interface HeroOptions {
   name: string
   level?: number
   maxHealth: number
-  baseAttack: number
   maxEnergy?: number
   startingEnergy?: number
   agility: IStatInput
@@ -64,7 +78,6 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
   public energy: number
   public maxEnergy: number
   public baseStats: IPlayerStats
-  public baseAttack: number
   public critChance: number
   public critDamageMultiplier: number
   public sprite: string
@@ -83,6 +96,14 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
    */
   public passiveEnergyRegen: number = 0
 
+  /**
+   * Vida base de la clase al nivel 1, sin contar Constitución.
+   * Se guarda para que `maxHealth` se pueda recalcular en cada levelUp
+   * cuando Constitución crece (de lo contrario el bonus de CON se "congela"
+   * al construirse el personaje).
+   */
+  private baseMaxHealth: number
+
   constructor(opts: HeroOptions) {
     super(opts.id, opts.name, opts.level ?? 1, opts.maxHealth)
     this.experience = 0
@@ -91,7 +112,6 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
     this.abilities = []
     this.maxEnergy = opts.maxEnergy ?? 50
     this.energy = opts.startingEnergy ?? this.maxEnergy
-    this.baseAttack = opts.baseAttack
     this.critChance = opts.critChance ?? 5
     this.critDamageMultiplier = 2.0
     this.sprite = opts.sprite ?? ''
@@ -105,8 +125,20 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
       mind: { ...opts.mind, description: STAT_DESCRIPTIONS.mind },
       body: { ...opts.body, description: STAT_DESCRIPTIONS.body }
     }
+    this.baseMaxHealth = opts.maxHealth
+    this.recomputeMaxHealth()
 
     this.learnAbility(BasicAttack)
+  }
+
+  /**
+   * Recalcula `maxHealth` a partir de la vida base de la clase + bonus
+   * actual de Constitución + bonus por nivel. Idempotent.
+   */
+  private recomputeMaxHealth(): void {
+    const conBonus = computeConstitutionHpBonus(this.baseStats.constitution)
+    const levelBonus = (this.level - 1) * HP_PER_LEVEL
+    this.maxHealth = this.baseMaxHealth + conBonus + levelBonus
   }
 
   public learnAbility(ability: IAbility): void {
@@ -115,13 +147,50 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
     }
   }
 
+  /**
+   * Daño base del héroe. Misma forma que `Enemy.attack()`: solo `body`
+   * (stat de daño físico) + bonus de nivel. No hay `baseAttack` aparte:
+   * la diferenciación entre clases viene por el `value` de body y por las
+   * abilities, igual que enemigos usan solo body.
+   */
   public attack(): number {
     if (!this.isAlive) return 0
-    return this.baseAttack + (this.baseStats.body.value - 10) * 0.5 + this.level * 1
+    return (this.baseStats.body.value - 10) * 0.5 + this.level * 1
+  }
+
+  /**
+   * Daño mágico base: espejo de `attack()` pero escalando con `mind`
+   * (coeficiente 0.4, mismo que `SCALING_COEFFICIENTS.mind`).
+   *
+   * El bonus de Mente se capa a 0 (igual que la defensa física) para
+   * evitar penalizar a magos con Mente < 10 y para no mostrar números
+   * negativos en tooltips. El resultado se redondea porque `(mind-10)*0.4`
+   * genera ruido de coma flotante al sumarle `level` (p.ej. mind=8 daba
+   * `0.19999999999999996` en vez de `1`).
+   *
+   * Es lo que las abilities/hechizos del héroe usan como base antes de
+   * sumar el modificador de la habilidad concreta.
+   */
+  public magicAttack(): number {
+    if (!this.isAlive) return 0
+    const mindBonus = Math.max(0, this.baseStats.mind.value - 10) * 0.4
+    return Math.round(mindBonus + this.level * 1)
   }
 
   public defense(): number {
     return computeDefense(this.baseStats.body, this.baseStats.constitution)
+  }
+
+  /**
+   * Defensa mágica: mitigación contra daño mágico (fuego, frío, veneno,
+   * arcano, holy, radiant, shadow). Escala con `mind`, no con body.
+   *
+   * Usada por el motor de defensa cuando el patrón enemigo tiene
+   * `damageType` mágico. Ver `computeMagicDefense` para los detalles de la
+   * fórmula.
+   */
+  public magicDefense(): number {
+    return computeMagicDefense(this.baseStats.mind)
   }
 
   /**
@@ -159,7 +228,7 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
     this.baseStats.constitution.value += STAT_BASE_GROWTH + this.baseStats.constitution.growthPerLevel
     this.baseStats.mind.value += STAT_BASE_GROWTH + this.baseStats.mind.growthPerLevel
     this.baseStats.body.value += STAT_BASE_GROWTH + this.baseStats.body.growthPerLevel
-    this.maxHealth += 20
+    this.recomputeMaxHealth()
     this.health = this.maxHealth
     this.maxEnergy += 10
     this.energy = this.maxEnergy
