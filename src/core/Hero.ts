@@ -127,6 +127,12 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
     }
     this.baseMaxHealth = opts.maxHealth
     this.recomputeMaxHealth()
+    // `super()` ya asigno `this.health = opts.maxHealth` (la vida base de
+    // la clase), pero `recomputeMaxHealth` acaba de actualizar
+    // `this.maxHealth` con el bonus de Constitucion. Sin este ajuste la
+    // barra de HP queda por debajo del maximo justo al seleccionar al
+    // heroe en la pantalla de inicio (mismo patron que `levelUp()`).
+    this.health = this.maxHealth
 
     this.learnAbility(BasicAttack)
   }
