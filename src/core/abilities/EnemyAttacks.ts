@@ -59,7 +59,7 @@ export const QUICK_CLAWS: DefensePatternConfig = {
     waveSpeed: 40,
     baseMaxBlockReduction: 0.5,
     damageMultiplier: 0.5,
-    phases: [fixedPhase(1, 2, 3, 4), fixedPhase(1, 2, 3, 4, 5), fixedPhase(4, 5, 6, 8)]
+    phases: [fixedPhase(1, 2, 3, 4), fixedPhase(1, 2, 3, 4, 5), fixedPhase(4, 5, 6, 7, 8)]
 }
 
 export const MULTIPLE_AXE_STRIKES: DefensePatternConfig = {

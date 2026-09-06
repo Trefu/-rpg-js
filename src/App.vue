@@ -2,6 +2,7 @@
 import { computed, defineAsyncComponent, ref, watch } from 'vue'
 import PreGameView from './components/pregame/PreGameView.vue'
 import RecruitHeroModal from './components/expedition/RecruitHeroModal.vue'
+import CuriosityEventModal from './components/expedition/CuriosityEventModal.vue'
 import GameUI from './components/ui/GameUI.vue'
 import { useGameStore } from './stores/game'
 import { useExpeditionStore } from './stores/expedition'
@@ -29,6 +30,17 @@ const audioManager = AudioManager.getInstance()
 const isRecruitModalOpen = ref(false)
 const pendingRecruitNodeId = ref<string | null>(null)
 
+/**
+ * Estado del modal de eventos "?". Se abre al hacer click en un nodo
+ * `Curiosity`. Tras elegir una opcion, el modal emite:
+ *   - `resolved` cuando el outcome se aplico (cerramos y completamos).
+ *   - `ambush` cuando la opcion dispara un combate (rellenamos los
+ *     enemigos del nodo y navegamos a combat; `handleCombatEnded`
+ *     se encarga del resto).
+ */
+const isCuriosityModalOpen = ref(false)
+const pendingCuriosityNodeId = ref<string | null>(null)
+
 audioManager.playMenuMusic()
 
 watch(currentView, (newView) => {
@@ -44,6 +56,8 @@ const handleResetGame = () => {
   expeditionStore.resetExpedition()
   isRecruitModalOpen.value = false
   pendingRecruitNodeId.value = null
+  isCuriosityModalOpen.value = false
+  pendingCuriosityNodeId.value = null
 }
 
 const handleStartRun = (payload: { zoneId: ZoneId, heroes: Hero[] }) => {
@@ -62,7 +76,11 @@ const handleNodeSelected = (node: INode) => {
     pendingRecruitNodeId.value = node.id
     isRecruitModalOpen.value = true
     gameStore.navigateTo('expedition-map')
-  } else if (node.type === 'shop' || node.type === 'curiosity') {
+  } else if (node.type === 'curiosity') {
+    pendingCuriosityNodeId.value = node.id
+    isCuriosityModalOpen.value = true
+    gameStore.navigateTo('expedition-map')
+  } else if (node.type === 'shop') {
     expeditionStore.completeNode(node.id)
     gameStore.navigateTo('expedition-map')
   }
@@ -80,10 +98,27 @@ const handleHeroRecruited = (_hero: Hero) => {
   // Aqui podriamos emitir un toast/log si lo deseamos.
 }
 
+const handleCuriosityClose = () => {
+  const nodeId = pendingCuriosityNodeId.value
+  if (nodeId) expeditionStore.completeNode(nodeId)
+  isCuriosityModalOpen.value = false
+  pendingCuriosityNodeId.value = null
+}
+
+const handleCuriosityAmbush = (payload: { nodeId: string, enemies: any[] }) => {
+  const node = expeditionStore.currentExpedition?.nodes.find(n => n.id === payload.nodeId)
+  if (node) {
+    node.enemies = payload.enemies
+  }
+  isCuriosityModalOpen.value = false
+  pendingCuriosityNodeId.value = null
+  gameStore.navigateTo('combat')
+}
+
 const handleCombatEnded = (victory: boolean) => {
   if (victory) {
     const node = expeditionStore.selectedNode
-    if (node?.type === 'combat' || node?.type === 'boss') {
+    if (node?.type === 'combat' || node?.type === 'boss' || node?.type === 'curiosity') {
       const defeatedEnemies = (node.enemies ?? []).filter(e => !e.isAlive)
       let totalXp = 0
       let totalGold = 0
@@ -150,6 +185,12 @@ const handleTrainingEnded = () => {
       v-if="isRecruitModalOpen"
       @close="handleRecruitModalClose"
       @hero-recruited="handleHeroRecruited"
+    />
+
+    <CuriosityEventModal
+      v-if="isCuriosityModalOpen"
+      @close="handleCuriosityClose"
+      @ambush="handleCuriosityAmbush"
     />
   </div>
 </template>
