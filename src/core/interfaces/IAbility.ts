@@ -4,7 +4,14 @@ import type { AnnouncementVariant } from '@/composables/useAnnouncer'
 
 export interface AbilityContext {
   caster: ICharacter
-  target: ICharacter
+  /**
+   * Objetivo seleccionado de la ability. `null` para abilities que se
+   * castean sobre todos los enemigos (AOE) o sobre si mismas
+   * (`requiresTarget: false`): esas abilities deben ignorar este campo y
+   * resolver sus objetivos por su cuenta (típicamente desde
+   * `context.caster` o el estado global de combate).
+   */
+  target: ICharacter | null
   ability?: IAbility
   addToLog: (message: string) => void
   showEnemyHit: (id: string, value: number, isCrit?: boolean) => void

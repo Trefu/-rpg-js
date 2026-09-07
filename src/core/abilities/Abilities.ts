@@ -310,6 +310,15 @@ export const WarriorDevastatingStrike: IAbility = {
     energyCost: 35,
     damageType: 'physical',
     targetType: 'enemies-only',
+    /**
+     * Es AOE puro: golpea a todos los enemigos vivos a la vez, asi que
+     * seleccionar un objetivo especifico es ruido. Combinado con
+     * `aoe: true` esto hace que la ability se caste al seleccionarla
+     * (sin pasar por el modo de seleccion de objetivo) y que
+     * `useCombat` aplique el daño a todos los enemigos sin distinguir
+     * un "primary target" en los logs.
+     */
+    requiresTarget: false,
     aoe: true,
     previewDamage: (hero: Hero) => {
         const body = hero.baseStats.body.value

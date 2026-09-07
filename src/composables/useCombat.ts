@@ -1224,15 +1224,20 @@ const isProcessingDot = ref(false)
   }
 
   /**
-   * AOE de una ability de heroe: golpea a TODOS los enemigos vivos (incluido
-   * el primario seleccionado) con el mismo daño final (con crit ya aplicado)
-   * en un unico tick simultaneo. La ability NO debe aplicar dano ni popup
-   * al target primario en su `execute`; eso lo hace esta funcion para que
-   * todos los impactos caigan a la vez.
-   * Sin critico adicional en los splashes.
+   * AOE de una ability de heroe: golpea a TODOS los enemigos vivos con el
+   * mismo daño final (con crit ya aplicado) en un unico tick simultaneo.
+   * La ability NO debe aplicar dano ni popup a ningun target en su
+   * `execute`; eso lo hace esta funcion para que todos los impactos
+   * caigan a la vez. Sin critico adicional en los splashes.
+   *
+   * `primaryTargetId` es el id del enemigo que el jugador selecciono
+   * explicitamente (si la ability requiere target). Si la ability es
+   * `aoe` + `requiresTarget: false`, se pasa `null` y todos los enemigos
+   * reciben el mismo trato en el log ("alcanza a X") porque no hay un
+   * objetivo primario distinguible.
    */
   async function applyHeroAoe(
-    primaryTargetId: string,
+    primaryTargetId: string | null,
     finalDamage: number,
     animationDelay: number = 1500
   ) {
@@ -1244,7 +1249,7 @@ const isProcessingDot = ref(false)
         enemy.takeDamage(finalDamage)
         showEnemyHit(enemy.id, finalDamage)
         addToLog(
-          enemy.id === primaryTargetId
+          primaryTargetId !== null && enemy.id === primaryTargetId
             ? `¡Golpe devastador golpea a ${enemy.name}! ${finalDamage} de daño.`
             : `¡Golpe devastador alcanza a ${enemy.name}! ${finalDamage} de daño.`
         )
@@ -1293,7 +1298,14 @@ const isProcessingDot = ref(false)
       }
 
       if (ability.aoe && typeof abilityContext.lastPrimaryFinalDamage === 'number') {
-        await applyHeroAoe(target.id, abilityContext.lastPrimaryFinalDamage, animationDelay)
+        /**
+         * AOE sin target (`requiresTarget: false`): no hay enemigo primario
+         * seleccionado, asi que `applyHeroAoe` trata a todos por igual.
+         * Mantiene compatibilidad con AOE que SI piden target (donde
+         * `target.id` identifica al primario en el log).
+         */
+        const primaryId = ability.requiresTarget === false ? null : target?.id ?? null
+        await applyHeroAoe(primaryId, abilityContext.lastPrimaryFinalDamage, animationDelay)
       }
     }
 

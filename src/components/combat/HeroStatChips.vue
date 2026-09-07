@@ -200,10 +200,8 @@ const chipGroups = computed<ChipGroup[]>(() => {
       section: 'stats',
       hint:
         `Reducción de daño mágico: ${T.mag(mpct + '%')}\n` +
-        `Depende de tu ${T.mind('Mente')} (no del ${T.cue('Cuerpo')}).\n` +
         `DEF mágica = ${T.mdef(magicDef)} (piso ${T.base('10')} + ${T.mind(mindBonus + ' de Mente')})\n` +
-        `Reducción = (${T.mdef(magicDef)} − piso ${T.base('10')}) × 0.5% = ${T.mag(mpct + '%')}.\n` +
-        `Aplica contra hechizos, fuego, frío, veneno, arcano, holy y radiant.`
+        `Reducción = (${T.mdef(magicDef)} − piso ${T.base('10')}) × 0.5% = ${T.mag(mpct + '%')}.\n`
     },
     {
       key: 'crit',
