@@ -114,7 +114,7 @@ function togglePreview(ability: IAbility, event?: MouseEvent) {
               </div>
 
               <div v-if="previews[idx] && expandedType === ability.type" class="ability-formula-popover" @click.stop>
-                <div class="formula-line">{{ previews[idx]!.formula }}</div>
+                <div class="formula-line" v-html="previews[idx]!.formula"></div>
               </div>
 
               <div class="ability-footer">
@@ -441,7 +441,11 @@ function togglePreview(ability: IAbility, event?: MouseEvent) {
 
 .formula-line {
   font-family: 'Consolas', 'Menlo', monospace;
-  color: #ffe600;
+  /* Base gris para los simbolos/operadores (×, +, =, →). Los
+     numeros/labels van envueltos en <span class="hint-XXX"> y toman
+     el color del stat correspondiente (orange/azul/gold) segun
+     `.ability-formula-popover .hint-XXX` en hint-colors.css. */
+  color: #b0bec5;
   font-size: 0.88rem;
   line-height: 1.45;
 }

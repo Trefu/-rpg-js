@@ -108,6 +108,30 @@ const buildPreview = (
 }
 
 /**
+ * Helpers de coloreo para las fórmulas de daño del modal de abilities.
+ * Espejo de `T` en HeroStatChips.vue: cada label/valor va envuelto en un
+ * `<span class="hint-XXX">` con el color del stat correspondiente
+ * (Cuerpo→orange, Mente→azul, nivel→gold, ATQ→orange, ATQ MAG→azul, etc.).
+ *
+ * Los colores se aplican via `.ability-formula .hint-XXX` y
+ * `.mab-info-formula .hint-XXX` en `hint-colors.css` (estilos globales
+ * porque el contenido va por v-html).
+ *
+ * Los inputs son números/strings calculados a partir de stats del caster
+ * (no user input), así que v-html es seguro.
+ */
+const F = {
+    base: (s: string | number) => `<span class="hint-base">${s}</span>`,
+    lvl:  (s: string | number) => `<span class="hint-lvl">${s}</span>`,
+    cue:  (s: string | number) => `<span class="hint-cue">${s}</span>`,
+    mind: (s: string | number) => `<span class="hint-mind">${s}</span>`,
+    agi:  (s: string | number) => `<span class="hint-agi">${s}</span>`,
+    con:  (s: string | number) => `<span class="hint-con">${s}</span>`,
+    atk:  (s: string | number) => `<span class="hint-atk">${s}</span>`,
+    mag:  (s: string | number) => `<span class="hint-mag">${s}</span>`
+}
+
+/**
  * Reproduce el SFX de la ability: si la ability define `customSound`,
  * se reproduce ese (pasado al `playCustomSound` del AudioManager);
  * si no, se usa el fallback generico `playAttackSound`.
@@ -133,18 +157,20 @@ export const BasicAttack: IAbility = {
         const level = hero.level
         const raw = body * 0.7 + level
         return buildPreview(
-            `(${body} × 0.7) + ${level} = ${raw.toFixed(1)}`,
+            `${F.cue('CUE')} ${F.cue(Math.round(body))} × 0.7 + ${F.lvl('nivel')} ${F.lvl(level)} = ${F.atk(raw.toFixed(1))}  ${F.base('→ Físico')}`,
             raw,
             'physical'
         )
     },
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
+        const target = context.target
+        if (!target || !target.isAlive) return
         const rawDamage = caster.baseStats.body.value * 0.7 + caster.level
         const { finalDamage, crit } = rollAndApplyDamage(caster, rawDamage)
         if (finalDamage > 0) {
-            context.target.takeDamage(finalDamage)
-            context.showEnemyHit(context.target.id, finalDamage, crit.isCrit)
+            target.takeDamage(finalDamage)
+            context.showEnemyHit(target.id, finalDamage, crit.isCrit)
             playAbilitySfx(context.audioManager, context.ability)
         }
         if (crit.isCrit) showCritAnnouncement(context, finalDamage, crit.isOvercrit)
@@ -170,18 +196,20 @@ export const StunStrike: IAbility = {
         const level = hero.level
         const raw = (body * 0.7 + level * 0.5) * 0.8
         return buildPreview(
-            `((${body} × 0.7) + ${level} × 0.5) × 0.8 = ${raw.toFixed(1)}`,
+            `(${F.cue('CUE')} ${F.cue(Math.round(body))} × 0.7 + ${F.lvl('nivel')} ${F.lvl(level)} × 0.5) × 0.8 = ${F.atk(raw.toFixed(1))}  ${F.base('→ Físico')}`,
             raw,
             'physical'
         )
     },
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
+        const target = context.target
+        if (!target || !target.isAlive) return
         const rawDamage = (caster.baseStats.body.value * 0.7 + caster.level * 0.5) * 0.8
         const { finalDamage, crit } = rollAndApplyDamage(caster, rawDamage)
         if (finalDamage > 0) {
-            context.target.takeDamage(finalDamage)
-            context.showEnemyHit(context.target.id, finalDamage, crit.isCrit)
+            target.takeDamage(finalDamage)
+            context.showEnemyHit(target.id, finalDamage, crit.isCrit)
             playAbilitySfx(context.audioManager, context.ability)
         }
         if (crit.isCrit) showCritAnnouncement(context, finalDamage, crit.isOvercrit)
@@ -203,18 +231,20 @@ export const StealthStrike: IAbility = {
         const level = hero.level
         const raw = (body * 0.7 + level * 0.5) * 1.5
         return buildPreview(
-            `((${body} × 0.7) + ${level} × 0.5) × 1.5 = ${raw.toFixed(1)}`,
+            `(${F.cue('CUE')} ${F.cue(Math.round(body))} × 0.7 + ${F.lvl('nivel')} ${F.lvl(level)} × 0.5) × 1.5 = ${F.atk(raw.toFixed(1))}  ${F.base('→ Físico')}`,
             raw,
             'physical'
         )
     },
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
+        const target = context.target
+        if (!target || !target.isAlive) return
         const rawDamage = (caster.baseStats.body.value * 0.7 + caster.level * 0.5) * 1.5
         const { finalDamage, crit } = rollAndApplyDamage(caster, rawDamage)
         if (finalDamage > 0) {
-            context.target.takeDamage(finalDamage)
-            context.showEnemyHit(context.target.id, finalDamage, crit.isCrit)
+            target.takeDamage(finalDamage)
+            context.showEnemyHit(target.id, finalDamage, crit.isCrit)
             playAbilitySfx(context.audioManager, context.ability)
         }
         if (crit.isCrit) showCritAnnouncement(context, finalDamage, crit.isOvercrit)
@@ -235,18 +265,20 @@ export const Fireball: IAbility = {
         const mind = hero.baseStats.mind.value
         const raw = mind * 2.5
         return buildPreview(
-            `${mind} × 2.5 = ${raw.toFixed(1)}`,
+            `${F.mind('MEN')} ${F.mind(Math.round(mind))} × 2.5 = ${F.mag(raw.toFixed(1))}  ${F.base('→ Fuego')}`,
             raw,
             'fire'
         )
     },
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
+        const target = context.target
+        if (!target || !target.isAlive) return
         const rawDamage = caster.baseStats.mind.value * 2.5
         const { finalDamage, crit } = rollAndApplyDamage(caster, rawDamage)
         if (finalDamage > 0) {
-            context.target.takeDamage(finalDamage)
-            context.showEnemyHit(context.target.id, finalDamage, crit.isCrit)
+            target.takeDamage(finalDamage)
+            context.showEnemyHit(target.id, finalDamage, crit.isCrit)
             playAbilitySfx(context.audioManager, context.ability)
         }
         if (crit.isCrit) showCritAnnouncement(context, finalDamage, crit.isOvercrit)
@@ -269,7 +301,7 @@ export const WarriorInjuringStrike: IAbility = {
         const level = hero.level
         const raw = body * 1.2 + level * 0.5
         return buildPreview(
-            `(${body} × 1.2) + ${level} × 0.5 = ${raw.toFixed(1)}  → aplica "Lesionado"`,
+            `${F.cue('CUE')} ${F.cue(Math.round(body))} × 1.2 + ${F.lvl('nivel')} ${F.lvl(level)} × 0.5 = ${F.atk(raw.toFixed(1))}  ${F.base('→ Físico · aplica Lesionado')}`,
             raw,
             'physical'
         )
@@ -325,7 +357,7 @@ export const WarriorDevastatingStrike: IAbility = {
         const level = hero.level
         const raw = body * 1.5 + level * 3
         return buildPreview(
-            `(${body} × 1.5) + (${level} × 3) = ${raw.toFixed(1)}  → golpea a todos`,
+            `(${F.cue('CUE')} ${F.cue(Math.round(body))} × 1.5) + (${F.lvl('nivel')} ${F.lvl(level)} × 3) = ${F.atk(raw.toFixed(1))}  ${F.base('→ Físico · golpea a todos')}`,
             raw,
             'physical'
         )
@@ -410,19 +442,21 @@ export const ClericRadiantStrike: IAbility = {
         const raw = mind * 2.6
         const splash = raw * 0.6
         return buildPreview(
-            `${mind} × 2.6 = ${raw.toFixed(1)}  (salta a 1-2 enemigos con ${splash.toFixed(1)})`,
+            `${F.mind('MEN')} ${F.mind(Math.round(mind))} × 2.6 = ${F.mag(raw.toFixed(1))}  ${F.base('(salta a 1-2 con')} ${F.mag(splash.toFixed(1))}${F.base(')  → Sagrado')}`,
             raw,
             'holy'
         )
     },
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
+        const target = context.target
+        if (!target || !target.isAlive) return
         const baseDamage = caster.baseStats.mind.value * 2.6
         const { finalDamage, crit } = rollAndApplyDamage(caster, baseDamage)
         context.lastPrimaryBaseDamage = baseDamage
         if (finalDamage > 0) {
-            context.target.takeDamage(finalDamage)
-            context.showEnemyHit(context.target.id, finalDamage, crit.isCrit)
+            target.takeDamage(finalDamage)
+            context.showEnemyHit(target.id, finalDamage, crit.isCrit)
             playAbilitySfx(context.audioManager, context.ability)
         }
         if (crit.isCrit) showCritAnnouncement(context, finalDamage, crit.isOvercrit)
@@ -443,17 +477,19 @@ export const ClericDivineSmite: IAbility = {
         const mind = hero.baseStats.mind.value
         const raw = mind * 4
         return buildPreview(
-            `${mind} × 4 = ${raw.toFixed(1)}`,
+            `${F.mind('MEN')} ${F.mind(Math.round(mind))} × 4 = ${F.mag(raw.toFixed(1))}  ${F.base('→ Sagrado')}`,
             raw,
             'holy'
         )
     },
     execute: async (context: AbilityContext) => {
         const caster = context.caster as Hero
+        const target = context.target
+        if (!target || !target.isAlive) return
         const { finalDamage, crit } = rollAndApplyDamage(caster, caster.baseStats.mind.value * 4)
         if (finalDamage > 0) {
-            context.target.takeDamage(finalDamage)
-            context.showEnemyHit(context.target.id, finalDamage, crit.isCrit)
+            target.takeDamage(finalDamage)
+            context.showEnemyHit(target.id, finalDamage, crit.isCrit)
             playAbilitySfx(context.audioManager, context.ability)
         }
         if (crit.isCrit) showCritAnnouncement(context, finalDamage, crit.isOvercrit)

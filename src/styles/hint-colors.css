@@ -49,3 +49,26 @@
 .stat-hint .hint-cue  { color: #ff8a3a; font-weight: 700; text-shadow: 0 1px 2px #000; }
 .stat-hint .hint-con { color: #5cff8a; font-weight: 700; text-shadow: 0 1px 2px #000; }
 .stat-hint .hint-mind { color: #82b1ff; font-weight: 700; text-shadow: 0 1px 2px #000; }
+
+/* AbilitiesModal — `formula-line` dentro de `.ability-formula-popover`
+   (modal normal, no teleport). Misma paleta que los chips para que el
+   ojo identifique al instante qué número viene de qué stat. */
+.ability-formula-popover .hint-base { color: #b0bec5; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.ability-formula-popover .hint-lvl  { color: #ffd54f; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.ability-formula-popover .hint-cue  { color: #ff8a3a; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.ability-formula-popover .hint-mind { color: #82b1ff; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.ability-formula-popover .hint-agi  { color: #ffe066; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.ability-formula-popover .hint-con  { color: #5cff8a; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.ability-formula-popover .hint-atk  { color: #ff8a3a; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.ability-formula-popover .hint-mag  { color: #82b1ff; font-weight: 700; text-shadow: 0 1px 2px #000; }
+
+/* MobileActionBar — `mab-info-formula-line` dentro de `.mab-info-formula`.
+   Misma paleta que el modal desktop. */
+.mab-info-formula .hint-base { color: #b0bec5; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.mab-info-formula .hint-lvl  { color: #ffd54f; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.mab-info-formula .hint-cue  { color: #ff8a3a; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.mab-info-formula .hint-mind { color: #82b1ff; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.mab-info-formula .hint-agi  { color: #ffe066; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.mab-info-formula .hint-con  { color: #5cff8a; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.mab-info-formula .hint-atk  { color: #ff8a3a; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.mab-info-formula .hint-mag  { color: #82b1ff; font-weight: 700; text-shadow: 0 1px 2px #000; }

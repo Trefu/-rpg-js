@@ -242,7 +242,7 @@ function shortLabel(name: string, max = 5): string {
             <span v-if="infoPreview.damageTypeLabel" class="mab-info-damage-type">{{ infoPreview.damageTypeLabel }}</span>
           </button>
           <div v-if="infoPreview && infoFormulaOpen" class="mab-info-formula" @click.stop>
-            <div class="mab-info-formula-line">{{ infoPreview.formula }}</div>
+            <div class="mab-info-formula-line" v-html="infoPreview.formula"></div>
           </div>
 
           <footer class="mab-info-footer">
@@ -626,7 +626,10 @@ function shortLabel(name: string, max = 5): string {
 
 .mab-info-formula-line {
   font-family: 'Consolas', 'Menlo', monospace;
-  color: #ffe600;
+  /* Base gris para los simbolos/operadores. Los numeros/labels van en
+     <span class="hint-XXX"> y toman el color del stat via
+     `.mab-info-formula .hint-XXX` en hint-colors.css. */
+  color: #b0bec5;
   font-size: 0.85rem;
   line-height: 1.45;
   word-break: break-word;
