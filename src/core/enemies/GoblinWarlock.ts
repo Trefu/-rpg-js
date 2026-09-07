@@ -1,5 +1,6 @@
 import { Enemy } from './Enemy'
 import goblinWarlockSprite from '@/assets/sprites/enemies/goblin-warlock.png'
+import type { ICharacter } from '../interfaces/ICharacter'
 import type { DefensePatternConfig } from '../defense/types'
 import { EMBER, GUST_OF_FOG} from '../abilities/EnemyAttacks'
 
@@ -24,5 +25,20 @@ export class GoblinWarlock extends Enemy {
       },
       classMultipliers: { agility: 1.1 }
     })
+  }
+
+  /**
+   * Si el objetivo NO tiene ya el debufo 'clouded', el warlock prioriza
+   * `GUST_OF_FOG` con un 50% de probabilidad; el resto del tiempo elige al
+   * azar entre todos los patrones disponibles (incluido GUST_OF_FOG).
+   * Si el objetivo ya esta nublado, cae al random base para no acumular
+   * stacks innecesariamente (la reaplicacion solo refresca duracion).
+   */
+  public override selectAttackPattern(player: ICharacter | null): DefensePatternConfig {
+    const isAlreadyClouded = !!player?.hasStatusEffect('clouded')
+    if (!isAlreadyClouded && Math.random() < 0.5) {
+      return GUST_OF_FOG
+    }
+    return super.selectAttackPattern(player)
   }
 }
