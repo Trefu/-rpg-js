@@ -46,6 +46,8 @@ export interface StatusEffectHooks {
 export interface DefenseContribution {
   /** Delta a sumar al multiplier de velocidad de la onda. */
   waveSpeedMultiplier?: number
+  /** Delta a sumar al tamano de la zona de exito (en fraccion de la barra, ej. -0.03 = -3%). */
+  successZoneSizeBonus?: number
   /** Delta a sumar al bonus de reduccion de bloqueo. */
   blockReductionBonus?: number
 }

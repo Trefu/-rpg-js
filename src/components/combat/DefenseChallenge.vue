@@ -4,6 +4,17 @@ import type { DefensePatternConfig, DefensePhaseZone, DefensePhaseResult, Defens
 import { DEFENSE_BAR_WIDTH, DEFAULT_WAVE_SPEED } from '@/core/defense/types'
 import { isWaveInSuccessZone, calculatePhaseTimeoutMs } from '@/core/defense/DefenseEngine'
 
+import cloud1 from '@/assets/sprites/VFX/Clouds_split/1_topright_tall.png'
+import cloud2 from '@/assets/sprites/VFX/Clouds_split/2_topleft_horizontal.png'
+import cloud3 from '@/assets/sprites/VFX/Clouds_split/3_middle_pyramid.png'
+import cloud4 from '@/assets/sprites/VFX/Clouds_split/4_bottomleft.png'
+import cloud5 from '@/assets/sprites/VFX/Clouds_split/5_bottommiddle_flat.png'
+import cloud6 from '@/assets/sprites/VFX/Clouds_split/6_bottomright_top.png'
+
+const CLOUD_SPRITES: string[] = [
+  cloud1, cloud2, cloud3, cloud4, cloud5, cloud6
+]
+
 const BAR_WIDTH = DEFENSE_BAR_WIDTH
 
 const props = withDefaults(defineProps<{
@@ -12,8 +23,10 @@ const props = withDefaults(defineProps<{
   zones: DefensePhaseZone[]
   phaseIndex: number
   isCrit?: boolean
+  clouded?: boolean
 }>(), {
-  isCrit: false
+  isCrit: false,
+  clouded: false
 })
 
 const emit = defineEmits<{
@@ -53,6 +66,79 @@ const currentZone = computed<DefensePhaseZone | null>(() => {
 const isLastPhase = computed(() => props.phaseIndex >= (props.pattern?.phases?.length ?? 1) - 1)
 
 const phaseHeader = computed(() => `Fase ${props.phaseIndex + 1} / ${props.pattern?.phases?.length ?? 1}`)
+
+interface CloudInstance {
+  id: number
+  sprite: string
+  top: number
+  left: number
+  size: number
+  durationMs: number
+  driftX: number
+  delayMs: number
+}
+
+const clouds = ref<CloudInstance[]>([])
+let cloudIdCounter = 0
+let cloudSpawnTimer: number | null = null
+
+const MAX_CONCURRENT_CLOUDS = 16
+const SPAWN_INTERVAL_MS: [number, number] = [300, 600]
+const BAR_HEIGHT_PCT: [number, number] = [5, 85]
+const BAR_WIDTH_PCT: [number, number] = [-15, 100]
+const CLOUD_SIZE_PX: [number, number] = [220, 320]
+const CLOUD_DURATION_MS: [number, number] = [1800, 4500]
+const CLOUD_DRIFT_PX: [number, number] = [-80, 80]
+
+function randomInRange(range: [number, number]): number {
+  return range[0] + Math.random() * (range[1] - range[0])
+}
+
+function spawnCloud() {
+  const spawnOne = (): CloudInstance => {
+    const instance: CloudInstance = {
+      id: ++cloudIdCounter,
+      sprite: CLOUD_SPRITES[Math.floor(Math.random() * CLOUD_SPRITES.length)],
+      top: randomInRange(BAR_HEIGHT_PCT),
+      left: randomInRange(BAR_WIDTH_PCT),
+      size: randomInRange(CLOUD_SIZE_PX),
+      durationMs: randomInRange(CLOUD_DURATION_MS),
+      driftX: randomInRange(CLOUD_DRIFT_PX),
+      delayMs: Math.random() * 300
+    }
+    clouds.value.push(instance)
+    window.setTimeout(() => {
+      clouds.value = clouds.value.filter(c => c.id !== instance.id)
+    }, instance.durationMs + instance.delayMs + 250)
+    return instance
+  }
+
+  spawnOne()
+  spawnOne()
+
+  if (clouds.value.length < MAX_CONCURRENT_CLOUDS) {
+    const nextDelay = randomInRange(SPAWN_INTERVAL_MS)
+    cloudSpawnTimer = window.setTimeout(spawnCloud, nextDelay)
+  } else {
+    cloudSpawnTimer = null
+  }
+}
+
+function clearCloudSpawner() {
+  if (cloudSpawnTimer !== null) {
+    clearTimeout(cloudSpawnTimer)
+    cloudSpawnTimer = null
+  }
+  clouds.value = []
+}
+
+watch(() => props.clouded, (val) => {
+  if (val) {
+    if (cloudSpawnTimer === null) spawnCloud()
+  } else {
+    clearCloudSpawner()
+  }
+})
 
 // Debug overlay: solo visible en dev (vite) + desktop (pointer:fine, no touch).
 const isDev = import.meta.env.DEV
@@ -205,6 +291,7 @@ onUnmounted(() => {
   window.removeEventListener('keydown', onKeydown)
   if (animationFrame) cancelAnimationFrame(animationFrame)
   clearPhaseTimeout()
+  clearCloudSpawner()
   desktopMql?.removeEventListener('change', updateIsDesktop)
 })
 </script>
@@ -237,6 +324,22 @@ onUnmounted(() => {
           <div class="wave-cursor" :style="{ left: waveLeft }">
             <div class="wave-cursor-inner"></div>
           </div>
+        </div>
+        <div v-if="clouded" class="cloud-overlay" aria-hidden="true">
+          <img
+            v-for="c in clouds"
+            :key="c.id"
+            :src="c.sprite"
+            class="cloud-sprite"
+            :style="{
+              top: c.top + '%',
+              left: c.left + '%',
+              width: c.size + 'px',
+              '--cloud-duration': c.durationMs + 'ms',
+              '--cloud-drift': c.driftX + 'px',
+              '--cloud-delay': c.delayMs + 'ms'
+            }"
+          />
         </div>
       </div>
 
@@ -333,11 +436,13 @@ onUnmounted(() => {
 }
 
 .defense-bar-wrap {
+  position: relative;
   background: rgba(255, 255, 255, 0.04);
   border-radius: 10px;
   padding: 1rem 1.5rem;
   cursor: pointer;
   user-select: none;
+  overflow: visible;
 }
 
 .defense-timeout-bar-wrap {
@@ -411,6 +516,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   will-change: transform;
+  z-index: 3;
 }
 
 .wave-cursor-inner {
@@ -420,6 +526,48 @@ onUnmounted(() => {
   border-radius: 4px;
   box-shadow: 0 0 18px rgba(255, 230, 0, 0.85);
   border: 2px solid #fff;
+}
+
+.cloud-overlay {
+  position: absolute;
+  inset: -2rem -3rem;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 5;
+}
+
+.cloud-sprite {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.15));
+  animation-name: cloud-float;
+  animation-duration: var(--cloud-duration, 2500ms);
+  animation-timing-function: ease-in-out;
+  animation-delay: var(--cloud-delay, 0ms);
+  animation-fill-mode: forwards;
+  user-select: none;
+  will-change: transform, opacity;
+}
+
+@keyframes cloud-float {
+  0% {
+    opacity: 0;
+    transform: translate(calc(-50% + 0px), calc(-50% + 4px));
+  }
+  10% {
+    opacity: 0.9;
+  }
+  50% {
+    transform: translate(calc(-50% + var(--cloud-drift, 0px) * 0.5), calc(-50% - 2px));
+  }
+  80% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--cloud-drift, 0px)), calc(-50% + 4px));
+  }
 }
 
 .defense-progress {

@@ -12,6 +12,7 @@ import weaknessIcon from '@/assets/icons/anatomy.png'
 import slowIcon from '@/assets/icons/snail.png'
 import secondWindIcon from '@/assets/icons/wind-slap.png'
 import swordWoundIcon from '@/assets/icons/open-wound.png'
+import cloudedIcon from '@/assets/sprites/VFX/Clouds_split/3_middle_pyramid.png'
 
 export const MAX_DOT_DURATION = 3
 export const CRIT_DOT_DURATION = 5
@@ -249,6 +250,32 @@ export class StatusEffects {
     )
   }
 
+  /**
+   * "Nublado": debufo exclusivo de enemigos sobre jugadores. Al estar activo,
+   * la barra de defensa se llena de nubes flotantes que dificultan la visibilidad
+   * y, mecanicamente, acelera levemente la onda (+15%) y reduce el tamaño de
+   * la zona de éxito (-3%). Solo aplica sobre el jugador (side='player').
+   *
+   * Duración base: 1 turno. Las reaplicaciones refrescan la duración a `maxDuration`
+   * (3 turnos), sin acumular stacks (no-DoT).
+   */
+  static readonly CLOUDED: IStatusEffect = {
+    type: 'clouded',
+    name: 'Nublado',
+    description: 'Nubes flotantes dificultan la defensa.',
+    descriptionOnPlayer: 'Nubes oscurecen la barra: la onda se mueve más rápido y la zona de éxito es más pequeña.',
+    turns: 1,
+    maxDuration: 3,
+    icon: cloudedIcon,
+    isBuff: false,
+    turnLabel: '¡Está nublado!',
+    defenseContribution: (_effect, side) => (
+      side === 'player'
+        ? { waveSpeedMultiplier: 0.15, successZoneSizeBonus: -0.03 }
+        : undefined
+    )
+  }
+
   // Método para obtener un efecto por tipo (case-insensitive)
   static getByType(type: string): IStatusEffect | null {
     const effects = [
@@ -263,7 +290,8 @@ export class StatusEffects {
       this.SLOW,
       this.SECOND_WIND,
       this.VAMPIRE_SHIELD,
-      this.INJURED
+      this.INJURED,
+      this.CLOUDED
     ]
     const target = type.toLowerCase()
     return effects.find(effect => effect.type === target) || null
@@ -282,7 +310,8 @@ export class StatusEffects {
       this.SLOW.type,
       this.SECOND_WIND.type,
       this.VAMPIRE_SHIELD.type,
-      this.INJURED.type
+      this.INJURED.type,
+      this.CLOUDED.type
     ]
   }
 }

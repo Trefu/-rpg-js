@@ -174,3 +174,27 @@ export const DEEP_SLASH: DefensePatternConfig = {
         maxDuration: 3
     }
 }
+
+/**
+ * Rafaga de Niebla: ataque magico de viento que envuelve al jugador en nubes
+ * al fallar el bloqueo. Aplica el debufo "Nublado" durante hasta 3 turnos,
+ * lo que hace aparecer nubes flotantes sobre la barra de defensa y la vuelve
+ * ligeramente mas dificil (onda +15% velocidad, zona de exito -3%).
+ *
+ * Reusa `applyFailureEffect` con `maxDuration: 3` para que la primera aplicacion
+ * ya cargue los 3 turnos (sin default DoT).
+ */
+export const GUST_OF_FOG: DefensePatternConfig = {
+    name: 'Ráfaga de Niebla',
+    type: 'shadow',
+    damageType: 'magical',
+    waveSpeed: 45,
+    baseMaxBlockReduction: 0.4,
+    damageMultiplier: 1.1,
+    phases: [phase(3)],
+    onFailureEffect: {
+        statusType: 'clouded',
+        stacks: 1,
+        maxDuration: 3
+    }
+}

@@ -61,8 +61,8 @@ export const ZONE_ENEMY_POOLS: Record<ZoneId, ZoneEnemyConfig> = {
     displayName: 'Monte Pico',
     pools: {
       intro: [
-        () => new GoblinArcher(1),
-        () => new GoblinWarlock(1)
+        () => new Goblin(1),
+        () => new Goblin(1)
       ],
       early: [
         () => new Goblin(2),

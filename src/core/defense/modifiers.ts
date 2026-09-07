@@ -76,6 +76,9 @@ function applyDefenseContributions(
     if (typeof contribution.waveSpeedMultiplier === 'number') {
       modifiers.waveSpeedMultiplier += contribution.waveSpeedMultiplier
     }
+    if (typeof contribution.successZoneSizeBonus === 'number') {
+      modifiers.successZoneSizeBonus += contribution.successZoneSizeBonus
+    }
     if (typeof contribution.blockReductionBonus === 'number') {
       modifiers.blockReductionBonus += contribution.blockReductionBonus
     }

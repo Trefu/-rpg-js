@@ -184,6 +184,7 @@ const isProcessingDot = ref(false)
   const defensePhaseIndex = ref(0)
   const defenseEnemyId = ref<string | null>(null)
   const defenseIsCrit = ref(false)
+  const defenseClouded = ref(false)
   let pendingDefenseResolve: ((result: DefenseChallengeResult | null) => void) | null = null
   let pendingDefensePattern: DefensePatternConfig | null = null
   let pendingDefenseEnemy: IEnemy | null = null
@@ -233,6 +234,7 @@ const isProcessingDot = ref(false)
       defensePhaseIndex.value = 0
       defenseEnemyId.value = enemy.id
       defenseIsCrit.value = crit.isCrit
+      defenseClouded.value = typeof target.hasStatusEffect === 'function' && target.hasStatusEffect('clouded')
       isDefenseActive.value = true
     })
   }
@@ -368,6 +370,7 @@ const isProcessingDot = ref(false)
     defenseZones.value = []
     defenseEnemyId.value = null
     defenseIsCrit.value = false
+    defenseClouded.value = false
   }
 
   function resetAbilityCooldowns() {
@@ -1430,6 +1433,7 @@ const isProcessingDot = ref(false)
     defensePhaseIndex,
     defenseEnemyId,
     defenseIsCrit,
+    defenseClouded,
     handleDefensePhaseComplete,
     handleDefenseAllPhasesComplete,
     closeDefenseChallenge,
