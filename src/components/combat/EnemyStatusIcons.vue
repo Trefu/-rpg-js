@@ -1,7 +1,19 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, useAttrs } from 'vue'
 import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
 import { getEffectDescription } from '@/core/interfaces/IStatusEffect'
+
+/**
+ * El template tiene dos raices (un <div> para los iconos y un <Teleport>
+ * para el popup), asi que Vue no puede auto-heredar los attrs no-prop
+ * (incluido `class`) y emite un warning. Forzamos la herencia manual
+ * aplicandolos al contenedor de iconos, que es donde el consumidor
+ * espera que caigan (ej. `class="mobile-hud-ally-effects"`).
+ */
+defineOptions({ inheritAttrs: false })
+
+const attrs = useAttrs()
+const rootClass = computed(() => attrs.class as string | undefined)
 
 const props = defineProps<{
   effects: IStatusEffect[]
@@ -188,6 +200,7 @@ function effectTagline(e: IStatusEffect): string {
     v-if="effects && effects.length"
     ref="containerEl"
     class="enemy-status-icons"
+    :class="rootClass"
   >
     <div
       v-for="effect in effects"
