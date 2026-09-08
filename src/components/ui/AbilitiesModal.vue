@@ -8,6 +8,7 @@ import hourglassIcon from '@/assets/icons/hourglass.png'
 import boltIcon from '@/assets/icons/bolt-shield.png'
 import skillsIcon from '@/assets/icons/skills.png'
 import { getAbilityIcon } from '@/core/abilities/abilityIcons'
+import { getBasicAttackHitCount } from '@/core/abilities/Abilities'
 
 interface Props {
   show: boolean
@@ -57,6 +58,8 @@ const previews = computed<(AbilityDamagePreview | null)[]>(() => {
   })
 })
 
+const basicHitCount = computed(() => getBasicAttackHitCount(props.caster?.level ?? 1))
+
 /** Tipo de ability cuyo popover está expandido (solo uno a la vez). */
 const expandedType = ref<string | null>(null)
 
@@ -97,6 +100,7 @@ function togglePreview(ability: IAbility, event?: MouseEvent) {
                 <span class="shortcut-badge">{{ abilityShortcuts[idx].toUpperCase() }}</span>
               </div>
               <p class="ability-desc">{{ ability.description }}</p>
+              <p v-if="ability.type === 'attack'" class="ability-hits">Golpes: <strong>{{ basicHitCount }}</strong> <span class="ability-hits-hint">(+1 por cada 4 niveles)</span></p>
 
               <div v-if="previews[idx]" class="ability-damage-row">
                 <button
@@ -327,6 +331,22 @@ function togglePreview(ability: IAbility, event?: MouseEvent) {
   font-size: 0.95rem;
   margin: 0.2rem 0;
   line-height: 1.4;
+}
+
+.ability-hits {
+  margin: 0.1rem 0 0.4rem;
+  font-size: 0.85rem;
+  color: #ffe066;
+}
+.ability-hits strong {
+  color: #4CAF50;
+  font-size: 1rem;
+  margin-right: 0.3rem;
+}
+.ability-hits-hint {
+  color: #aaa;
+  font-size: 0.75rem;
+  font-style: italic;
 }
 
 .ability-footer {

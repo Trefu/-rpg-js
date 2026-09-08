@@ -11,9 +11,13 @@ const FIRE_SLASH_DOWN: VfxEffect = { asset: 'fire-slash-down', durationMs: 1200 
 const FIRE_SLASH_UP: VfxEffect = { asset: 'fire-slash-up', durationMs: 1200 }
 const HOLY_SLASH_DOWN: VfxEffect = { asset: 'holy-slash-down', durationMs: 1200 }
 const HOLY_SLASH_UP: VfxEffect = { asset: 'holy-slash-up', durationMs: 1200 }
-const BASIC_ATTACK_LEVEL_4_THRESHOLD = 4
+const BASIC_ATTACK_HITS_LEVEL_STEP = 4
 const BASIC_ATTACK_HIT_INTERVAL_MS = 200
 const BASIC_ATTACK_DURATION_MS = 800
+
+export function getBasicAttackHitCount(level: number): number {
+  return Math.max(1, Math.floor(Math.max(1, level) / BASIC_ATTACK_HITS_LEVEL_STEP) + 1)
+}
 
 /**
  * Multiplicador minimo y maximo aplicado al daño base antes del critico.
@@ -114,9 +118,8 @@ const getBasicAttackHitVfx = (ability: IAbility | undefined): VfxEffect[] => {
     : [FIRE_SLASH_DOWN, FIRE_SLASH_UP]
 }
 
-const getBasicAttackRawDamage = (caster: Hero, damageType: DamageType): number => {
-  const scalingStat = damageType === 'physical' ? caster.baseStats.body.value : caster.baseStats.mind.value
-  return scalingStat * 0.7 + caster.level
+const getBasicAttackRawDamage = (caster: Hero): number => {
+  return caster.baseStats.body.value * 0.7 + caster.level
 }
 
 const executeBasicAttack = async (context: AbilityContext) => {
@@ -126,7 +129,7 @@ const executeBasicAttack = async (context: AbilityContext) => {
 
   const ability = context.ability
   const abilityName = ability?.name ?? 'Ataque Básico'
-  const levelBasedHitCount = caster.level >= BASIC_ATTACK_LEVEL_4_THRESHOLD ? 2 : 1
+  const levelBasedHitCount = getBasicAttackHitCount(caster.level)
   const hitCount = Math.max(levelBasedHitCount, ability?.hitCount ?? levelBasedHitCount)
   const hitIntervalMs = hitCount > 1
     ? Math.max(0, ability?.hitIntervalMs ?? BASIC_ATTACK_HIT_INTERVAL_MS)
@@ -138,7 +141,7 @@ const executeBasicAttack = async (context: AbilityContext) => {
 
     const { finalDamage, crit } = rollAndApplyDamage(
       caster,
-      getBasicAttackRawDamage(caster, ability?.damageType ?? 'physical')
+      getBasicAttackRawDamage(caster)
     )
 
     if (finalDamage > 0) {
@@ -232,7 +235,7 @@ export const BasicAttack: IAbility = {
         const body = hero.baseStats.body.value
         const level = hero.level
         const raw = body * 0.7 + level
-        const hitCount = level >= BASIC_ATTACK_LEVEL_4_THRESHOLD ? 2 : 1
+        const hitCount = getBasicAttackHitCount(level)
         const totalRaw = raw * hitCount
         const formula = `${F.cue('CUE')} ${F.cue(Math.round(body))} × 0.7 + ${F.lvl('nivel')} ${F.lvl(level)} = ${F.atk(raw.toFixed(1))}${hitCount > 1 ? ` × ${hitCount} = ${F.atk(totalRaw.toFixed(1))}` : ''}  ${F.base('→ Físico')}`
         return buildPreview(formula, totalRaw, 'physical')
@@ -242,24 +245,34 @@ export const BasicAttack: IAbility = {
 
 export const WarriorBasicAttack: IAbility = {
     ...BasicAttack,
-    description: 'Golpe físico que, a partir del nivel 4, se repite para asestar dos tajos.'
+    damageType: 'fire',
+    description: 'Tajo de fuego que golpea al objetivo con daño de fuego.',
+    previewDamage: (hero: Hero) => {
+        const body = hero.baseStats.body.value
+        const level = hero.level
+        const raw = body * 0.7 + level
+        const hitCount = getBasicAttackHitCount(level)
+        const totalRaw = raw * hitCount
+        const formula = `${F.cue('CUE')} ${F.cue(Math.round(body))} × 0.7 + ${F.lvl('nivel')} ${F.lvl(level)} = ${F.atk(raw.toFixed(1))}${hitCount > 1 ? ` × ${hitCount} = ${F.atk(totalRaw.toFixed(1))}` : ''}  ${F.base('→ Fuego')}`
+        return buildPreview(formula, totalRaw, 'fire')
+    }
 }
 
 export const ClericBasicAttack: IAbility = {
     name: 'Ataque Sagrado',
-    description: 'Destello radiante que, a partir del nivel 4, repite el daño sagrado dos veces.',
+    description: 'Destello radiante que inflige daño sagrado al objetivo.',
     type: 'attack',
     cooldown: 0,
     damageType: 'holy',
     targetType: 'enemies-only',
     animationDurationMs: BASIC_ATTACK_DURATION_MS,
     previewDamage: (hero: Hero) => {
-        const mind = hero.baseStats.mind.value
+        const body = hero.baseStats.body.value
         const level = hero.level
-        const raw = mind * 0.7 + level
-        const hitCount = level >= BASIC_ATTACK_LEVEL_4_THRESHOLD ? 2 : 1
+        const raw = body * 0.7 + level
+        const hitCount = getBasicAttackHitCount(level)
         const totalRaw = raw * hitCount
-        const formula = `${F.mind('MEN')} ${F.mind(Math.round(mind))} × 0.7 + ${F.lvl('nivel')} ${F.lvl(level)} = ${F.mag(raw.toFixed(1))}${hitCount > 1 ? ` × ${hitCount} = ${F.mag(totalRaw.toFixed(1))}` : ''}  ${F.base('→ Sagrado')}`
+        const formula = `${F.cue('CUE')} ${F.cue(Math.round(body))} × 0.7 + ${F.lvl('nivel')} ${F.lvl(level)} = ${F.atk(raw.toFixed(1))}${hitCount > 1 ? ` × ${hitCount} = ${F.atk(totalRaw.toFixed(1))}` : ''}  ${F.base('→ Sagrado')}`
         return buildPreview(formula, totalRaw, 'holy')
     },
     execute: executeBasicAttack

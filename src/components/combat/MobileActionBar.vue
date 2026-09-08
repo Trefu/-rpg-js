@@ -4,6 +4,7 @@ import type { IAbility } from '@/core/interfaces/IAbility'
 import type { AbilityDamagePreview } from '@/core/interfaces/IAbility'
 import type { Hero } from '@/core/Hero'
 import { getAbilityIcon } from '@/core/abilities/abilityIcons'
+import { getBasicAttackHitCount } from '@/core/abilities/Abilities'
 import backpackIcon from '@/assets/icons/backpack.png'
 import boltIcon from '@/assets/icons/bolt-shield.png'
 import hourglassIcon from '@/assets/icons/hourglass.png'
@@ -112,6 +113,8 @@ const infoPreview = computed<AbilityDamagePreview | null>(() => {
     return null
   }
 })
+
+const basicHitCount = computed(() => getBasicAttackHitCount(props.caster?.level ?? 1))
 
 function toggleInfoFormula(event: Event) {
   event.stopPropagation()
@@ -227,6 +230,10 @@ function shortLabel(name: string, max = 5): string {
             <button class="mab-info-close" type="button" aria-label="Cerrar" @click="closeInfo">✕</button>
           </header>
           <p class="mab-info-desc">{{ infoAbility.description }}</p>
+          <p v-if="infoAbility.type === 'attack'" class="mab-info-hits">
+            Golpes: <strong>{{ basicHitCount }}</strong>
+            <span class="mab-info-hits-hint">(+1 por cada 4 niveles)</span>
+          </p>
 
           <button
             v-if="infoPreview"
@@ -489,6 +496,22 @@ function shortLabel(name: string, max = 5): string {
   color: #d8d8e8;
   font-size: 0.82rem;
   line-height: 1.35;
+}
+
+.mab-info-hits {
+  margin: 0.3rem 0 0;
+  font-size: 0.82rem;
+  color: #ffe066;
+}
+.mab-info-hits strong {
+  color: #4CAF50;
+  font-size: 0.95rem;
+  margin-right: 0.3rem;
+}
+.mab-info-hits-hint {
+  color: #aaa;
+  font-size: 0.72rem;
+  font-style: italic;
 }
 
 .mab-info-footer {

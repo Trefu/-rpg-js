@@ -16,6 +16,7 @@ import type { Hero } from '../Hero'
 export type Effect =
   | { kind: 'gold'; amount: number }
   | { kind: 'xp'; amount: number }
+  | { kind: 'xpPercent'; percent: 5 | 10 | 15 }
   | { kind: 'heal'; amount: number }
   | { kind: 'fullHeal' }
   | { kind: 'restoreEnergy'; amount: number }
@@ -129,6 +130,15 @@ function applyEffect(eff: Effect, ctx: EventContext): AppliedEffect[] {
       living.forEach(h => {
         h.gainExperience(eff.amount)
         out.push({ kind: 'xp', heroName: h.name, delta: eff.amount })
+      })
+      break
+    case 'xpPercent':
+      living.forEach(h => {
+        const amount = Math.floor(h.experienceToNextLevel * eff.percent / 100)
+        if (amount > 0) {
+          h.gainExperience(amount)
+          out.push({ kind: 'xp', heroName: h.name, delta: amount })
+        }
       })
       break
     case 'heal':
@@ -260,7 +270,7 @@ export const CURIOSITY_EVENTS: CuriosityEvent[] = [
           effects: [
             { kind: 'fullHeal' },
             { kind: 'restoreEnergy', amount: 30 },
-            { kind: 'xp', amount: 25 }
+            { kind: 'xpPercent', percent: 10 }
           ]
         }
       },
@@ -300,7 +310,7 @@ export const CURIOSITY_EVENTS: CuriosityEvent[] = [
           effects: [
             { kind: 'energyLoss', amount: 25 },
             { kind: 'grantItem', itemId: 'energy-potion' },
-            { kind: 'xp', amount: 40 }
+            { kind: 'xpPercent', percent: 15 }
           ]
         }
       },
@@ -312,7 +322,7 @@ export const CURIOSITY_EVENTS: CuriosityEvent[] = [
           flavor:
             'Descifras los simbolos. La puerta se abre silenciosamente y recibes una vision del pasado.',
           effects: [
-            { kind: 'xp', amount: 30 }
+            { kind: 'xpPercent', percent: 10 }
           ]
         }
       },
@@ -355,7 +365,7 @@ export const CURIOSITY_EVENTS: CuriosityEvent[] = [
             'Un frio antiguo recorre tu espalda. Sales renovado y con los sentidos agudizados.',
           effects: [
             { kind: 'fullHeal' },
-            { kind: 'xp', amount: 35 }
+            { kind: 'xpPercent', percent: 10 }
           ]
         }
       },
@@ -384,7 +394,7 @@ export const CURIOSITY_EVENTS: CuriosityEvent[] = [
           flavor:
             'Te arrastras entre las sombras. La cria no se mueve. Aprendes a moverte sin ruido de la experiencia.',
           effects: [
-            { kind: 'xp', amount: 20 }
+            { kind: 'xpPercent', percent: 5 }
           ]
         }
       },
@@ -426,7 +436,7 @@ export const CURIOSITY_EVENTS: CuriosityEvent[] = [
           flavor:
             'Adivinas la respuesta. La estatua sonrie y una lluvia de monedas cae de su boca.',
           effects: [
-            { kind: 'xp', amount: 25 },
+            { kind: 'xpPercent', percent: 10 },
             { kind: 'gold', amount: 30 }
           ]
         }
@@ -483,7 +493,7 @@ export const CURIOSITY_EVENTS: CuriosityEvent[] = [
             'Un calido sentimiento te recorre. La mochila vacia del cadaver se siente ligera.',
           effects: [
             { kind: 'heal', amount: 25 },
-            { kind: 'xp', amount: 15 }
+            { kind: 'xpPercent', percent: 5 }
           ]
         }
       },
@@ -513,7 +523,7 @@ export const CURIOSITY_EVENTS: CuriosityEvent[] = [
             'Tu reflejo ataca primero. Recibes tu propio golpe, pero tambien ganas una revelacion.',
           effects: [
             { kind: 'damage', amount: 14 },
-            { kind: 'xp', amount: 50 }
+            { kind: 'xpPercent', percent: 15 }
           ]
         }
       },
@@ -594,7 +604,7 @@ export const CURIOSITY_EVENTS: CuriosityEvent[] = [
           flavor:
             'La melodia te llena de inspiracion. Sales mas sabio y descansado.',
           effects: [
-            { kind: 'xp', amount: 30 },
+            { kind: 'xpPercent', percent: 10 },
             { kind: 'restoreEnergy', amount: 40 }
           ]
         }
