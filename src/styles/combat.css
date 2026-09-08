@@ -28,12 +28,13 @@
 .heroes-column {
   grid-area: heroes;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   padding: 1rem 0.75rem;
   z-index: 1;
   min-height: 0;
   min-width: 0;
+  overflow: hidden;
 }
 
 .heroes-container {
