@@ -242,6 +242,25 @@ defineExpose({
             <span class="bar-value">{{ energyDisplay }}</span>
           </div>
         </div>
+        <div
+          v-if="buffDebuffEffects.length > 0"
+          class="hero-status-icons"
+          aria-label="Efectos de estado activos"
+        >
+          <div
+            v-for="effect in buffDebuffEffects"
+            :key="effect.type"
+            class="hero-status-icon"
+            :class="['kind-' + (effect.isBuff ? 'buff' : 'debuff')]"
+            :title="effect.name"
+          >
+            <img :src="effect.icon" :alt="effect.name" />
+            <span
+              v-if="effect.turns !== undefined && Number.isFinite(effect.turns)"
+              class="hero-status-icon-turns"
+            >{{ effect.turns }}</span>
+          </div>
+        </div>
       </div>
 
       <button
@@ -320,6 +339,13 @@ defineExpose({
               </h4>
               <ul v-if="buffDebuffEffects.length > 0" class="hero-dropdown-effects">
                 <li v-for="effect in buffDebuffEffects" :key="effect.type" class="hero-effect-row">
+                  <img
+                    v-if="effect.icon"
+                    :src="effect.icon"
+                    :alt="effect.name"
+                    class="hero-effect-icon"
+                    :class="['kind-' + (effect.isBuff ? 'buff' : 'debuff')]"
+                  />
                   <div class="hero-effect-info">
                     <span class="hero-effect-name">{{ effect.name }}</span>
                     <span class="hero-effect-desc">{{ getEffectDescription(effect, 'player') }}</span>
@@ -327,7 +353,7 @@ defineExpose({
                   <div class="hero-effect-tags">
                     <span v-if="effect.stacks && effect.stacks > 1" class="effect-tag stack">x{{ effect.stacks }}</span>
                     <span v-if="typeof effect.charges === 'number'" class="effect-tag charges">{{ effect.charges }}/{{ effect.maxCharges ?? effect.charges }}c</span>
-                    <span v-else-if="effect.turns !== undefined" class="effect-tag turns">{{ effect.turns }}t</span>
+                    <span v-else-if="effect.turns !== undefined && Number.isFinite(effect.turns)" class="effect-tag turns">{{ effect.turns }}t</span>
                   </div>
                 </li>
               </ul>
@@ -657,6 +683,84 @@ defineExpose({
   gap: 0.24rem;
 }
 
+/*
+ * Tira compacta de iconos de buffs/debuffs no-DoT dentro de la card de
+ * escritorio. El usuario ve de un vistazo que efectos lleva el heroe sin
+ * tener que abrir el menu hamburguesa. Los DoTs (burn/poison/freeze)
+ * mantienen su sistema propio (los circulos grandes arriba de la card).
+ *
+ * Si no hay efectos, no se renderiza.
+ */
+.hero-status-icons {
+  display: flex;
+  flex-direction: row;
+  gap: 3px;
+  margin-top: 2px;
+  flex-wrap: wrap;
+}
+
+.hero-status-icon {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  background: rgba(20, 20, 30, 0.92);
+  border: 1px solid rgba(255, 230, 102, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+}
+
+.hero-status-icon.kind-buff {
+  border-color: rgba(102, 187, 106, 0.8);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.55), 0 0 5px rgba(102, 187, 106, 0.45);
+}
+
+.hero-status-icon.kind-debuff {
+  border-color: rgba(255, 82, 82, 0.8);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.55), 0 0 5px rgba(255, 82, 82, 0.5);
+}
+
+.hero-status-icon img {
+  width: 15px;
+  height: 15px;
+  object-fit: contain;
+  pointer-events: none;
+  filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.9));
+}
+
+/*
+ * Badge de turnos sobre el icono. Solo aparece cuando la duracion es finita
+ * (los efectos "permanentes" como Second Wind no muestran numero para no
+ * contaminar visualmente).
+ */
+.hero-status-icon-turns {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 7px;
+  background: #ff3333;
+  color: #fff;
+  font-family: 'Courier New', monospace;
+  font-size: 0.58rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+  line-height: 1;
+}
+
+.hero-status-icon.kind-buff .hero-status-icon-turns {
+  background: #2e7d32;
+}
+
 .bar-line {
   display: flex;
   align-items: center;
@@ -850,7 +954,7 @@ defineExpose({
 
 .hero-effect-row {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
   gap: 0.5rem;
   background: rgba(255, 152, 0, 0.12);
@@ -859,11 +963,35 @@ defineExpose({
   border-left: 3px solid #ff9800;
 }
 
+.hero-effect-icon {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  object-fit: contain;
+  padding: 2px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 230, 102, 0.5);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+}
+
+.hero-effect-icon.kind-buff {
+  border-color: rgba(102, 187, 106, 0.75);
+  box-shadow: 0 0 5px rgba(102, 187, 106, 0.35);
+}
+
+.hero-effect-icon.kind-debuff {
+  border-color: rgba(255, 82, 82, 0.75);
+  box-shadow: 0 0 5px rgba(255, 82, 82, 0.4);
+}
+
 .hero-effect-info {
   display: flex;
   flex-direction: column;
   gap: 0.1rem;
   min-width: 0;
+  flex: 1 1 auto;
+  text-align: left;
 }
 
 .hero-effect-name {

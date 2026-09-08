@@ -190,8 +190,24 @@ function effectTagline(e: IStatusEffect): string {
   const stacks = e.stacks ?? 1
   const parts: string[] = []
   if (stacks > 1) parts.push(`x${stacks} stacks`)
-  parts.push(turns > 0 ? `${turns} turno${turns > 1 ? 's' : ''} restante${turns > 1 ? 's' : ''}` : 'sin duración')
+  parts.push(formatTurnsLabel(turns))
   return parts.join(' · ')
+}
+
+/**
+ * "∞" cuando el efecto tiene duracion infinita (regido por cargas o por un
+ * hook de combate, ej. Second Wind). Evita el texto crudo "Infinity" en la UI.
+ */
+function formatTurnsBadge(turns: number | undefined): string {
+  const t = turns ?? 0
+  if (!Number.isFinite(t)) return '∞'
+  return String(t)
+}
+
+function formatTurnsLabel(turns: number): string {
+  if (!Number.isFinite(turns)) return '∞ permanente'
+  if (turns <= 0) return 'sin duración'
+  return `${turns} turno${turns === 1 ? '' : 's'} restante${turns === 1 ? '' : 's'}`
 }
 </script>
 
@@ -208,7 +224,7 @@ function effectTagline(e: IStatusEffect): string {
       ref="iconEls"
       class="enemy-status-icon"
       :class="{ 'is-info-open': infoEffect?.type === effect.type }"
-      :title="`${effect.name} — ${effect.turns ?? 0} turno(s)${(effect.stacks ?? 1) > 1 ? ` · x${effect.stacks} stacks` : ''}`"
+      :title="`${effect.name} — ${formatTurnsLabel(effect.turns ?? 0)}${(effect.stacks ?? 1) > 1 ? ` · x${effect.stacks} stacks` : ''}`"
       role="button"
       tabindex="0"
       @click="showEffectInfo(effect, $event)"
@@ -217,7 +233,7 @@ function effectTagline(e: IStatusEffect): string {
       @keydown.space.prevent="showEffectInfo(effect, $event)"
     >
       <img :src="effect.icon" :alt="effect.name" />
-      <span class="enemy-status-turns">{{ effect.turns ?? 0 }}</span>
+      <span class="enemy-status-turns">{{ formatTurnsBadge(effect.turns) }}</span>
       <span
         v-if="(effect.stacks ?? 1) > 1"
         class="enemy-status-stacks"

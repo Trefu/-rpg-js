@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import type { Hero } from '@/core/Hero'
 import type { IEnemy } from '@/core/interfaces/ICharacter'
+import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
 import type { VfxAssetId } from '@/core/interfaces/IAbility'
 import { MAX_HEROES } from '@/stores/game'
 import HeroDotIcons from './HeroDotIcons.vue'
@@ -26,6 +27,31 @@ const emit = defineEmits<{
     (e: 'selectEnemy', enemy: IEnemy): void
     (e: 'selectAlly', hero: Hero): void
 }>()
+
+/**
+ * Tipos de DoT que ya tienen indicador visual propio via HeroDotIcons
+ * (iconos sobre la cabeza del heroe). Los excluimos de la tira de iconos
+ * para no duplicar la misma informacion en dos sitios.
+ */
+const DOT_TYPES = new Set(['burn', 'poison', 'freeze'])
+
+/**
+ * Iconos de buffs/debuffs no-DoT activos sobre el heroe mostrado en la
+ * cabecera. El usuario los ve directamente en la card sin tener que abrir
+ * el panel de aliados, asi sabe que efectos lleva encima.
+ *
+ * Si la lista esta vacia, el contenedor no se renderiza (cero ruido cuando
+ * el heroe esta "limpio").
+ */
+const heroStatusIcons = computed<IStatusEffect[]>(() => {
+    const h = displayedHero.value
+    if (!h || !h.statusEffects) return []
+    return h.statusEffects.filter(e =>
+        (e.turns === undefined || e.turns > 0) &&
+        !DOT_TYPES.has(e.type) &&
+        !!e.icon
+    )
+})
 
 const heroSlots = computed<(Hero | null)[]>(() => {
     const slots: (Hero | null)[] = []
@@ -146,6 +172,25 @@ function onAllyRowClick(hero: Hero | null) {
             @click="onHeroPortraitClick">
             <img v-if="displayedHero?.sprite" :src="displayedHero.sprite" :alt="displayedHero.name"
                 class="mobile-hud-portrait" decoding="async" />
+            <div
+                v-if="heroStatusIcons.length > 0"
+                class="mobile-hud-status-icons"
+                aria-label="Efectos de estado activos"
+            >
+                <div
+                    v-for="effect in heroStatusIcons"
+                    :key="effect.type"
+                    class="mobile-hud-status-icon"
+                    :class="['kind-' + (effect.isBuff ? 'buff' : 'debuff')]"
+                    :title="effect.name"
+                >
+                    <img :src="effect.icon" :alt="effect.name" />
+                    <span
+                        v-if="effect.turns !== undefined && Number.isFinite(effect.turns)"
+                        class="mobile-hud-status-icon-turns"
+                    >{{ effect.turns }}</span>
+                </div>
+            </div>
             <div class="mobile-hud-info">
                 <div class="mobile-hud-name">
                     <span class="mobile-hud-name-text">
@@ -410,6 +455,92 @@ function onAllyRowClick(hero: Hero | null) {
     flex-shrink: 0;
     image-rendering: pixelated;
     background: #000;
+    position: relative;
+}
+
+/*
+ * Tira compacta de iconos de buffs/debuffs sobre el portrait de la cabecera
+ * del HUD mobile. Permite ver de un vistazo que efectos lleva el heroe sin
+ * tener que abrir el panel de aliados. Los DoTs (burn/poison/freeze) ya
+ * tienen su propio sistema visual via HeroDotIcons, asi que aqui solo
+ * mostramos el resto.
+ *
+ * Si no hay efectos activos el contenedor no se renderiza.
+ */
+.mobile-hud-status-icons {
+    position: absolute;
+    bottom: -4px;
+    right: -6px;
+    display: flex;
+    flex-direction: row;
+    gap: 2px;
+    z-index: 5;
+    pointer-events: auto;
+    max-width: 70px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.mobile-hud-status-icon {
+    position: relative;
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    background: rgba(20, 20, 30, 0.9);
+    border: 1px solid rgba(255, 230, 102, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.mobile-hud-status-icon.kind-buff {
+    border-color: rgba(102, 187, 106, 0.75);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.6), 0 0 4px rgba(102, 187, 106, 0.4);
+}
+
+.mobile-hud-status-icon.kind-debuff {
+    border-color: rgba(255, 82, 82, 0.75);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.6), 0 0 4px rgba(255, 82, 82, 0.4);
+}
+
+.mobile-hud-status-icon img {
+    width: 14px;
+    height: 14px;
+    object-fit: contain;
+    pointer-events: none;
+    filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.9));
+}
+
+/*
+ * Badge de turnos sobre el icono. Solo aparece cuando la duracion es finita
+ * (los efectos "permanentes" como Second Wind no muestran numero para no
+ * contaminar visualmente).
+ */
+.mobile-hud-status-icon-turns {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    min-width: 13px;
+    height: 13px;
+    padding: 0 2px;
+    border-radius: 7px;
+    background: #ff3333;
+    color: #fff;
+    font-family: 'Courier New', monospace;
+    font-size: 0.55rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #fff;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+    line-height: 1;
+}
+
+.mobile-hud-status-icon.kind-buff .mobile-hud-status-icon-turns {
+    background: #2e7d32;
 }
 
 .mobile-hud-info {

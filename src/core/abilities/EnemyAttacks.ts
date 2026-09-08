@@ -14,7 +14,7 @@ export const POISON_ARROW: DefensePatternConfig = {
     name: 'Flecha Venenosa',
     type: 'physical',
     damageType: 'physical',
-    waveSpeed: 60,
+    waveSpeed: 50,
     baseMaxBlockReduction: 0.5,
     baseSuccessZoneSize: 0.2,
     damageMultiplier: 0.6,
@@ -29,7 +29,7 @@ export const EMBER: DefensePatternConfig = {
     name: 'Ascua',
     type: 'fire',
     damageType: 'fire',
-    waveSpeed: 60,
+    waveSpeed: 50,
     baseMaxBlockReduction: 0.5,
     damageMultiplier: 0.7,
     phases: [phase(8), phase(8)],
@@ -46,9 +46,9 @@ export const FEROCIOUS_BITE: DefensePatternConfig = {
     baseMaxBlockReduction: 0.5,
     damageMultiplier: 0.8,
     phases: [
+        phase(6, { waveSpeed: 30 }),
         phase(6, { waveSpeed: 40 }),
-        phase(6, { waveSpeed: 60 }),
-        phase(6, { waveSpeed: 80 })
+        phase(6, { waveSpeed: 50 })
     ]
 }
 
@@ -127,11 +127,11 @@ export const FIRE_BREATH: DefensePatternConfig = {
     baseMaxBlockReduction: 0.5,
     damageMultiplier: 2.0,
     phases: [
-        phase(6, { waveSpeed: 60 }),
-        phase(6, { waveSpeed: 60 }),
-        phase(6, { waveSpeed: 60 }),
-        phase(6, { waveSpeed: 60 }),
-        phase(6, { waveSpeed: 60 })
+        phase(7, { waveSpeed: 60 }),
+        phase(7, { waveSpeed: 60 }),
+        phase(7, { waveSpeed: 60 }),
+        phase(7, { waveSpeed: 60 }),
+        phase(7, { waveSpeed: 60 })
     ],
     onFailureEffect: {
         statusType: 'burn',
@@ -164,7 +164,7 @@ export const DEEP_SLASH: DefensePatternConfig = {
     name: 'Tajo Profundo',
     type: 'physical',
     damageType: 'physical',
-    waveSpeed: 60,
+    waveSpeed: 50,
     baseMaxBlockReduction: 0.5,
     damageMultiplier: 1.5,
     phases: [phase(4)],
