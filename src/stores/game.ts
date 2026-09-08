@@ -75,10 +75,10 @@ export const useGameStore = defineStore('game', {
       return true
     },
 
-    setHeroInSlot(index: number, hero: Hero | null) {
+    setHeroInSlot(index: number, hero: Hero | null, activate: boolean = true) {
       if (index < 0 || index >= MAX_HEROES) return
       this.heroes[index] = hero
-      if (hero) this.activeHeroIndex = index
+      if (activate && hero) this.activeHeroIndex = index
     },
 
     navigateTo(location: GameLocation) {

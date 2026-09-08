@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { useGameStore } from '@/stores/game'
 import { Dummy } from '@/core/enemies/Dummy'
-import { StatusEffects } from '@/core/StatusEffects'
+import { StatusEffects, DOT_STATUS_TYPES } from '@/core/StatusEffects'
 import hammerIcon from '@/assets/icons/hammer-drop.png'
 import robotIcon from '@/assets/icons/robot-golem.png'
 import swordsIcon from '@/assets/icons/crossed-swords.png'
@@ -19,8 +19,15 @@ import {
   BasicAttack,
   StunStrike,
   StealthStrike,
-  Fireball
+  Fireball,
+  WarriorInjuringStrike,
+  WarriorDevastatingStrike,
+  ClericRadiantStrike,
+  ClericDivineSmite,
+  ClericHeal,
+  SecondWind
 } from '@/core/abilities/Abilities'
+import type { IAbility } from '@/core/interfaces/IAbility'
 import {
   SLASH,
   DEEP_SLASH,
@@ -84,6 +91,42 @@ const ATTACK_PATTERN_LABELS: Array<{ label: string; description: string }> =
     description: describePattern(p)
   }))
 
+const TRAINABLE_ABILITIES: IAbility[] = [
+  StunStrike,
+  StealthStrike,
+  Fireball,
+  WarriorInjuringStrike,
+  WarriorDevastatingStrike,
+  ClericRadiantStrike,
+  ClericDivineSmite,
+  ClericHeal,
+  SecondWind
+]
+
+const negativeStatusEffects = computed(() =>
+  StatusEffects.getRegisteredTypes()
+    .map(type => StatusEffects.getByType(type))
+    .filter((effect): effect is IStatusEffect =>
+      effect !== null && effect.isBuff === false && !DOT_STATUS_TYPES.has(effect.type)
+    )
+    .map(effect => ({
+      type: effect.type,
+      label: effect.name,
+      description: effect.description ?? ''
+    }))
+)
+
+const dotStatusEffects = computed(() =>
+  Array.from(DOT_STATUS_TYPES)
+    .map(type => StatusEffects.getByType(type))
+    .filter((effect): effect is IStatusEffect => effect !== null)
+    .map(effect => ({
+      type: effect.type,
+      label: effect.name,
+      description: effect.description ?? ''
+    }))
+)
+
 const emit = defineEmits<{
   (e: 'trainingEnded'): void
 }>()
@@ -93,18 +136,11 @@ const dummy = ref<Dummy>(new Dummy(gameStore.activeHero?.level ?? 1))
 
 const trainingSessionKey = ref(0)
 const rosterClass = ref<string[]>(Array.from({ length: MAX_HEROES }, () => ''))
-const rosterLevels = ref<number[]>(Array.from({ length: MAX_HEROES }, () => 1))
 
 function syncRosterFromStore() {
   for (let i = 0; i < MAX_HEROES; i++) {
     const hero = gameStore.heroes[i]
-    if (hero) {
-      rosterClass.value[i] = hero.heroClassId ?? ''
-      rosterLevels.value[i] = hero.level
-    } else {
-      rosterClass.value[i] = ''
-      rosterLevels.value[i] = 1
-    }
+    rosterClass.value[i] = hero?.heroClassId ?? ''
   }
 }
 syncRosterFromStore()
@@ -132,41 +168,43 @@ function rebuildDummy() {
   useCustomCrit.value = false
 }
 
-function applySlot(index: number) {
-  if (index < 0 || index >= MAX_HEROES) return
-  const classId = rosterClass.value[index]
-  if (!classId) {
-    gameStore.setHeroInSlot(index, null)
-    trainingSessionKey.value++
-    rebuildDummy()
-    syncRosterFromStore()
-    return
+function applyRoster() {
+  const level = Math.max(1, gameStore.activeHero?.level ?? 1)
+  for (let i = 0; i < MAX_HEROES; i++) {
+    const classId = rosterClass.value[i]
+    if (!classId) continue
+    const hero = buildHeroFromRegistry(classId, level)
+    if (!hero) continue
+    gameStore.setHeroInSlot(i, hero, false)
   }
-  const level = Math.max(1, Math.floor(rosterLevels.value[index] || 1))
-  const hero = buildHeroFromRegistry(classId, level)
-  if (!hero) return
-  gameStore.setHeroInSlot(index, hero)
+  const firstActiveIdx = gameStore.heroes.findIndex(h => h !== null)
+  if (firstActiveIdx >= 0) gameStore.setActiveHero(firstActiveIdx)
   trainingSessionKey.value++
   rebuildDummy()
   syncRosterFromStore()
 }
 
-function adjustActiveLevel(delta: number) {
-  const idx = gameStore.activeHeroIndex
-  if (idx < 0 || idx >= MAX_HEROES) return
-  const current = gameStore.heroes[idx]
+function adjustSlotLevel(index: number, delta: number) {
+  if (index < 0 || index >= MAX_HEROES) return
+  const current = gameStore.heroes[index]
   if (!current) return
-  const classId = rosterClass.value[idx] || current.heroClassId
+  const classId = rosterClass.value[index] || current.heroClassId
   if (!classId) return
   const newLevel = Math.max(1, current.level + delta)
-  rosterLevels.value[idx] = newLevel
   const hero = buildHeroFromRegistry(classId, newLevel)
   if (!hero) return
-  gameStore.setHeroInSlot(idx, hero)
+  gameStore.setHeroInSlot(index, hero, false)
   trainingSessionKey.value++
   rebuildDummy()
   syncRosterFromStore()
 }
+
+const activeHeroClassLabel = computed(() => {
+  const active = gameStore.activeHero
+  if (!active) return ''
+  const entry = RECRUITABLE_HEROES.find(e => e.id === active.heroClassId)
+  return entry?.displayName ?? ''
+})
 
 watch(() => gameStore.activeHero?.level, () => rebuildDummy())
 
@@ -233,19 +271,28 @@ function applyStatusToPlayer(type: 'stun' | 'burn' | 'poison' | 'defense_boost' 
   p.addStatusEffect(effect)
 }
 
-function learnAbility(abilityType: 'attack' | 'stunStrike' | 'stealthStrike' | 'fireball') {
+function learnAbilityFromList(ability: IAbility) {
   const p = gameStore.activeHero
   if (!p) return
-  if (p.abilities.find(a => a.type === abilityType)) return
-  let ability
-  switch (abilityType) {
-    case 'attack': ability = BasicAttack; break
-    case 'stunStrike': ability = StunStrike; break
-    case 'stealthStrike': ability = StealthStrike; break
-    case 'fireball': ability = Fireball; break
-  }
-  if (ability) p.learnAbility(ability)
+  if (ability.type === 'attack') return
+  if (p.abilities.some(a => a.type === ability.type)) return
+  if (p.abilities.length >= 4) return
+  p.learnAbility(ability)
 }
+
+function activeHeroHasAbility(type: string): boolean {
+  return gameStore.activeHero?.abilities.some(a => a.type === type) ?? false
+}
+
+const abilityLabels = computed(() =>
+  TRAINABLE_ABILITIES.map(a => ({
+    ability: a,
+    label: a.name,
+    description: a.description
+  }))
+)
+
+const activeHeroAbilityCount = computed(() => gameStore.activeHero?.abilities.length ?? 0)
 
 function onTrainingEnded() {
   emit('trainingEnded')
@@ -275,6 +322,15 @@ function onTrainingEnded() {
         </header>
 
         <section class="panel-section">
+          <h3><img :src="personIcon" alt="" class="inline-icon" /> Heroe Activo</h3>
+          <p class="section-hint">{{ activeHeroClassLabel || 'Sin heroe' }} — Nv {{ gameStore.activeHero?.level ?? '—' }}</p>
+          <div class="button-grid two-col">
+            <button class="action-btn" @click="gameStore.activeHero && (gameStore.activeHero.health = gameStore.activeHero.maxHealth)"><img :src="heartIcon" alt="" class="btn-icon" /> Curar</button>
+            <button class="action-btn" @click="gameStore.activeHero && (gameStore.activeHero.statusEffects = [])"><img :src="broomIcon" alt="" class="btn-icon" /> Limpiar efectos</button>
+          </div>
+        </section>
+
+        <section class="panel-section">
           <h3><img :src="robotIcon" alt="" class="inline-icon" /> Ataques del Dummy</h3>
           <p class="section-hint">El dummy usará el ataque seleccionado en su próximo turno.</p>
           <div class="pattern-scroll">
@@ -300,6 +356,9 @@ function onTrainingEnded() {
           <div class="current-pattern">
             <span class="badge">Actual:</span>
             <strong>{{ currentForcedLabel }}</strong>
+          </div>
+          <div class="button-grid">
+            <button class="action-btn warn" @click="resetDummy"><img :src="cycleIcon" alt="" class="btn-icon" /> Resetear Dummy</button>
           </div>
         </section>
 
@@ -337,73 +396,94 @@ function onTrainingEnded() {
         </section>
 
         <section class="panel-section">
-          <h3><img :src="personIcon" alt="" class="inline-icon" /> Jugador</h3>
-          <div class="button-grid two-col">
-            <button class="action-btn" @click="gameStore.activeHero && (gameStore.activeHero.health = gameStore.activeHero.maxHealth)"><img :src="heartIcon" alt="" class="btn-icon" /> Curar</button>
-            <button class="action-btn" @click="gameStore.activeHero && (gameStore.activeHero.statusEffects = [])"><img :src="broomIcon" alt="" class="btn-icon" /> Limpiar efectos</button>
-          </div>
-        </section>
-
-        <section class="panel-section">
           <h3><img :src="sparklesIcon" alt="" class="inline-icon" /> Habilidades</h3>
-          <p class="section-hint">Aprende habilidades para probarlas ({{ playerAbilitiesCount }}/4)</p>
-          <div class="button-grid two-col">
-            <button class="action-btn small" :disabled="!gameStore.activeHero || !!gameStore.activeHero.abilities.find(a => a.type === 'attack')" @click="learnAbility('attack')">Ataque</button>
-            <button class="action-btn small" :disabled="!gameStore.activeHero || !!gameStore.activeHero.abilities.find(a => a.type === 'stunStrike')" @click="learnAbility('stunStrike')">Aturdidor</button>
-            <button class="action-btn small" :disabled="!gameStore.activeHero || !!gameStore.activeHero.abilities.find(a => a.type === 'stealthStrike')" @click="learnAbility('stealthStrike')">Sigiloso</button>
-            <button class="action-btn small" :disabled="!gameStore.activeHero || !!gameStore.activeHero.abilities.find(a => a.type === 'fireball')" @click="learnAbility('fireball')">Bola de Fuego</button>
+          <p class="section-hint">Solo se aplican al heroe activo. Tope 4 habilidades (sin contar el ataque básico). Actuales: {{ activeHeroAbilityCount }}/4</p>
+          <div class="pattern-scroll">
+            <button
+              v-for="item in abilityLabels"
+              :key="item.ability.type"
+              class="pattern-btn"
+              :class="{ active: activeHeroHasAbility(item.ability.type) }"
+              :disabled="!gameStore.activeHero || activeHeroHasAbility(item.ability.type) || activeHeroAbilityCount >= 4"
+              @click="learnAbilityFromList(item.ability)"
+            >
+              <span class="pattern-label">{{ item.label }}</span>
+              <span class="pattern-desc">{{ item.description }}</span>
+            </button>
           </div>
         </section>
 
         <section class="panel-section">
-          <h3><img :src="skullIcon" alt="" class="inline-icon" /> Aplicar Estado al Jugador</h3>
-          <p class="section-hint">Para probar modificadores de defensa</p>
-          <div class="button-grid three-col">
-            <button class="action-btn small debuff" @click="applyStatusToPlayer('stun')">Aturdir</button>
-            <button class="action-btn small debuff" @click="applyStatusToPlayer('burn')">Quemar</button>
-            <button class="action-btn small debuff" @click="applyStatusToPlayer('poison')">Veneno</button>
-            <button class="action-btn small debuff" @click="applyStatusToPlayer('weakness')">Debilitar</button>
-            <button class="action-btn small debuff" @click="applyStatusToPlayer('slow')">Ralentizar</button>
-            <button class="action-btn small buff" @click="applyStatusToPlayer('defense_boost')">+Defensa</button>
-            <button class="action-btn small buff" @click="applyStatusToPlayer('speed_boost')">+Velocidad</button>
-            <button class="action-btn small buff" @click="applyStatusToPlayer('strength_boost')">+Fuerza</button>
+          <h3><img :src="skullIcon" alt="" class="inline-icon" /> Estados Negativos</h3>
+          <p class="section-hint">Aplica efectos negativos al heroe activo.</p>
+          <div class="pattern-scroll">
+            <button
+              v-for="status in negativeStatusEffects"
+              :key="status.type"
+              class="pattern-btn"
+              :disabled="!gameStore.activeHero"
+              @click="applyStatusToPlayer(status.type as any)"
+            >
+              <span class="pattern-label">{{ status.label }}</span>
+              <span class="pattern-desc">{{ status.description }}</span>
+            </button>
           </div>
         </section>
 
         <section class="panel-section">
-          <h3><img :src="cycleIcon" alt="" class="inline-icon" /> Reset</h3>
-          <div class="button-grid">
-            <button class="action-btn warn" @click="resetDummy">Reiniciar Dummy</button>
+          <h3><img :src="burstIcon" alt="" class="inline-icon" /> Estados DoT</h3>
+          <p class="section-hint">Aplica daño por turno al heroe activo.</p>
+          <div class="pattern-scroll">
+            <button
+              v-for="status in dotStatusEffects"
+              :key="status.type"
+              class="pattern-btn"
+              :disabled="!gameStore.activeHero"
+              @click="applyStatusToPlayer(status.type as any)"
+            >
+              <span class="pattern-label">{{ status.label }}</span>
+              <span class="pattern-desc">{{ status.description }}</span>
+            </button>
           </div>
         </section>
 
         <section class="panel-section">
           <h3><img :src="personIcon" alt="" class="inline-icon" /> Heroes en Sala de Pruebas</h3>
-          <p class="section-hint">Elige la clase y nivel de cada slot. Desde el nivel 4 el ataque basico golpea dos veces.</p>
+          <p class="section-hint">Elige la clase de cada slot y ajusta su nivel con los botones +/−. El heroe activo aparece resaltado. Desde el nivel 4 el ataque basico golpea dos veces.</p>
           <div class="active-hero-row">
             <span class="active-hero-label">Activo:</span>
             <strong>{{ gameStore.activeHero?.name ?? '—' }}</strong>
+            <span class="active-hero-class" v-if="activeHeroClassLabel">— {{ activeHeroClassLabel }}</span>
             <span class="active-hero-level">Nv {{ gameStore.activeHero?.level ?? '—' }}</span>
-            <button class="level-btn" :disabled="!gameStore.activeHero || gameStore.activeHero.level <= 1" @click="adjustActiveLevel(-1)">−</button>
-            <button class="level-btn" :disabled="!gameStore.activeHero" @click="adjustActiveLevel(+1)">+</button>
           </div>
           <div class="roster-list">
-            <div v-for="i in MAX_HEROES" :key="i - 1" class="roster-row">
+            <div
+              v-for="i in MAX_HEROES"
+              :key="i - 1"
+              class="roster-row"
+              :class="{ 'active-slot': gameStore.activeHeroIndex === i - 1 }"
+            >
               <span class="roster-slot">Slot {{ i }}</span>
               <select v-model="rosterClass[i - 1]">
                 <option value="">— Vacío —</option>
                 <option v-for="entry in RECRUITABLE_HEROES" :key="entry.id" :value="entry.id">{{ entry.displayName }}</option>
               </select>
-              <input
-                type="number"
-                min="1"
-                max="50"
-                v-model.number="rosterLevels[i - 1]"
-                class="roster-level"
-              />
-              <button class="action-btn small" @click="applySlot(i - 1)">Aplicar</button>
+              <div class="slot-level">
+                <span class="slot-level-value">Nv {{ gameStore.heroes[i - 1]?.level ?? '—' }}</span>
+                <button
+                  class="level-btn"
+                  :disabled="!gameStore.heroes[i - 1] || gameStore.heroes[i - 1]!.level <= 1"
+                  @click="adjustSlotLevel(i - 1, -1)"
+                >−</button>
+                <button
+                  class="level-btn"
+                  :disabled="!gameStore.heroes[i - 1]"
+                  @click="adjustSlotLevel(i - 1, +1)"
+                >+</button>
+              </div>
             </div>
           </div>
+          <button class="action-btn apply-roster-btn" @click="applyRoster">Aplicar</button>
         </section>
 
         <footer class="panel-footer">
@@ -849,17 +929,24 @@ function onTrainingEnded() {
 }
 .roster-row {
   display: grid;
-  grid-template-columns: 50px 1fr 64px auto;
+  grid-template-columns: 50px 1fr auto;
   gap: 0.35rem;
   align-items: center;
+  padding: 0.25rem;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid transparent;
+}
+.roster-row.active-slot {
+  border-color: rgba(76, 175, 80, 0.7);
+  background: rgba(76, 175, 80, 0.12);
 }
 .roster-slot {
   color: #aaa;
   font-size: 0.7rem;
   font-weight: 700;
 }
-.roster-row select,
-.roster-row .roster-level {
+.roster-row select {
   background: #0f1424;
   color: #fff;
   border: 1px solid #4CAF50;
@@ -867,7 +954,26 @@ function onTrainingEnded() {
   padding: 0.25rem 0.35rem;
   font-size: 0.78rem;
 }
-.roster-row .roster-level {
+.slot-level {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.slot-level-value {
+  color: #ffe066;
+  font-weight: 700;
+  font-size: 0.78rem;
+  min-width: 38px;
   text-align: center;
+}
+.active-hero-class {
+  color: #b6e7b9;
+  font-size: 0.75rem;
+}
+.apply-roster-btn {
+  margin-top: 0.6rem;
+  width: 100%;
+  font-size: 0.85rem;
+  padding: 0.5rem 0.6rem;
 }
 </style>
