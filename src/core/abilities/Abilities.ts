@@ -7,10 +7,10 @@ import type { CritResult } from '../crit'
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
-const FIRE_SLASH_DOWN: VfxEffect = { asset: 'fire-slash-down', durationMs: 1260 }
-const FIRE_SLASH_UP: VfxEffect = { asset: 'fire-slash-up', durationMs: 1260 }
-const HOLY_SLASH_DOWN: VfxEffect = { asset: 'holy-slash-down', durationMs: 1260 }
-const HOLY_SLASH_UP: VfxEffect = { asset: 'holy-slash-up', durationMs: 1260 }
+const FIRE_SLASH_DOWN: VfxEffect = { asset: 'fire-slash-down', durationMs: 1200 }
+const FIRE_SLASH_UP: VfxEffect = { asset: 'fire-slash-up', durationMs: 1200 }
+const HOLY_SLASH_DOWN: VfxEffect = { asset: 'holy-slash-down', durationMs: 1200 }
+const HOLY_SLASH_UP: VfxEffect = { asset: 'holy-slash-up', durationMs: 1200 }
 const BASIC_ATTACK_LEVEL_4_THRESHOLD = 4
 const BASIC_ATTACK_HIT_INTERVAL_MS = 400
 const BASIC_ATTACK_DURATION_MS = 1800
