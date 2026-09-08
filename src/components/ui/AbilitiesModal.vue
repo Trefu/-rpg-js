@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import type { IAbility } from '@/core/interfaces/IAbility'
 import type { AbilityDamagePreview } from '@/core/interfaces/IAbility'
 import type { Hero } from '@/core/Hero'
+import { getDamageTypeInfo } from '@/core/combat/damageTypes'
 import closeIcon from '@/assets/icons/cross-mark.png'
 import hourglassIcon from '@/assets/icons/hourglass.png'
 import boltIcon from '@/assets/icons/bolt-shield.png'
@@ -79,6 +80,17 @@ function togglePreview(ability: IAbility, event?: MouseEvent) {
   event?.stopPropagation()
   expandedType.value = expandedType.value === ability.type ? null : ability.type
 }
+
+/**
+ * Devuelve la clase CSS del tipo de daño (`dmg-fire`, `dmg-holy`, etc.)
+ * para colorear el chip de tipo en el modal. Usa el registro central
+ * `DAMAGE_TYPES` para que añadir un tipo nuevo no requiera tocar aqui.
+ * Si la ability no tiene `damageType` (buffs/curas) devuelve string vacío.
+ */
+function damageTypeClass(id?: string): string {
+  if (!id) return ''
+  return getDamageTypeInfo(id)?.className ?? ''
+}
 </script>
 
 <template>
@@ -128,7 +140,11 @@ function togglePreview(ability: IAbility, event?: MouseEvent) {
                 >
                   <span class="damage-range-label">Daño</span>
                   <span class="damage-range-values">{{ previews[idx]!.min }}–{{ previews[idx]!.max }}</span>
-                  <span v-if="previews[idx]!.damageTypeLabel" class="damage-type-tag">{{ previews[idx]!.damageTypeLabel }}</span>
+                  <span
+                    v-if="previews[idx]!.damageTypeLabel"
+                    class="damage-type-tag"
+                    :class="damageTypeClass(ability.damageType)"
+                  >{{ previews[idx]!.damageTypeLabel }}</span>
                 </button>
               </div>
 
@@ -467,7 +483,21 @@ function togglePreview(ability: IAbility, event?: MouseEvent) {
   color: #b8b8d0;
   font-size: 0.75rem;
   opacity: 0.85;
+  font-weight: 700;
+  letter-spacing: 0.04em;
 }
+
+/* Damage-type colors — heredados del registro central `DAMAGE_TYPES`.
+   Scoped aqui porque `.damage-type-tag` es local al modal. Los colores
+   de los spans v-html dentro del popover usan las reglas globales en
+   `hint-colors.css`. */
+.damage-type-tag.dmg-physical { color: #d7ccc8; }
+.damage-type-tag.dmg-fire    { color: #ff8a3a; }
+.damage-type-tag.dmg-holy    { color: #ffe066; }
+.damage-type-tag.dmg-poison  { color: #9ccc65; }
+.damage-type-tag.dmg-arcane  { color: #b388ff; }
+.damage-type-tag.dmg-electric{ color: #ffeb3b; }
+.damage-type-tag.dmg-water   { color: #64b5f6; }
 
 .ability-formula-popover {
   margin: 0.5rem 0 0.2rem;

@@ -4,13 +4,25 @@ import type { ZoneId } from './EnemyPools'
 export const ZONES: Record<ZoneId, IZone> = {
   'mountain-peak': {
     id: 'mountain-peak',
-    name: 'Monte Pico',
+    name: 'Montañas Rocosas',
     description: 'Una montana escarpada con ruinas antiguas en la cima. Ideal para una primera expedicion.',
     background: '',
-    difficulty: 'medium',
+    difficulty: 'easy',
     minLevel: 1,
     enemies: [],
     rewards: { experience: 50, gold: 25 }
+  },
+  'crystal-caves': {
+    id: 'crystal-caves',
+    name: 'Cavernas de Cristal',
+    description: 'Cavernas resplandecientes con criaturas de cristal.',
+    background: '',
+    difficulty: 'medium',
+    minLevel: 4,
+    enabled: false,
+    inDevelopment: true,
+    enemies: [],
+    rewards: { experience: 120, gold: 60 }
   },
   'forgotten-castle': {
     id: 'forgotten-castle',
@@ -18,21 +30,11 @@ export const ZONES: Record<ZoneId, IZone> = {
     description: 'Ruinas cubiertas de maleza donde moran bandas y bestias.',
     background: '',
     difficulty: 'hard',
-    minLevel: 3,
+    minLevel: 12,
     enabled: false,
+    inDevelopment: true,
     enemies: [],
     rewards: { experience: 80, gold: 40 }
-  },
-  'crystal-caves': {
-    id: 'crystal-caves',
-    name: 'Cavernas de Cristal',
-    description: 'Cavernas resplandecientes con criaturas de cristal.',
-    background: '',
-    difficulty: 'hard',
-    minLevel: 5,
-    enabled: false,
-    enemies: [],
-    rewards: { experience: 120, gold: 60 }
   }
 }
 

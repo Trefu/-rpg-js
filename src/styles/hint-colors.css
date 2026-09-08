@@ -72,3 +72,48 @@
 .mab-info-formula .hint-con  { color: #5cff8a; font-weight: 700; text-shadow: 0 1px 2px #000; }
 .mab-info-formula .hint-atk  { color: #ff8a3a; font-weight: 700; text-shadow: 0 1px 2px #000; }
 .mab-info-formula .hint-mag  { color: #82b1ff; font-weight: 700; text-shadow: 0 1px 2px #000; }
+
+/* PreGameView — formula inline en el detalle del heroe. Misma paleta
+   que el modal de habilidades para que sea coherente al cruzar vistas. */
+.pregame-ability-formula .hint-base { color: #b0bec5; font-weight: 700; }
+.pregame-ability-formula .hint-lvl  { color: #ffd54f; font-weight: 700; }
+.pregame-ability-formula .hint-cue  { color: #ff8a3a; font-weight: 700; }
+.pregame-ability-formula .hint-mind { color: #82b1ff; font-weight: 700; }
+.pregame-ability-formula .hint-agi  { color: #ffe066; font-weight: 700; }
+.pregame-ability-formula .hint-con  { color: #5cff8a; font-weight: 700; }
+.pregame-ability-formula .hint-atk  { color: #ff8a3a; font-weight: 700; }
+.pregame-ability-formula .hint-mag  { color: #82b1ff; font-weight: 700; }
+
+/* ============================================================
+   Damage-type colors — usados por v-html en formulas de abilities
+   (`.ability-formula-popover`, `.mab-info-formula`,
+   `.pregame-ability-formula`) y por el sufijo `→ <Tipo>` que
+   centraliza `F.dmgType()` en `Abilities.ts`.
+
+   Paleta sincronizada con `DAMAGE_TYPES` en
+   `core/combat/damageTypes.ts`. Si añades un tipo nuevo, añade su
+   entrada aqui para mantener una sola fuente de verdad visual.
+   ============================================================ */
+.ability-formula-popover .dmg-physical { color: #d7ccc8; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.ability-formula-popover .dmg-fire    { color: #ff8a3a; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.ability-formula-popover .dmg-holy    { color: #ffe066; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.ability-formula-popover .dmg-poison  { color: #9ccc65; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.ability-formula-popover .dmg-arcane  { color: #b388ff; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.ability-formula-popover .dmg-electric{ color: #ffeb3b; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.ability-formula-popover .dmg-water   { color: #64b5f6; font-weight: 700; text-shadow: 0 1px 2px #000; }
+
+.mab-info-formula .dmg-physical { color: #d7ccc8; font-weight: 700; }
+.mab-info-formula .dmg-fire    { color: #ff8a3a; font-weight: 700; }
+.mab-info-formula .dmg-holy    { color: #ffe066; font-weight: 700; }
+.mab-info-formula .dmg-poison  { color: #9ccc65; font-weight: 700; }
+.mab-info-formula .dmg-arcane  { color: #b388ff; font-weight: 700; }
+.mab-info-formula .dmg-electric{ color: #ffeb3b; font-weight: 700; }
+.mab-info-formula .dmg-water   { color: #64b5f6; font-weight: 700; }
+
+.pregame-ability-formula .dmg-physical { color: #d7ccc8; font-weight: 700; }
+.pregame-ability-formula .dmg-fire    { color: #ff8a3a; font-weight: 700; }
+.pregame-ability-formula .dmg-holy    { color: #ffe066; font-weight: 700; }
+.pregame-ability-formula .dmg-poison  { color: #9ccc65; font-weight: 700; }
+.pregame-ability-formula .dmg-arcane  { color: #b388ff; font-weight: 700; }
+.pregame-ability-formula .dmg-electric{ color: #ffeb3b; font-weight: 700; }
+.pregame-ability-formula .dmg-water   { color: #64b5f6; font-weight: 700; }

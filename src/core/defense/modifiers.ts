@@ -1,5 +1,6 @@
 import type { IStatusEffect, DefenseEffectSide, DefenseContribution } from '../interfaces/IStatusEffect'
 import type { AttackType, DefenseBlockEffect } from './types'
+import { canonicalDamageType, MIND_SCALED_TYPES } from '../combat/damageTypes'
 
 export interface DefenseModifiers {
   waveSpeedMultiplier: number
@@ -43,17 +44,18 @@ export interface EnemyLikeForDefense {
 }
 
 /** Tipos de daño que se consideran mágicos para la elección de stat. */
-const MAGIC_DAMAGE_TYPES: ReadonlySet<string> = new Set([
-  'fire', 'frost', 'poison', 'shadow', 'arcane', 'holy', 'radiant', 'magical'
-])
+const MAGIC_DAMAGE_TYPES: ReadonlySet<string> = MIND_SCALED_TYPES
 
 /**
  * Indica si un `damageType` representa daño mágico (se reduce con `mind`).
+ * Acepta IDs canonicos y aliases (frost/shadow/radiant/magical).
  * Default `false` (incluye 'physical' y undefined → defensa física).
  */
 export function isMagicalDamageType(damageType: string | undefined | null): boolean {
   if (!damageType) return false
-  return MAGIC_DAMAGE_TYPES.has(damageType)
+  const id = canonicalDamageType(damageType)
+  if (!id) return false
+  return MAGIC_DAMAGE_TYPES.has(id)
 }
 
 /**

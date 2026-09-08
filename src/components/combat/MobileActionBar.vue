@@ -636,7 +636,18 @@ function shortLabel(name: string, max = 5): string {
   color: #b8b8d0;
   font-size: 0.7rem;
   opacity: 0.85;
+  font-weight: 700;
+  letter-spacing: 0.04em;
 }
+
+/* Damage-type colors — sincronizados con `DAMAGE_TYPES`. */
+.mab-info-damage-type.dmg-physical { color: #d7ccc8; }
+.mab-info-damage-type.dmg-fire    { color: #ff8a3a; }
+.mab-info-damage-type.dmg-holy    { color: #ffe066; }
+.mab-info-damage-type.dmg-poison  { color: #9ccc65; }
+.mab-info-damage-type.dmg-arcane  { color: #b388ff; }
+.mab-info-damage-type.dmg-electric{ color: #ffeb3b; }
+.mab-info-damage-type.dmg-water   { color: #64b5f6; }
 
 .mab-info-formula {
   background: rgba(20, 22, 38, 0.55);

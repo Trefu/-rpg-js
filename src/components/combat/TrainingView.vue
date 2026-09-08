@@ -781,9 +781,10 @@ function onTrainingEnded() {
   border-color: #ff6b35;
   color: #ffd1bf;
 }
+.pattern-tag.dmg-water,
 .pattern-tag.dmg-frost,
 .pattern-tag.dmg-freeze {
-  background: rgba(120, 200, 255, 0.2);
+  background: rgba(100, 181, 246, 0.2);
   border-color: #64b5f6;
   color: #cfe9ff;
 }
@@ -793,9 +794,9 @@ function onTrainingEnded() {
   border-color: #ffe600;
   color: #fff3b0;
 }
+.pattern-tag.dmg-arcane,
 .pattern-tag.dmg-shadow,
-.pattern-tag.dmg-magical,
-.pattern-tag.dmg-arcane {
+.pattern-tag.dmg-magical {
   background: rgba(160, 120, 255, 0.2);
   border-color: #b388ff;
   color: #e3d6ff;
@@ -804,6 +805,16 @@ function onTrainingEnded() {
   background: rgba(110, 200, 80, 0.2);
   border-color: #8bc34a;
   color: #d7f0c4;
+}
+.pattern-tag.dmg-electric {
+  background: rgba(255, 235, 59, 0.2);
+  border-color: #ffeb3b;
+  color: #fff59d;
+}
+.pattern-tag.dmg-physical {
+  background: rgba(215, 204, 200, 0.18);
+  border-color: #a1887f;
+  color: #d7ccc8;
 }
 
 .stats-grid {

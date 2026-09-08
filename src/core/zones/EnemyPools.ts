@@ -58,7 +58,7 @@ export const DEFAULT_ZONE: ZoneId = 'mountain-peak'
 export const ZONE_ENEMY_POOLS: Record<ZoneId, ZoneEnemyConfig> = {
   'mountain-peak': {
     id: 'mountain-peak',
-    displayName: 'Monte Pico',
+    displayName: 'Montañas Rocosas',
     pools: {
       intro: [
         () => new Goblin(1),

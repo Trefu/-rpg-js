@@ -141,8 +141,8 @@ export const FIRE_BREATH: DefensePatternConfig = {
 
 export const GLACIAL_BREATH: DefensePatternConfig = {
     name: 'Aliento Glacial',
-    type: 'frost',
-    damageType: 'frost',
+    type: 'water',
+    damageType: 'water',
     waveSpeed: 50,
     baseMaxBlockReduction: 0.5,
     damageMultiplier: 0.7,
@@ -186,8 +186,8 @@ export const DEEP_SLASH: DefensePatternConfig = {
  */
 export const GUST_OF_FOG: DefensePatternConfig = {
     name: 'Ráfaga de Niebla',
-    type: 'shadow',
-    damageType: 'magical',
+    type: 'arcane',
+    damageType: 'arcane',
     waveSpeed: 45,
     baseMaxBlockReduction: 0.4,
     damageMultiplier: 1.1,

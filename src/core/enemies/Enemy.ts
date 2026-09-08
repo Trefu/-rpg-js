@@ -3,7 +3,7 @@ import { ICharacter, ICombatant, type IEnemyStats, type IStat } from '../interfa
 import type { IStatusEffect } from '../interfaces/IStatusEffect'
 import type { DefensePatternConfig } from '../defense/types'
 import type { Hero } from '../Hero'
-import { getScalingStat, getScalingCoefficient, type UnifiedDamageType } from '../combat/damageTypes'
+import { getScalingStat, getScalingCoefficient } from '../combat/damageTypes'
 import { computeDefense, computeMagicDefense } from '../defense/computeDefense'
 import { computeAgilityCritBonus, rollCritFromChance, type CritResult } from '../crit'
 import { applyDamageVariance } from '../abilities/Abilities'
@@ -149,7 +149,7 @@ export abstract class Enemy extends Character implements ICombatant {
 
   public calculatePhaseDamage(pattern: DefensePatternConfig, multiplier: number = 1): number {
     if (!this.isAlive) return 0
-    const damageType = (pattern.damageType ?? 'physical') as UnifiedDamageType
+    const damageType = pattern.damageType ?? 'physical'
     const scalingStat = getScalingStat(damageType)
     const coefficient = getScalingCoefficient(scalingStat)
     const statValue = scalingStat === 'body'

@@ -6,6 +6,12 @@ export interface IZone {
   difficulty: 'easy' | 'medium' | 'hard'
   minLevel: number
   enabled?: boolean
+  /**
+   * Marcada como "En desarrollo": la zona aparece listada pero no es
+   * jugable todavia. Se muestra con un badge en la UI para distinguir
+   * de las zonas bloqueadas por nivel (`enabled: false`).
+   */
+  inDevelopment?: boolean
   enemies: string[]
   rewards: {
     experience: number

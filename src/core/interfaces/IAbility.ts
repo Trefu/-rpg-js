@@ -67,14 +67,37 @@ export interface RandomAttackSpec {
 }
 
 /**
- * Categorias de daño de una habilidad. Sirve para:
- * - futuras resistencias/debilidades de enemigos o heroes
- * - UI (icono/etiqueta del tipo de daño en el modal y en los popups de impacto)
- * - balanceo (los buffs de mind escalan el daño magico, los de body el fisico)
- *
- * Si la ability no inflige daño (curas, buffs), dejar el campo en `undefined`.
+ * Categorias de daño de una habilidad. Re-export del registro central en
+ * `core/combat/damageTypes.ts` — ese módulo es la única fuente de verdad
+ * para labels, colores, escalado y aliases. Si la ability no inflige
+ * daño (curas, buffs), dejar el campo en `undefined`.
  */
-export type DamageType = 'physical' | 'fire' | 'holy' | 'frost'
+export type { DamageTypeId as DamageType } from '../combat/damageTypes'
+export {
+  DAMAGE_TYPES,
+  getDamageTypeLabel,
+  getDamageTypeInfo,
+  canonicalDamageType,
+  type DamageTypeInfo
+} from '../combat/damageTypes'
+
+/**
+ * @deprecated usa `getDamageTypeLabel(id)` del módulo central. Este map
+ * se mantiene solo por compatibilidad transitoria.
+ */
+export const DAMAGE_TYPE_LABELS: Record<string, string> = {
+  physical: 'Físico',
+  fire: 'Fuego',
+  holy: 'Sagrado',
+  frost: 'Agua',
+  poison: 'Veneno',
+  arcane: 'Arcano',
+  electric: 'Eléctrico',
+  water: 'Agua',
+  shadow: 'Arcano',
+  magical: 'Arcano',
+  radiant: 'Sagrado'
+}
 
 export type VfxAssetId =
   | 'fire-slash-down'
@@ -87,13 +110,6 @@ export type VfxAssetId =
 export interface VfxEffect {
   asset: VfxAssetId
   durationMs: number
-}
-
-export const DAMAGE_TYPE_LABELS: Record<DamageType, string> = {
-  physical: 'Físico',
-  fire: 'Fuego',
-  holy: 'Sagrado',
-  frost: 'Hielo'
 }
 
 /**

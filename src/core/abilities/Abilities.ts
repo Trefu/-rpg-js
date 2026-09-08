@@ -1,6 +1,6 @@
 import type { IAbility, DamageType, AbilityDamagePreview, VfxEffect } from '@/core/interfaces/IAbility'
 import type { AbilityContext } from '@/core/interfaces/IAbility'
-import { DAMAGE_TYPE_LABELS } from '@/core/interfaces/IAbility'
+import { getDamageTypeLabel, getDamageTypeInfo, type DamageTypeId } from '../combat/damageTypes'
 import type { Hero } from '../Hero'
 import { StatusEffects, DOT_STATUS_TYPES } from '../StatusEffects'
 import type { CritResult } from '../crit'
@@ -71,8 +71,8 @@ const computeDamageRange = (raw: number, range: DamageVarianceRange = DEFAULT_VA
 }
 
 const showCritAnnouncement = (context: AbilityContext, damage: number, isOvercrit: boolean = false) => {
-    const dmgType = context.ability?.damageType as DamageType | undefined
-    const typeLabel = dmgType ? DAMAGE_TYPE_LABELS[dmgType] : 'Físico'
+    const dmgType = context.ability?.damageType as DamageTypeId | undefined
+    const typeLabel = dmgType ? getDamageTypeLabel(dmgType) : 'Físico'
     const prefix = isOvercrit ? '¡Overcrit!' : 'Crítico'
     context.showAnnouncement(`${prefix} ${damage} ${typeLabel}`, 'crit', 1800, { priority: 100, interrupt: true })
 }
@@ -181,7 +181,7 @@ const buildPreview = (
         min,
         max,
         formula,
-        damageTypeLabel: damageType ? DAMAGE_TYPE_LABELS[damageType] : undefined
+        damageTypeLabel: damageType ? getDamageTypeLabel(damageType) : undefined
     }
 }
 
@@ -191,9 +191,14 @@ const buildPreview = (
  * `<span class="hint-XXX">` con el color del stat correspondiente
  * (Cuerpo→orange, Mente→azul, nivel→gold, ATQ→orange, ATQ MAG→azul, etc.).
  *
- * Los colores se aplican via `.ability-formula .hint-XXX` y
- * `.mab-info-formula .hint-XXX` en `hint-colors.css` (estilos globales
- * porque el contenido va por v-html).
+ * Los colores se aplican via `.ability-formula .hint-XXX`,
+ * `.mab-info-formula .hint-XXX` y `.pregame-ability-formula .hint-XXX`
+ * en `hint-colors.css` (estilos globales porque el contenido va por v-html).
+ *
+ * `dmgType()` envuelve el nombre del tipo de daño (ej. "Fuego") en su
+ * clase de color (`hint-fire`, `hint-holy`, etc.) para que el ojo
+ * identifique al instante de dónde viene el daño. Misma paleta que
+ * los badges `.dmg-*` definidos en `damageTypes.ts`.
  *
  * Los inputs son números/strings calculados a partir de stats del caster
  * (no user input), así que v-html es seguro.
@@ -206,7 +211,29 @@ const F = {
     agi:  (s: string | number) => `<span class="hint-agi">${s}</span>`,
     con:  (s: string | number) => `<span class="hint-con">${s}</span>`,
     atk:  (s: string | number) => `<span class="hint-atk">${s}</span>`,
-    mag:  (s: string | number) => `<span class="hint-mag">${s}</span>`
+    mag:  (s: string | number) => `<span class="hint-mag">${s}</span>`,
+    /**
+     * Etiqueta de tipo de daño coloreada. Usa `className` del registro
+     * central `DAMAGE_TYPES` para mantener una única paleta. Si el ID es
+     * desconocido cae a `hint-base` (gris).
+     */
+    dmgType: (id: DamageTypeId | string) => {
+        const info = getDamageTypeInfo(id)
+        const cls = info?.className ?? 'hint-base'
+        const label = info?.label ?? id
+        return `<span class="${cls}">${label}</span>`
+    }
+}
+
+/**
+ * Helper para componer el sufijo de fórmula `→ <Tipo>`. Centraliza el
+ * `F.base('→ ')` + tipo coloreado para que todas las formulas usen el
+ * mismo separador y la misma paleta de color por tipo.
+ */
+const dmgSuffix = (id: DamageTypeId | string, extra?: string): string => {
+    const arrow = F.base('→')
+    const tag = F.dmgType(id)
+    return extra ? `${arrow} ${tag} ${F.base('· ' + extra)}` : `${arrow} ${tag}`
 }
 
 /**
@@ -237,7 +264,7 @@ export const BasicAttack: IAbility = {
         const raw = body * 0.7 + level
         const hitCount = getBasicAttackHitCount(level)
         const totalRaw = raw * hitCount
-        const formula = `${F.cue('CUE')} ${F.cue(Math.round(body))} × 0.7 + ${F.lvl('nivel')} ${F.lvl(level)} = ${F.atk(raw.toFixed(1))}${hitCount > 1 ? ` × ${hitCount} = ${F.atk(totalRaw.toFixed(1))}` : ''}  ${F.base('→ Físico')}`
+        const formula = `${F.cue('CUE')} ${F.cue(Math.round(body))} × 0.7 + ${F.lvl('nivel')} ${F.lvl(level)} = ${F.atk(raw.toFixed(1))}${hitCount > 1 ? ` × ${hitCount} = ${F.atk(totalRaw.toFixed(1))}` : ''}  ${dmgSuffix('physical')}`
         return buildPreview(formula, totalRaw, 'physical')
     },
     execute: executeBasicAttack
@@ -253,7 +280,7 @@ export const WarriorBasicAttack: IAbility = {
         const raw = body * 0.7 + level
         const hitCount = getBasicAttackHitCount(level)
         const totalRaw = raw * hitCount
-        const formula = `${F.cue('CUE')} ${F.cue(Math.round(body))} × 0.7 + ${F.lvl('nivel')} ${F.lvl(level)} = ${F.atk(raw.toFixed(1))}${hitCount > 1 ? ` × ${hitCount} = ${F.atk(totalRaw.toFixed(1))}` : ''}  ${F.base('→ Fuego')}`
+        const formula = `${F.cue('CUE')} ${F.cue(Math.round(body))} × 0.7 + ${F.lvl('nivel')} ${F.lvl(level)} = ${F.atk(raw.toFixed(1))}${hitCount > 1 ? ` × ${hitCount} = ${F.atk(totalRaw.toFixed(1))}` : ''}  ${dmgSuffix('fire')}`
         return buildPreview(formula, totalRaw, 'fire')
     }
 }
@@ -272,7 +299,7 @@ export const ClericBasicAttack: IAbility = {
         const raw = body * 0.7 + level
         const hitCount = getBasicAttackHitCount(level)
         const totalRaw = raw * hitCount
-        const formula = `${F.cue('CUE')} ${F.cue(Math.round(body))} × 0.7 + ${F.lvl('nivel')} ${F.lvl(level)} = ${F.atk(raw.toFixed(1))}${hitCount > 1 ? ` × ${hitCount} = ${F.atk(totalRaw.toFixed(1))}` : ''}  ${F.base('→ Sagrado')}`
+        const formula = `${F.cue('CUE')} ${F.cue(Math.round(body))} × 0.7 + ${F.lvl('nivel')} ${F.lvl(level)} = ${F.atk(raw.toFixed(1))}${hitCount > 1 ? ` × ${hitCount} = ${F.atk(totalRaw.toFixed(1))}` : ''}  ${dmgSuffix('holy')}`
         return buildPreview(formula, totalRaw, 'holy')
     },
     execute: executeBasicAttack
@@ -291,7 +318,7 @@ export const StunStrike: IAbility = {
         const level = hero.level
         const raw = (body * 0.7 + level * 0.5) * 0.8
         return buildPreview(
-            `(${F.cue('CUE')} ${F.cue(Math.round(body))} × 0.7 + ${F.lvl('nivel')} ${F.lvl(level)} × 0.5) × 0.8 = ${F.atk(raw.toFixed(1))}  ${F.base('→ Físico')}`,
+            `(${F.cue('CUE')} ${F.cue(Math.round(body))} × 0.7 + ${F.lvl('nivel')} ${F.lvl(level)} × 0.5) × 0.8 = ${F.atk(raw.toFixed(1))}  ${dmgSuffix('physical')}`,
             raw,
             'physical'
         )
@@ -326,7 +353,7 @@ export const StealthStrike: IAbility = {
         const level = hero.level
         const raw = (body * 0.7 + level * 0.5) * 1.5
         return buildPreview(
-            `(${F.cue('CUE')} ${F.cue(Math.round(body))} × 0.7 + ${F.lvl('nivel')} ${F.lvl(level)} × 0.5) × 1.5 = ${F.atk(raw.toFixed(1))}  ${F.base('→ Físico')}`,
+            `(${F.cue('CUE')} ${F.cue(Math.round(body))} × 0.7 + ${F.lvl('nivel')} ${F.lvl(level)} × 0.5) × 1.5 = ${F.atk(raw.toFixed(1))}  ${dmgSuffix('physical')}`,
             raw,
             'physical'
         )
@@ -358,9 +385,10 @@ export const Fireball: IAbility = {
     targetType: 'enemies-only',
     previewDamage: (hero: Hero) => {
         const mind = hero.baseStats.mind.value
-        const raw = mind * 2.5
+        const level = hero.level
+        const raw = mind * 2.0 + level * 1.5
         return buildPreview(
-            `${F.mind('MEN')} ${F.mind(Math.round(mind))} × 2.5 = ${F.mag(raw.toFixed(1))}  ${F.base('→ Fuego')}`,
+            `${F.mind('MEN')} ${F.mind(Math.round(mind))} × 2.0 + ${F.lvl('nivel')} ${F.lvl(level)} × 1.5 = ${F.mag(raw.toFixed(1))}  ${dmgSuffix('fire')}`,
             raw,
             'fire'
         )
@@ -369,7 +397,7 @@ export const Fireball: IAbility = {
         const caster = context.caster as Hero
         const target = context.target
         if (!target || !target.isAlive) return
-        const rawDamage = caster.baseStats.mind.value * 2.5
+        const rawDamage = caster.baseStats.mind.value * 2.0 + caster.level * 1.5
         const { finalDamage, crit } = rollAndApplyDamage(caster, rawDamage)
         if (finalDamage > 0) {
             target.takeDamage(finalDamage)
@@ -396,7 +424,7 @@ export const WarriorInjuringStrike: IAbility = {
         const level = hero.level
         const raw = body * 1.2 + level * 0.5
         return buildPreview(
-            `${F.cue('CUE')} ${F.cue(Math.round(body))} × 1.2 + ${F.lvl('nivel')} ${F.lvl(level)} × 0.5 = ${F.atk(raw.toFixed(1))}  ${F.base('→ Físico · aplica Lesionado')}`,
+            `${F.cue('CUE')} ${F.cue(Math.round(body))} × 1.2 + ${F.lvl('nivel')} ${F.lvl(level)} × 0.5 = ${F.atk(raw.toFixed(1))}  ${dmgSuffix('physical', 'aplica Lesionado')}`,
             raw,
             'physical'
         )
@@ -452,7 +480,7 @@ export const WarriorDevastatingStrike: IAbility = {
         const level = hero.level
         const raw = body * 1.5 + level * 3
         return buildPreview(
-            `(${F.cue('CUE')} ${F.cue(Math.round(body))} × 1.5) + (${F.lvl('nivel')} ${F.lvl(level)} × 3) = ${F.atk(raw.toFixed(1))}  ${F.base('→ Físico · golpea a todos')}`,
+            `(${F.cue('CUE')} ${F.cue(Math.round(body))} × 1.5) + (${F.lvl('nivel')} ${F.lvl(level)} × 3) = ${F.atk(raw.toFixed(1))}  ${dmgSuffix('physical', 'golpea a todos')}`,
             raw,
             'physical'
         )
@@ -534,10 +562,11 @@ export const ClericRadiantStrike: IAbility = {
     },
     previewDamage: (hero: Hero) => {
         const mind = hero.baseStats.mind.value
-        const raw = mind * 2.6
+        const level = hero.level
+        const raw = mind * 2.4 + level * 1.2
         const splash = raw * 0.6
         return buildPreview(
-            `${F.mind('MEN')} ${F.mind(Math.round(mind))} × 2.6 = ${F.mag(raw.toFixed(1))}  ${F.base('(salta a 1-2 con')} ${F.mag(splash.toFixed(1))}${F.base(')  → Sagrado')}`,
+            `${F.mind('MEN')} ${F.mind(Math.round(mind))} × 2.4 + ${F.lvl('nivel')} ${F.lvl(level)} × 1.2 = ${F.mag(raw.toFixed(1))}  ${F.base('(salta a 1-2 con')} ${F.mag(splash.toFixed(1))}${F.base(')  ')}${dmgSuffix('holy')}`,
             raw,
             'holy'
         )
@@ -546,7 +575,7 @@ export const ClericRadiantStrike: IAbility = {
         const caster = context.caster as Hero
         const target = context.target
         if (!target || !target.isAlive) return
-        const baseDamage = caster.baseStats.mind.value * 2.6
+        const baseDamage = caster.baseStats.mind.value * 2.4 + caster.level * 1.2
         const { finalDamage, crit } = rollAndApplyDamage(caster, baseDamage)
         context.lastPrimaryBaseDamage = baseDamage
         if (finalDamage > 0) {
@@ -570,9 +599,10 @@ export const ClericDivineSmite: IAbility = {
     targetType: 'enemies-only',
     previewDamage: (hero: Hero) => {
         const mind = hero.baseStats.mind.value
-        const raw = mind * 4
+        const level = hero.level
+        const raw = mind * 3.0 + level * 2.5
         return buildPreview(
-            `${F.mind('MEN')} ${F.mind(Math.round(mind))} × 4 = ${F.mag(raw.toFixed(1))}  ${F.base('→ Sagrado')}`,
+            `${F.mind('MEN')} ${F.mind(Math.round(mind))} × 3.0 + ${F.lvl('nivel')} ${F.lvl(level)} × 2.5 = ${F.mag(raw.toFixed(1))}  ${dmgSuffix('holy')}`,
             raw,
             'holy'
         )
@@ -581,7 +611,8 @@ export const ClericDivineSmite: IAbility = {
         const caster = context.caster as Hero
         const target = context.target
         if (!target || !target.isAlive) return
-        const { finalDamage, crit } = rollAndApplyDamage(caster, caster.baseStats.mind.value * 4)
+        const rawDamage = caster.baseStats.mind.value * 3.0 + caster.level * 2.5
+        const { finalDamage, crit } = rollAndApplyDamage(caster, rawDamage)
         if (finalDamage > 0) {
             target.takeDamage(finalDamage)
             context.showEnemyHit(target.id, finalDamage, crit.isCrit)
@@ -595,7 +626,7 @@ export const ClericDivineSmite: IAbility = {
 
 export const ClericHeal: IAbility = {
     name: 'Curar Heridas',
-    description: 'Canaliza luz radiante para restaurar 30% (+ bono por mente) de la vida maxima de un aliado (incluido el caster) y eliminar todos los efectos de dano por tiempo (Quemadura, Veneno, Congelado).',
+    description: 'Canaliza luz radiante para restaurar 30% (+ bono por mente y nivel) de la vida maxima de un aliado (incluido el caster) y eliminar todos los efectos de dano por tiempo (Quemadura, Veneno, Congelado).',
     type: 'clericHeal',
     cooldown: 0,
     energyCost: 30,
@@ -607,7 +638,11 @@ export const ClericHeal: IAbility = {
             context.addToLog('No hay un aliado valido para curar.')
             return
         }
-        const healAmount = Math.floor(target.maxHealth * 0.30 + caster.baseStats.mind.value * 2)
+        const healAmount = Math.floor(
+            target.maxHealth * 0.30
+            + caster.baseStats.mind.value * 2
+            + caster.level * 2
+        )
         const before = target.health
         target.heal(healAmount)
         const restored = target.health - before

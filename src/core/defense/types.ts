@@ -1,4 +1,5 @@
 import type { VfxEffect } from '../interfaces/IAbility'
+import type { DamageTypeId } from '../combat/damageTypes'
 
 export interface DefensePhaseZone {
   /**
@@ -44,19 +45,11 @@ export interface DefenseFailureVfxConfig {
 }
 
 /**
- * Tipo elemental del ataque (mock por ahora). Reservado para resistencias
- * y daño elemental futuro. Mantener alineado con los tipos registrados
- * en StatusEffects.
+ * Tipo elemental del ataque. Re-export del registro canonico en
+ * `core/combat/damageTypes.ts`. Mantener alineado con los tipos
+ * registrados en StatusEffects.
  */
-export type AttackType =
-  | 'physical'
-  | 'fire'
-  | 'frost'
-  | 'poison'
-  | 'shadow'
-  | 'arcane'
-  | 'holy'
-  | 'radiant'
+export type AttackType = DamageTypeId
 
 /**
  * Especificación declarativa de UNA fase del patrón.
@@ -69,7 +62,7 @@ export interface DefensePhaseSpec {
    */
   columnCount?: number
   /**
-   * Columnas exactas (0-indexed). Si se define, ignora `columnCount`
+   * Columnas exactas (0-indexadas). Si se define, ignora `columnCount`
    * y se sortean/empatan cero columnas: el patrón es determinístico.
    */
   successColumns?: number[]
@@ -115,7 +108,7 @@ export interface DefensePatternConfig {
   /** Tipo elemental del ataque. */
   type?: AttackType
   /** Tipo de daño para escalado: físico usa body, mágico usa mind. Default: 'physical' */
-  damageType?: 'physical' | 'fire' | 'frost' | 'poison' | 'shadow' | 'arcane' | 'holy' | 'radiant' | 'magical'
+  damageType?: DamageTypeId | string
   waveSpeed?: number
   /**
    * Tamaño por defecto de la zona de éxito en floats [0..1].
