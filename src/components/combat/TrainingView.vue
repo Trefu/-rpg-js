@@ -47,6 +47,7 @@ import {
 import CombatView from './CombatView.vue'
 import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
 import type { DefensePatternConfig } from '@/core/defense/types'
+import type { IEnemyStats } from '@/core/interfaces/ICharacter'
 import { RECRUITABLE_HEROES } from '@/core/heroes/recruitment'
 import { MAX_HEROES } from '@/stores/game'
 import type { Hero } from '@/core/Hero'
@@ -68,28 +69,43 @@ const ALL_DUMMY_PATTERNS: DefensePatternConfig[] = [
   GLACIAL_BREATH
 ]
 
-function describePattern(p: DefensePatternConfig): string {
-  const speed = p.waveSpeed ?? 30
-  const speedLabel = speed <= 30 ? 'lenta' : speed <= 45 ? 'media' : 'alta'
-  const phases = p.phases?.length ?? 1
-  const phaseLabel = phases === 1 ? '1 fase' : `${phases} fases`
-  const zoneLabel = p.baseSuccessZoneSize !== undefined
-    ? `zona ${Math.round(p.baseSuccessZoneSize * 100)}%`
-    : (p.phases?.some(ph => ph.columnCount !== undefined)
-        ? `zona ${p.phases.find(ph => ph.columnCount !== undefined)?.columnCount} col`
-        : (p.phases?.some(ph => ph.successColumns !== undefined) ? 'zona fija' : 'zona amplia'))
-  const dmg = `x${p.damageMultiplier.toFixed(1)}`
-  const effect = p.onFailureEffect
-    ? `, aplica ${p.onFailureEffect.statusType} al fallar`
-    : ''
-  return `${phaseLabel}, velocidad ${speedLabel}, ${zoneLabel}, ${dmg}${effect}`
+function speedLabel(speed: number): string {
+  if (speed <= 30) return 'lenta'
+  if (speed <= 45) return 'media'
+  return 'alta'
 }
 
-const ATTACK_PATTERN_LABELS: Array<{ label: string; description: string }> =
-  ALL_DUMMY_PATTERNS.map(p => ({
-    label: p.name ?? 'Ataque',
-    description: describePattern(p)
-  }))
+function zoneLabel(p: DefensePatternConfig): string {
+  if (p.baseSuccessZoneSize !== undefined) return `zona ${Math.round(p.baseSuccessZoneSize * 100)}%`
+  if (p.phases?.some(ph => ph.columnCount !== undefined)) {
+    const cc = p.phases.find(ph => ph.columnCount !== undefined)!.columnCount
+    return `zona ${cc} col`
+  }
+  if (p.phases?.some(ph => ph.successColumns !== undefined)) return 'zona fija'
+  return 'zona amplia'
+}
+
+interface AttackPatternInfo {
+  label: string
+  damageType: string
+  phaseCount: number
+  speed: number
+  speedLabel: string
+  zone: string
+  multiplier: number
+  onFailure: string | null
+}
+
+const ATTACK_PATTERN_INFOS: AttackPatternInfo[] = ALL_DUMMY_PATTERNS.map(p => ({
+  label: p.name ?? 'Ataque',
+  damageType: p.damageType ?? 'physical',
+  phaseCount: p.phases?.length ?? 1,
+  speed: p.waveSpeed ?? 30,
+  speedLabel: speedLabel(p.waveSpeed ?? 30),
+  zone: zoneLabel(p),
+  multiplier: p.damageMultiplier,
+  onFailure: p.onFailureEffect?.statusType ?? null
+}))
 
 const TRAINABLE_ABILITIES: IAbility[] = [
   StunStrike,
@@ -162,10 +178,6 @@ function rebuildDummy() {
   const level = Math.max(1, gameStore.activeHero?.level ?? 1)
   dummy.value = new Dummy(level)
   selectedPatternIndex.value = -1
-  damageValue.value = dummy.value.attack()
-  useCustomDamage.value = false
-  critChanceValue.value = 0
-  useCustomCrit.value = false
 }
 
 function applyRoster() {
@@ -209,10 +221,6 @@ const activeHeroClassLabel = computed(() => {
 watch(() => gameStore.activeHero?.level, () => rebuildDummy())
 
 const selectedPatternIndex = ref<number>(-1)
-const damageValue = ref<number>(dummy.value.attack())
-const useCustomDamage = ref<boolean>(false)
-const critChanceValue = ref<number>(0)
-const useCustomCrit = ref<boolean>(false)
 const panelCollapsed = ref<boolean>(false)
 
 const patterns = computed<DefensePatternConfig[]>(() => ALL_DUMMY_PATTERNS)
@@ -222,13 +230,6 @@ const currentForcedLabel = computed(() => {
 })
 
 const playerAbilitiesCount = computed(() => gameStore.activeHero?.abilities.length ?? 0)
-
-const critChancePercentProxy = computed<number>({
-  get: () => Math.round(critChanceValue.value),
-  set: (percent: number) => { critChanceValue.value = Math.max(0, Math.min(200, percent)) }
-})
-
-const critChancePercentLabel = computed(() => `${Math.round(critChanceValue.value)}%`)
 
 function selectPattern(index: number) {
   selectedPatternIndex.value = index
@@ -240,29 +241,30 @@ function selectPattern(index: number) {
   }
 }
 
-function applyDamageChange() {
-  dummy.value.setDamageOverride(useCustomDamage.value ? damageValue.value : null)
+function updateDummyStat(stat: keyof IEnemyStats, event: Event) {
+  const target = event.target as HTMLInputElement
+  const value = Math.max(0, Math.floor(Number(target.value) || 0))
+  dummy.value.baseStats[stat].value = value
 }
 
-function applyCritChange() {
-  dummy.value.setCritChanceOverride(useCustomCrit.value ? critChanceValue.value : null)
+function updateDummyCritChance(event: Event) {
+  const target = event.target as HTMLInputElement
+  const value = Math.max(0, Math.min(200, Math.floor(Number(target.value) || 0)))
+  dummy.value.critChance = value
 }
 
-watch(damageValue, () => applyDamageChange())
-watch(useCustomDamage, () => applyDamageChange())
-watch(critChanceValue, () => applyCritChange())
-watch(useCustomCrit, () => applyCritChange())
+function resetDummyStats() {
+  const level = Math.max(1, gameStore.activeHero?.level ?? 1)
+  dummy.value = new Dummy(level)
+  selectedPatternIndex.value = -1
+}
 
 function resetDummy() {
   dummy.value.reset()
   selectedPatternIndex.value = -1
-  damageValue.value = dummy.value.attack()
-  useCustomDamage.value = false
-  critChanceValue.value = 0
-  useCustomCrit.value = false
 }
 
-function applyStatusToPlayer(type: 'stun' | 'burn' | 'poison' | 'defense_boost' | 'speed_boost' | 'weakness' | 'slow' | 'strength_boost') {
+function applyStatusToPlayer(type: string) {
   const p = gameStore.activeHero
   if (!p) return
   const template = StatusEffects.getByType(type)
@@ -343,14 +345,21 @@ function onTrainingEnded() {
               <span class="pattern-desc">El dummy elige uno de sus ataques al azar</span>
             </button>
             <button
-              v-for="(item, idx) in ATTACK_PATTERN_LABELS"
+              v-for="(item, idx) in ATTACK_PATTERN_INFOS"
               :key="idx"
               class="pattern-btn"
               :class="{ active: selectedPatternIndex === idx }"
               @click="selectPattern(idx)"
             >
               <span class="pattern-label">{{ item.label }}</span>
-              <span class="pattern-desc">{{ item.description }}</span>
+              <span class="pattern-meta">
+                <span class="pattern-tag dmg-{{ item.damageType }}">{{ item.damageType }}</span>
+                <span>{{ item.phaseCount }} fases</span>
+                <span>vel {{ item.speedLabel }}</span>
+                <span>{{ item.zone }}</span>
+                <span>x{{ item.multiplier.toFixed(1) }}</span>
+                <span v-if="item.onFailure">+ {{ item.onFailure }}</span>
+              </span>
             </button>
           </div>
           <div class="current-pattern">
@@ -363,36 +372,68 @@ function onTrainingEnded() {
         </section>
 
         <section class="panel-section">
-          <h3><img :src="swordsIcon" alt="" class="inline-icon" /> Daño del Dummy</h3>
-          <label class="checkbox-row">
-            <input type="checkbox" v-model="useCustomDamage" />
-            <span>Usar daño personalizado</span>
-          </label>
-          <div v-if="useCustomDamage" class="damage-control">
-            <input type="range" min="0" max="100" step="1" v-model.number="damageValue" />
-            <span class="damage-value">{{ damageValue }}</span>
+          <h3><img :src="swordsIcon" alt="" class="inline-icon" /> Stats del Dummy</h3>
+          <p class="section-hint">Modifica las stats base del dummy. Los cambios se reflejan en su ataque y critico.</p>
+          <div class="stats-grid">
+            <label class="stat-row">
+              <span class="stat-name">Cuerpo</span>
+              <input
+                type="number"
+                :value="dummy.baseStats.body.value"
+                @input="updateDummyStat('body', $event)"
+                class="stat-input"
+                min="1"
+                max="50"
+              />
+            </label>
+            <label class="stat-row">
+              <span class="stat-name">Mente</span>
+              <input
+                type="number"
+                :value="dummy.baseStats.mind.value"
+                @input="updateDummyStat('mind', $event)"
+                class="stat-input"
+                min="1"
+                max="50"
+              />
+            </label>
+            <label class="stat-row">
+              <span class="stat-name">Agilidad</span>
+              <input
+                type="number"
+                :value="dummy.baseStats.agility.value"
+                @input="updateDummyStat('agility', $event)"
+                class="stat-input"
+                min="1"
+                max="50"
+              />
+            </label>
+            <label class="stat-row">
+              <span class="stat-name">Constitución</span>
+              <input
+                type="number"
+                :value="dummy.baseStats.constitution.value"
+                @input="updateDummyStat('constitution', $event)"
+                class="stat-input"
+                min="1"
+                max="50"
+              />
+            </label>
+            <label class="stat-row">
+              <span class="stat-name">Critico %</span>
+              <input
+                type="number"
+                :value="dummy.critChance"
+                @input="updateDummyCritChance($event)"
+                class="stat-input"
+                min="0"
+                max="200"
+              />
+            </label>
           </div>
-          <p v-else class="section-hint">Daño por defecto ({{ dummy.attack() }})</p>
-        </section>
-
-        <section class="panel-section crit-section">
-          <h3><img :src="burstIcon" alt="" class="inline-icon" /> Crítico del Dummy</h3>
-          <label class="checkbox-row">
-            <input type="checkbox" v-model="useCustomCrit" />
-            <span>Forzar probabilidad de crítico</span>
-          </label>
-          <div v-if="useCustomCrit" class="damage-control">
-            <input
-              type="range"
-              min="0"
-              max="200"
-              step="5"
-              v-model.number="critChancePercentProxy"
-              class="crit-range"
-            />
-            <span class="damage-value crit-value">{{ critChancePercentLabel }}</span>
+          <div class="button-grid">
+            <button class="action-btn warn" @click="resetDummyStats"><img :src="cycleIcon" alt="" class="btn-icon" /> Restablecer Stats</button>
           </div>
-          <p v-else class="section-hint">Crítico deshabilitado (0%)</p>
         </section>
 
         <section class="panel-section">
@@ -422,7 +463,7 @@ function onTrainingEnded() {
               :key="status.type"
               class="pattern-btn"
               :disabled="!gameStore.activeHero"
-              @click="applyStatusToPlayer(status.type as any)"
+              @click="applyStatusToPlayer(status.type)"
             >
               <span class="pattern-label">{{ status.label }}</span>
               <span class="pattern-desc">{{ status.description }}</span>
@@ -439,7 +480,7 @@ function onTrainingEnded() {
               :key="status.type"
               class="pattern-btn"
               :disabled="!gameStore.activeHero"
-              @click="applyStatusToPlayer(status.type as any)"
+              @click="applyStatusToPlayer(status.type)"
             >
               <span class="pattern-label">{{ status.label }}</span>
               <span class="pattern-desc">{{ status.description }}</span>
@@ -712,6 +753,88 @@ function onTrainingEnded() {
 
 .pattern-btn.active .pattern-desc {
   color: #e8f5e9;
+}
+
+.pattern-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  font-size: 0.7rem;
+  color: #cfd8dc;
+  align-items: center;
+}
+
+.pattern-tag {
+  background: rgba(76, 175, 80, 0.2);
+  border: 1px solid #4CAF50;
+  color: #d7f3d5;
+  padding: 0.05rem 0.4rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.pattern-tag.dmg-fire,
+.pattern-tag.dmg-burn {
+  background: rgba(255, 86, 20, 0.2);
+  border-color: #ff6b35;
+  color: #ffd1bf;
+}
+.pattern-tag.dmg-frost,
+.pattern-tag.dmg-freeze {
+  background: rgba(120, 200, 255, 0.2);
+  border-color: #64b5f6;
+  color: #cfe9ff;
+}
+.pattern-tag.dmg-holy,
+.pattern-tag.dmg-radiant {
+  background: rgba(255, 230, 120, 0.2);
+  border-color: #ffe600;
+  color: #fff3b0;
+}
+.pattern-tag.dmg-shadow,
+.pattern-tag.dmg-magical,
+.pattern-tag.dmg-arcane {
+  background: rgba(160, 120, 255, 0.2);
+  border-color: #b388ff;
+  color: #e3d6ff;
+}
+.pattern-tag.dmg-poison {
+  background: rgba(110, 200, 80, 0.2);
+  border-color: #8bc34a;
+  color: #d7f0c4;
+}
+
+.stats-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+.stat-row {
+  display: grid;
+  grid-template-columns: 1fr 80px;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  color: #cfd8dc;
+}
+
+.stat-name {
+  color: #ffe066;
+  font-weight: 700;
+}
+
+.stat-input {
+  background: #0f1424;
+  color: #fff;
+  border: 1px solid #4CAF50;
+  border-radius: 4px;
+  padding: 0.25rem 0.4rem;
+  font-size: 0.78rem;
+  text-align: center;
 }
 
 .current-pattern {

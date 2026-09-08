@@ -172,7 +172,8 @@ export class AudioManager {
         if (ctx && ctx.state === 'suspended') {
             ctx.resume().catch(() => { })
         }
-        if (!howl.playing()) howl.play()
+        howl.seek(0)
+        howl.play()
     }
 
     public playMenuMusic(): void {

@@ -12,8 +12,8 @@ const FIRE_SLASH_UP: VfxEffect = { asset: 'fire-slash-up', durationMs: 1200 }
 const HOLY_SLASH_DOWN: VfxEffect = { asset: 'holy-slash-down', durationMs: 1200 }
 const HOLY_SLASH_UP: VfxEffect = { asset: 'holy-slash-up', durationMs: 1200 }
 const BASIC_ATTACK_LEVEL_4_THRESHOLD = 4
-const BASIC_ATTACK_HIT_INTERVAL_MS = 400
-const BASIC_ATTACK_DURATION_MS = 1800
+const BASIC_ATTACK_HIT_INTERVAL_MS = 200
+const BASIC_ATTACK_DURATION_MS = 800
 
 /**
  * Multiplicador minimo y maximo aplicado al daño base antes del critico.
@@ -147,7 +147,7 @@ const executeBasicAttack = async (context: AbilityContext) => {
       target.takeDamage(finalDamage)
       context.showEnemyHit(target.id, finalDamage, crit.isCrit)
       playAbilitySfx(context.audioManager, ability)
-      context.audioManager.playHitSound()
+      setTimeout(() => context.audioManager.playHitSound(), 150)
     }
 
     if (crit.isCrit) showCritAnnouncement(context, finalDamage, crit.isOvercrit)
