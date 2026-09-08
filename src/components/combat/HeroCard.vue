@@ -1014,4 +1014,56 @@ defineExpose({
     transform: translate(-50%, -110%);
   }
 }
+
+@media (max-height: 820px) {
+  .hero-card {
+    padding: 0.5rem 0.75rem;
+    padding-top: 1.4rem;
+    min-height: 96px;
+    border-radius: 12px;
+  }
+
+  .hero-portrait {
+    width: 64px;
+    height: 64px;
+    border-radius: 10px;
+  }
+
+  .hero-name {
+    font-size: 1rem;
+  }
+
+  .hero-level {
+    font-size: 0.74rem;
+  }
+
+  .bar-track {
+    height: 9px;
+  }
+
+  .bar-value {
+    font-size: 0.74rem;
+    min-width: 52px;
+  }
+
+  .hero-info {
+    gap: 0.18rem;
+  }
+
+  .hero-bars {
+    gap: 0.16rem;
+  }
+
+  .hero-menu-btn {
+    width: 28px;
+    height: 28px;
+    top: 4px;
+    right: 4px;
+  }
+
+  .hero-menu-icon {
+    width: 16px;
+    height: 16px;
+  }
+}
 </style>

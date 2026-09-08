@@ -92,6 +92,16 @@
   }
 }
 
+@media (max-height: 820px) {
+  .heroes-column {
+    padding: 0.5rem 0.75rem;
+  }
+  .heroes-container {
+    gap: 0.5rem;
+    max-width: 320px;
+  }
+}
+
 .enemy-sprite {
   position: relative;
   cursor: pointer;
