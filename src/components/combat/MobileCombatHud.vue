@@ -18,7 +18,7 @@ const props = defineProps<{
     canTargetAllies?: boolean
     activeHeroIndex?: number
     attackedHeroIds?: string[]
-    hitPopups?: { heroId: string | null, value: number, key: number, isCrit?: boolean, variant?: 'damage' | 'crit' | 'blocked' | 'heal' | 'energy', suffix?: string }[]
+    hitPopups?: { heroId: string | null, value: number, key: number, isCrit?: boolean, variant?: 'damage' | 'crit' | 'blocked' | 'heal' | 'energy', suffix?: string, offsetX: number, offsetY: number, duration: number }[]
     heroVfxEffects?: { heroId: string, key: number, asset: VfxAssetId, durationMs: number }[]
 }>()
 
@@ -180,7 +180,7 @@ function onAllyRowClick(hero: Hero | null) {
                     :key="popup.key"
                     class="mobile-hit-popup"
                     :class="{ crit: popup.variant === 'crit' || popup.isCrit, blocked: popup.variant === 'blocked', heal: popup.variant === 'heal' || popup.variant === 'energy' }"
-                    :style="{ '--stack': popup.stackIndex ?? 0 }"
+                    :style="{ '--ox': popup.offsetX + 'px', '--oy': popup.offsetY + 'px', '--dur': popup.duration + 'ms' }"
                 >
                     <span class="mobile-hit-value">{{ popup.variant === 'heal' || popup.variant === 'energy' ? '+' : '-' }}{{ popup.value }}{{ popup.suffix ?? '' }}</span>
                 </div>
@@ -327,8 +327,11 @@ function onAllyRowClick(hero: Hero | null) {
     line-height: 1;
     letter-spacing: 0.02em;
     white-space: nowrap;
-    transform: translateY(calc(var(--stack, 0) * -1.05rem));
-    text-shadow: 0 0 18px rgba(255, 59, 59, 0.7), 0 2px 8px rgba(0, 0, 0, 0.9);
+    transform: translate(var(--ox, 0px), var(--oy, 0px));
+    opacity: 0;
+    animation-fill-mode: forwards;
+    animation-timing-function: cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    margin-left: var(--ox, 0px);
 }
 
 .mobile-hit-popup.crit {
@@ -364,37 +367,38 @@ function onAllyRowClick(hero: Hero | null) {
 }
 
 .mobile-hit-enter-active {
-    animation: mobile-hit-pop 1.05s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
+    animation-name: mobile-hit-pop;
+    animation-duration: var(--dur, 1050ms);
 }
 
 .mobile-hit-leave-active {
-    transition: opacity 0.25s ease, transform 0.25s ease;
+    transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
 .mobile-hit-leave-to {
     opacity: 0;
-    transform: translateY(-2rem) scale(0.85);
+    transform: translate(var(--ox, 0px), calc(var(--oy, 0px) - 2rem)) scale(0.85);
 }
 
 @keyframes mobile-hit-pop {
     0% {
         opacity: 0;
-        transform: translateY(1.2rem) scale(0.55);
+        transform: translate(var(--ox, 0px), calc(var(--oy, 0px) + 1.2rem)) scale(0.55);
     }
 
     18% {
         opacity: 1;
-        transform: translateY(-0.4rem) scale(1.15);
+        transform: translate(var(--ox, 0px), calc(var(--oy, 0px) - 0.4rem)) scale(1.15);
     }
 
     35% {
         opacity: 1;
-        transform: translateY(-0.7rem) scale(1);
+        transform: translate(var(--ox, 0px), calc(var(--oy, 0px) - 0.7rem)) scale(1);
     }
 
     100% {
         opacity: 0;
-        transform: translateY(-3rem) scale(0.95);
+        transform: translate(var(--ox, 0px), calc(var(--oy, 0px) - 3rem)) scale(0.95);
     }
 }
 

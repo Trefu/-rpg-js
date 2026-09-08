@@ -154,13 +154,10 @@ export class StatusEffects {
       isBuff: true,
       turnLabel: '¡Su segundo aliento lo mantiene en pie!',
       threatModifier,
-      onBlock: (target, _blockedFraction, hooks) => {
+      onBlock: (target, _blockedFraction, _hooks) => {
         const hero = target as Hero
-        const before = hero.energy
         const restore = Math.floor(hero.maxEnergy * energyRestorePct)
         hero.restoreEnergy(restore)
-        const restored = hero.energy - before
-        if (restored > 0) hooks?.showPlayerHit(restored, { heroId: hero.id, variant: 'energy', suffix: ' EN' })
       }
     } satisfies IStatusEffect
   })()

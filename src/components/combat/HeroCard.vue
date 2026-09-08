@@ -279,14 +279,17 @@ defineExpose({
       </div>
 
       <div class="hero-hit-container">
-        <div
-          v-for="popup in hitPopups"
-          :key="popup.key"
-          class="hero-hit-popup"
-          :class="{ crit: popup.variant === 'crit' || popup.isCrit, blocked: popup.variant === 'blocked', heal: popup.variant === 'heal' }"
-        >
-          {{ popup.variant === 'heal' || popup.variant === 'energy' ? '+' : '-' }}{{ popup.value }}{{ popup.suffix ?? '' }}
-        </div>
+        <TransitionGroup name="hero-hit" tag="div" class="hero-hit-layer">
+          <div
+            v-for="popup in hitPopups"
+            :key="popup.key"
+            class="hero-hit-popup"
+            :class="{ crit: popup.variant === 'crit' || popup.isCrit, blocked: popup.variant === 'blocked', heal: popup.variant === 'heal', energy: popup.variant === 'energy' }"
+            :style="{ '--ox': popup.offsetX + 'px', '--oy': popup.offsetY + 'px', '--dur': popup.duration + 'ms' }"
+          >
+            {{ popup.variant === 'heal' || popup.variant === 'energy' ? '+' : '-' }}{{ popup.value }}{{ popup.suffix ?? '' }}
+          </div>
+        </TransitionGroup>
       </div>
 
       <Teleport to="body">
@@ -927,6 +930,39 @@ defineExpose({
   border-radius: 3px;
 }
 
+@media (max-height: 820px) {
+  .hero-dropdown {
+    max-height: 85vh;
+    padding: 0.8rem 1rem;
+    border-radius: 12px;
+  }
+  .hero-dropdown-header {
+    margin-bottom: 0.35rem;
+  }
+  .hero-dropdown-title {
+    font-size: 0.95rem;
+  }
+  .hero-dropdown-subtitle {
+    font-size: 0.7rem;
+  }
+  .hero-dropdown-section {
+    margin-bottom: 0.5rem;
+  }
+  .hero-dropdown-section-title {
+    font-size: 0.74rem;
+    margin-bottom: 0.3rem;
+  }
+  .hero-effect-row {
+    padding: 0.25rem 0.4rem;
+  }
+  .hero-effect-name {
+    font-size: 0.85rem;
+  }
+  .hero-effect-desc {
+    font-size: 0.72rem;
+  }
+}
+
 .hero-dropdown-enter-active,
 .hero-dropdown-leave-active {
   transition: opacity 0.18s ease;
@@ -953,10 +989,16 @@ defineExpose({
   z-index: 9;
 }
 
+.hero-hit-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
 .hero-hit-popup {
   position: absolute;
-  left: 50%;
-  top: 50%;
+  left: calc(50% + var(--ox, 0px));
+  top: calc(50% + var(--oy, 0px));
   color: #ff3333;
   font-size: 1.55rem;
   font-weight: 900;
@@ -966,7 +1008,9 @@ defineExpose({
   letter-spacing: 0.02em;
   white-space: nowrap;
   transform: translate(-50%, -50%);
-  opacity: 1;
+  opacity: 0;
+  animation-fill-mode: forwards;
+  animation-timing-function: ease-out;
 }
 
 .hero-hit-popup.crit {
@@ -997,7 +1041,16 @@ defineExpose({
 }
 
 .hero-hit-enter-active {
-  animation: hero-hit-rise 0.95s ease-out forwards;
+  animation-name: hero-hit-rise;
+  animation-duration: var(--dur, 1000ms);
+}
+
+.hero-hit-leave-active {
+  transition: opacity 0.15s linear;
+}
+
+.hero-hit-leave-to {
+  opacity: 0;
 }
 
 @keyframes hero-hit-rise {
@@ -1005,13 +1058,13 @@ defineExpose({
     opacity: 0;
     transform: translate(-50%, -30%);
   }
-  20% {
+  18% {
     opacity: 1;
     transform: translate(-50%, -55%);
   }
   100% {
     opacity: 0;
-    transform: translate(-50%, -110%);
+    transform: translate(-50%, -120%);
   }
 }
 

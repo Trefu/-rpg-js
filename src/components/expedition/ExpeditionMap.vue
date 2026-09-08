@@ -111,6 +111,22 @@ const emit = defineEmits<{
   margin-top: 2rem;
 }
 
+@media (max-height: 820px) {
+  .expedition-map {
+    padding: 1rem;
+  }
+  .map-container {
+    height: calc(100vh - 140px);
+    margin-top: 1rem;
+  }
+}
+
+@media (max-height: 600px) {
+  .map-container {
+    height: calc(100vh - 100px);
+  }
+}
+
 .map-node {
   position: absolute;
   width: 50px;

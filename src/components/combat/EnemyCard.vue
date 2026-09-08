@@ -16,7 +16,7 @@ interface Props {
   isActionTargetRequired: boolean
   isAttacking: boolean
   showShortcut: boolean
-  hitPopups?: { value: number, key: number, isCrit?: boolean }[]
+  hitPopups?: { value: number, key: number, isCrit?: boolean, variant?: 'damage' | 'crit' | 'heal' | 'energy', suffix?: string, offsetX: number, offsetY: number, duration: number }[]
   vfxEffects?: { key: number, asset: VfxAssetId }[]
 }
 
@@ -96,17 +96,17 @@ function onClick() {
       <span class="key-cap">{{ index + 1 }}</span>
     </div>
     <div v-if="hitPopups && hitPopups.length > 0" class="enemy-hit-container">
-      <TransitionGroup name="enemy-hit" tag="div" class="enemy-hit-layer">
+      <div class="enemy-hit-layer">
         <div
           v-for="popup in hitPopups"
           :key="popup.key"
           class="enemy-hit-popup"
-          :class="{ crit: popup.isCrit, heal: popup.variant === 'heal' }"
-          :style="{ left: `${50 + (popup.stackIndex ?? 0) * 14}%` }"
+          :class="{ crit: popup.isCrit, heal: popup.variant === 'heal', energy: popup.variant === 'energy' }"
+          :style="{ '--ox': popup.offsetX + 'px', '--oy': popup.offsetY + 'px', '--dur': popup.duration + 'ms' }"
         >
-          {{ popup.variant === 'heal' ? '+' : '-' }}{{ popup.value }}
+          {{ popup.variant === 'heal' || popup.variant === 'energy' ? '+' : '-' }}{{ popup.value }}{{ popup.suffix ?? '' }}
         </div>
-      </TransitionGroup>
+      </div>
     </div>
   </div>
 </template>
@@ -156,6 +156,23 @@ function onClick() {
   display: block;
 }
 
+@media (max-height: 820px) {
+  .enemy-sprite-img {
+    width: clamp(110px, calc((100vh - 290px) / 2.8), 240px);
+    height: clamp(110px, calc((100vh - 290px) / 2.8), 240px);
+  }
+  .enemy-name-top {
+    font-size: 0.78rem;
+    padding: 0.05rem 0.3rem;
+    margin-bottom: 0.1rem;
+    max-width: clamp(140px, calc((100vh - 290px) / 2.8), 240px);
+  }
+  .enemy-health {
+    margin-top: 0.2rem;
+    padding: 0.12rem;
+  }
+}
+
 .enemy-vfx-effect {
   position: absolute;
   left: 50%;
@@ -165,7 +182,7 @@ function onClick() {
   transform: translate(-50%, -50%);
   object-fit: contain;
   pointer-events: none;
-  z-index: 20;
+  z-index: 5;
   filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.85)) drop-shadow(0 0 18px rgba(255, 225, 120, 0.75));
 }
 
@@ -200,6 +217,7 @@ function onClick() {
 }
 
 .enemy-health {
+  position: relative;
   margin-top: 0.4rem;
   width: 100%;
   background-color: rgba(0, 0, 0, 0.8);
@@ -244,42 +262,59 @@ function onClick() {
 
 .enemy-hit-container {
   position: absolute;
-  inset: 0;
+  left: 0;
+  right: 0;
+  bottom: 6px;
+  height: 60px;
   pointer-events: none;
   overflow: visible;
-  z-index: 9;
+  z-index: 30;
+}
+
+.enemy-hit-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
 
 .enemy-hit-popup {
   position: absolute;
-  top: 50%;
+  left: calc(50% + var(--ox, 0px));
+  top: calc(50% + var(--oy, 0px));
   color: #ff3333;
-  font-size: 1.55rem;
+  font-size: 2.6rem;
   font-weight: 900;
-  text-shadow: 0 0 8px rgba(0, 0, 0, 0.85), 0 2px 6px rgba(0, 0, 0, 0.85);
+  text-shadow: 0 0 10px rgba(0, 0, 0, 0.95), 0 2px 8px rgba(0, 0, 0, 0.95), 0 0 4px rgba(0, 0, 0, 0.9);
   pointer-events: none;
   font-family: 'Courier New', monospace;
   letter-spacing: 0.02em;
   white-space: nowrap;
   transform: translate(-50%, -50%);
-  opacity: 1;
+  opacity: 0;
+  animation-name: enemy-hit-rise;
+  animation-duration: var(--dur, 1000ms);
+  animation-fill-mode: forwards;
+  animation-timing-function: ease-out;
 }
 
 .enemy-hit-popup.crit {
   color: #ffe066;
-  font-size: 2rem;
-  text-shadow: 0 0 16px #ff8c00, 0 0 8px rgba(0, 0, 0, 0.85), 0 2px 6px rgba(0, 0, 0, 0.85);
+  font-size: 3.2rem;
+  text-shadow: 0 0 20px #ff8c00, 0 0 10px rgba(0, 0, 0, 0.95), 0 2px 8px rgba(0, 0, 0, 0.95);
 }
 
 .enemy-hit-popup.heal {
   color: #5cff8a;
-  font-size: 1.55rem;
+  font-size: 2.6rem;
   font-weight: 900;
-  text-shadow: 0 0 14px rgba(92, 255, 138, 0.85), 0 0 6px rgba(0, 0, 0, 0.85), 0 2px 6px rgba(0, 0, 0, 0.85);
+  text-shadow: 0 0 18px rgba(92, 255, 138, 0.9), 0 0 6px rgba(0, 0, 0, 0.95), 0 2px 8px rgba(0, 0, 0, 0.95);
 }
 
-.enemy-hit-enter-active {
-  animation: enemy-hit-rise 0.95s ease-out forwards;
+.enemy-hit-popup.energy {
+  color: #6ee7ff;
+  font-size: 2rem;
+  font-weight: 900;
+  text-shadow: 0 0 14px rgba(110, 231, 255, 0.9), 0 0 6px rgba(0, 0, 0, 0.95), 0 2px 8px rgba(0, 0, 0, 0.95);
 }
 
 @keyframes enemy-hit-rise {
@@ -287,13 +322,17 @@ function onClick() {
     opacity: 0;
     transform: translate(-50%, -30%);
   }
-  20% {
+  10% {
     opacity: 1;
-    transform: translate(-50%, -55%);
+    transform: translate(-50%, -45%);
+  }
+  75% {
+    opacity: 1;
+    transform: translate(-50%, -85%);
   }
   100% {
     opacity: 0;
-    transform: translate(-50%, -110%);
+    transform: translate(-50%, -120%);
   }
 }
 

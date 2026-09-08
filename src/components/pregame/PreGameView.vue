@@ -446,6 +446,46 @@ function damageTypeClass(id?: string): string {
   margin: 0 auto;
   padding: 2rem 1.5rem 4rem;
   color: #f5f5f5;
+  max-height: 100vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (max-height: 820px) {
+  .pre-game {
+    padding: 1.25rem 1.25rem 2rem;
+  }
+  .hero-detail__head {
+    margin-bottom: 0.85rem;
+  }
+  .hero-detail__sprite {
+    width: 76px;
+    height: 76px;
+  }
+  .hero-detail__title h2 {
+    font-size: 1.25rem;
+  }
+  .hero-detail__vitals {
+    font-size: 0.78rem;
+  }
+  .hero-detail__hint {
+    font-size: 0.7rem;
+  }
+  .ability-row {
+    padding: 0.55rem 0.7rem !important;
+  }
+  .ability-row__desc {
+    font-size: 0.78rem;
+    line-height: 1.3;
+  }
+  .ability-row__icon {
+    width: 36px;
+    height: 36px;
+  }
+  .ability-row__icon img {
+    width: 26px;
+    height: 26px;
+  }
 }
 
 .pre-game__header h1 {

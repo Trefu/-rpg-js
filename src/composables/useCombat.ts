@@ -107,7 +107,11 @@ export function useCombat(config: CombatConfig = {}) {
     value: number
     key: number
     isCrit?: boolean
-    stackIndex?: number
+    variant?: 'damage' | 'crit' | 'heal' | 'energy'
+    suffix?: string
+    offsetX: number
+    offsetY: number
+    duration: number
   }[]>([])
   const enemyVfxEffects = ref<EnemyVfxEffect[]>([])
   const heroVfxEffects = ref<HeroVfxEffect[]>([])
@@ -118,7 +122,9 @@ export function useCombat(config: CombatConfig = {}) {
     isCrit?: boolean
     variant?: 'damage' | 'crit' | 'blocked' | 'heal' | 'energy'
     suffix?: string
-    stackIndex?: number
+    offsetX: number
+    offsetY: number
+    duration: number
   }[]>([])
   const showAbilitiesModal = ref(false)
   const abilityCooldowns = ref<{ [type: string]: number }>({})
@@ -778,13 +784,19 @@ const isProcessingDot = ref(false)
     }, effect.durationMs)
   }
 
+  function randBetween(min: number, max: number): number {
+    return min + Math.random() * (max - min)
+  }
+
   function showEnemyHit(enemyId: string, value: number, isCrit: boolean = false) {
     const key = popupKey++
-    const stackIndex = enemyHitPopups.value.filter(p => p.id === enemyId).length
-    enemyHitPopups.value.push({ id: enemyId, value, key, isCrit, stackIndex })
+    const offsetX = randBetween(-28, 28)
+    const offsetY = randBetween(-14, 14)
+    const duration = Math.round(randBetween(950, 1250))
+    enemyHitPopups.value.push({ id: enemyId, value, key, isCrit, offsetX, offsetY, duration })
     setTimeout(() => {
       enemyHitPopups.value = enemyHitPopups.value.filter(p => p.key !== key)
-    }, 1100)
+    }, duration)
   }
 
   function showPlayerHit(value: number, options: { heroId?: string | null, isCrit?: boolean, variant?: 'damage' | 'crit' | 'blocked' | 'heal' | 'energy', suffix?: string } = {}) {
@@ -792,13 +804,13 @@ const isProcessingDot = ref(false)
     const key = popupKey++
     const resolvedVariant: 'damage' | 'crit' | 'blocked' | 'heal' | 'energy' =
       variant ?? (isCrit ? 'crit' : 'damage')
-    const stackIndex = heroId
-      ? playerHitPopups.value.filter(p => p.heroId === heroId).length
-      : 0
-    playerHitPopups.value.push({ heroId, value, key, isCrit, variant: resolvedVariant, suffix, stackIndex })
+    const offsetX = randBetween(-28, 28)
+    const offsetY = randBetween(-14, 14)
+    const duration = Math.round(randBetween(950, 1250))
+    playerHitPopups.value.push({ heroId, value, key, isCrit, variant: resolvedVariant, suffix, offsetX, offsetY, duration })
     setTimeout(() => {
       playerHitPopups.value = playerHitPopups.value.filter(p => p.key !== key)
-    }, 1100)
+    }, duration)
   }
 
   function actionRequiresTarget(ability: IAbility | null): boolean {
