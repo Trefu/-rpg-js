@@ -15,6 +15,7 @@ export interface AbilityContext {
   ability?: IAbility
   addToLog: (message: string) => void
   showEnemyHit: (id: string, value: number, isCrit?: boolean) => void
+  playEnemyVfx?: (enemyId: string, effect: VfxEffect) => void
   showPlayerHit: (value: number, options?: { heroId?: string | null, isCrit?: boolean, variant?: 'damage' | 'crit' | 'blocked' | 'heal' }) => void
   showAnnouncement: (text: string, variant?: AnnouncementVariant, duration?: number, opts?: { sticky?: boolean; priority?: number; id?: string; interrupt?: boolean }) => void
   audioManager: AudioManager
@@ -74,6 +75,13 @@ export interface RandomAttackSpec {
  * Si la ability no inflige daño (curas, buffs), dejar el campo en `undefined`.
  */
 export type DamageType = 'physical' | 'fire' | 'holy' | 'frost'
+
+export type VfxAssetId = 'fire-slash-down' | 'fire-slash-up' | 'holy-slash-down' | 'holy-slash-up'
+
+export interface VfxEffect {
+  asset: VfxAssetId
+  durationMs: number
+}
 
 export const DAMAGE_TYPE_LABELS: Record<DamageType, string> = {
   physical: 'Físico',
@@ -136,6 +144,10 @@ export interface IAbility {
    * Default global: 1500 ms.
    */
   animationDurationMs?: number
+  hitCount?: number
+  hitIntervalMs?: number
+  vfx?: VfxEffect | VfxEffect[]
+  hitVfx?: VfxEffect | VfxEffect[]
   /**
    * Si esta definido, tras el impacto principal la habilidad salta
    * aleatoriamente a N objetivos extra del campo enemigo.

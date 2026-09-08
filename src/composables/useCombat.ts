@@ -3,7 +3,7 @@ import { useGameStore } from '@/stores/game'
 import type { Hero } from '@/core/Hero'
 import { AudioManager } from '@/core/AudioManager'
 import type { IEnemy } from '@/core/interfaces/ICharacter'
-import type { IAbility, AbilityContext } from '@/core/interfaces/IAbility'
+import type { IAbility, AbilityContext, VfxAssetId, VfxEffect } from '@/core/interfaces/IAbility'
 import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
 import type { IItem, ItemTargetType } from '@/core/items/types'
 import { getItemOrThrow } from '@/core/items/items'
@@ -60,6 +60,13 @@ export interface CombatConfig {
   onTrainingEnd?: () => void
 }
 
+interface EnemyVfxEffect {
+  id: string
+  key: number
+  asset: VfxAssetId
+  durationMs: number
+}
+
 export function useCombat(config: CombatConfig = {}) {
   const gameStore = useGameStore()
   const player = computed<Hero | null>(() => gameStore.activeHero)
@@ -89,6 +96,7 @@ export function useCombat(config: CombatConfig = {}) {
     isCrit?: boolean
     stackIndex?: number
   }[]>([])
+  const enemyVfxEffects = ref<EnemyVfxEffect[]>([])
   const playerHitPopups = ref<{
     heroId: string | null
     value: number
@@ -191,6 +199,7 @@ const isProcessingDot = ref(false)
   let pendingDefenseTarget: Hero | null = null
   let pendingDefenseCrit: CritResult = { multiplier: 1, isCrit: false, isOvercrit: false }
   let popupKey = 0
+  let vfxEffectKey = 0
 
   const abilities = computed(() => {
     if (player.value?.abilities) {
@@ -724,6 +733,17 @@ const isProcessingDot = ref(false)
         }
       }
     }
+  }
+
+  function showEnemyVfx(enemyId: string, effect: VfxEffect) {
+    const key = vfxEffectKey++
+    enemyVfxEffects.value = [
+      ...enemyVfxEffects.value,
+      { id: enemyId, key, asset: effect.asset, durationMs: effect.durationMs }
+    ]
+    setTimeout(() => {
+      enemyVfxEffects.value = enemyVfxEffects.value.filter(effect => effect.key !== key)
+    }, effect.durationMs)
   }
 
   function showEnemyHit(enemyId: string, value: number, isCrit: boolean = false) {
@@ -1284,6 +1304,7 @@ const isProcessingDot = ref(false)
         ability,
         addToLog,
         showEnemyHit,
+        playEnemyVfx: showEnemyVfx,
         showPlayerHit,
         showAnnouncement: (text, variant, duration, opts) => showAnnouncement(text, variant ?? 'info', duration, opts),
         audioManager,
@@ -1367,6 +1388,7 @@ const isProcessingDot = ref(false)
 
   function initializeCombat(enemyList: IEnemy[], isBoss: boolean = false) {
     enemies.value = enemyList
+    enemyVfxEffects.value = []
     combatLog.value = []
     resetAbilityCooldowns()
     if (!config.isTraining) {
@@ -1391,6 +1413,7 @@ const isProcessingDot = ref(false)
   }
 
   function cleanup() {
+    enemyVfxEffects.value = []
     audioManager.stopCurrentMusic()
   }
 
@@ -1409,6 +1432,7 @@ const isProcessingDot = ref(false)
     attackedHeroIds,
     combatLogRef,
     enemyHitPopups,
+    enemyVfxEffects,
     playerHitPopups,
     showAbilitiesModal,
     abilityCooldowns,

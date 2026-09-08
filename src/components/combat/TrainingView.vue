@@ -40,6 +40,9 @@ import {
 import CombatView from './CombatView.vue'
 import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
 import type { DefensePatternConfig } from '@/core/defense/types'
+import { RECRUITABLE_HEROES } from '@/core/heroes/recruitment'
+import { MAX_HEROES } from '@/stores/game'
+import type { Hero } from '@/core/Hero'
 
 const ALL_DUMMY_PATTERNS: DefensePatternConfig[] = [
   SLASH,
@@ -87,6 +90,85 @@ const emit = defineEmits<{
 
 const gameStore = useGameStore()
 const dummy = ref<Dummy>(new Dummy(gameStore.activeHero?.level ?? 1))
+
+const trainingSessionKey = ref(0)
+const rosterClass = ref<string[]>(Array.from({ length: MAX_HEROES }, () => ''))
+const rosterLevels = ref<number[]>(Array.from({ length: MAX_HEROES }, () => 1))
+
+function syncRosterFromStore() {
+  for (let i = 0; i < MAX_HEROES; i++) {
+    const hero = gameStore.heroes[i]
+    if (hero) {
+      rosterClass.value[i] = hero.heroClassId ?? ''
+      rosterLevels.value[i] = hero.level
+    } else {
+      rosterClass.value[i] = ''
+      rosterLevels.value[i] = 1
+    }
+  }
+}
+syncRosterFromStore()
+
+function buildHeroFromRegistry(classId: string, targetLevel: number): Hero | null {
+  const entry = RECRUITABLE_HEROES.find(h => h.id === classId)
+  if (!entry) return null
+  const hero = entry.factory()
+  const level = Math.max(1, Math.floor(targetLevel))
+  for (let i = 1; i < level; i++) hero.levelUp()
+  hero.isAlive = true
+  hero.health = hero.maxHealth
+  hero.energy = hero.maxEnergy
+  hero.statusEffects = []
+  return hero
+}
+
+function rebuildDummy() {
+  const level = Math.max(1, gameStore.activeHero?.level ?? 1)
+  dummy.value = new Dummy(level)
+  selectedPatternIndex.value = -1
+  damageValue.value = dummy.value.attack()
+  useCustomDamage.value = false
+  critChanceValue.value = 0
+  useCustomCrit.value = false
+}
+
+function applySlot(index: number) {
+  if (index < 0 || index >= MAX_HEROES) return
+  const classId = rosterClass.value[index]
+  if (!classId) {
+    gameStore.setHeroInSlot(index, null)
+    trainingSessionKey.value++
+    rebuildDummy()
+    syncRosterFromStore()
+    return
+  }
+  const level = Math.max(1, Math.floor(rosterLevels.value[index] || 1))
+  const hero = buildHeroFromRegistry(classId, level)
+  if (!hero) return
+  gameStore.setHeroInSlot(index, hero)
+  trainingSessionKey.value++
+  rebuildDummy()
+  syncRosterFromStore()
+}
+
+function adjustActiveLevel(delta: number) {
+  const idx = gameStore.activeHeroIndex
+  if (idx < 0 || idx >= MAX_HEROES) return
+  const current = gameStore.heroes[idx]
+  if (!current) return
+  const classId = rosterClass.value[idx] || current.heroClassId
+  if (!classId) return
+  const newLevel = Math.max(1, current.level + delta)
+  rosterLevels.value[idx] = newLevel
+  const hero = buildHeroFromRegistry(classId, newLevel)
+  if (!hero) return
+  gameStore.setHeroInSlot(idx, hero)
+  trainingSessionKey.value++
+  rebuildDummy()
+  syncRosterFromStore()
+}
+
+watch(() => gameStore.activeHero?.level, () => rebuildDummy())
 
 const selectedPatternIndex = ref<number>(-1)
 const damageValue = ref<number>(dummy.value.attack())
@@ -174,6 +256,7 @@ function onTrainingEnded() {
   <div class="training-view">
     <div class="combat-wrapper">
       <CombatView
+        :key="trainingSessionKey"
         :enemy-list="[dummy]"
         :is-training="true"
         @training-ended="onTrainingEnded"
@@ -291,6 +374,35 @@ function onTrainingEnded() {
           <h3><img :src="cycleIcon" alt="" class="inline-icon" /> Reset</h3>
           <div class="button-grid">
             <button class="action-btn warn" @click="resetDummy">Reiniciar Dummy</button>
+          </div>
+        </section>
+
+        <section class="panel-section">
+          <h3><img :src="personIcon" alt="" class="inline-icon" /> Heroes en Sala de Pruebas</h3>
+          <p class="section-hint">Elige la clase y nivel de cada slot. Desde el nivel 4 el ataque basico golpea dos veces.</p>
+          <div class="active-hero-row">
+            <span class="active-hero-label">Activo:</span>
+            <strong>{{ gameStore.activeHero?.name ?? '—' }}</strong>
+            <span class="active-hero-level">Nv {{ gameStore.activeHero?.level ?? '—' }}</span>
+            <button class="level-btn" :disabled="!gameStore.activeHero || gameStore.activeHero.level <= 1" @click="adjustActiveLevel(-1)">−</button>
+            <button class="level-btn" :disabled="!gameStore.activeHero" @click="adjustActiveLevel(+1)">+</button>
+          </div>
+          <div class="roster-list">
+            <div v-for="i in MAX_HEROES" :key="i - 1" class="roster-row">
+              <span class="roster-slot">Slot {{ i }}</span>
+              <select v-model="rosterClass[i - 1]">
+                <option value="">— Vacío —</option>
+                <option v-for="entry in RECRUITABLE_HEROES" :key="entry.id" :value="entry.id">{{ entry.displayName }}</option>
+              </select>
+              <input
+                type="number"
+                min="1"
+                max="50"
+                v-model.number="rosterLevels[i - 1]"
+                class="roster-level"
+              />
+              <button class="action-btn small" @click="applySlot(i - 1)">Aplicar</button>
+            </div>
           </div>
         </section>
 
@@ -697,5 +809,65 @@ function onTrainingEnded() {
   vertical-align: -0.15em;
   margin-right: 0.3rem;
   filter: brightness(0) invert(1);
+}
+
+.active-hero-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.6rem;
+  font-size: 0.8rem;
+  color: #ffe066;
+}
+.active-hero-label {
+  color: #aaa;
+}
+.active-hero-level {
+  margin-right: auto;
+  color: #4CAF50;
+  font-weight: 700;
+}
+.level-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid #4CAF50;
+  background: #1e3a22;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+.level-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.roster-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.roster-row {
+  display: grid;
+  grid-template-columns: 50px 1fr 64px auto;
+  gap: 0.35rem;
+  align-items: center;
+}
+.roster-slot {
+  color: #aaa;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+.roster-row select,
+.roster-row .roster-level {
+  background: #0f1424;
+  color: #fff;
+  border: 1px solid #4CAF50;
+  border-radius: 4px;
+  padding: 0.25rem 0.35rem;
+  font-size: 0.78rem;
+}
+.roster-row .roster-level {
+  text-align: center;
 }
 </style>

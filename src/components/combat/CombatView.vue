@@ -59,6 +59,7 @@ const {
   attackedHeroIds,
   playerHitPopups,
   enemyHitPopups,
+  enemyVfxEffects,
   showAbilitiesModal,
   abilityCooldowns,
   announcement,
@@ -348,6 +349,7 @@ onUnmounted(() => {
             :is-attacking="attackingEnemyId === enemy.id"
             :show-shortcut="canTargetEnemies(selectedAbility)"
             :hit-popups="enemyHitPopups.filter(p => p.id === enemy.id)"
+            :vfx-effects="enemyVfxEffects.filter(effect => effect.id === enemy.id)"
             @select="selectEnemy"
           />
         </div>

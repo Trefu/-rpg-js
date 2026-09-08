@@ -2,9 +2,21 @@
 import { computed, ref } from 'vue'
 import type { IEnemy } from '@/core/interfaces/ICharacter'
 import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
+import type { VfxAssetId } from '@/core/interfaces/IAbility'
 import EnemyStatusIcons from './EnemyStatusIcons.vue'
 import goblinSprite from '@/assets/sprites/enemies/goblin.png'
+import fireSlashDown from '@/assets/VFX/SlashEffect_2d_pack/GIF/Fire_slash_Down.gif'
+import fireSlashUp from '@/assets/VFX/SlashEffect_2d_pack/GIF/Fire_slash_Up.gif'
+import holySlashDown from '@/assets/VFX/SlashEffect_2d_pack/GIF/holy_slash_down.gif'
+import holySlashUp from '@/assets/VFX/SlashEffect_2d_pack/GIF/holy_slash_up.gif'
 import { useMediaQuery } from '@/composables/useMediaQuery'
+
+const VFX_SOURCES: Record<VfxAssetId, string> = {
+  'fire-slash-down': fireSlashDown,
+  'fire-slash-up': fireSlashUp,
+  'holy-slash-down': holySlashDown,
+  'holy-slash-up': holySlashUp
+}
 
 interface Props {
   enemy: IEnemy
@@ -15,6 +27,7 @@ interface Props {
   isAttacking: boolean
   showShortcut: boolean
   hitPopups?: { value: number, key: number, isCrit?: boolean }[]
+  vfxEffects?: { key: number, asset: VfxAssetId }[]
 }
 
 const props = defineProps<Props>()
@@ -75,6 +88,14 @@ function onClick() {
     <div v-if="!isDead" class="enemy-name-top">{{ enemy.name }}</div>
     <EnemyStatusIcons v-if="statusEffects.length > 0" :effects="statusEffects" />
     <img :src="sprite" :alt="enemy.name" class="enemy-sprite-img" loading="lazy" decoding="async" />
+    <img
+      v-for="effect in vfxEffects ?? []"
+      :key="effect.key"
+      :src="VFX_SOURCES[effect.asset]"
+      class="enemy-vfx-effect"
+      alt=""
+      aria-hidden="true"
+    />
     <div class="enemy-health">
       <div class="health-bar">
         <div class="health-fill" :style="{ width: `${hpPercent}%` }"></div>
@@ -143,6 +164,19 @@ function onClick() {
   object-fit: contain;
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
   display: block;
+}
+
+.enemy-vfx-effect {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(420px, 100vw);
+  height: auto;
+  transform: translate(-50%, -50%);
+  object-fit: contain;
+  pointer-events: none;
+  z-index: 20;
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.85)) drop-shadow(0 0 18px rgba(255, 225, 120, 0.75));
 }
 
 .enemy-mobile-name {

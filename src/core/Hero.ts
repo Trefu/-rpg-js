@@ -58,6 +58,7 @@ export interface HeroOptions {
   body: IStatInput
   critChance?: number
   sprite?: string
+  basicAttack?: IAbility
   /**
    * Identificador estable de la clase del heroe (ej. 'warrior', 'cleric').
    *
@@ -134,7 +135,7 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
     // heroe en la pantalla de inicio (mismo patron que `levelUp()`).
     this.health = this.maxHealth
 
-    this.learnAbility(BasicAttack)
+    this.learnAbility(opts.basicAttack ?? BasicAttack)
   }
 
   /**

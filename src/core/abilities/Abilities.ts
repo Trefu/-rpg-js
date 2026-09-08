@@ -1,4 +1,4 @@
-import type { IAbility, DamageType, AbilityDamagePreview } from '@/core/interfaces/IAbility'
+import type { IAbility, DamageType, AbilityDamagePreview, VfxEffect } from '@/core/interfaces/IAbility'
 import type { AbilityContext } from '@/core/interfaces/IAbility'
 import { DAMAGE_TYPE_LABELS } from '@/core/interfaces/IAbility'
 import type { Hero } from '../Hero'
@@ -6,6 +6,14 @@ import { StatusEffects, DOT_STATUS_TYPES } from '../StatusEffects'
 import type { CritResult } from '../crit'
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
+const FIRE_SLASH_DOWN: VfxEffect = { asset: 'fire-slash-down', durationMs: 1260 }
+const FIRE_SLASH_UP: VfxEffect = { asset: 'fire-slash-up', durationMs: 1260 }
+const HOLY_SLASH_DOWN: VfxEffect = { asset: 'holy-slash-down', durationMs: 1260 }
+const HOLY_SLASH_UP: VfxEffect = { asset: 'holy-slash-up', durationMs: 1260 }
+const BASIC_ATTACK_LEVEL_4_THRESHOLD = 4
+const BASIC_ATTACK_HIT_INTERVAL_MS = 400
+const BASIC_ATTACK_DURATION_MS = 1800
 
 /**
  * Multiplicador minimo y maximo aplicado al daño base antes del critico.
@@ -82,10 +90,77 @@ const rollAndApplyDamage = (
 }
 
 const buildAttackLog = (abilityName: string, damage: number, crit: CritResult): string => {
-    const base = `Usaste ${abilityName} causando ${damage} de daño.`
-    if (crit.isOvercrit) return `¡Overcrit! ${base}`
-    if (crit.isCrit) return `Crítico ${base}`
-    return base
+  const base = `Usaste ${abilityName} causando ${damage} de daño.`
+  if (crit.isOvercrit) return `¡Overcrit! ${base}`
+  if (crit.isCrit) return `Crítico ${base}`
+  return base
+}
+
+const resolveVfxForHit = (hitIndex: number, vfx: VfxEffect | VfxEffect[] | undefined): VfxEffect | undefined => {
+  if (!vfx) return undefined
+  if (Array.isArray(vfx)) {
+    if (vfx.length === 0) return undefined
+    return vfx[hitIndex % vfx.length]
+  }
+  return vfx
+}
+
+const getBasicAttackHitVfx = (ability: IAbility | undefined): VfxEffect[] => {
+  const declared = ability?.hitVfx ?? ability?.vfx
+  if (Array.isArray(declared)) return declared
+  if (declared) return [declared]
+  return ability?.damageType === 'holy'
+    ? [HOLY_SLASH_DOWN, HOLY_SLASH_UP]
+    : [FIRE_SLASH_DOWN, FIRE_SLASH_UP]
+}
+
+const getBasicAttackRawDamage = (caster: Hero, damageType: DamageType): number => {
+  const scalingStat = damageType === 'physical' ? caster.baseStats.body.value : caster.baseStats.mind.value
+  return scalingStat * 0.7 + caster.level
+}
+
+const executeBasicAttack = async (context: AbilityContext) => {
+  const caster = context.caster as Hero
+  const target = context.target
+  if (!target || !target.isAlive) return
+
+  const ability = context.ability
+  const abilityName = ability?.name ?? 'Ataque Básico'
+  const levelBasedHitCount = caster.level >= BASIC_ATTACK_LEVEL_4_THRESHOLD ? 2 : 1
+  const hitCount = Math.max(levelBasedHitCount, ability?.hitCount ?? levelBasedHitCount)
+  const hitIntervalMs = hitCount > 1
+    ? Math.max(0, ability?.hitIntervalMs ?? BASIC_ATTACK_HIT_INTERVAL_MS)
+    : 0
+  const hitVfxList = getBasicAttackHitVfx(ability)
+
+  for (let hitIndex = 0; hitIndex < hitCount; hitIndex++) {
+    if (!target.isAlive) break
+
+    const { finalDamage, crit } = rollAndApplyDamage(
+      caster,
+      getBasicAttackRawDamage(caster, ability?.damageType ?? 'physical')
+    )
+
+    if (finalDamage > 0) {
+      const hitVfx = resolveVfxForHit(hitIndex, hitVfxList)
+      if (hitVfx) context.playEnemyVfx?.(target.id, hitVfx)
+      target.takeDamage(finalDamage)
+      context.showEnemyHit(target.id, finalDamage, crit.isCrit)
+      playAbilitySfx(context.audioManager, ability)
+      context.audioManager.playHitSound()
+    }
+
+    if (crit.isCrit) showCritAnnouncement(context, finalDamage, crit.isOvercrit)
+    context.addToLog(buildAttackLog(abilityName, finalDamage, crit))
+
+    if (typeof caster.restoreEnergy === 'function') {
+      const restored = caster.restoreEnergy(5)
+      if (restored > 0) context.addToLog(`+${restored} de energía.`)
+    }
+
+    await sleep(context.animationDelay)
+    if (hitIndex < hitCount - 1 && hitIntervalMs > 0) await sleep(hitIntervalMs)
+  }
 }
 
 /**
@@ -152,35 +227,42 @@ export const BasicAttack: IAbility = {
     cooldown: 0,
     damageType: 'physical',
     targetType: 'enemies-only',
+    animationDurationMs: BASIC_ATTACK_DURATION_MS,
     previewDamage: (hero: Hero) => {
         const body = hero.baseStats.body.value
         const level = hero.level
         const raw = body * 0.7 + level
-        return buildPreview(
-            `${F.cue('CUE')} ${F.cue(Math.round(body))} × 0.7 + ${F.lvl('nivel')} ${F.lvl(level)} = ${F.atk(raw.toFixed(1))}  ${F.base('→ Físico')}`,
-            raw,
-            'physical'
-        )
+        const hitCount = level >= BASIC_ATTACK_LEVEL_4_THRESHOLD ? 2 : 1
+        const totalRaw = raw * hitCount
+        const formula = `${F.cue('CUE')} ${F.cue(Math.round(body))} × 0.7 + ${F.lvl('nivel')} ${F.lvl(level)} = ${F.atk(raw.toFixed(1))}${hitCount > 1 ? ` × ${hitCount} = ${F.atk(totalRaw.toFixed(1))}` : ''}  ${F.base('→ Físico')}`
+        return buildPreview(formula, totalRaw, 'physical')
     },
-    execute: async (context: AbilityContext) => {
-        const caster = context.caster as Hero
-        const target = context.target
-        if (!target || !target.isAlive) return
-        const rawDamage = caster.baseStats.body.value * 0.7 + caster.level
-        const { finalDamage, crit } = rollAndApplyDamage(caster, rawDamage)
-        if (finalDamage > 0) {
-            target.takeDamage(finalDamage)
-            context.showEnemyHit(target.id, finalDamage, crit.isCrit)
-            playAbilitySfx(context.audioManager, context.ability)
-        }
-        if (crit.isCrit) showCritAnnouncement(context, finalDamage, crit.isOvercrit)
-        context.addToLog(buildAttackLog('Ataque Básico', finalDamage, crit))
-        if (typeof caster.restoreEnergy === 'function') {
-            const restored = caster.restoreEnergy(5)
-            if (restored > 0) context.addToLog(`+${restored} de energía.`)
-        }
-        await sleep(context.animationDelay)
-    }
+    execute: executeBasicAttack
+}
+
+export const WarriorBasicAttack: IAbility = {
+    ...BasicAttack,
+    description: 'Golpe físico que, a partir del nivel 4, se repite para asestar dos tajos.'
+}
+
+export const ClericBasicAttack: IAbility = {
+    name: 'Ataque Sagrado',
+    description: 'Destello radiante que, a partir del nivel 4, repite el daño sagrado dos veces.',
+    type: 'attack',
+    cooldown: 0,
+    damageType: 'holy',
+    targetType: 'enemies-only',
+    animationDurationMs: BASIC_ATTACK_DURATION_MS,
+    previewDamage: (hero: Hero) => {
+        const mind = hero.baseStats.mind.value
+        const level = hero.level
+        const raw = mind * 0.7 + level
+        const hitCount = level >= BASIC_ATTACK_LEVEL_4_THRESHOLD ? 2 : 1
+        const totalRaw = raw * hitCount
+        const formula = `${F.mind('MEN')} ${F.mind(Math.round(mind))} × 0.7 + ${F.lvl('nivel')} ${F.lvl(level)} = ${F.mag(raw.toFixed(1))}${hitCount > 1 ? ` × ${hitCount} = ${F.mag(totalRaw.toFixed(1))}` : ''}  ${F.base('→ Sagrado')}`
+        return buildPreview(formula, totalRaw, 'holy')
+    },
+    execute: executeBasicAttack
 }
 
 export const StunStrike: IAbility = {

@@ -1,5 +1,6 @@
 import { Hero } from '../Hero'
 import {
+  WarriorBasicAttack,
   WarriorInjuringStrike,
   SecondWind,
   WarriorDevastatingStrike
@@ -13,6 +14,7 @@ export class Warrior extends Hero {
       name: 'Bjorn',
       level,
       heroClassId: 'warrior',
+      basicAttack: WarriorBasicAttack,
       maxHealth: 140,
       maxEnergy: 60,
       agility:    { value: 10, growthPerLevel: 2 },

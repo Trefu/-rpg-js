@@ -1,5 +1,6 @@
 import { Hero } from '../Hero'
 import {
+  ClericBasicAttack,
   ClericRadiantStrike,
   ClericHeal,
   ClericDivineSmite
@@ -13,6 +14,7 @@ export class Cleric extends Hero {
       name: 'Elara',
       level,
       heroClassId: 'cleric',
+      basicAttack: ClericBasicAttack,
       maxHealth: 100,
       maxEnergy: 80,
       agility:    { value: 10,  growthPerLevel: 1 },
