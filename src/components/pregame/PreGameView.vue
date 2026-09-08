@@ -447,8 +447,23 @@ function damageTypeClass(id?: string): string {
   padding: 2rem 1.5rem 4rem;
   color: #f5f5f5;
   max-height: 100vh;
+  min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  flex: 1 1 auto;
+}
+
+.pre-game::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+.pre-game::-webkit-scrollbar-track,
+.pre-game::-webkit-scrollbar-thumb {
+  background: transparent;
 }
 
 @media (max-height: 820px) {
