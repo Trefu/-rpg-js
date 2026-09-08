@@ -60,6 +60,7 @@ const {
   playerHitPopups,
   enemyHitPopups,
   enemyVfxEffects,
+  heroVfxEffects,
   showAbilitiesModal,
   abilityCooldowns,
   announcement,
@@ -308,6 +309,7 @@ onUnmounted(() => {
           :is-target-selectable="isAllySelectable(hero)"
           :is-being-attacked="!!hero && attackedHeroIds.includes(hero.id)"
           :hit-popups="hero ? playerHitPopups.filter(p => p.heroId === hero.id) : []"
+          :vfx-effects="hero ? heroVfxEffects.filter(e => e.heroId === hero.id) : []"
           @select="(h) => selectAlly(h)"
         />
       </div>
@@ -325,6 +327,7 @@ onUnmounted(() => {
       :active-hero-index="gameStore.activeHeroIndex"
       :attacked-hero-ids="attackedHeroIds"
       :hit-popups="playerHitPopups"
+      :hero-vfx-effects="heroVfxEffects"
       @select-ally="selectAlly"
     />
 

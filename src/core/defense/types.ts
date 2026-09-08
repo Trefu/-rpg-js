@@ -1,3 +1,5 @@
+import type { VfxEffect } from '../interfaces/IAbility'
+
 export interface DefensePhaseZone {
   /**
    * Índices de columna (0-indexed, en [0, DEFENSE_BAR_WIDTH)) que cuentan
@@ -22,6 +24,23 @@ export interface DefenseFailureEffect {
    * cuya duracion no debe seguir la regla default de DoTs.
    */
   maxDuration?: number
+}
+
+/**
+ * Override de los VFX que se muestran sobre el heroe cuando recibe dano sin
+ * bloquear durante un desafio de defensa contra este patron.
+ *
+ * - `impact`: dano normal (no critico).
+ * - `bigHit`: dano critico.
+ *
+ * Si una clave se omite, se usa el default registrado en
+ * `src/core/defense/failureVfx.ts` (Effect_Impact / Effect_BigHit).
+ * Cada clave admite un `VfxEffect` unico o un array; se toma siempre el
+ * primero (un solo gif por fase fallida, igual que el sistema de slashes).
+ */
+export interface DefenseFailureVfxConfig {
+  impact?: VfxEffect | VfxEffect[]
+  bigHit?: VfxEffect | VfxEffect[]
 }
 
 /**
@@ -114,6 +133,12 @@ export interface DefensePatternConfig {
    */
   phases?: DefensePhaseSpec[]
   onFailureEffect?: DefenseFailureEffect
+  /**
+   * Override opcional del VFX de impacto que se muestra sobre el heroe
+   * cuando una fase del desafio de defensa falla (sin importar si la
+   * fase cae por timeout o por posicion incorrecta). Ver `DefenseFailureVfxConfig`.
+   */
+  onFailureVfx?: DefenseFailureVfxConfig
   /**
    * Efecto de bloqueo por defecto de este patron.
    * Se aplica si ningun modifier lo sobreescribe.

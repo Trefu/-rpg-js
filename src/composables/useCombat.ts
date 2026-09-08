@@ -10,6 +10,7 @@ import { getItemOrThrow } from '@/core/items/items'
 import { consumeItem, getInventoryEntries, type InventoryEntry } from '@/core/items/inventory'
 import { StatusEffects, applyFailureEffect } from '@/core/StatusEffects'
 import { applyDamageVariance } from '@/core/abilities/Abilities'
+import { DEFAULT_IMPACT_VFX, resolveFailureVfx } from '@/core/defense/failureVfx'
 import type {
   DefenseChallengeResult,
   DefensePatternConfig,
@@ -67,6 +68,18 @@ interface EnemyVfxEffect {
   durationMs: number
 }
 
+/**
+ * VFX visual ligado a un heroe concreto. Se muestra cuando recibe dano sin
+ * bloquear durante una fase del desafio de defensa (default) o cuando un
+ * splash multi-hero del enemigo lo golpea.
+ */
+interface HeroVfxEffect {
+  heroId: string
+  key: number
+  asset: VfxAssetId
+  durationMs: number
+}
+
 export function useCombat(config: CombatConfig = {}) {
   const gameStore = useGameStore()
   const player = computed<Hero | null>(() => gameStore.activeHero)
@@ -97,6 +110,7 @@ export function useCombat(config: CombatConfig = {}) {
     stackIndex?: number
   }[]>([])
   const enemyVfxEffects = ref<EnemyVfxEffect[]>([])
+  const heroVfxEffects = ref<HeroVfxEffect[]>([])
   const playerHitPopups = ref<{
     heroId: string | null
     value: number
@@ -200,6 +214,7 @@ const isProcessingDot = ref(false)
   let pendingDefenseCrit: CritResult = { multiplier: 1, isCrit: false, isOvercrit: false }
   let popupKey = 0
   let vfxEffectKey = 0
+  let heroVfxKey = 0
 
   const abilities = computed(() => {
     if (player.value?.abilities) {
@@ -279,6 +294,7 @@ const isProcessingDot = ref(false)
         const dmg = Math.max(1, phaseDamage)
         target.takeDamage(dmg)
         showPlayerHit(dmg, { heroId: target.id, isCrit: wasCrit, variant: wasCrit ? 'crit' : 'damage' })
+        showHeroVfx(target.id, resolveFailureVfx(pattern, wasCrit))
         if (pattern.customSound) audioManager.playCustomSound(pattern.customSound)
         else audioManager.playAttackSound()
         audioManager.playHitSound()
@@ -743,6 +759,22 @@ const isProcessingDot = ref(false)
     ]
     setTimeout(() => {
       enemyVfxEffects.value = enemyVfxEffects.value.filter(effect => effect.key !== key)
+    }, effect.durationMs)
+  }
+
+  /**
+   * Inserta un VFX sobre el heroe indicado y lo elimina al cabo de
+   * `effect.durationMs`. Util cuando el heroe recibe dano sin bloquear
+   * (fase fallida del desafio de defensa o splash multi-hero).
+   */
+  function showHeroVfx(heroId: string, effect: VfxEffect) {
+    const key = heroVfxKey++
+    heroVfxEffects.value = [
+      ...heroVfxEffects.value,
+      { heroId, key, asset: effect.asset, durationMs: effect.durationMs }
+    ]
+    setTimeout(() => {
+      heroVfxEffects.value = heroVfxEffects.value.filter(e => e.key !== key)
     }, effect.durationMs)
   }
 
@@ -1239,6 +1271,7 @@ const isProcessingDot = ref(false)
       const dmg = Math.max(0, baseDmg)
       hero.takeDamage(dmg)
       showPlayerHit(dmg, { heroId: hero.id })
+      showHeroVfx(hero.id, DEFAULT_IMPACT_VFX)
       audioManager.playAttackSound()
       audioManager.playHitSound()
       addToLog(`¡${enemy.name} golpea a ${hero.name}! ${dmg} de daño.`)
@@ -1389,6 +1422,7 @@ const isProcessingDot = ref(false)
   function initializeCombat(enemyList: IEnemy[], isBoss: boolean = false) {
     enemies.value = enemyList
     enemyVfxEffects.value = []
+    heroVfxEffects.value = []
     combatLog.value = []
     resetAbilityCooldowns()
     if (!config.isTraining) {
@@ -1414,6 +1448,7 @@ const isProcessingDot = ref(false)
 
   function cleanup() {
     enemyVfxEffects.value = []
+    heroVfxEffects.value = []
     audioManager.stopCurrentMusic()
   }
 
@@ -1433,6 +1468,8 @@ const isProcessingDot = ref(false)
     combatLogRef,
     enemyHitPopups,
     enemyVfxEffects,
+    heroVfxEffects,
+    showHeroVfx,
     playerHitPopups,
     showAbilitiesModal,
     abilityCooldowns,

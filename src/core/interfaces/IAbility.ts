@@ -76,7 +76,13 @@ export interface RandomAttackSpec {
  */
 export type DamageType = 'physical' | 'fire' | 'holy' | 'frost'
 
-export type VfxAssetId = 'fire-slash-down' | 'fire-slash-up' | 'holy-slash-down' | 'holy-slash-up'
+export type VfxAssetId =
+  | 'fire-slash-down'
+  | 'fire-slash-up'
+  | 'holy-slash-down'
+  | 'holy-slash-up'
+  | 'impact'
+  | 'big-hit'
 
 export interface VfxEffect {
   asset: VfxAssetId

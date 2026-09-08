@@ -5,18 +5,8 @@ import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
 import type { VfxAssetId } from '@/core/interfaces/IAbility'
 import EnemyStatusIcons from './EnemyStatusIcons.vue'
 import goblinSprite from '@/assets/sprites/enemies/goblin.png'
-import fireSlashDown from '@/assets/VFX/SlashEffect_2d_pack/GIF/Fire_slash_Down.gif'
-import fireSlashUp from '@/assets/VFX/SlashEffect_2d_pack/GIF/Fire_slash_Up.gif'
-import holySlashDown from '@/assets/VFX/SlashEffect_2d_pack/GIF/holy_slash_down.gif'
-import holySlashUp from '@/assets/VFX/SlashEffect_2d_pack/GIF/holy_slash_up.gif'
+import { VFX_SOURCES } from './vfxSources'
 import { useMediaQuery } from '@/composables/useMediaQuery'
-
-const VFX_SOURCES: Record<VfxAssetId, string> = {
-  'fire-slash-down': fireSlashDown,
-  'fire-slash-up': fireSlashUp,
-  'holy-slash-down': holySlashDown,
-  'holy-slash-up': holySlashUp
-}
 
 interface Props {
   enemy: IEnemy

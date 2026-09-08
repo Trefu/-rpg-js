@@ -2,10 +2,12 @@
 import { computed, ref } from 'vue'
 import type { Hero } from '@/core/Hero'
 import type { IEnemy } from '@/core/interfaces/ICharacter'
+import type { VfxAssetId } from '@/core/interfaces/IAbility'
 import { MAX_HEROES } from '@/stores/game'
 import HeroDotIcons from './HeroDotIcons.vue'
 import EnemyStatusIcons from './EnemyStatusIcons.vue'
 import MobileHeroStats from './MobileHeroStats.vue'
+import { VFX_SOURCES } from './vfxSources'
 
 const props = defineProps<{
     player: Hero | null
@@ -17,6 +19,7 @@ const props = defineProps<{
     activeHeroIndex?: number
     attackedHeroIds?: string[]
     hitPopups?: { heroId: string | null, value: number, key: number, isCrit?: boolean, variant?: 'damage' | 'crit' | 'blocked' | 'heal' | 'energy', suffix?: string }[]
+    heroVfxEffects?: { heroId: string, key: number, asset: VfxAssetId, durationMs: number }[]
 }>()
 
 const emit = defineEmits<{
@@ -51,6 +54,13 @@ const displayedHeroPopups = computed(() => {
     const popups = props.hitPopups ?? []
     const id = displayedHero.value?.id ?? null
     return popups.filter(p => p.heroId === id)
+})
+
+const displayedHeroVfx = computed(() => {
+    const effects = props.heroVfxEffects ?? []
+    const id = displayedHero.value?.id ?? null
+    if (!id) return []
+    return effects.filter(e => e.heroId === id)
 })
 
 const hpPercent = computed(() => {
@@ -175,6 +185,16 @@ function onAllyRowClick(hero: Hero | null) {
                     <span class="mobile-hit-value">{{ popup.variant === 'heal' || popup.variant === 'energy' ? '+' : '-' }}{{ popup.value }}{{ popup.suffix ?? '' }}</span>
                 </div>
             </TransitionGroup>
+            <div v-if="displayedHeroVfx.length > 0" class="mobile-vfx-layer">
+                <img
+                    v-for="effect in displayedHeroVfx"
+                    :key="effect.key"
+                    :src="VFX_SOURCES[effect.asset]"
+                    class="mobile-vfx-effect"
+                    alt=""
+                    aria-hidden="true"
+                />
+            </div>
         </Teleport>
 
         <transition name="panel-preview">
@@ -271,6 +291,24 @@ function onAllyRowClick(hero: Hero | null) {
     gap: 0.4rem;
     pointer-events: none;
     z-index: 9999;
+}
+
+.mobile-vfx-layer {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 26%;
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 9998;
+}
+
+.mobile-vfx-effect {
+    width: min(360px, 92vw);
+    height: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.85)) drop-shadow(0 0 18px rgba(255, 225, 120, 0.75));
 }
 
 .mobile-hit-popup {

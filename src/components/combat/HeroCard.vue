@@ -2,9 +2,11 @@
 import { computed, ref, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import type { Hero } from '@/core/Hero'
 import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
+import type { VfxAssetId } from '@/core/interfaces/IAbility'
 import { getEffectDescription } from '@/core/interfaces/IStatusEffect'
 import { useExclusiveToggle } from '@/composables/useExclusiveToggle'
 import HeroStatChips from './HeroStatChips.vue'
+import { VFX_SOURCES } from './vfxSources'
 import hamburgerIcon from '@/assets/icons/hamburger-menu.png'
 import burnDotIcon from '@/assets/icons/fire.png'
 import poisonDotIcon from '@/assets/icons/poison-gas.png'
@@ -25,6 +27,8 @@ interface Props {
   /** Cuando true, marca visualmente al heroe como objetivo de un ataque enemigo en curso. */
   isBeingAttacked?: boolean
   hitPopups?: { value: number, key: number, isCrit?: boolean, variant?: 'damage' | 'crit' | 'blocked' | 'heal' | 'energy', suffix?: string, heroId?: string | null }[]
+  /** VFX activos sobre este heroe (ej. impact / big-hit al fallar defensa). */
+  vfxEffects?: { key: number, asset: VfxAssetId }[]
 }
 
 const props = defineProps<Props>()
@@ -213,6 +217,14 @@ defineExpose({
       <div class="hero-portrait">
         <img :src="hero.sprite" :alt="hero.name" class="hero-sprite" />
       </div>
+      <img
+        v-for="effect in vfxEffects ?? []"
+        :key="effect.key"
+        :src="VFX_SOURCES[effect.asset]"
+        class="hero-vfx-effect"
+        alt=""
+        aria-hidden="true"
+      />
       <div class="hero-info">
         <div class="hero-name">{{ hero.name }}</div>
         <div class="hero-level">Nivel {{ hero.level }}</div>
@@ -461,6 +473,19 @@ defineExpose({
   height: 100%;
   object-fit: cover;
   image-rendering: pixelated;
+}
+
+.hero-vfx-effect {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(420px, 100vw);
+  height: auto;
+  transform: translate(-50%, -50%);
+  object-fit: contain;
+  pointer-events: none;
+  z-index: 20;
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.85)) drop-shadow(0 0 18px rgba(255, 225, 120, 0.75));
 }
 
 .hero-dot-icons {
