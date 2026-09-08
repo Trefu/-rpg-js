@@ -17,6 +17,12 @@ interface GeneratorConfig {
    * el jugador consigue un segundo heroe a mitad de camino.
    */
   recruitHeroRowByZone: Partial<Record<ZoneId, number>>
+  minCuriosityNodes: number
+  maxCuriosityNodes: number
+  maxConsecutiveCuriosity: number
+  minShopNodes: number
+  maxShopNodes: number
+  maxConsecutiveShop: number
 }
 
 const CONFIG: GeneratorConfig = {
@@ -27,9 +33,15 @@ const CONFIG: GeneratorConfig = {
   maxParentsPerNode: 2,
   proximityThreshold: 40,
   forcedSingleRows: [5],
-  forcedCombatRows: [0],
+  forcedCombatRows: [0, 1],
   forcedNodeTypes: {},
-  recruitHeroRowByZone: { 'mountain-peak': 2 }
+  recruitHeroRowByZone: { 'mountain-peak': 2 },
+  minCuriosityNodes: 2,
+  maxCuriosityNodes: 4,
+  maxConsecutiveCuriosity: 2,
+  minShopNodes: 1,
+  maxShopNodes: 2,
+  maxConsecutiveShop: 1
 }
 
 function createNode(id: string, type: INode['type'], position: { x: number; y: number }, enemies: any[] = []): INode {
@@ -234,6 +246,151 @@ function attachConnections(rows: INode[][], childrenOf: Map<string, Set<string>>
   return allNodes
 }
 
+function enforceSpecialNodeRules(rows: INode[][], zoneId: ZoneId): void {
+  const totalNodes = CONFIG.minNodesBeforeBoss + 2
+  if (rows.length < 3) return
+
+  const byId = new Map<string, INode>()
+  const rowOf = new Map<string, number>()
+  for (let r = 0; r < rows.length; r++) {
+    for (const n of rows[r]) {
+      byId.set(n.id, n)
+      rowOf.set(n.id, r)
+    }
+  }
+
+  const parentsOf = new Map<string, string[]>()
+  for (const n of byId.values()) parentsOf.set(n.id, [])
+  for (const n of byId.values()) {
+    for (const cid of n.connections) {
+      const arr = parentsOf.get(cid)
+      if (arr) arr.push(n.id)
+    }
+  }
+
+  const noCuriosityRows = new Set<number>([0, rows.length - 1])
+  const noShopRows = new Set<number>([0, rows.length - 1])
+  for (let i = 1; i < rows.length - 1; i++) {
+    const loopRow = i - 1
+    const isForcedCombat = CONFIG.forcedCombatRows.includes(loopRow)
+    const isRecruitRow = CONFIG.recruitHeroRowByZone[zoneId] === loopRow
+    const ft = CONFIG.forcedNodeTypes[loopRow]
+    const curiosityBlocked = isForcedCombat || isRecruitRow || ft === 'combat' || ft === 'shop'
+    const shopBlocked = isForcedCombat || isRecruitRow || ft === 'combat' || ft === 'curiosity'
+    if (curiosityBlocked) noCuriosityRows.add(i)
+    if (shopBlocked) noShopRows.add(i)
+  }
+
+  for (let i = 1; i < rows.length - 1; i++) {
+    const loopRow = i - 1
+    if (!CONFIG.forcedCombatRows.includes(loopRow)) continue
+    for (const node of rows[i]) {
+      if (node.type !== 'combat') {
+        node.type = 'combat'
+        node.enemies = getEnemiesForNode(zoneId, i + 2, totalNodes)
+      }
+    }
+  }
+
+  function getNodesOfType(type: 'curiosity' | 'shop', excludeRows: Set<number>): INode[] {
+    const out: INode[] = []
+    for (let i = 1; i < rows.length - 1; i++) {
+      if (excludeRows.has(i)) continue
+      for (const node of rows[i]) if (node.type === type) out.push(node)
+    }
+    return out
+  }
+
+  function getPromotableCandidates(excludeRows: Set<number>): INode[] {
+    const out: INode[] = []
+    for (let i = 1; i < rows.length - 1; i++) {
+      if (excludeRows.has(i)) continue
+      for (const node of rows[i]) if (node.type === 'combat') out.push(node)
+    }
+    return out
+  }
+
+  function setAs(n: INode, type: 'combat' | 'curiosity' | 'shop'): void {
+    if (type === 'combat') {
+      const i = rowOf.get(n.id)!
+      n.type = 'combat'
+      n.enemies = getEnemiesForNode(zoneId, i + 2, totalNodes)
+    } else {
+      n.type = type
+      n.enemies = []
+    }
+  }
+
+  function clampCount(type: 'curiosity' | 'shop', min: number, max: number, excludeRows: Set<number>): boolean {
+    let changed = false
+    let nodes = getNodesOfType(type, excludeRows)
+    let safety = 200
+    while (nodes.length < min && safety-- > 0) {
+      const candidates = getPromotableCandidates(excludeRows)
+      if (candidates.length === 0) {
+        console.error(`[useExpeditionGenerator] cannot reach min ${type} nodes; insufficient candidates`)
+        break
+      }
+      setAs(candidates[Math.floor(Math.random() * candidates.length)], type)
+      changed = true
+      nodes = getNodesOfType(type, excludeRows)
+    }
+    safety = 200
+    nodes = getNodesOfType(type, excludeRows)
+    while (nodes.length > max && safety-- > 0) {
+      setAs(nodes[Math.floor(Math.random() * nodes.length)], 'combat')
+      changed = true
+      nodes = getNodesOfType(type, excludeRows)
+    }
+    return changed
+  }
+
+  function hasTypeNeighbor(n: INode, type: 'curiosity' | 'shop'): { parent: boolean; child: boolean } {
+    let parent = false
+    for (const pid of parentsOf.get(n.id) ?? []) {
+      const p = byId.get(pid)
+      if (p && p.type === type) { parent = true; break }
+    }
+    let child = false
+    for (const cid of n.connections) {
+      const c = byId.get(cid)
+      if (c && c.type === type) { child = true; break }
+    }
+    return { parent, child }
+  }
+
+  function fixChains(type: 'curiosity' | 'shop', excludeRows: Set<number>, maxConsecutive: number): boolean {
+    let changed = false
+    let safety = 200
+    let localChanged = true
+    while (localChanged && safety-- > 0) {
+      localChanged = false
+      const nodes = getNodesOfType(type, excludeRows)
+      for (const node of nodes) {
+        const { parent, child } = hasTypeNeighbor(node, type)
+        const violation = maxConsecutive <= 1 ? (parent || child) : (parent && child)
+        if (violation) {
+          setAs(node, 'combat')
+          localChanged = true
+          changed = true
+          break
+        }
+      }
+    }
+    return changed
+  }
+
+  let globalSafety = 50
+  let globalChanged = true
+  while (globalChanged && globalSafety-- > 0) {
+    globalChanged = false
+    globalChanged = clampCount('curiosity', CONFIG.minCuriosityNodes, CONFIG.maxCuriosityNodes, noCuriosityRows) || globalChanged
+    globalChanged = clampCount('shop', CONFIG.minShopNodes, CONFIG.maxShopNodes, noShopRows) || globalChanged
+    globalChanged = fixChains('curiosity', noCuriosityRows, CONFIG.maxConsecutiveCuriosity) || globalChanged
+    globalChanged = fixChains('shop', noShopRows, CONFIG.maxConsecutiveShop) || globalChanged
+  }
+}
+
 function generateLinearFallback(zoneId: ZoneId): INode[] {
   const rows: INode[][] = []
   const totalNodes = CONFIG.minNodesBeforeBoss + 2
@@ -254,6 +411,7 @@ function generateLinearFallback(zoneId: ZoneId): INode[] {
   rows.push([bossNode])
   prev.connections = [bossNode.id]
 
+  enforceSpecialNodeRules(rows, zoneId)
   return rows.flat()
 }
 
@@ -262,9 +420,11 @@ export function useExpeditionGenerator() {
     for (let attempt = 0; attempt < CONFIG.maxRetries; attempt++) {
       const rows = buildRows(zoneId)
       const childrenOf = connectByReverseBFS(rows)
+      attachConnections(rows, childrenOf)
+      enforceSpecialNodeRules(rows, zoneId)
       const result = validateConnectivity(rows, childrenOf)
       if (result.ok) {
-        return attachConnections(rows, childrenOf)
+        return rows.flat()
       }
     }
 
