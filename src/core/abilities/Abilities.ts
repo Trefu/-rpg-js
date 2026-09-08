@@ -472,7 +472,7 @@ const SECOND_WIND_CHARGES = 3
 
 export const SecondWind: IAbility = {
     name: 'Segundo Aliento',
-    description: `Cura ${Math.round(SECOND_WIND_HEAL_PCT * 100)}% de vida maxima y aplica el buff Segundo Aliento: cada bloqueo siguiente restaura ${Math.round(SECOND_WIND_ENERGY_RESTORE_PCT * 100)}% de la energia maxima (${SECOND_WIND_CHARGES} bloqueos).`,
+    description: `Cura ${Math.round(SECOND_WIND_HEAL_PCT * 100)}% de vida maxima y aplica el buff Segundo Aliento: cada bloqueo siguiente restaura ${Math.round(SECOND_WIND_ENERGY_RESTORE_PCT * 100)}% de la energia maxima (${SECOND_WIND_CHARGES} bloqueos). Mientras tengas cargas activas, los enemigos te priorizaran mucho mas como objetivo (mayor agro).`,
     type: 'secondWind',
     cooldown: 2,
     energyCost: 0,

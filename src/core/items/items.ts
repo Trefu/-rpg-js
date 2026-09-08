@@ -11,7 +11,7 @@ const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 export const createHealingFlask = (): IItem => ({
   id: 'healing-flask',
   name: 'Frasco de curacion',
-  description: 'Restaura el 40% de la vida maxima de un heroe aliado seleccionado.',
+  description: 'Restaura el 40% de la vida maxima de un heroe aliado seleccionado. Se repone al maximo de usos tras cada combate.',
   icon: getItemIcon('healing-flask'),
   requiresTarget: true,
   targetType: 'allies-only',
@@ -42,7 +42,7 @@ export const createHealingFlask = (): IItem => ({
 export const createEnergyPotion = (): IItem => ({
   id: 'energy-potion',
   name: 'Pocion de energia',
-  description: 'Recupera toda la energia de un heroe aliado seleccionado.',
+  description: 'Recupera toda la energia de un heroe aliado seleccionado. Se repone al maximo de usos tras cada combate.',
   icon: getItemIcon('energy-potion'),
   requiresTarget: true,
   targetType: 'allies-only',

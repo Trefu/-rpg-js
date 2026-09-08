@@ -31,7 +31,19 @@ const closeModal = () => {
   emit('close')
 }
 
+const isAffordable = (ability: IAbility) => {
+  const cost = ability.energyCost ?? 0
+  if (cost <= 0) return true
+  const caster = props.caster
+  return !!caster && caster.energy >= cost
+}
+
+const isBlocked = (ability: IAbility) => {
+  return props.abilityCooldowns[ability.type] > 0 || !isAffordable(ability)
+}
+
 const selectAbility = (ability: IAbility, index: number) => {
+  if (isBlocked(ability)) return
   emit('selectAbility', ability, index)
 }
 
@@ -84,7 +96,10 @@ function togglePreview(ability: IAbility, event?: MouseEvent) {
             v-for="(ability, idx) in abilities"
             :key="ability.type"
             class="ability-card"
-            :class="{ 'on-cooldown': abilityCooldowns[ability.type] > 0 }"
+            :class="{
+              'on-cooldown': abilityCooldowns[ability.type] > 0,
+              'no-energy': abilityCooldowns[ability.type] <= 0 && !isAffordable(ability)
+            }"
             @click="selectAbility(ability, idx)"
           >
             <div class="ability-icon-wrapper">
@@ -128,7 +143,11 @@ function togglePreview(ability: IAbility, event?: MouseEvent) {
                 <span v-if="ability.cooldown > 0" class="cooldown-badge">
                   <img :src="hourglassIcon" alt="" class="cooldown-icon" /> {{ ability.cooldown }} turno{{ ability.cooldown > 1 ? 's' : '' }}
                 </span>
-                <span class="use-hint">{{ abilityCooldowns[ability.type] > 0 ? 'Enfriando...' : 'Click para usar' }}</span>
+                <span class="use-hint">
+                  <template v-if="abilityCooldowns[ability.type] > 0">Enfriando...</template>
+                  <template v-else-if="!isAffordable(ability)">Sin energía</template>
+                  <template v-else>Click para usar</template>
+                </span>
               </div>
             </div>
           </div>
@@ -254,13 +273,14 @@ function togglePreview(ability: IAbility, event?: MouseEvent) {
   text-align: left;
 }
 
-.ability-card:hover:not(.on-cooldown) {
+.ability-card:hover:not(.on-cooldown):not(.no-energy) {
   transform: translateX(4px);
   background: linear-gradient(135deg, #323559 0%, #393e5f 100%);
   box-shadow: 0 4px 20px rgba(0,0,0,0.3);
 }
 
-.ability-card.on-cooldown {
+.ability-card.on-cooldown,
+.ability-card.no-energy {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -277,7 +297,8 @@ function togglePreview(ability: IAbility, event?: MouseEvent) {
   filter: drop-shadow(0 2px 6px #000a);
 }
 
-.on-cooldown .ability-icon {
+.on-cooldown .ability-icon,
+.no-energy .ability-icon {
   filter: grayscale(100%) brightness(0.5);
 }
 
@@ -388,7 +409,8 @@ function togglePreview(ability: IAbility, event?: MouseEvent) {
   opacity: 0.8;
 }
 
-.on-cooldown .use-hint {
+.on-cooldown .use-hint,
+.no-energy .use-hint {
   color: #ff6b6b;
 }
 
