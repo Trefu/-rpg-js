@@ -142,7 +142,7 @@ function heroCount(id: HeroChoice['id']): number {
 
 function toggleHero(id: HeroChoice['id']) {
   if (multiHeroMode.value) {
-    const idx = selectedHeroIds.value.lastIndexOf(id)
+    const idx = selectedHeroIds.value.indexOf(id)
     if (idx >= 0) {
       const next = selectedHeroIds.value.slice()
       next.splice(idx, 1)

@@ -8,6 +8,12 @@ export type GameLocation = 'pre-game' | 'expedition-map' | 'combat' | 'shop' | '
 
 export const MAX_HEROES = 3
 
+declare global {
+  interface Window {
+    __gameStore?: ReturnType<typeof useGameStore>
+  }
+}
+
 interface GameState {
   heroes: Array<Hero | null>
   activeHeroIndex: number

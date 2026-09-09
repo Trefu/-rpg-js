@@ -27,6 +27,11 @@ const expeditionStore = useExpeditionStore()
 const currentView = computed(() => gameStore.currentLocation)
 const audioManager = AudioManager.getInstance()
 
+if (import.meta.env.DEV) {
+  ;(window as any).__gameStore = gameStore
+  ;(window as any).__expeditionStore = expeditionStore
+}
+
 /**
  * Estado del modal de reclutamiento. Solo se abre cuando el jugador
  * selecciona un nodo `recruit-hero` en el mapa. El modal vive en App.vue
