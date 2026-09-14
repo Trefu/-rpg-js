@@ -25,12 +25,23 @@ export const DEFAULT_BIG_HIT_VFX: VfxEffect = { asset: 'big-hit', durationMs: 40
  * del heroe y deben "venir desde el lado del enemigo" (la UI aplica
  * `scaleX(-1)` al dibujarlos).
  *
- * Duracion uniforme de 1200ms para que cualquier GIF (7-10 frames) se
- * vea entero sin cortarse.
+ * Duracion calibrada al conteo real de frames de cada GIF (los assets
+ * traen `NETSCAPE2.0` con loop count 0 = loop infinito, y delay 0cs entre
+ * frames, que los browsers renderizan a ~10fps → 100ms por frame). Si
+ * dejamos el <img> en el DOM mas tiempo que el ciclo natural del GIF,
+ * el browser arranca un segundo loop visible antes de removerlo.
  */
+const ENEMY_SLASH_DURATIONS: Partial<Record<VfxEffect['asset'], number>> = {
+  'enemy-slash-1': 1000,  // 10 frames
+  'enemy-slash-2': 900,   // 9 frames
+  'enemy-slash-3': 1000,  // 10 frames
+  'enemy-slash-4': 700,   // 7 frames
+  'enemy-slash-5': 800    // 8 frames (critico)
+}
+
 const enemySlash = (asset: VfxEffect['asset']): VfxEffect => ({
   asset,
-  durationMs: 1200,
+  durationMs: ENEMY_SLASH_DURATIONS[asset] ?? 1000,
   mirrored: true
 })
 
