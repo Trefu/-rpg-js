@@ -28,7 +28,7 @@ interface Props {
   isBeingAttacked?: boolean
   hitPopups?: { value: number, key: number, isCrit?: boolean, variant?: 'damage' | 'crit' | 'blocked' | 'heal' | 'energy', suffix?: string, heroId?: string | null }[]
   /** VFX activos sobre este heroe (ej. impact / big-hit al fallar defensa). */
-  vfxEffects?: { key: number, asset: VfxAssetId }[]
+  vfxEffects?: { key: number, asset: VfxAssetId, mirrored?: boolean }[]
 }
 
 const props = defineProps<Props>()
@@ -221,7 +221,7 @@ defineExpose({
         v-for="effect in vfxEffects ?? []"
         :key="effect.key"
         :src="VFX_SOURCES[effect.asset]"
-        class="hero-vfx-effect"
+        :class="['hero-vfx-effect', { 'hero-vfx-effect--mirrored': effect.mirrored }]"
         alt=""
         aria-hidden="true"
       />
@@ -515,6 +515,12 @@ defineExpose({
   pointer-events: none;
   z-index: 20;
   filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.85)) drop-shadow(0 0 18px rgba(255, 225, 120, 0.75));
+}
+
+/* Espejado horizontal para VFX cuyo origen visual esta en el lado
+   contrario (p.ej. ataques enemigos que "vienen desde la derecha"). */
+.hero-vfx-effect--mirrored {
+  transform: translate(-50%, -50%) scaleX(-1);
 }
 
 .hero-dot-icons {

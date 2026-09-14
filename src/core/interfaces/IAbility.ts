@@ -104,12 +104,29 @@ export type VfxAssetId =
   | 'fire-slash-up'
   | 'holy-slash-down'
   | 'holy-slash-up'
+  | 'physical-slash-1'
+  | 'physical-slash-2'
+  | 'physical-slash-3'
+  | 'enemy-slash-1'
+  | 'enemy-slash-2'
+  | 'enemy-slash-3'
+  | 'enemy-slash-4'
+  | 'enemy-slash-5'
   | 'impact'
   | 'big-hit'
 
 export interface VfxEffect {
   asset: VfxAssetId
   durationMs: number
+  /**
+   * Si es `true`, la UI debe espejar horizontalmente el GIF al renderizarlo
+   * (`transform: scaleX(-1)`). Se usa para VFX cuyo origen visual está en el
+   * lado opuesto al del observador (p.ej. ataques enemigos que se muestran
+   * sobre la carta del heroe — el slash "viene desde la derecha" del
+   * enemigo, pero la carta del heroe lo refleja desde la suya).
+   * Default: `false`.
+   */
+  mirrored?: boolean
 }
 
 /**

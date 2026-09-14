@@ -78,6 +78,11 @@ interface HeroVfxEffect {
   key: number
   asset: VfxAssetId
   durationMs: number
+  /**
+   * Si es `true`, la UI debe espejar el GIF horizontalmente. Lo emite el
+   * `VfxEffect` que origina el render (ver `failureVfx.ts`).
+   */
+  mirrored?: boolean
 }
 
 export function useCombat(config: CombatConfig = {}) {
@@ -300,7 +305,7 @@ const isProcessingDot = ref(false)
         const dmg = Math.max(1, phaseDamage)
         target.takeDamage(dmg)
         showPlayerHit(dmg, { heroId: target.id, isCrit: wasCrit, variant: wasCrit ? 'crit' : 'damage' })
-        showHeroVfx(target.id, resolveFailureVfx(pattern, wasCrit))
+        showHeroVfx(target.id, resolveFailureVfx(pattern, wasCrit, defensePhaseIndex.value))
         if (pattern.customSound) audioManager.playCustomSound(pattern.customSound)
         else audioManager.playAttackSound()
         audioManager.playHitSound()
@@ -777,7 +782,13 @@ const isProcessingDot = ref(false)
     const key = heroVfxKey++
     heroVfxEffects.value = [
       ...heroVfxEffects.value,
-      { heroId, key, asset: effect.asset, durationMs: effect.durationMs }
+      {
+        heroId,
+        key,
+        asset: effect.asset,
+        durationMs: effect.durationMs,
+        mirrored: effect.mirrored
+      }
     ]
     setTimeout(() => {
       heroVfxEffects.value = heroVfxEffects.value.filter(e => e.key !== key)

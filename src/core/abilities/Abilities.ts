@@ -11,6 +11,16 @@ const FIRE_SLASH_DOWN: VfxEffect = { asset: 'fire-slash-down', durationMs: 1200 
 const FIRE_SLASH_UP: VfxEffect = { asset: 'fire-slash-up', durationMs: 1200 }
 const HOLY_SLASH_DOWN: VfxEffect = { asset: 'holy-slash-down', durationMs: 1200 }
 const HOLY_SLASH_UP: VfxEffect = { asset: 'holy-slash-up', durationMs: 1200 }
+const PHYSICAL_SLASH_1: VfxEffect = { asset: 'physical-slash-1', durationMs: 1200 }
+const PHYSICAL_SLASH_2: VfxEffect = { asset: 'physical-slash-2', durationMs: 1200 }
+const PHYSICAL_SLASH_3: VfxEffect = { asset: 'physical-slash-3', durationMs: 1200 }
+/**
+ * Pool de slashes fisicos normales. Se ciclan en orden (1, 2, 3, 1, 2, 3…)
+ * segun el hit del ataque basico, de forma que con 1 hit solo se vea el 1,
+ * con 2 hits el 1 y el 2, y con 3+ hits la trilogia completa antes de
+ * repetir. Lo resuelve `resolveVfxForHit` con `hitIndex % list.length`.
+ */
+const PHYSICAL_SLASH_POOL: VfxEffect[] = [PHYSICAL_SLASH_1, PHYSICAL_SLASH_2, PHYSICAL_SLASH_3]
 const BASIC_ATTACK_HITS_LEVEL_STEP = 4
 const BASIC_ATTACK_HIT_INTERVAL_MS = 200
 const BASIC_ATTACK_DURATION_MS = 800
@@ -113,9 +123,9 @@ const getBasicAttackHitVfx = (ability: IAbility | undefined): VfxEffect[] => {
   const declared = ability?.hitVfx ?? ability?.vfx
   if (Array.isArray(declared)) return declared
   if (declared) return [declared]
-  return ability?.damageType === 'holy'
-    ? [HOLY_SLASH_DOWN, HOLY_SLASH_UP]
-    : [FIRE_SLASH_DOWN, FIRE_SLASH_UP]
+  if (ability?.damageType === 'holy') return [HOLY_SLASH_DOWN, HOLY_SLASH_UP]
+  if (ability?.damageType === 'physical') return PHYSICAL_SLASH_POOL
+  return [FIRE_SLASH_DOWN, FIRE_SLASH_UP]
 }
 
 const getBasicAttackRawDamage = (caster: Hero): number => {
@@ -272,16 +282,16 @@ export const BasicAttack: IAbility = {
 
 export const WarriorBasicAttack: IAbility = {
     ...BasicAttack,
-    damageType: 'fire',
-    description: 'Tajo de fuego que golpea al objetivo con daño de fuego.',
+    damageType: 'physical',
+    description: 'Un tajo certero con el arma que inflige daño físico al objetivo.',
     previewDamage: (hero: Hero) => {
         const body = hero.baseStats.body.value
         const level = hero.level
         const raw = body * 0.7 + level
         const hitCount = getBasicAttackHitCount(level)
         const totalRaw = raw * hitCount
-        const formula = `${F.cue('CUE')} ${F.cue(Math.round(body))} × 0.7 + ${F.lvl('nivel')} ${F.lvl(level)} = ${F.atk(raw.toFixed(1))}${hitCount > 1 ? ` × ${hitCount} = ${F.atk(totalRaw.toFixed(1))}` : ''}  ${dmgSuffix('fire')}`
-        return buildPreview(formula, totalRaw, 'fire')
+        const formula = `${F.cue('CUE')} ${F.cue(Math.round(body))} × 0.7 + ${F.lvl('nivel')} ${F.lvl(level)} = ${F.atk(raw.toFixed(1))}${hitCount > 1 ? ` × ${hitCount} = ${F.atk(totalRaw.toFixed(1))}` : ''}  ${dmgSuffix('physical')}`
+        return buildPreview(formula, totalRaw, 'physical')
     }
 }
 

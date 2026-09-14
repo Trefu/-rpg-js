@@ -20,7 +20,7 @@ const props = defineProps<{
     activeHeroIndex?: number
     attackedHeroIds?: string[]
     hitPopups?: { heroId: string | null, value: number, key: number, isCrit?: boolean, variant?: 'damage' | 'crit' | 'blocked' | 'heal' | 'energy', suffix?: string, offsetX: number, offsetY: number, duration: number }[]
-    heroVfxEffects?: { heroId: string, key: number, asset: VfxAssetId, durationMs: number }[]
+    heroVfxEffects?: { heroId: string, key: number, asset: VfxAssetId, durationMs: number, mirrored?: boolean }[]
 }>()
 
 const emit = defineEmits<{
@@ -235,7 +235,7 @@ function onAllyRowClick(hero: Hero | null) {
                     v-for="effect in displayedHeroVfx"
                     :key="effect.key"
                     :src="VFX_SOURCES[effect.asset]"
-                    class="mobile-vfx-effect"
+                    :class="['mobile-vfx-effect', { 'mobile-vfx-effect--mirrored': effect.mirrored }]"
                     alt=""
                     aria-hidden="true"
                 />
@@ -354,6 +354,12 @@ function onAllyRowClick(hero: Hero | null) {
     height: auto;
     object-fit: contain;
     filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.85)) drop-shadow(0 0 18px rgba(255, 225, 120, 0.75));
+}
+
+/* Espejado horizontal para VFX cuyo origen visual esta en el lado
+   contrario (p.ej. ataques enemigos que "vienen desde la derecha"). */
+.mobile-vfx-effect--mirrored {
+    transform: scaleX(-1);
 }
 
 .mobile-hit-popup {
