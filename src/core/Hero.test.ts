@@ -235,19 +235,34 @@ describe('Hero.heroism', () => {
     expect(w.canUseUltimate()).toBe(false)
   })
 
-  it('takeDamage convierte parte del HP perdido en Heroismo', () => {
+  it('takeDamage convierte parte del HP perdido en Heroismo (divisor 3 por defecto)', () => {
     const w = new Warrior(1)
     w.maxHealth = 100
     w.health = 100
     w.takeDamage(25)
-    // divisor default 5 → floor(25/5) = 5
-    expect(w.heroism).toBe(5)
+    // divisor default 3 → floor(25/3) = 8
+    expect(w.heroism).toBe(8)
     expect(w.health).toBe(75)
   })
 
-  it('getTurnEndHeroismRegen devuelve el passiveHeroismRegen por defecto', () => {
+  it('recibir dano rinde MAS Heroismo que infligirlo (ratio ~6:1)', () => {
+    const tank = new Warrior(1)
+    tank.maxHealth = 1000; tank.health = 1000
+    tank.takeDamage(60)
+    // divisor 3 → 60/3 = 20 de Heroismo
+    expect(tank.heroism).toBe(20)
+
+    const dealer = new Warrior(1)
+    dealer.heroism = 0
+    // Mismo daño infligido (60) usando el divisor de daño hecho (20) → 3
+    const divisorDealt = dealer.heroismPerDamageDealtDivisor
+    expect(Math.floor(60 / divisorDealt)).toBe(3)
+    expect(tank.heroism).toBeGreaterThan(Math.floor(60 / divisorDealt))
+  })
+
+  it('getTurnEndHeroismRegen devuelve el passiveHeroismRegen por defecto (10)', () => {
     const w = new Warrior(1)
-    expect(w.getTurnEndHeroismRegen()).toBe(15)
+    expect(w.getTurnEndHeroismRegen()).toBe(10)
   })
 
   it('createStarter aprende las 4 abilities warrior incluyendo la definitiva', () => {

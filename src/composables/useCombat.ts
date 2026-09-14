@@ -1480,17 +1480,24 @@ const defenseBlinded = ref(false)
     if (cap < min) return
     const count = min + Math.floor(Math.random() * (cap - min + 1))
     const extras = shuffle(candidates).slice(0, count)
-    // Daño base nominal del splash (sin varianza). El redondeo se hace
-    // despues de aplicar varianza para que el ±10% se sienta aunque el
-    // nominal sea pequeño (ej. base 4 → rango real 3-4, no siempre 4).
-    const splashBase = Math.max(0, primaryBaseDamage * spec.damageMultiplier)
-    if (splashBase <= 0) return
+    // Cascada de daño por rebote: el i-esimo objetivo extra recibe
+    // `damageMultiplier - i * bounceDamageReductionPerStep` (default 5%
+    // menos por escalon). Ej: damageMultiplier 0.95 + step 0.05 →
+    // 1er rebote 95%, 2do 90%, 3ro 85%, ...
+    const reductionPerStep = spec.bounceDamageReductionPerStep ?? 0.05
     const splashType = damageType ?? 'holy'
-    for (const enemy of extras) {
+    for (let i = 0; i < extras.length; i++) {
+      const enemy = extras[i]
+      const multiplier = Math.max(0, spec.damageMultiplier - i * reductionPerStep)
+      const splashBase = Math.max(0, primaryBaseDamage * multiplier)
+      if (splashBase <= 0) continue
       const splashDamage = applyDamageVariance(splashBase)
       if (splashDamage <= 0) continue
       enemy.takeDamage(splashDamage, { damageType: splashType })
       showEnemyHit(enemy.id, splashDamage)
+      if (splashType === 'holy') {
+        showEnemyVfx(enemy.id, { asset: 'holy-light', durationMs: 900 })
+      }
       audioManager.playAttackSound()
       audioManager.playHitSound()
       addToLog(`¡La luz salta a ${enemy.name}! ${splashDamage} de daño.`)
@@ -1566,6 +1573,7 @@ const defenseBlinded = ref(false)
       log: addToLog,
       showEnemyHit,
       playEnemyVfx: showEnemyVfx,
+      playHeroVfx: showHeroVfx,
       showPlayerHit,
       showAnnouncement: (text, variant, duration, opts) => showAnnouncement(text, variant ?? 'info', duration, opts),
       audioManager,
@@ -1669,6 +1677,7 @@ const defenseBlinded = ref(false)
         log: addToLog,
         showEnemyHit,
         playEnemyVfx: showEnemyVfx,
+        playHeroVfx: showHeroVfx,
         showPlayerHit,
         showAnnouncement: (text, variant, duration, opts) => showAnnouncement(text, variant ?? 'info', duration, opts),
         audioManager,

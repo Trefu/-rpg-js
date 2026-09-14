@@ -26,6 +26,8 @@ export interface AbilityEffects {
   showEnemyHit: (id: string, value: number, isCrit?: boolean) => void
   /** VFX sobre un enemigo (ej: slash, big-hit). */
   playEnemyVfx: (enemyId: string, effect: VfxEffect) => void
+  /** VFX sobre un heroe aliado (ej: heal, buff). */
+  playHeroVfx?: (heroId: string, effect: VfxEffect) => void
   /** Popup de hit sobre un heroe (daño, crit, bloqueo, heal). */
   showPlayerHit: (
     value: number,
@@ -121,8 +123,16 @@ export type AbilityTargetType = 'all' | 'enemies-only' | 'allies-only'
 export interface RandomAttackSpec {
   minExtraTargets: number
   maxExtraTargets: number
-  /** Multiplicador de daño sobre el daño base del impacto principal (sin crit). */
+  /** Multiplicador base para el PRIMER rebote (objetivo adicional #1). */
   damageMultiplier: number
+  /**
+   * Reduccion adicional aplicada a cada rebote sucesivo.
+   * `multiplier[i] = damageMultiplier - i * bounceDamageReductionPerStep`
+   * (clamp a 0). Default: `0.05` (5% menos por escalon).
+   * Ej. `damageMultiplier: 0.95, bounceDamageReductionPerStep: 0.05` →
+   * 1er rebote 95%, 2do 90%, 3ro 85%, ...
+   */
+  bounceDamageReductionPerStep?: number
 }
 
 /**
@@ -172,6 +182,9 @@ export type VfxAssetId =
   | 'enemy-slash-5'
   | 'impact'
   | 'big-hit'
+  | 'holy-smite'
+  | 'holy-heal'
+  | 'holy-light'
 
 export interface VfxEffect {
   asset: VfxAssetId

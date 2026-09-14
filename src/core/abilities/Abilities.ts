@@ -148,8 +148,9 @@ const runHitStorm = async (
     }
 
     if (typeof caster.restoreHeroism === 'function') {
-      const perHit = Math.max(0, caster.heroismPerAttackHit ?? 4)
-      if (perHit > 0) caster.restoreHeroism(perHit)
+      const divisor = Math.max(1, caster.heroismPerDamageDealtDivisor ?? 20)
+      const gained = Math.floor(finalDamage / divisor)
+      if (gained > 0) caster.restoreHeroism(gained)
     }
 
     await sleep(context.animationDelay)
@@ -378,6 +379,7 @@ export const SecondWind: IAbility = {
     const beforeHeal = caster.health
     caster.heal(healAmount)
     const restored = caster.health - beforeHeal
+    context.playHeroVfx?.(caster.id, { asset: 'holy-heal', durationMs: 1200 })
     if (restored > 0) context.showPlayerHit(restored, { heroId: caster.id, variant: 'heal' })
 
     const buffTemplate = StatusEffects.SECOND_WIND
@@ -418,7 +420,8 @@ export const ClericRadiantStrike: IAbility = {
   randomAttack: {
     minExtraTargets: 1,
     maxExtraTargets: 2,
-    damageMultiplier: 0.6
+    damageMultiplier: 0.95,
+    bounceDamageReductionPerStep: 0.05
   },
   pipeline: damageStep({ stat: 'mind', coef: 2.4, levelCoef: 1.2, statLabel: 'MEN' }),
   previewDamage: previewFromPipeline(
@@ -429,6 +432,7 @@ export const ClericRadiantStrike: IAbility = {
     const caster = context.caster as Hero
     const target = context.target
     if (!target || !target.isAlive) return
+    context.playEnemyVfx?.(target.id, { asset: 'holy-light', durationMs: 1000 })
     const baseDamage = computeRawDamage(context.ability.pipeline as DamageStep, caster)
     const { finalDamage } = dealDamage({ caster, target, ability: context.ability, rawDamage: baseDamage, effects: context })
     context.lastPrimaryBaseDamage = baseDamage
@@ -457,6 +461,7 @@ export const ClericDivineSmite: IAbility = {
     const caster = context.caster as Hero
     const target = context.target
     if (!target || !target.isAlive) return
+    context.playEnemyVfx?.(target.id, { asset: 'holy-smite', durationMs: 1200 })
     const rawDamage = computeRawDamage(context.ability.pipeline as DamageStep, caster)
     dealDamage({ caster, target, ability: context.ability, rawDamage, effects: context })
     await sleep(context.animationDelay)
@@ -488,6 +493,7 @@ export const ClericHeal: IAbility = {
     const before = target.health
     target.heal(healAmount)
     const restored = target.health - before
+    context.playHeroVfx?.(target.id, { asset: 'holy-heal', durationMs: 1200 })
     if (restored > 0) context.showPlayerHit(restored, { heroId: target.id, variant: 'heal' })
 
     const cleansed: string[] = []
@@ -582,6 +588,7 @@ export const ClericUltimate: IAbility = {
       const before = ally.health
       ally.heal(healAmount)
       const restored = ally.health - before
+      context.playHeroVfx?.(ally.id, { asset: 'holy-heal', durationMs: 1200 })
       if (restored > 0) {
         context.showPlayerHit(restored, { heroId: ally.id, variant: 'heal' })
         totalHealed.push(restored)

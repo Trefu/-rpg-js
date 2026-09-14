@@ -106,20 +106,27 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
   public passiveEnergyRegen: number = 0
   /**
    * Heroismo que se acumula automaticamente al final del turno del jugador.
-   * Se suma ademas al cargar por ataques y al recibir daño. Default 15.
+   * Se suma ademas al cargar por ataques y al recibir daño. Default 10.
    */
-  public passiveHeroismRegen: number = 15
+  public passiveHeroismRegen: number = 10
   /**
-   * Heroismo que gana el heroe por cada golpe de ataque basico que
-   * asesta (incluye el ultimate warrior). Default 4 por hit.
+   * Divisor para convertir el daño infringido en Heroismo: el caster
+   * gana `floor(finalDamage / divisor)` por cada golpe que asesta
+   * (incluye el ultimate warrior). Default 20 → un golpe de 30 de
+   * daño aporta ~1-2 de Heroismo. Es deliberadamente BAJO para que
+   * pegar no sea la vía principal de carga — el daño recibido debe
+   * rendir mas (ver `heroismPerDamageTakenDivisor`).
    */
-  public heroismPerAttackHit: number = 4
+  public heroismPerDamageDealtDivisor: number = 20
   /**
-   * Heroismo que gana el heroe por cada punto de HP que pierde al
-   * recibir un golpe. Se redondea hacia abajo y se capea para evitar
-   * bursts absurdos. Default: 1 punto de heroism por cada 5 HP perdidos.
+   * Divisor para convertir el daño recibido en Heroismo: el heroe gana
+   * `floor(damageTaken / divisor)` cada vez que recibe un golpe.
+   * Default 3 → 30 de daño sufrido = 10 de Heroismo. Es DELIBERADAMENTE
+   * MAS GENEROSO que el daño hecho (1 cada 20 vs 1 cada 3) para que
+   * la definitiva se cargue sobre todo en peleas encarnizadas donde
+   * el heroe esta sufriendo.
    */
-  public heroismPerDamageTakenDivisor: number = 5
+  public heroismPerDamageTakenDivisor: number = 3
 
   /**
    * Vida base de la clase al nivel 1, sin contar Constitución.

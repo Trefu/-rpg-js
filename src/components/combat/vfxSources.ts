@@ -14,6 +14,9 @@ import enemySlash4 from '@/assets/VFX/basic slashs/VFX 4/VFX4_GIF.gif'
 import enemySlash5 from '@/assets/VFX/basic slashs/VFX 5 critical/VFX5_GIF.gif'
 import impactGif from '@/assets/VFX/Effect_Impact/Effect_Impact_15frames.gif'
 import bigHitGif from '@/assets/VFX/Effect_BigHit/Effect_BigHit_12frames.gif'
+import holySmiteGif from '@/assets/VFX/holy/smite.gif'
+import holyHealGif from '@/assets/VFX/holy/heal.gif'
+import sacredLightGif from '@/assets/VFX/holy/sacred-light.gif'
 
 /**
  * Mapa unico asset id -> URL del GIF. Compartido por `HeroCard`,
@@ -35,5 +38,8 @@ export const VFX_SOURCES: Record<VfxAssetId, string> = {
   'enemy-slash-4': enemySlash4,
   'enemy-slash-5': enemySlash5,
   'impact': impactGif,
-  'big-hit': bigHitGif
+  'big-hit': bigHitGif,
+  'holy-smite': holySmiteGif,
+  'holy-heal': holyHealGif,
+  'holy-light': sacredLightGif
 }

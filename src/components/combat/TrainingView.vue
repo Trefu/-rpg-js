@@ -16,6 +16,7 @@ import heartPlusIcon from '@/assets/icons/heart-drop.png'
 import cycleIcon from '@/assets/icons/cycle.png'
 import doorIcon from '@/assets/icons/door.png'
 import cancelIcon from '@/assets/icons/logic-gate-not.png'
+import laurelsTrophyIcon from '@/assets/icons/laurels-trophy.png'
 import '@/core/abilities/Abilities'
 import '@/core/abilities/EnemyAttacks'
 import type { IAbility } from '@/core/interfaces/IAbility'
@@ -296,6 +297,22 @@ function applyStatusToPlayer(type: string) {
   p.addStatusEffect(effect)
 }
 
+/**
+ * Sube la barra de Heroismo del heroe activo al maximo para poder
+ * probar la habilidad definitiva sin tener que esperar a que se
+ * cargue jugando. Pensado para la sala de pruebas: ignora
+ * `passiveEnergyRegen` y todas las reglas de carga — setea directo.
+ */
+function fillActiveHeroHeroism() {
+  const p = gameStore.activeHero
+  if (!p) return
+  if (typeof p.restoreHeroism === 'function') {
+    p.restoreHeroism(p.maxHeroism)
+  } else {
+    p.heroism = p.maxHeroism
+  }
+}
+
 function learnAbilityFromList(ability: IAbility) {
   const p = gameStore.activeHero
   if (!p) return
@@ -349,9 +366,10 @@ function onTrainingEnded() {
         <section class="panel-section">
           <h3><img :src="personIcon" alt="" class="inline-icon" /> Heroe Activo</h3>
           <p class="section-hint">{{ activeHeroClassLabel || 'Sin heroe' }} — Nv {{ gameStore.activeHero?.level ?? '—' }}</p>
-          <div class="button-grid two-col">
+          <div class="button-grid three-col">
             <button class="action-btn" @click="gameStore.activeHero && (gameStore.activeHero.health = gameStore.activeHero.maxHealth)"><img :src="heartIcon" alt="" class="btn-icon" /> Curar</button>
             <button class="action-btn" @click="gameStore.activeHero && (gameStore.activeHero.statusEffects = [])"><img :src="broomIcon" alt="" class="btn-icon" /> Limpiar efectos</button>
+            <button class="action-btn heroism-btn" :disabled="!gameStore.activeHero" @click="fillActiveHeroHeroism"><img :src="laurelsTrophyIcon" alt="" class="btn-icon" /> Cargar Heroismo</button>
           </div>
         </section>
 
@@ -991,6 +1009,17 @@ function onTrainingEnded() {
 .action-btn.buff:hover:not(:disabled) {
   background: linear-gradient(180deg, #3a6d9e 0%, #2e5a82 100%);
   box-shadow: 0 3px 8px rgba(100, 181, 246, 0.4);
+}
+
+.action-btn.heroism-btn {
+  background: linear-gradient(180deg, #8a6a1a 0%, #5e4810 100%);
+  border-color: #ffd54f;
+  color: #fff7d6;
+}
+
+.action-btn.heroism-btn:hover:not(:disabled) {
+  background: linear-gradient(180deg, #b88a26 0%, #7e601a 100%);
+  box-shadow: 0 3px 8px rgba(255, 215, 0, 0.45);
 }
 
 .action-btn.debuff {
