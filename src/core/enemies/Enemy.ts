@@ -248,8 +248,12 @@ export abstract class Enemy extends Character implements ICombatant {
     // enemigos en el futuro), NUNCA por turnos. Sin este guard, un buff
     // charge-based aplicado a un enemigo expiraria al final de su primer
     // turno sin haberse consumido, lo que rompe la economia del efecto.
+    // Tambien se skipean los efectos con `cleanAtTurnStart: false` para
+    // mantener el contrato equivalente al del Hero (mismo trato de
+    // debuffs de defensa si algun dia se aplican sobre enemigos).
     this.statusEffects.forEach(e => {
       if (typeof e.charges === 'number') return
+      if (e.cleanAtTurnStart === false) return
       e.turns--
     })
     this.removeExpiredStatusEffects()

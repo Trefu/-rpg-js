@@ -189,6 +189,15 @@ export interface IStatusEffect {
    * el turno (ej. `rooted`: el heroe puede atacar pero no puede bloquear).
    */
   defenseOverlay?: string
+  /**
+   * Si `false`, este efecto NO se decrementa/remueve al inicio del turno
+   * de su portador via `reduceStatusEffects`. Pensado para debuffs que
+   * modulan la defensa (ROOTED, BLINDED, CLOUDED) y deben sobrevivir
+   * el turno del heroe para poder afectar el proximo desafio de defensa.
+   *
+   * Default: `true` (comportamiento actual, DoTs y demas).
+   */
+  cleanAtTurnStart?: boolean
 }
 
 /**

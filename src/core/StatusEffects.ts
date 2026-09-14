@@ -287,6 +287,7 @@ export class StatusEffects {
     icon: cloudedIcon,
     isBuff: false,
     turnLabel: '¡Está nublado!',
+    cleanAtTurnStart: false,
     defenseContribution: (_effect, side) => (
       side === 'player'
         ? { waveSpeedMultiplier: 0.15, successZoneSizeBonus: -0.03 }
@@ -358,6 +359,7 @@ export class StatusEffects {
     icon: blindedIcon,
     isBuff: false,
     turnLabel: '¡No ve bien!',
+    cleanAtTurnStart: false,
     announceOnTurn: true
   }
 
@@ -421,6 +423,7 @@ export class StatusEffects {
     isBuff: false,
     turnLabel: '¡Raíces le impiden bloquear!',
     defenseOverlay: enrootedOverlay,
+    cleanAtTurnStart: false,
     announceOnTurn: true
   }
 

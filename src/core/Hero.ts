@@ -391,8 +391,13 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
   public reduceStatusEffects() {
     // Los efectos basados en cargas (charges) se gobiernan por su propio
     // mecanismo de consumo (processPlayerOnBlockHooks), nunca por turnos.
+    // Los efectos con `cleanAtTurnStart: false` (ROOTED, BLINDED, CLOUDED)
+    // tampoco se decrementan aca: deben sobrevivir el turno del heroe para
+    // poder afectar el proximo desafio de defensa. Se decrementan/consumen
+    // en `useCombat.startEnemyTurn` al cierre del turno enemigo.
     this.statusEffects.forEach(e => {
       if (typeof e.charges === 'number') return
+      if (e.cleanAtTurnStart === false) return
       e.turns--
     })
     this.removeExpiredStatusEffects()
