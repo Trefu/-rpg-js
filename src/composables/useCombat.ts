@@ -287,6 +287,18 @@ const defenseBlinded = ref(false)
   let pendingDefenseEnemy: IEnemy | null = null
   let pendingDefenseTarget: Hero | null = null
   let pendingDefenseCrit: CritResult = { multiplier: 1, isCrit: false, isOvercrit: false }
+  let rootConsumableOnDefenseClose = false
+  /**
+   * Tipos de defense-debuff que fueron aplicados durante el turno enemigo
+   * actual via `applyFailureEffect`. El decremento al cierre de este turno
+   * (`decrementHeroesDefenseDebuffs`) los skipea: queremos que sobrevivan
+   * el turno en que se aplicaron y puedan afectar el SIGUIENTE desafio
+   * de defensa. Se limpia al inicio de cada `startEnemyTurn`.
+   *
+   * Aplica a cualquier effect con `cleanAtTurnStart: false` (ROOTED,
+   * BLINDED, CLOUDED) — el sistema es generico, no discrimina por tipo.
+   */
+  const defenseDebuffsAppliedThisTurn = new Set<string>()
   let popupKey = 0
   let vfxEffectKey = 0
   let heroVfxKey = 0
@@ -314,6 +326,14 @@ const defenseBlinded = ref(false)
     preSelectedPattern?: DefensePatternConfig,
     opts: { crit?: CritResult } = {}
   ): Promise<DefenseChallengeResult | null> {
+    // Captura si ROOTED ya estaba aplicado ANTES de este desafio. ROOTED es
+    // "consumido al defender una vez" (ver StatusEffects.ROOTED), pero si
+    // fue aplicado por una fase anterior del MISMO patron (ej. ENTANGLE
+    // tiene 2 fases y la fase 1 falla aplicando ROOTED), NO debe consumirse
+    // aqui: debe persistir hasta el SIGUIENTE desafio de defensa.
+    rootConsumableOnDefenseClose =
+      typeof target.hasStatusEffect === 'function' &&
+      target.hasStatusEffect(StatusEffects.ROOTED.type)
     return new Promise((resolve) => {
       // `preSelectedPattern` siempre viene ya filtrado (startEnemyTurn branch
       // por tipo antes de llegar acá). Si por algún motivo llega sin
@@ -400,6 +420,13 @@ const defenseBlinded = ref(false)
             const critLabel = wasCrit ? ' (crítico)' : ''
             addToLog(`¡Sufres el efecto: ${template.name}${stackLabel}${critLabel}!`)
             showAnnouncement(`¡${template.name}${stackLabel}${critLabel}!`, 'status', 1800)
+            // Marca el efecto como "aplicado este turno" si es un defense
+            // debuff (cleanAtTurnStart: false). Asi el decremento al cierre
+            // del turno enemigo actual NO lo borra: queremos que sobreviva
+            // hasta el siguiente desafio de defensa.
+            if (template.cleanAtTurnStart === false) {
+              defenseDebuffsAppliedThisTurn.add(fx.statusType)
+            }
           }
         }
       }
@@ -418,10 +445,18 @@ const defenseBlinded = ref(false)
     } else {
       closeDefenseChallenge()
       // ROOTED se consume tras el primer desafio de defensa donde el heroe
-      // participo (matches comment en StatusEffects.ROOTED:
-      // "consumido al defender una vez"). Asi no se mantiene activo un
-      // turno enemigo extra y la economia del CC queda clara.
-      if (target && target.isAlive && target.hasStatusEffect(StatusEffects.ROOTED.type)) {
+      // participo, PERO solo si ya estaba aplicado ANTES de empezar este
+      // desafio. Si fue aplicado por una fase anterior del mismo patron
+      // (ej. ENTANGLE fase 1 falla -> ROOTED -> fase 2), debe persistir
+      // para el SIGUIENTE desafio. Ver `rootConsumableOnDefenseClose`
+      // seteado en `startDefenseChallenge`.
+      const consumeRoot = rootConsumableOnDefenseClose
+      rootConsumableOnDefenseClose = false
+      if (
+        consumeRoot &&
+        target && target.isAlive &&
+        target.hasStatusEffect(StatusEffects.ROOTED.type)
+      ) {
         target.removeStatusEffect(StatusEffects.ROOTED.type)
       }
       // Mismo motivo: dejamos el badge "Defendiendo" hasta el siguiente
@@ -486,6 +521,7 @@ const defenseBlinded = ref(false)
     pendingDefenseEnemy = null
     pendingDefenseTarget = null
     pendingDefenseCrit = { multiplier: 1, isCrit: false, isOvercrit: false }
+    rootConsumableOnDefenseClose = false
     isDefenseActive.value = false
     defensePattern.value = null
     defenseZones.value = []
@@ -581,6 +617,33 @@ const defenseBlinded = ref(false)
   }
 
   /**
+   * Devuelve `true` si la ability es un ataque basico (siempre casteable,
+   * incluso bajo Silenciado). Cubre los 3 tipos de basic attack:
+   * generico + variantes por clase.
+   */
+  function isBasicAttack(ability: IAbility): boolean {
+    return ability.type === 'attack'
+      || ability.type === 'warriorAttack'
+      || ability.type === 'clericAttack'
+  }
+
+  /**
+   * Razon por la que una ability esta pre-bloqueada en la UI, o `null`
+   * si puede castearse. Consumida por el action bar / modal de abilities
+   * para deshabilitar slots ANTES de que el jugador intente seleccionarlos
+   * (mismo patron visual que cooldown/sin-energia).
+   */
+  function getAbilityBlockReason(ability: IAbility): 'cooldown' | 'no-energy' | 'silenced' | null {
+    if (abilityCooldowns.value[ability.type] > 0) return 'cooldown'
+    if (!canAffordAbility(ability)) return 'no-energy'
+    const caster = player.value as Hero | null
+    if (caster && caster.hasStatusEffect(StatusEffects.SILENCED.type) && !isBasicAttack(ability)) {
+      return 'silenced'
+    }
+    return null
+  }
+
+  /**
    * Gate unificado de "se puede castear esta ability ahora?".
    *
    * Reune los tres checks que bloquean el casteo en cualquier entry point
@@ -592,9 +655,9 @@ const defenseBlinded = ref(false)
    *    `false` sin feedback (el modal ya muestra el cooldown en cada slot).
    * 2. **Energia**: si `energyCost > caster.energy`, emite announcement + log
    *    y retorna `false`. Mismo formato que el resto de rechazos visibles.
-   * 3. **Silenciado**: si el caster tiene `SILENCED` y la ability no declara
-   *    `silencable: false`, emite announcement + log explicando que no se
-   *    puede castear (mismo formato que el rechazo de energia).
+   * 3. **Silenciado**: si el caster tiene `SILENCED` y la ability NO es un
+   *    ataque basico, emite announcement + log explicando que no se puede
+   *    castear (mismo formato que el rechazo de energia).
    *
    * Devuelve `true` si la ability pasa los tres gates. NO cobra energia — eso
    * lo hace `triggerExecution` justo despues de pasar el gate.
@@ -606,8 +669,7 @@ const defenseBlinded = ref(false)
     const caster = player.value as Hero | null
     if (!caster) return false
 
-    const silencable = ability.silencable !== false
-    if (silencable && caster.hasStatusEffect(StatusEffects.SILENCED.type)) {
+    if (caster.hasStatusEffect(StatusEffects.SILENCED.type) && !isBasicAttack(ability)) {
       showAnnouncement(`${caster.name} está Silenciado`, 'status', 1500)
       addToLog(`${caster.name} está Silenciado y no puede lanzar ${ability.name}.`)
       return false
@@ -1120,6 +1182,11 @@ const defenseBlinded = ref(false)
   }
 
   async function startEnemyTurn(actor: TurnActor) {
+    // Reset del registro de defense-debuffs aplicados este turno. El
+    // decremento al cierre skipea cualquier effect marcado aqui, de modo
+    // que sobrevive el turno en el que se aplico y puede afectar el
+    // SIGUIENTE desafio de defensa.
+    defenseDebuffsAppliedThisTurn.clear()
     const enemy = enemies.value.find(e => e.id === actor.id)
     if (!enemy || !enemy.isAlive) {
       turnState.value = advanceAfterTurn(turnState.value, turnActors.value, actor.id)
@@ -1286,17 +1353,27 @@ const defenseBlinded = ref(false)
 
   /**
    * Decrementa `turns--` en los efectos con `cleanAtTurnStart: false`
-   * (ROOTED, BLINDED, CLOUDED) sobre cada heroe y purga los que llegan a 0.
+   * (BLINDED, CLOUDED, ROOTED) sobre cada heroe y purga los que llegan a 0.
    * Se invoca al cierre de cada turno enemigo para que estos debuffs
    * sobrevivan el turno del heroe (donde son irrelevantes) y puedan
-   * afectar el siguiente desafio de defensa. ROOTED tambien se consume
-   * explicitamente al cerrar el desafio (`startDefenseChallenge`).
+   * afectar el siguiente desafio de defensa.
+   *
+   * Cualquier effect marcado en `defenseDebuffsAppliedThisTurn` se skipea:
+   * queremos que sobreviva el turno en el que se aplico y este disponible
+   * para el SIGUIENTE desafio. El decremento siguiente (turno enemigo + 1)
+   * lo consume, salvo que sea removido explicitamente por
+   * `handleDefensePhaseComplete` al cerrar un desafio (caso ROOTED).
+   *
+   * El sistema es generico: no discrimina por tipo de effect, solo por la
+   * marca "aplicado este turno". Asi ROOTED/BLINDED/CLOUDED se tratan de
+   * forma homogenea.
    */
   function decrementHeroesDefenseDebuffs() {
     heroes.value.forEach(h => {
       h.statusEffects.forEach(e => {
         if (typeof e.charges === 'number') return
         if (e.cleanAtTurnStart !== false) return
+        if (defenseDebuffsAppliedThisTurn.has(e.type)) return
         e.turns--
       })
       h.removeExpiredStatusEffects()
@@ -1934,6 +2011,9 @@ const defenseBlinded = ref(false)
     selectItem,
     selectItemAllyTarget,
     itemCanTargetAllies,
-    itemRequiresTarget
+    itemRequiresTarget,
+
+    isBasicAttack,
+    getAbilityBlockReason
   }
 }

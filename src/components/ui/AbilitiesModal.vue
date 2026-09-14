@@ -9,7 +9,7 @@ import hourglassIcon from '@/assets/icons/hourglass.png'
 import boltIcon from '@/assets/icons/bolt-shield.png'
 import skillsIcon from '@/assets/icons/skills.png'
 import { getAbilityIcon } from '@/core/abilities/getAbilityIcon'
-import { getBasicAttackHitCount, getAbilityHitCount } from '@/core/abilities/Abilities'
+import { getBasicAttackHitCount, getAbilityHitCount, isBasicAttack } from '@/core/abilities/Abilities'
 
 interface Props {
   show: boolean
@@ -39,8 +39,13 @@ const isAffordable = (ability: IAbility) => {
   return !!caster && caster.energy >= cost
 }
 
+const isCasterSilenced = computed(() => !!props.caster?.hasStatusEffect?.('silenced'))
+
 const isBlocked = (ability: IAbility) => {
-  return props.abilityCooldowns[ability.type] > 0 || !isAffordable(ability)
+  if (props.abilityCooldowns[ability.type] > 0) return true
+  if (!isAffordable(ability)) return true
+  if (isCasterSilenced.value && !isBasicAttack(ability)) return true
+  return false
 }
 
 const selectAbility = (ability: IAbility, index: number) => {
@@ -116,7 +121,8 @@ function damageTypeClass(id?: string): string {
             class="ability-card"
             :class="{
               'on-cooldown': abilityCooldowns[ability.type] > 0,
-              'no-energy': abilityCooldowns[ability.type] <= 0 && !isAffordable(ability)
+              'no-energy': abilityCooldowns[ability.type] <= 0 && !isAffordable(ability) && !(isCasterSilenced && !isBasicAttack(ability)),
+              'silenced': isCasterSilenced && !isBasicAttack(ability)
             }"
             @click="selectAbility(ability, idx)"
           >
@@ -172,6 +178,7 @@ function damageTypeClass(id?: string): string {
                 </span>
                 <span class="use-hint">
                   <template v-if="abilityCooldowns[ability.type] > 0">Enfriando...</template>
+                  <template v-else-if="isCasterSilenced && !isBasicAttack(ability)">Silenciado</template>
                   <template v-else-if="!isAffordable(ability)">Sin energía</template>
                   <template v-else>Click para usar</template>
                 </span>
@@ -307,16 +314,22 @@ function damageTypeClass(id?: string): string {
   text-align: left;
 }
 
-.ability-card:hover:not(.on-cooldown):not(.no-energy) {
+.ability-card:hover:not(.on-cooldown):not(.no-energy):not(.silenced) {
   transform: translateX(4px);
   background: linear-gradient(135deg, #323559 0%, #393e5f 100%);
   box-shadow: 0 4px 20px rgba(0,0,0,0.3);
 }
 
 .ability-card.on-cooldown,
-.ability-card.no-energy {
+.ability-card.no-energy,
+.ability-card.silenced {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.ability-card.silenced {
+  opacity: 0.35;
+  filter: grayscale(0.7);
 }
 
 .ability-icon-wrapper {
@@ -332,7 +345,8 @@ function damageTypeClass(id?: string): string {
 }
 
 .on-cooldown .ability-icon,
-.no-energy .ability-icon {
+.no-energy .ability-icon,
+.silenced .ability-icon {
   filter: grayscale(100%) brightness(0.5);
 }
 
@@ -444,7 +458,8 @@ function damageTypeClass(id?: string): string {
 }
 
 .on-cooldown .use-hint,
-.no-energy .use-hint {
+.no-energy .use-hint,
+.silenced .use-hint {
   color: #ff6b6b;
 }
 

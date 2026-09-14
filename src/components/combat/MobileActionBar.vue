@@ -4,7 +4,7 @@ import type { IAbility } from '@/core/interfaces/IAbility'
 import type { AbilityDamagePreview } from '@/core/interfaces/IAbility'
 import type { Hero } from '@/core/Hero'
 import { getAbilityIcon } from '@/core/abilities/getAbilityIcon'
-import { getBasicAttackHitCount, getAbilityHitCount } from '@/core/abilities/Abilities'
+import { getBasicAttackHitCount, getAbilityHitCount, isBasicAttack } from '@/core/abilities/Abilities'
 import backpackIcon from '@/assets/icons/backpack.png'
 import boltIcon from '@/assets/icons/bolt-shield.png'
 import hourglassIcon from '@/assets/icons/hourglass.png'
@@ -53,6 +53,7 @@ function isSlotDisabled(slot: Slot): boolean {
   if (props.isPlayerInputLocked) return true
   if (slot.kind === 'empty') return true
   if (slot.kind === 'object' && props.usedItemThisTurn) return true
+  if (slot.kind === 'ability' && isCasterSilenced.value && !isBasicAttack(slot.ability)) return true
   return false
 }
 
@@ -97,8 +98,11 @@ function abilityState(ability: IAbility, index: number) {
   const cd = cooldownOf(ability.type)
   if (cd > 0) return 'cooldown'
   if (!isAffordable(ability)) return 'no-energy'
+  if (isCasterSilenced.value && !isBasicAttack(ability)) return 'silenced'
   return 'ready'
 }
+
+const isCasterSilenced = computed(() => !!props.caster?.hasStatusEffect?.('silenced'))
 
 const infoAbility = ref<IAbility | null>(null)
 const infoAbilityIndex = ref(-1)
@@ -153,6 +157,7 @@ function canUseInfo() {
   if (props.isPlayerInputLocked) return false
   if (isOnCooldown(a)) return false
   if (!isAffordable(a)) return false
+  if (isCasterSilenced.value && !isBasicAttack(a)) return false
   return true
 }
 
@@ -163,6 +168,7 @@ function slotClasses(slot: Slot) {
     'mab-object-used': slot.kind === 'object' && props.usedItemThisTurn,
     'mab-cooldown': slot.kind === 'ability' && abilityState(slot.ability, slot.index) === 'cooldown',
     'mab-no-energy': slot.kind === 'ability' && abilityState(slot.ability, slot.index) === 'no-energy',
+    'mab-silenced': slot.kind === 'ability' && abilityState(slot.ability, slot.index) === 'silenced',
     'mab-empty': slot.kind === 'empty',
     'mab-disabled': isSlotDisabled(slot),
     'mab-info-open': slot.kind === 'ability' && infoAbility.value?.type === slot.ability.type,
@@ -280,7 +286,7 @@ function shortLabel(name: string, max = 5): string {
               :disabled="!canUseInfo()"
               @click="useFromInfo"
             >
-              {{ isOnCooldown(infoAbility) ? 'Enfriando' : (isAffordable(infoAbility) ? 'Usar' : 'Sin energía') }}
+              {{ isOnCooldown(infoAbility) ? 'Enfriando' : (isCasterSilenced && !isBasicAttack(infoAbility) ? 'Silenciado' : (isAffordable(infoAbility) ? 'Usar' : 'Sin energía')) }}
             </button>
           </footer>
         </div>
@@ -371,6 +377,12 @@ function shortLabel(name: string, max = 5): string {
 
 .mab-no-energy {
   opacity: 0.45;
+}
+
+.mab-silenced {
+  opacity: 0.4;
+  filter: grayscale(0.65);
+  cursor: not-allowed;
 }
 
 .mab-empty {

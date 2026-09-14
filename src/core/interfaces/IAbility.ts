@@ -330,10 +330,14 @@ export interface IAbility {
   /**
    * Si es `true` (default), la ability se cancela cuando el caster tiene
    * el debuff `silenced`. Poner `false` para abilities que no son
-   * "magicas" en sentido estricto (ej. un grito de guerra, un hechizo
-   * fisico, un buff de escudo natural) y deberian poder castearse aun
-   * estando silenciado. El ataque basico SIEMPRE puede usarse
-   * (no pasa por `executeAbility`).
+   * "magicas" en sentido estricto y deberian poder castearse aun estando
+   * silenciado.
+   *
+   * NOTA: bajo el modelo actual, **Silenciado bloquea TODAS las abilities
+   * excepto el ataque basico**, independientemente de este flag. La
+   * exemption del basic attack vive en `useCombat.canCastAbility` y se
+   * detecta via `isBasicAttack(ability)`. Esta flag queda reservada para
+   * un futuro modelo mas permisivo.
    *
    * Solo aplica al jugador por ahora (la IA enemiga no tiene sistema de
    * habilidades activas — solo patrones de defensa).

@@ -239,7 +239,7 @@ export const ENTANGLE: DefensePatternConfig = {
     onFailureEffect: {
         statusType: 'rooted',
         stacks: 1,
-        maxDuration: 1
+        maxDuration: 2
     }
 }
 registerEnemyAttack(ENTANGLE)

@@ -54,6 +54,17 @@ export function getAbilityHitCount(ability: IAbility, level: number): number | n
   return null
 }
 
+/**
+ * `true` si la ability es un ataque basico (caster-type agnostic).
+ * Cubierto por el flag de Silenciado: el basic attack siempre se puede
+ * usar aun bajo el debuff.
+ */
+export function isBasicAttack(ability: IAbility): boolean {
+  return ability.type === 'attack'
+    || ability.type === 'warriorAttack'
+    || ability.type === 'clericAttack'
+}
+
 const SECOND_WIND_HEAL_PCT = 0.20
 const SECOND_WIND_ENERGY_RESTORE_PCT = 0.10
 const SECOND_WIND_CHARGES = 3
