@@ -88,9 +88,25 @@ export interface IEnemy extends ICombatant {
   removeStatusEffect(effectType: string): void
   reduceStatusEffects?: () => void
   sprite?: string
-  attackPatterns: DefensePatternConfig[]
-  selectAttackPattern(player: ICharacter | null): DefensePatternConfig
+  /**
+   * Acciones disponibles para el enemigo en su turno. Cada entrada puede
+   * ser:
+   * - `DefensePatternConfig`: patrón visual de defensa que el jugador
+   *   tiene que bloquear.
+   * - `IAbility`: lógica pura (AOE sin defense, self-buff, regen, etc.)
+   *   que se ejecuta directamente.
+   *
+   * `selectAttackPattern` retorna uno de estos al azar; `useCombat` decide
+   * en runtime si dispara el defense challenge o `ability.execute(...)`.
+   */
+  attackPatterns: EnemyAction[]
+  selectAttackPattern(player: ICharacter | null): EnemyAction
   selectTarget(heroes: Hero[]): Hero | null
   rollCrit?(): CritResult
   calculatePhaseDamage(pattern: DefensePatternConfig, multiplier?: number): number
 }
+
+/**
+ * Union de acciones que un enemigo puede elegir en su turno. Ver `IEnemy.attackPatterns`.
+ */
+export type EnemyAction = DefensePatternConfig | IAbility

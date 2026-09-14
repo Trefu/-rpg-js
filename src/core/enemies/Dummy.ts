@@ -1,5 +1,5 @@
 import { Enemy } from './Enemy'
-import { ICharacter, IEnemy } from '../interfaces/ICharacter'
+import { ICharacter, IEnemy, type EnemyAction } from '../interfaces/ICharacter'
 import dummySprite from '@/assets/sprites/enemies/dummy.png'
 import type { DefensePatternConfig } from '../defense/types'
 import {
@@ -54,7 +54,7 @@ export class Dummy extends Enemy implements IEnemy {
     })
   }
 
-  public override selectAttackPattern(_player: ICharacter | null): DefensePatternConfig {
+  public override selectAttackPattern(_player: ICharacter | null): EnemyAction {
     if (this.forcedPattern) {
       return this.forcedPattern
     }

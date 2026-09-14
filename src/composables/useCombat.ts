@@ -2,7 +2,7 @@ import { ref, computed, nextTick } from 'vue'
 import { useGameStore } from '@/stores/game'
 import type { Hero } from '@/core/Hero'
 import { AudioManager } from '@/core/AudioManager'
-import type { IEnemy } from '@/core/interfaces/ICharacter'
+import type { IEnemy, ICharacter } from '@/core/interfaces/ICharacter'
 import type { IAbility, AbilityContext, VfxAssetId, VfxEffect } from '@/core/interfaces/IAbility'
 import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
 import type { IItem, ItemTargetType } from '@/core/items/types'
@@ -11,6 +11,7 @@ import { consumeItem, getInventoryEntries, type InventoryEntry } from '@/core/it
 import { StatusEffects, applyFailureEffect } from '@/core/StatusEffects'
 import { applyDamageVariance } from '@/core/abilities/Abilities'
 import type { DamageTypeId } from '@/core/combat/damageTypes'
+import type { DamageType } from '@/core/interfaces/IAbility'
 import { DEFAULT_IMPACT_VFX, resolveFailureVfx } from '@/core/defense/failureVfx'
 import type {
   DefenseChallengeResult,
@@ -311,7 +312,13 @@ const isProcessingDot = ref(false)
     opts: { crit?: CritResult } = {}
   ): Promise<DefenseChallengeResult | null> {
     return new Promise((resolve) => {
-      const selectedPattern = preSelectedPattern ?? enemy.selectAttackPattern(target)
+      // `preSelectedPattern` siempre viene ya filtrado (startEnemyTurn branch
+      // por tipo antes de llegar acá). Si por algún motivo llega sin
+      // preSelectedPattern y el enemigo devolvió una IAbility, caemos a un
+      // patron vacio para no romper.
+      const fallback = enemy.selectAttackPattern(target)
+      const selectedPattern: DefensePatternConfig = preSelectedPattern
+        ?? ('damageMultiplier' in fallback ? fallback : ({} as DefensePatternConfig))
       // Pasamos el damageType para que la defensa use mind ante daño mágico
       // (fire/frost/poison/shadow/arcane/holy/radiant) o body ante daño físico.
       const modifiers = getDefenseModifiers(target, enemy, selectedPattern.damageType)
@@ -1082,10 +1089,17 @@ const isProcessingDot = ref(false)
 
     await showEnemyStatusSequence(enemy)
 
-    await startDefenseChallenge(enemy, target, selectedPattern, { crit })
-
-    if (selectedPattern.multiHeroAttack) {
-      await applyEnemyMultiHeroSplash(selectedPattern.multiHeroAttack, target, enemy)
+    // Branch: si la accion seleccionada es una IAbility (ej: DragonRoar),
+    // se ejecuta directamente sin defense challenge. Si es un
+    // DefensePatternConfig, va por el flujo tradicional de defensa.
+    if ('execute' in selectedPattern && typeof selectedPattern.execute === 'function') {
+      await runEnemyAbility(enemy, target, selectedPattern, crit)
+    } else {
+      await startDefenseChallenge(enemy, target, selectedPattern as DefensePatternConfig, { crit })
+      const patternAsDefense = selectedPattern as DefensePatternConfig
+      if (patternAsDefense.multiHeroAttack) {
+        await applyEnemyMultiHeroSplash(patternAsDefense.multiHeroAttack, target, enemy)
+      }
     }
 
     attackedHeroIds.value = []
@@ -1438,6 +1452,66 @@ const isProcessingDot = ref(false)
   }
 
   /**
+   * Ejecuta una ability enemiga (`IAbility`) sin defense challenge. Es
+   * el equivalente de `executeAbility` para el lado enemigo: arma un
+   * `AbilityContext` con caster=enemy/target=hero y llama `ability.execute(...)`.
+   *
+   * Usado por `startEnemyTurn` cuando `selectAttackPattern` retorna una
+   * `IAbility` en vez de un `DefensePatternConfig` (ej: DragonRoar).
+   * Mantiene la misma semántica de side-effects (log, hit popups, SFX,
+   * AOE/splash via `lastPrimaryFinalDamage`) que las abilities de heroes.
+   */
+  async function runEnemyAbility(
+    enemy: IEnemy,
+    target: ICharacter,
+    ability: IAbility,
+    crit: CritResult
+  ): Promise<void> {
+    const animationDelay = ability.animationDurationMs ?? 1500
+    const ctx: AbilityContext = {
+      caster: enemy,
+      target,
+      ability,
+      log: addToLog,
+      showEnemyHit,
+      playEnemyVfx: showEnemyVfx,
+      showPlayerHit,
+      showAnnouncement: (text, variant, duration, opts) => showAnnouncement(text, variant ?? 'info', duration, opts),
+      audioManager,
+      animationDelay,
+      energySpent: 0
+    }
+    void crit
+    await ability.execute(ctx)
+    if (ability.aoe && typeof ctx.lastPrimaryFinalDamage === 'number') {
+      await applyEnemyAoe(ctx.lastPrimaryFinalDamage, animationDelay, ability.damageType)
+    }
+  }
+
+  /**
+   * Aplica el daño final de una ability AOE enemiga a todos los heroes
+   * vivos. Equivalente a `applyHeroAoe` pero del lado enemy.
+   */
+  async function applyEnemyAoe(
+    finalDamage: number,
+    animationDelay: number,
+    damageType?: DamageType
+  ): Promise<void> {
+    const aliveHeroes = heroes.value.filter(h => h.isAlive)
+    if (aliveHeroes.length === 0 || finalDamage <= 0) return
+    for (const hero of aliveHeroes) {
+      const dmg = Math.max(1, finalDamage)
+      hero.takeDamage(dmg, { damageType })
+      showPlayerHit(dmg, { heroId: hero.id })
+      showHeroVfx(hero.id, DEFAULT_IMPACT_VFX)
+      audioManager.playAttackSound()
+      audioManager.playHitSound()
+      addToLog(`¡La onda alcanza a ${hero.name}! ${dmg} de daño.`)
+      await delay(animationDelay)
+    }
+  }
+
+  /**
    * AOE de una ability de heroe: golpea a TODOS los enemigos vivos con el
    * mismo daño final (con crit ya aplicado) en un unico tick simultaneo.
    * La ability NO debe aplicar dano ni popup a ningun target en su
@@ -1512,7 +1586,7 @@ const isProcessingDot = ref(false)
         caster: playerChar,
         target,
         ability,
-        addToLog,
+        log: addToLog,
         showEnemyHit,
         playEnemyVfx: showEnemyVfx,
         showPlayerHit,

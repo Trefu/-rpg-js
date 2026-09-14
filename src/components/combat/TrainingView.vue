@@ -16,35 +16,10 @@ import heartPlusIcon from '@/assets/icons/heart-drop.png'
 import cycleIcon from '@/assets/icons/cycle.png'
 import doorIcon from '@/assets/icons/door.png'
 import cancelIcon from '@/assets/icons/logic-gate-not.png'
-import {
-  BasicAttack,
-  StunStrike,
-  StealthStrike,
-  Fireball,
-  WarriorInjuringStrike,
-  WarriorDevastatingStrike,
-  ClericRadiantStrike,
-  ClericDivineSmite,
-  ClericHeal,
-  SecondWind
-} from '@/core/abilities/Abilities'
+import '@/core/abilities/Abilities'
+import '@/core/abilities/EnemyAttacks'
 import type { IAbility } from '@/core/interfaces/IAbility'
-import {
-  SLASH,
-  DEEP_SLASH,
-  POISON_ARROW,
-  EMBER,
-  FEROCIOUS_BITE,
-  QUICK_CLAWS,
-  MULTIPLE_AXE_STRIKES,
-  CRUSHING_BLOW,
-  GENTLE_STRIKE,
-  QUICK_STRIKE,
-  DOUBLE_COMBO,
-  TRIPLE_COMBO,
-  FIRE_BREATH,
-  GLACIAL_BREATH
-} from '@/core/abilities/EnemyAttacks'
+import { getAllAbilities, getAbilitiesByTag, getAllEnemyAttacks } from '@/core/abilities/registry'
 import CombatView from './CombatView.vue'
 import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
 import type { DefensePatternConfig } from '@/core/defense/types'
@@ -52,22 +27,28 @@ import { RECRUITABLE_HEROES } from '@/core/heroes/recruitment'
 import { MAX_HEROES } from '@/stores/game'
 import type { Hero } from '@/core/Hero'
 
-const ALL_DUMMY_PATTERNS: DefensePatternConfig[] = [
-  SLASH,
-  DEEP_SLASH,
-  POISON_ARROW,
-  EMBER,
-  FEROCIOUS_BITE,
-  QUICK_CLAWS,
-  MULTIPLE_AXE_STRIKES,
-  CRUSHING_BLOW,
-  GENTLE_STRIKE,
-  QUICK_STRIKE,
-  DOUBLE_COMBO,
-  TRIPLE_COMBO,
-  FIRE_BREATH,
-  GLACIAL_BREATH
-]
+/**
+ * Side-effect imports anteriores (`Abilities.ts`, `EnemyAttacks.ts`) garantizan
+ * que cada `registerAbility`/`registerEnemyAttack` se ejecuta al cargar el
+ * módulo. A partir de acá el registry es la única fuente de verdad: añadir
+ * una ability nueva en `Abilities.ts` la hace aparecer automáticamente acá.
+ *
+ * `getAllEnemyAttacks()` devuelve los patrones en orden de registro
+ * (orden de declaración en `EnemyAttacks.ts`).
+ */
+const ALL_DUMMY_PATTERNS = getAllEnemyAttacks()
+
+/**
+ * Lista de abilities que el jugador puede aprender en la Sala de Pruebas.
+ * Filtramos por tag `damage` o `heal` para incluir todo lo ofensivo y
+ * las curas — quedan fuera los `attack` básicos y `warriorAttack`/etc.
+ * que son variantes del basic attack por clase.
+ */
+const TRAINABLE_ABILITIES: IAbility[] = getAllAbilities().filter(a => {
+  const tags = a.tags ?? []
+  return tags.includes('damage') || tags.includes('heal')
+})
+void getAbilitiesByTag // re-export disponible si se necesita filtrar por tag especifico
 
 function speedLabel(speed: number): string {
   if (speed <= 30) return 'lenta'
@@ -106,18 +87,6 @@ const ATTACK_PATTERN_INFOS: AttackPatternInfo[] = ALL_DUMMY_PATTERNS.map(p => ({
   multiplier: p.damageMultiplier,
   onFailure: p.onFailureEffect?.statusType ?? null
 }))
-
-const TRAINABLE_ABILITIES: IAbility[] = [
-  StunStrike,
-  StealthStrike,
-  Fireball,
-  WarriorInjuringStrike,
-  WarriorDevastatingStrike,
-  ClericRadiantStrike,
-  ClericDivineSmite,
-  ClericHeal,
-  SecondWind
-]
 
 const negativeStatusEffects = computed(() =>
   StatusEffects.getRegisteredTypes()

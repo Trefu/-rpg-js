@@ -1,13 +1,13 @@
 import { Character } from '../Character'
-import { ICharacter, ICombatant, type IEnemyStats, type IStat } from '../interfaces/ICharacter'
+import { ICharacter, ICombatant, type EnemyAction, type IEnemyStats, type IStat } from '../interfaces/ICharacter'
 import type { IStatusEffect } from '../interfaces/IStatusEffect'
 import type { DefensePatternConfig } from '../defense/types'
 import type { Hero } from '../Hero'
 import { getScalingStat, getScalingCoefficient } from '../combat/damageTypes'
-import { getOutgoingDamageMultiplier } from '../combat/damageModifiers'
 import { computeDefense, computeMagicDefense } from '../defense/computeDefense'
 import { computeAgilityCritBonus, rollCritFromChance, type CritResult } from '../crit'
-import { applyDamageVariance } from '../abilities/Abilities'
+import { applyDamageVariance } from '../abilities/damagePipeline'
+import { getOutgoingDamageMultiplier } from '../combat/damageModifiers'
 import { StatusEffects } from '../StatusEffects'
 
 export interface TargetScoreWeights {
@@ -90,7 +90,7 @@ export abstract class Enemy extends Character implements ICombatant {
   public readonly goldReward: { min: number; max: number }
   public critChance: number
   public statusEffects: IStatusEffect[] = [];
-  public attackPatterns: DefensePatternConfig[] = [];
+  public attackPatterns: EnemyAction[] = [];
   public baseStats: IEnemyStats
 
   constructor(opts: EnemyOptions) {
@@ -227,7 +227,7 @@ export abstract class Enemy extends Character implements ICombatant {
     return this.critChance + computeAgilityCritBonus(this.baseStats.agility.value)
   }
 
-  public selectAttackPattern(_player: ICharacter | null): DefensePatternConfig {
+  public selectAttackPattern(_player: ICharacter | null): EnemyAction {
     if (this.attackPatterns.length === 0) {
       throw new Error(`${this.name} no tiene attackPatterns definidos`)
     }

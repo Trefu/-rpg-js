@@ -1,11 +1,17 @@
 import { Enemy } from './Enemy'
 import dragonSprite from '@/assets/sprites/enemies/dragon.png'
-import type { DefensePatternConfig } from '../defense/types'
-import { FIRE_BREATH, DEEP_SLASH, TRIPLE_COMBO } from '../abilities/EnemyAttacks'
+import type { EnemyAction } from '../interfaces/ICharacter'
+import { FIRE_BREATH, DEEP_SLASH, TRIPLE_COMBO, DragonRoar } from '../abilities/EnemyAttacks'
 
 export class Dragon extends Enemy {
   public readonly sprite = dragonSprite
-  public attackPatterns: DefensePatternConfig[] = [FIRE_BREATH, DEEP_SLASH, TRIPLE_COMBO]
+  /**
+   * Mix de patrones visuales (FIRE_BREATH, DEEP_SLASH, TRIPLE_COMBO) y la
+   * ability IAbility `DragonRoar` (AoE sin defense challenge). Esto
+   * valida el sistema enemigo → IAbility unificado: `useCombat.startEnemyTurn`
+   * branch por tipo y dispatch correctamente.
+   */
+  public attackPatterns: EnemyAction[] = [FIRE_BREATH, DEEP_SLASH, TRIPLE_COMBO, DragonRoar]
 
   constructor(level: number = 8) {
     super({

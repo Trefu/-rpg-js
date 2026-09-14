@@ -1,12 +1,11 @@
 import { Enemy } from './Enemy'
 import goblinWarlockSprite from '@/assets/sprites/enemies/goblin-warlock.png'
-import type { ICharacter } from '../interfaces/ICharacter'
-import type { DefensePatternConfig } from '../defense/types'
+import type { ICharacter, EnemyAction } from '../interfaces/ICharacter'
 import { EMBER, GUST_OF_FOG} from '../abilities/EnemyAttacks'
 
 export class GoblinWarlock extends Enemy {
   public readonly sprite = goblinWarlockSprite
-  public attackPatterns: DefensePatternConfig[] = [EMBER, GUST_OF_FOG]
+  public attackPatterns: EnemyAction[] = [EMBER, GUST_OF_FOG]
 
   constructor(level: number = 1) {
     super({
@@ -34,7 +33,7 @@ export class GoblinWarlock extends Enemy {
    * Si el objetivo ya esta nublado, cae al random base para no acumular
    * stacks innecesariamente (la reaplicacion solo refresca duracion).
    */
-  public override selectAttackPattern(player: ICharacter | null): DefensePatternConfig {
+  public override selectAttackPattern(player: ICharacter | null): EnemyAction {
     const isAlreadyClouded = !!player?.hasStatusEffect('clouded')
     if (!isAlreadyClouded && Math.random() < 0.5) {
       return GUST_OF_FOG

@@ -8,7 +8,7 @@ import closeIcon from '@/assets/icons/cross-mark.png'
 import hourglassIcon from '@/assets/icons/hourglass.png'
 import boltIcon from '@/assets/icons/bolt-shield.png'
 import skillsIcon from '@/assets/icons/skills.png'
-import { getAbilityIcon } from '@/core/abilities/abilityIcons'
+import { getAbilityIcon } from '@/core/abilities/getAbilityIcon'
 import { getBasicAttackHitCount } from '@/core/abilities/Abilities'
 
 interface Props {
