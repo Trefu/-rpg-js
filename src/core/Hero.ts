@@ -78,6 +78,14 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
   public statusEffects: IStatusEffect[] = []
   public energy: number
   public maxEnergy: number
+  /**
+   * Recurso "Heroismo": barra dorada compartida por todas las clases
+   * (0..maxHeroism). Se carga pasivamente cada turno, al realizar ataques
+   * y al recibir daño. Al llegar a `maxHeroism`, el heroe puede desatar
+   * su habilidad definitiva (coste `heroismCost: 100`).
+   */
+  public heroism: number
+  public maxHeroism: number
   public baseStats: IPlayerStats
   public critChance: number
   public critDamageMultiplier: number
@@ -96,6 +104,22 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
    * Por defecto 0; clases, perks o equipo pueden modificarlo.
    */
   public passiveEnergyRegen: number = 0
+  /**
+   * Heroismo que se acumula automaticamente al final del turno del jugador.
+   * Se suma ademas al cargar por ataques y al recibir daño. Default 15.
+   */
+  public passiveHeroismRegen: number = 15
+  /**
+   * Heroismo que gana el heroe por cada golpe de ataque basico que
+   * asesta (incluye el ultimate warrior). Default 4 por hit.
+   */
+  public heroismPerAttackHit: number = 4
+  /**
+   * Heroismo que gana el heroe por cada punto de HP que pierde al
+   * recibir un golpe. Se redondea hacia abajo y se capea para evitar
+   * bursts absurdos. Default: 1 punto de heroism por cada 5 HP perdidos.
+   */
+  public heroismPerDamageTakenDivisor: number = 5
 
   /**
    * Vida base de la clase al nivel 1, sin contar Constitución.
@@ -113,6 +137,8 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
     this.abilities = []
     this.maxEnergy = opts.maxEnergy ?? 50
     this.energy = opts.startingEnergy ?? this.maxEnergy
+    this.maxHeroism = 100
+    this.heroism = 0
     this.critChance = opts.critChance ?? 5
     this.critDamageMultiplier = 2.0
     this.sprite = opts.sprite ?? ''
@@ -262,8 +288,63 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
     return this.passiveEnergyRegen
   }
 
+  /**
+   * Cuanto Heroismo gana este heroe al final de su turno.
+   * Default: usa `passiveHeroismRegen`. Subclases o perks pueden override.
+   */
+  public getTurnEndHeroismRegen(): number {
+    return this.passiveHeroismRegen
+  }
+
+  /**
+   * Gasta `amount` puntos de Heroismo si hay suficiente. Devuelve `true`
+   * si se desconto; `false` si no alcanzaba (no se modifica el recurso).
+   */
+  public spendHeroism(amount: number): boolean {
+    if (amount <= 0) return true
+    if (this.heroism < amount) return false
+    this.heroism -= amount
+    return true
+  }
+
+  /**
+   * Suma `amount` puntos de Heroismo capeando en `maxHeroism`. Devuelve
+   * la cantidad realmente anadida (util para logs/feedback de UI).
+   */
+  public restoreHeroism(amount: number): number {
+    if (amount <= 0) return 0
+    const before = this.heroism
+    this.heroism = Math.min(this.maxHeroism, this.heroism + amount)
+    return this.heroism - before
+  }
+
+  /**
+   * `true` si la barra de Heroismo esta al maximo y el heroe esta en
+   * condiciones de desatar su habilidad definitiva.
+   */
+  public canUseUltimate(): boolean {
+    return this.isAlive && this.heroism >= this.maxHeroism
+  }
+
   public addGold(amount: number): void {
     this.gold += amount
+  }
+
+  /**
+   * Hook de Heroismo: al recibir daño, una fraccion del HP perdido se
+   * convierte en Heroismo (cuanto mas duele el golpe, mas heroismo se
+   * forja). Llama a `super.takeDamage` para mantener intacta la logica
+   * de escudos/multiplicadores de `Character`.
+   */
+  public takeDamage(amount: number, opts?: { damageType?: string }): void {
+    if (!this.isAlive || amount <= 0) return
+    const before = this.health
+    super.takeDamage(amount, opts)
+    const lost = before - this.health
+    if (lost <= 0) return
+    const divisor = Math.max(1, this.heroismPerDamageTakenDivisor)
+    const gained = Math.floor(lost / divisor)
+    if (gained > 0) this.restoreHeroism(gained)
   }
 
   public spendGold(amount: number): boolean {

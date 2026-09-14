@@ -47,6 +47,12 @@ const energyPercent = computed(() => {
   return Math.max(0, Math.min(100, (props.hero.energy / props.hero.maxEnergy) * 100))
 })
 
+const heroismPercent = computed(() => {
+  const max = (props.hero as any)?.maxHeroism
+  if (!props.hero || !max) return 0
+  return Math.max(0, Math.min(100, (((props.hero as any).heroism ?? 0) / max) * 100))
+})
+
 const hpDisplay = computed(() => {
   if (!props.hero) return ''
   return `${props.hero.health}/${props.hero.maxHealth}`
@@ -55,6 +61,19 @@ const hpDisplay = computed(() => {
 const energyDisplay = computed(() => {
   if (!props.hero) return ''
   return `${props.hero.energy}/${props.hero.maxEnergy}`
+})
+
+const heroismDisplay = computed(() => {
+  if (!props.hero) return ''
+  return `${Math.floor((props.hero as any).heroism ?? 0)}/${(props.hero as any).maxHeroism ?? 100}`
+})
+
+const isUltimateReady = computed(() => {
+  const hero = props.hero as any
+  if (!hero) return false
+  return typeof hero.canUseUltimate === 'function'
+    ? hero.canUseUltimate()
+    : (hero.heroism ?? 0) >= (hero.maxHeroism ?? 100)
 })
 
 const activeEffects = computed<IStatusEffect[]>(() => {
@@ -241,6 +260,16 @@ defineExpose({
               <div class="bar-fill bar-energy" :style="{ width: `${energyPercent}%` }"></div>
             </div>
             <span class="bar-value">{{ energyDisplay }}</span>
+          </div>
+          <div class="bar-line">
+            <div class="bar-track">
+              <div
+                class="bar-fill bar-heroism"
+                :class="{ 'bar-heroism--ready': isUltimateReady }"
+                :style="{ width: `${heroismPercent}%` }"
+              ></div>
+            </div>
+            <span class="bar-value bar-value-heroism">{{ heroismDisplay }}</span>
           </div>
         </div>
         <div
@@ -795,6 +824,26 @@ defineExpose({
 
 .bar-fill.bar-energy {
   background: linear-gradient(90deg, #40c4ff, #82b1ff);
+}
+
+.bar-fill.bar-heroism {
+  background: linear-gradient(90deg, #ffd54f, #ff9f1c);
+  box-shadow: inset 0 0 6px rgba(255, 215, 0, 0.6);
+}
+
+.bar-fill.bar-heroism--ready {
+  background: linear-gradient(90deg, #fff176, #ffb300, #ff6f00);
+  animation: heroismGlow 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes heroismGlow {
+  from { box-shadow: 0 0 4px rgba(255, 215, 0, 0.6), inset 0 0 6px rgba(255, 215, 0, 0.6); }
+  to   { box-shadow: 0 0 12px rgba(255, 215, 0, 1), inset 0 0 10px rgba(255, 215, 0, 0.9); }
+}
+
+.bar-value-heroism {
+  color: #ffe066;
+  text-shadow: 0 0 4px rgba(255, 200, 0, 0.6);
 }
 
 .bar-value {

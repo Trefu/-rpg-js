@@ -173,7 +173,11 @@ export function getDefenseModifiers(
 
   if (modifiers.waveSpeedMultiplier < 0.3) modifiers.waveSpeedMultiplier = 0.3
   if (modifiers.waveSpeedMultiplier > 2.0) modifiers.waveSpeedMultiplier = 2.0
-  if (modifiers.successZoneSizeBonus < 0) modifiers.successZoneSizeBonus = 0
+  // NOTA: `successZoneSizeBonus` NO se clampa aca. El clamp final vive en
+  // `clampSuccessZoneSize` (DefenseEngine.ts) que evita que la zona salga
+  // del rango [0, 0.5]. Si clampeamos aca, cualquier efecto negativo
+  // (ej. BLINDED -0.4, CLOUDED -0.03) se borra antes de llegar al engine
+  // y el debuff deja de hacer nada.
   if (modifiers.phaseCountReduction < 0) modifiers.phaseCountReduction = 0
   if (modifiers.attackDamageMultiplier < 0.25) modifiers.attackDamageMultiplier = 0.25
   if (modifiers.damageTakenMultiplier < 0.25) modifiers.damageTakenMultiplier = 0.25

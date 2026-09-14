@@ -5,8 +5,14 @@ import type { DefensePatternConfig } from './types'
  * VFX por defecto que se muestra sobre el heroe cuando recibe dano sin
  * haber bloqueado durante un desafio de defensa.
  *
- * - `impact`: dano normal (no critico). 15 frames a 30fps = 500ms.
- * - `bigHit`: dano critico. 12 frames a 30fps = 400ms.
+ * - `impact`: dano normal (no critico).
+ * - `bigHit`: dano critico.
+ *
+ * NOTA: los nombres de archivo dicen "15 frames" / "12 frames" pero los
+ * GIFs reales tienen **60 frames** cada uno (delays de 2cs = 20ms/frame
+ * → 1200ms totales). El `durationMs` actual corta la animacion a la mitad
+ * intencionalmente para feedback mas snappy en combate rapido. Si queres
+ * ver la animacion completa, subi estos valores a 1200ms.
  *
  * Centralizados aqui para que HeroCard / MobileCombatHud / futuros
  * overrides apunten al mismo asset/duracion.

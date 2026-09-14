@@ -26,11 +26,13 @@ const props = withDefaults(defineProps<{
   clouded?: boolean
   rooted?: boolean
   rootedOverlay?: string | null
+  blinded?: boolean
 }>(), {
   isCrit: false,
   clouded: false,
   rooted: false,
-  rootedOverlay: null
+  rootedOverlay: null,
+  blinded: false
 })
 
 const emit = defineEmits<{
@@ -340,7 +342,7 @@ onUnmounted(() => {
             :key="i"
             class="defense-column"
             :class="{
-              success: !!currentZone && currentZone.successColumns.includes(i - 1),
+              success: !blinded && !!currentZone && currentZone.successColumns.includes(i - 1),
               'under-wave': waveColumn >= i - 1 && waveColumn <= i
             }"
           />

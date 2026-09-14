@@ -336,22 +336,28 @@ export class StatusEffects {
   }
 
   /**
-   * "Cegado": debufo que encoge la zona de exito del portador en la barra
-   * de defensa (un -40% sobre la zona base). Solo aplica al jugador (en el
-   * dummy no tiene sentido porque el dummy no defiende).
+   * "Cegado": debufo puramente visual — la zona de éxito sigue ahí
+   * mecánicamente (la defensa usa la misma `successZoneSize` de
+   * siempre), pero el `DefenseChallenge` esconde el highlighting
+   * verde de las columnas cuando el portador esta cegado. Así el
+   * jugador bloquea a ciegas: el timing del wave-cursor y el timeout
+   * siguen siendo los mismos, solo se quita la pista visual.
+   *
+   * Solo aplica al jugador (el dummy no defiende). El flag "esconde
+   * zonas verdes" se propaga al `DefenseChallenge` vía
+   * `useCombat.defenseBlinded`, siguiendo el mismo flujo que `rooted`
+   * y `clouded`.
    */
   static readonly BLINDED: IStatusEffect = {
     type: 'blinded',
     name: 'Cegado',
-    description: 'La zona de éxito de la defensa se encoge un 40%.',
-    descriptionOnPlayer: 'Apenas ves la barra de defensa: la zona donde debes clavar el bloqueo es mucho más pequeña.',
+    description: 'No distingues la zona de éxito: bloqueas a ciegas.',
+    descriptionOnPlayer: 'Apenas distingues las barras de defensa: la zona donde debes clavar el bloqueo se ve igual que el resto.',
+    descriptionOnEnemy: 'Sus ojos están cubiertos: no puede distinguir zonas de éxito al defender.',
     turns: 2,
     icon: blindedIcon,
     isBuff: false,
     turnLabel: '¡No ve bien!',
-    defenseContribution: (_effect, side) => (
-      side === 'player' ? { successZoneSizeBonus: -0.4 } : undefined
-    ),
     announceOnTurn: true
   }
 
@@ -609,11 +615,8 @@ export class StatusEffects {
   }
 
   /**
-   * "Enraged": auto-buff enemigo. Se aplica automaticamente al propio
-   * enemigo cuando cae por debajo del 50% HP (ver `Enemy.takeDamage`).
-   * Stats: +50% ataque saliente, -20% reduccion de bloqueo (recibe
-   * levemente mas daño bloqueado). En su mayoria enemigos cuerpo a
-   * cuerpo (Orc, Bandit Captain) lo activan al estar heridos.
+   * "Enraged": auto-buff opt-in por enemigo. Se aplica una sola vez
+   * cuando el enemigo cae por debajo de su `enrageThreshold` propio.
    */
   static readonly ENRAGED: IStatusEffect = {
     type: 'enraged',

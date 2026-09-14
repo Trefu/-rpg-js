@@ -277,10 +277,11 @@ const isProcessingDot = ref(false)
   const defenseZones = ref<DefensePhaseZone[]>([])
   const defensePhaseIndex = ref(0)
   const defenseEnemyId = ref<string | null>(null)
-  const defenseIsCrit = ref(false)
-  const defenseClouded = ref(false)
-  const defenseRooted = ref(false)
-  const defenseRootedOverlay = ref<string | null>(null)
+const defenseIsCrit = ref(false)
+const defenseClouded = ref(false)
+const defenseRooted = ref(false)
+const defenseRootedOverlay = ref<string | null>(null)
+const defenseBlinded = ref(false)
   let pendingDefenseResolve: ((result: DefenseChallengeResult | null) => void) | null = null
   let pendingDefensePattern: DefensePatternConfig | null = null
   let pendingDefenseEnemy: IEnemy | null = null
@@ -340,6 +341,7 @@ const isProcessingDot = ref(false)
       defenseIsCrit.value = crit.isCrit
       defenseClouded.value = typeof target.hasStatusEffect === 'function' && target.hasStatusEffect('clouded')
       defenseRooted.value = typeof target.hasStatusEffect === 'function' && target.hasStatusEffect('rooted')
+      defenseBlinded.value = typeof target.hasStatusEffect === 'function' && target.hasStatusEffect('blinded')
       defenseRootedOverlay.value = (() => {
         if (!defenseRooted.value) return null
         const fx = target.statusEffects.find(e => e.type === 'rooted')
@@ -484,6 +486,7 @@ const isProcessingDot = ref(false)
     defenseClouded.value = false
     defenseRooted.value = false
     defenseRootedOverlay.value = null
+    defenseBlinded.value = false
   }
 
   function resetAbilityCooldowns() {
@@ -514,8 +517,7 @@ const isProcessingDot = ref(false)
 
   function selectAbility(ability: IAbility, _index: number) {
     if (isPlayerInputLocked.value) return
-    if (abilityCooldowns.value[ability.type] > 0) return
-    if (!canAffordAbility(ability)) {
+    if (!canCastAbility(ability)) {
       closeAbilitiesModal()
       return
     }
@@ -547,11 +549,62 @@ const isProcessingDot = ref(false)
     const caster = player.value as Hero | null
     if (!caster) return false
     const cost = ability.energyCost ?? 0
-    if (cost <= 0) return true
-    if (caster.energy >= cost) return true
-    showAnnouncement(`¡Energia insuficiente! (${caster.energy}/${cost})`, 'status', 1500)
-    addToLog(`Energia insuficiente para ${ability.name} (necesitas ${cost}).`)
-    return false
+    if (cost > 0 && caster.energy < cost) {
+      showAnnouncement(`¡Energia insuficiente! (${caster.energy}/${cost})`, 'status', 1500)
+      addToLog(`Energia insuficiente para ${ability.name} (necesitas ${cost}).`)
+      return false
+    }
+    const heroismCost = ability.heroismCost ?? 0
+    if (heroismCost > 0) {
+      const heroism = (caster as any).heroism ?? 0
+      const maxHeroism = (caster as any).maxHeroism ?? 100
+      if (heroism < heroismCost) {
+        showAnnouncement(`¡Heroismo insuficiente! (${Math.floor(heroism)}/${heroismCost})`, 'status', 1500)
+        addToLog(`Heroismo insuficiente para ${ability.name} (necesitas ${heroismCost}).`)
+        return false
+      }
+      if (heroismCost >= maxHeroism && heroism < maxHeroism) {
+        showAnnouncement(`Necesitas la barra de Heroismo al maximo (${Math.floor(heroism)}/${maxHeroism}).`, 'status', 1500)
+        addToLog(`Heroismo al maximo requerido para ${ability.name}.`)
+        return false
+      }
+    }
+    return true
+  }
+
+  /**
+   * Gate unificado de "se puede castear esta ability ahora?".
+   *
+   * Reune los tres checks que bloquean el casteo en cualquier entry point
+   * (`selectAbility` desde el modal/shortcut, `triggerExecution` defensivo
+   * despues de seleccionar objetivo) para que no haya un check suelto en
+   * `executeAbility` que diverge de la UX de los otros dos:
+   *
+   * 1. **Cooldown**: si la ability esta activa en `abilityCooldowns`, retorna
+   *    `false` sin feedback (el modal ya muestra el cooldown en cada slot).
+   * 2. **Energia**: si `energyCost > caster.energy`, emite announcement + log
+   *    y retorna `false`. Mismo formato que el resto de rechazos visibles.
+   * 3. **Silenciado**: si el caster tiene `SILENCED` y la ability no declara
+   *    `silencable: false`, emite announcement + log explicando que no se
+   *    puede castear (mismo formato que el rechazo de energia).
+   *
+   * Devuelve `true` si la ability pasa los tres gates. NO cobra energia — eso
+   * lo hace `triggerExecution` justo despues de pasar el gate.
+   */
+  function canCastAbility(ability: IAbility): boolean {
+    if (abilityCooldowns.value[ability.type] > 0) return false
+    if (!canAffordAbility(ability)) return false
+
+    const caster = player.value as Hero | null
+    if (!caster) return false
+
+    const silencable = ability.silencable !== false
+    if (silencable && caster.hasStatusEffect(StatusEffects.SILENCED.type)) {
+      showAnnouncement(`${caster.name} está Silenciado`, 'status', 1500)
+      addToLog(`${caster.name} está Silenciado y no puede lanzar ${ability.name}.`)
+      return false
+    }
+    return true
   }
 
   // ===== Objetos =====
@@ -722,12 +775,22 @@ const isProcessingDot = ref(false)
       return
     }
 
+    // Gate defensivo: en teoria `selectAbility` ya llamo a `canCastAbility`,
+    // pero el estado (cooldown/energy/silenced) podria haber cambiado entre
+    // la seleccion del objetivo y este trigger (ej: pasiva enemiga que
+    // silencia). Si falla, libera input sin consumir turno.
+    if (!canCastAbility(ability)) {
+      cancelAction()
+      return
+    }
+
     if (ability.energyCost && ability.energyCost > 0) {
-      if (caster.energy < ability.energyCost) {
-        cancelAction(`Energia insuficiente para ${ability.name} (necesitas ${ability.energyCost}).`)
-        return
-      }
       caster.spendEnergy(ability.energyCost)
+    }
+
+    if (ability.heroismCost && ability.heroismCost > 0 && typeof caster.spendHeroism === 'function') {
+      caster.spendHeroism(ability.heroismCost)
+      showAnnouncement(`¡${ability.name}!`, 'attack', 1800, { priority: 90 })
     }
 
     executeAbility(ability.energyCost ?? 0)
@@ -761,7 +824,10 @@ const isProcessingDot = ref(false)
     triggerExecution(hero)
   }
 
-  const abilityShortcuts = ['q', 'w', 'e', 'r']
+  const abilityShortcuts = computed<string[]>(() => {
+    const keys = ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p']
+    return keys.slice(0, abilities.value.length)
+  })
 
   function handleAbilitiesModalShortcuts(e: KeyboardEvent) {
     if (!showAbilitiesModal.value) {
@@ -778,7 +844,7 @@ const isProcessingDot = ref(false)
       return
     }
 
-    const keyIndex = abilityShortcuts.indexOf(e.key.toLowerCase())
+    const keyIndex = abilityShortcuts.value.indexOf(e.key.toLowerCase())
     if (keyIndex !== -1 && abilities.value[keyIndex]) {
       selectAbility(abilities.value[keyIndex], keyIndex)
       e.preventDefault()
@@ -923,6 +989,22 @@ const isProcessingDot = ref(false)
         const restored = hero.restoreEnergy(regen)
         if (restored > 0) {
           addToLog(`Recuperaste ${restored} de energia (fin de turno).`)
+        }
+      }
+    }
+    // Heroismo pasivo de fin de turno: mantiene la barra en movimiento
+    // incluso en turnos donde el heroe no ataca ni recibe dano.
+    if (hero && typeof hero.restoreHeroism === 'function') {
+      const heroismRegen = typeof hero.getTurnEndHeroismRegen === 'function'
+        ? hero.getTurnEndHeroismRegen()
+        : 0
+      if (heroismRegen > 0) {
+        const wasReady = typeof hero.canUseUltimate === 'function' && hero.canUseUltimate()
+        const gained = hero.restoreHeroism(heroismRegen)
+        const isReadyNow = typeof hero.canUseUltimate === 'function' && hero.canUseUltimate()
+        if (gained > 0 && !wasReady && isReadyNow) {
+          showAnnouncement(`¡${hero.name} puede usar su definitiva!`, 'info', 1500)
+          addToLog(`¡${hero.name} carga su Heroismo al maximo!`)
         }
       }
     }
@@ -1576,20 +1658,9 @@ const isProcessingDot = ref(false)
 
       // Check Silenciado (Bloque C Tier 2): si el caster tiene el debuff
       // y la ability es "silenceable" (default true), se cancela el cast.
-      // Asi se respetan excepciones como SecondWind (que es heal/buff
-      // fisico y podria no ser magic).
-      const silencable = ability.silencable !== false
-      if (silencable && playerChar.hasStatusEffect(StatusEffects.SILENCED.type)) {
-        addToLog(`${playerChar.name} está Silenciado y no puede lanzar ${ability.name}.`)
-        showAnnouncement(`${playerChar.name} está Silenciado`, 'status', 1500)
-        isExecutingAction.value = false
-        isSelectingTarget.value = false
-        selectedAbility.value = null
-        selectedEnemy.value = null
-        currentAction.value = null
-        clearAnnouncement()
-        return
-      }
+      // Silenced/cooldown/energy checks viven en `canCastAbility` (llamado
+      // desde `selectAbility` y `triggerExecution`). Si llegamos aca, los
+      // tres gates ya pasaron. No re-chequear.
 
       const abilityContext: AbilityContext = {
         caster: playerChar,
@@ -1602,7 +1673,8 @@ const isProcessingDot = ref(false)
         showAnnouncement: (text, variant, duration, opts) => showAnnouncement(text, variant ?? 'info', duration, opts),
         audioManager,
         animationDelay,
-        energySpent
+        energySpent,
+        allies: heroes.value.filter(h => h.isAlive) as unknown as any[]
       }
 
       if (ability.execute) {
@@ -1757,6 +1829,7 @@ const isProcessingDot = ref(false)
     defenseClouded,
     defenseRooted,
     defenseRootedOverlay,
+    defenseBlinded,
     handleDefensePhaseComplete,
     handleDefenseAllPhasesComplete,
     closeDefenseChallenge,

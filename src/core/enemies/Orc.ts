@@ -15,7 +15,8 @@ export class Orc extends Enemy {
       maxHealth: 80 + (level * 15),
       experienceReward: 25 + (level * 4),
       goldReward: { min: 14 + (level * 2), max: 22 + (level * 3) },
-      classMultipliers: { body: 1.2, agility: 0.6 }
+      classMultipliers: { body: 1.2, agility: 0.6 },
+      enrageThreshold: 50
     })
   }
 }

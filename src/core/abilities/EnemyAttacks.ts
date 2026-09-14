@@ -1,5 +1,5 @@
 import type { DefensePatternConfig } from '../defense/types'
-import type { IAbility } from '../interfaces/IAbility'
+import type { IAbility, AbilityContext } from '../interfaces/IAbility'
 import { fixedPhase, phase } from '../defense/attackPatterns'
 import { registerAbility, registerEnemyAttack } from './registry'
 import {
@@ -9,7 +9,11 @@ import {
   previewFromPipeline,
   type DamageStep
 } from './damagePipeline'
+import { StatusEffects } from '../StatusEffects'
 import dragonRoarIcon from '@/assets/icons/dragon-head.png'
+import curseIcon from '@/assets/icons/cursed-star.png'
+
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
 export const SLASH: DefensePatternConfig = {
     name: 'Espadazo',
@@ -218,8 +222,8 @@ export const GUST_OF_FOG: DefensePatternConfig = {
     phases: [phase(3)],
     onFailureEffect: {
         statusType: 'clouded',
-        stacks: 1,
-        maxDuration: 3
+        stacks: 2,
+        maxDuration: 2
     }
 }
 registerEnemyAttack(GUST_OF_FOG)
@@ -249,10 +253,51 @@ export const ENTANGLE: DefensePatternConfig = {
     phases: [phase(4), phase(4)],
     onFailureEffect: {
         statusType: 'rooted',
-        stacks: 2
+        stacks: 1,
+        maxDuration: 1
     }
 }
 registerEnemyAttack(ENTANGLE)
+
+/**
+ * Destello: pulso magico de luz cegadora. Si el jugador falla el
+ * bloqueo, queda "Cegado" durante 2 turnos: aunque la zona de éxito
+ * sigue existiendo mecánicamente (mismas columnas, mismo timing del
+ * wave-cursor), el `DefenseChallenge` ESCONDE el highlighting verde
+ * de las columnas de éxito. El jugador bloquea a ciegas — solo le
+ * queda el sonido/click del input contra el timeout.
+ *
+ * El efecto es puramente UI: no encoge la zona, no la mueve, no
+ * cambia la `successZoneSize`. Solo esconde la pista visual. Esto
+ * lo hace complementario con `ENTANGLE` (que te saca el turno de
+ * bloqueo con un fail automático) y `GUST_OF_FOG` (que nubla la
+ * barra con sprites sobre las columnas): los tres CC "defensivos"
+ * viven en capas distintas — UI, fail automático, overlay — y se
+ * pueden combinar sin pisarse.
+ *
+ * `maxDuration: 2` evita que `applyFailureEffect` use el default DoT
+ * (3 turnos); el efecto vive exactamente lo que dura el template.
+ *
+ * Compartido por goblins y bandidos — la IA de cada enemigo decide
+ * cuando priorizarlo en su `selectAttackPattern` segun si el target
+ * ya esta cegado (en ese caso cae al random base para no malgastar
+ * el turno refrescando un debuff ya activo).
+ */
+export const FLASH: DefensePatternConfig = {
+    name: 'Destello',
+    type: 'arcane',
+    damageType: 'arcane',
+    waveSpeed: 50,
+    baseMaxBlockReduction: 0.4,
+    damageMultiplier: 0.8,
+    phases: [phase(3)],
+    onFailureEffect: {
+        statusType: 'blinded',
+        stacks: 1,
+        maxDuration: 2
+    }
+}
+registerEnemyAttack(FLASH)
 
 /**
  * Rugido del Dragon: ability AOE del Dragon Ancestral. NO usa defense
@@ -300,3 +345,62 @@ export const DragonRoar: IAbility = {
   }
 }
 registerAbility(DragonRoar)
+
+/**
+ * Maldición del Warlock: ability arcana SIN daño que aplica 1 stack
+ * de `Maldición` al objetivo de forma inevitable (no se puede defender,
+ * no se puede interrumpir con silence tradicional porque NO es
+ * silencable — la maldición es intrínseca al warlock). Pensada para el
+ * Goblin Warlock: usa `Maldición` como amenaza a largo plazo mientras
+ * los demas patrones (`EMBER`, `GUST_OF_FOG`) hacen el daño inmediato.
+ *
+ * La maldición normalmente acumula 1 stack por turno via tick interno;
+ * esta ability la "acelera" sumando 1 stack directo, refreshing la
+ * duración al valor del template (`turns: 5`).
+ *
+ * Stacks se capean a `maxStacks: 5` del template. Al llegar a 5, el
+ * tick interno del efecto aplica `vulnerable x2` y resetea los stacks
+ * (ver `StatusEffects.CURSE`).
+ */
+export const WarlockHex: IAbility = {
+  name: 'Maldición',
+  description: 'El warlock susurra una maldición inevitable sobre el objetivo: aplica 1 stack de Maldición. No se puede bloquear.',
+  type: 'warlockHex',
+  cooldown: 0,
+  damageType: 'arcane',
+  targetType: 'enemies-only',
+  tags: ['holy'],
+  icon: curseIcon,
+  requiresTarget: true,
+  animationDurationMs: 1200,
+  execute: async (context: AbilityContext) => {
+    const target = context.target
+    if (!target || typeof target.addStatusEffect !== 'function' || !target.isAlive) {
+      await sleep(context.animationDelay)
+      return
+    }
+    const template = StatusEffects.CURSE
+    const existing = (target.statusEffects as Array<{ type: string; stacks?: number; maxStacks?: number; turns: number; maxDuration?: number }>)
+      .find(e => e.type === 'curse')
+
+    if (existing) {
+      const maxStacks = existing.maxStacks ?? template.maxStacks ?? 5
+      const currentStacks = existing.stacks ?? 0
+      existing.stacks = Math.min(maxStacks, currentStacks + 1)
+      // Refresh duración a la base del template para que reaplicar
+      // mantenga la ventana de amenaza activa.
+      existing.maxDuration = template.turns
+      existing.turns = template.turns
+    } else {
+      target.addStatusEffect({ ...template, stacks: 1 })
+    }
+
+    const appliedStacks = (target.statusEffects as Array<{ type: string; stacks?: number }>)
+      .find(e => e.type === 'curse')?.stacks ?? 1
+    context.log(`¡${target.name} ha sido maldecido (${appliedStacks}/5)!`)
+    context.showAnnouncement(`¡Maldición ${appliedStacks}/5!`, 'status', 1500)
+
+    await sleep(context.animationDelay)
+  }
+}
+registerAbility(WarlockHex)

@@ -133,9 +133,9 @@ describe('Warrior class', () => {
     expect(w.baseStats.body.growthPerLevel).toBe(7)
   })
 
-  it('createStarter aprende las 4 abilities warrior (basic + 3)', () => {
+  it('createStarter aprende las 5 abilities warrior (basic + 3 + definitiva)', () => {
     const w = Warrior.createStarter()
-    expect(w.abilities.length).toBe(4)
+    expect(w.abilities.length).toBe(5)
     const types = w.abilities.map(a => a.type)
     expect(types).toContain('warriorAttack') // basic attack
     expect(types).toContain('warriorInjuringStrike')
@@ -163,9 +163,9 @@ describe('Cleric class', () => {
     expect(c.baseStats.mind.growthPerLevel).toBe(7)
   })
 
-  it('createStarter aprende las 4 abilities cleric (basic + 3)', () => {
+  it('createStarter aprende las 5 abilities cleric (basic + 3 + definitiva)', () => {
     const c = Cleric.createStarter()
-    expect(c.abilities.length).toBe(4)
+    expect(c.abilities.length).toBe(5)
     const types = c.abilities.map(a => a.type)
     expect(types).toContain('clericAttack') // basic attack
     expect(types).toContain('clericRadiantStrike')
@@ -194,5 +194,75 @@ describe('Hero.attack() formula', () => {
     const initialAttack = w.attack()
     w.levelUp()
     expect(w.attack()).toBeGreaterThan(initialAttack)
+  })
+})
+
+describe('Hero.heroism', () => {
+  it('un Hero nuevo arranca con Heroismo en 0 / 100', () => {
+    const w = new Warrior(1)
+    expect(w.heroism).toBe(0)
+    expect(w.maxHeroism).toBe(100)
+    expect(w.canUseUltimate()).toBe(false)
+  })
+
+  it('restoreHeroism cape a en maxHeroism y devuelve la cantidad realmente anadida', () => {
+    const w = new Warrior(1)
+    w.restoreHeroism(40)
+    expect(w.heroism).toBe(40)
+    const added = w.restoreHeroism(1000)
+    expect(added).toBe(60)
+    expect(w.heroism).toBe(100)
+  })
+
+  it('spendHeroism devuelve false sin gastar y true si alcanza', () => {
+    const w = new Warrior(1)
+    w.restoreHeroism(30)
+    expect(w.spendHeroism(40)).toBe(false)
+    expect(w.heroism).toBe(30)
+    expect(w.spendHeroism(20)).toBe(true)
+    expect(w.heroism).toBe(10)
+  })
+
+  it('canUseUltimate es true solo al llegar al maximo y estando vivo', () => {
+    const w = new Warrior(1)
+    w.restoreHeroism(99)
+    expect(w.canUseUltimate()).toBe(false)
+    w.restoreHeroism(1)
+    expect(w.canUseUltimate()).toBe(true)
+    // Forzar la muerte con un golpe mortal: takeDamage dispara checkHealth.
+    w.takeDamage(99999)
+    expect(w.isAlive).toBe(false)
+    expect(w.canUseUltimate()).toBe(false)
+  })
+
+  it('takeDamage convierte parte del HP perdido en Heroismo', () => {
+    const w = new Warrior(1)
+    w.maxHealth = 100
+    w.health = 100
+    w.takeDamage(25)
+    // divisor default 5 → floor(25/5) = 5
+    expect(w.heroism).toBe(5)
+    expect(w.health).toBe(75)
+  })
+
+  it('getTurnEndHeroismRegen devuelve el passiveHeroismRegen por defecto', () => {
+    const w = new Warrior(1)
+    expect(w.getTurnEndHeroismRegen()).toBe(15)
+  })
+
+  it('createStarter aprende las 4 abilities warrior incluyendo la definitiva', () => {
+    const w = Warrior.createStarter()
+    const types = w.abilities.map(a => a.type)
+    expect(types).toContain('warriorUltimate')
+    const ult = w.abilities.find(a => a.type === 'warriorUltimate')
+    expect(ult?.heroismCost).toBe(100)
+  })
+
+  it('createStarter aprende las 4 abilities cleric incluyendo la definitiva', () => {
+    const c = Cleric.createStarter()
+    const types = c.abilities.map(a => a.type)
+    expect(types).toContain('clericUltimate')
+    const ult = c.abilities.find(a => a.type === 'clericUltimate')
+    expect(ult?.heroismCost).toBe(100)
   })
 })

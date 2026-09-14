@@ -24,6 +24,8 @@ import heartDrop from '@/assets/icons/heart-drop.png'
 import stunGrenade from '@/assets/icons/stun-grenade.png'
 import thrownKnife from '@/assets/icons/thrown-knife.png'
 import smallFire from '@/assets/icons/small-fire.png'
+import wingedSword from '@/assets/icons/winged-sword.png'
+import shiningHeart from '@/assets/icons/shining-heart.png'
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
@@ -48,18 +50,20 @@ const BASIC_ATTACK_ROTATION_DEG = 90
 const randBetween = (min: number, max: number): number => min + Math.random() * (max - min)
 
 const VFX_POOL_BY_DAMAGE_TYPE: Record<string, VfxEffect[]> = {
+  // Slashes del pool fisico: delays=0cs → browser default ~10fps (100ms/frame).
   physical: [
-    { asset: 'physical-slash-1', durationMs: 1200 },
-    { asset: 'physical-slash-2', durationMs: 1200 },
-    { asset: 'physical-slash-3', durationMs: 1200 }
+    { asset: 'physical-slash-1', durationMs: 880 },   // 9 frames
+    { asset: 'physical-slash-2', durationMs: 680 },   // 7 frames
+    { asset: 'physical-slash-3', durationMs: 880 }    // 9 frames
   ],
+  // Holy/fire slashes: delays=3cs → 30ms/frame.
   holy: [
-    { asset: 'holy-slash-down', durationMs: 1200 },
-    { asset: 'holy-slash-up', durationMs: 1200 }
+    { asset: 'holy-slash-down', durationMs: 1230 },  // 41 frames × 30ms
+    { asset: 'holy-slash-up', durationMs: 1230 }
   ],
   fire: [
-    { asset: 'fire-slash-down', durationMs: 1200 },
-    { asset: 'fire-slash-up', durationMs: 1200 }
+    { asset: 'fire-slash-down', durationMs: 1320 },  // 44 frames × 30ms
+    { asset: 'fire-slash-up', durationMs: 1320 }
   ]
 }
 
@@ -92,20 +96,43 @@ const executeBasicAttack = async (context: AbilityContext) => {
   const ability = context.ability
   const levelBasedHitCount = getBasicAttackHitCount(caster.level)
   const hitCount = Math.max(levelBasedHitCount, ability?.hitCount ?? levelBasedHitCount)
-  const hitIntervalMs = hitCount > 1
+  await runHitStorm(context, caster, target, ability, hitCount)
+}
+
+/**
+ * Ejecuta una rafaga de golpes sobre `target` reutilizando la logica de
+ * `executeBasicAttack` (pipeline, restoreEnergy, restoreHeroism, VFX,
+ * delays entre hits). Es el corazon de los ataques multi-hits: el
+ * ataque basico, el ultimate del warrior, etc.
+ *
+ * `hitCount` es el numero TOTAL de golpes de la rafaga. Si la ability
+ * declara `hitCount` propio, se toma el maximo entre ese valor y el
+ * que pasemos aqui.
+ */
+const runHitStorm = async (
+  context: AbilityContext,
+  caster: Hero,
+  target: any,
+  ability: IAbility,
+  hitCount: number
+) => {
+  const levelBasedHitCount = getBasicAttackHitCount(caster.level)
+  const requested = Number.isFinite(hitCount) && hitCount > 0 ? hitCount : levelBasedHitCount
+  const useHitCount = Math.max(levelBasedHitCount, ability?.hitCount ?? 0, requested)
+  const hitIntervalMs = useHitCount > 1
     ? Math.max(0, ability?.hitIntervalMs ?? BASIC_ATTACK_HIT_INTERVAL_MS)
     : 0
   const hitVfxList = getBasicAttackHitVfx(ability)
   const pipeline = ability?.pipeline as DamageStep
 
-  for (let hitIndex = 0; hitIndex < hitCount; hitIndex++) {
-    if (!target.isAlive) break
+  for (let hitIndex = 0; hitIndex < useHitCount; hitIndex++) {
+    if (!target || !target.isAlive) break
 
     const rawDamage = pipeline ? computeRawDamage(pipeline, caster) : caster.baseStats.body.value * 0.7 + caster.level
     const { finalDamage } = dealDamage({
       caster,
       target,
-      ability: ability!,
+      ability,
       rawDamage,
       effects: context
     })
@@ -120,8 +147,13 @@ const executeBasicAttack = async (context: AbilityContext) => {
       if (restored > 0) context.log(`+${restored} de energía.`)
     }
 
+    if (typeof caster.restoreHeroism === 'function') {
+      const perHit = Math.max(0, caster.heroismPerAttackHit ?? 4)
+      if (perHit > 0) caster.restoreHeroism(perHit)
+    }
+
     await sleep(context.animationDelay)
-    if (hitIndex < hitCount - 1 && hitIntervalMs > 0) await sleep(hitIntervalMs)
+    if (hitIndex < useHitCount - 1 && hitIntervalMs > 0) await sleep(hitIntervalMs)
   }
 }
 
@@ -482,5 +514,116 @@ export const ClericHeal: IAbility = {
   }
 }
 registerAbility(ClericHeal)
+
+export const WARRIOR_ULTIMATE_HIT_MULTIPLIER = 3
+
+export const WarriorUltimate: IAbility = {
+  name: 'Tormenta de Acero',
+  description: 'Definitiva del Guerrero. Desata el triple de golpes que su ataque basico a nivel actual, con el mismo daño y VFX por golpe. Solo disponible cuando la barra de Heroismo esta al maximo.',
+  type: 'warriorUltimate',
+  cooldown: 0,
+  energyCost: 0,
+  heroismCost: 100,
+  damageType: 'physical',
+  targetType: 'enemies-only',
+  tags: ['warrior', 'physical', 'damage', 'ultimate'],
+  icon: wingedSword,
+  animationDurationMs: BASIC_ATTACK_DURATION_MS,
+  pipeline: damageStep({ stat: 'body', coef: 0.7, levelCoef: 1, statLabel: 'CUE' }),
+  previewDamage: previewFromPipeline(
+    damageStep({ stat: 'body', coef: 0.7, levelCoef: 1, statLabel: 'CUE' }),
+    'physical'
+  ),
+  execute: async (context: AbilityContext) => {
+    const caster = context.caster as Hero
+    const target = context.target
+    if (!target || !target.isAlive) return
+    const baseHits = getBasicAttackHitCount(caster.level)
+    const totalHits = baseHits * WARRIOR_ULTIMATE_HIT_MULTIPLIER
+    context.log(`¡${caster.name} desata Tormenta de Acero! ${totalHits} golpes.`)
+    await runHitStorm(context, caster, target, context.ability, totalHits)
+  }
+}
+registerAbility(WarriorUltimate)
+
+export const ClericUltimate: IAbility = {
+  name: 'Luz Divina',
+  description: 'Definitiva del Clerigo. Canaliza una luz sagrada que cura a todos los heroes un 50% de su vida maxima, elimina todos los efectos de dano por tiempo (Quemadura, Veneno, Congelado, Hemorragia) y purga cualquier debuff. Solo disponible cuando la barra de Heroismo esta al maximo.',
+  type: 'clericUltimate',
+  cooldown: 0,
+  energyCost: 0,
+  heroismCost: 100,
+  targetType: 'allies-only',
+  tags: ['cleric', 'heal', 'ultimate'],
+  icon: shiningHeart,
+  animationDurationMs: 1500,
+  requiresTarget: false,
+  customSound: '/assets/sounds/Buffs_Heals_SFX/Def_buff.wav',
+  execute: async (context: AbilityContext) => {
+    const caster = context.caster as Hero
+    if (!caster.isAlive) {
+      context.log('No puedes canalizar Luz Divina estando inconsciente.')
+      return
+    }
+
+    const allies = (context.allies ?? []) as unknown as Hero[]
+    context.log(`¡${caster.name} canaliza Luz Divina!`)
+    context.showAnnouncement('¡Luz Divina!', 'info', 1800, { priority: 95, interrupt: true })
+    context.audioManager.playCustomSound('/assets/sounds/Buffs_Heals_SFX/Def_buff.wav')
+
+    const totalHealed: number[] = []
+    const cleansedNames: string[] = []
+    const debuffCleansedNames: string[] = []
+
+    for (const ally of allies) {
+      if (!ally || !ally.isAlive) continue
+
+      const healAmount = Math.floor(ally.maxHealth * 0.5)
+      const before = ally.health
+      ally.heal(healAmount)
+      const restored = ally.health - before
+      if (restored > 0) {
+        context.showPlayerHit(restored, { heroId: ally.id, variant: 'heal' })
+        totalHealed.push(restored)
+      }
+
+      const dots = ally.statusEffects.filter(e => DOT_STATUS_TYPES.has(e.type))
+      for (const effect of dots) {
+        ally.removeStatusEffect(effect.type)
+        const tpl = StatusEffects.getByType(effect.type)
+        cleansedNames.push(tpl?.name ?? effect.type)
+      }
+
+      // Purga de debuffs: cualquier efecto que NO sea DOT ni buff.
+      // Consideramos buff a `isBuff === true` (mismo criterio que la UI
+      // de HeroCard.vue). Si el effect no declara `isBuff` y tampoco es
+      // DOT, lo tratamos como debuff y lo eliminamos.
+      const debuffs = ally.statusEffects.filter(e =>
+        !DOT_STATUS_TYPES.has(e.type) && e.isBuff !== true
+      )
+      for (const effect of debuffs) {
+        ally.removeStatusEffect(effect.type)
+        debuffCleansedNames.push(effect.name ?? effect.type)
+      }
+    }
+
+    const parts: string[] = []
+    if (totalHealed.length > 0) {
+      parts.push(`Luz Divina curo ${totalHealed.length} heroes (total ${totalHealed.reduce((a, b) => a + b, 0)} HP)`)
+    }
+    if (cleansedNames.length > 0) {
+      const unique = Array.from(new Set(cleansedNames))
+      parts.push(`elimino DoTs: ${unique.join(', ')}`)
+    }
+    if (debuffCleansedNames.length > 0) {
+      const unique = Array.from(new Set(debuffCleansedNames))
+      parts.push(`purgo debuffs: ${unique.join(', ')}`)
+    }
+    context.log(parts.length > 0 ? `${parts.join('; ')}.` : 'Luz Divina no tuvo efecto sobre nadie.')
+
+    await sleep(context.animationDelay)
+  }
+}
+registerAbility(ClericUltimate)
 
 export { DEFAULT_ANIMATION_DELAY_MS }

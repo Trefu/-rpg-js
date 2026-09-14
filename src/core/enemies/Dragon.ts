@@ -21,7 +21,8 @@ export class Dragon extends Enemy {
       maxHealth: 460 + (level * 22),
       experienceReward: 100 + (level * 12),
       goldReward: { min: 60 + (level * 6), max: 110 + (level * 7) },
-      classMultipliers: { body: 1.4, mind: 1.3, constitution: 1.2, agility: 2.0 }
+      classMultipliers: { body: 1.4, mind: 1.3, constitution: 1.2, agility: 2.0 },
+      enrageThreshold: 25
     })
   }
 }

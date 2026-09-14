@@ -46,6 +46,15 @@ export interface AbilityEffects {
   /** AudioManager para reproducir SFX. */
   audioManager: AudioManager
   /**
+   * Lista de heroes aliados vivos (incluye al caster). Lo inyecta
+   * `useCombat.executeAbility` al construir el contexto. Lo usan las
+   * habilidades AoE de aliados (curas grupales, purgas, buffs) para
+   * iterar sobre el team sin importar el gameStore directamente.
+   * Opcional para mantener retro-compatibilidad con tests y contextos
+   * enemigos que no tienen un team aliado.
+   */
+  allies?: ICharacter[]
+  /**
    * Output opcional: la ability puede setear esto para que `useCombat`
    * aplique el splash del `randomAttack` sobre objetivos extra.
    */
@@ -261,6 +270,17 @@ export interface IAbility {
    * Si el caster no tiene suficiente energia, la accion se cancela antes de gastar el turno.
    */
   energyCost?: number
+  /**
+   * Costo fijo de Heroismo (recurso dorado compartido) que se cobra
+   * antes de ejecutar. Se usa para habilidades definitivas que solo
+   * pueden lanzarse cuando la barra de Heroismo esta al maximo
+   * (coste tipico: 100). Si el caster no alcanza, la accion se cancela
+   * antes de gastar el turno (igual que `energyCost`).
+   *
+   * No se combina con `energyCost`: una ability puede tener uno, otro
+   * o ambos, y se validan ambos de forma independiente.
+   */
+  heroismCost?: number
   /** Define a que tipo de personajes puede apuntar esta habilidad. Default: 'enemies-only'. */
   targetType?: AbilityTargetType
   /**

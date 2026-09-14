@@ -3,7 +3,8 @@ import {
   WarriorBasicAttack,
   WarriorInjuringStrike,
   SecondWind,
-  WarriorDevastatingStrike
+  WarriorDevastatingStrike,
+  WarriorUltimate
 } from '../abilities/Abilities'
 import warriorSprite from '@/assets/sprites/heroes/warrior.png'
 
@@ -30,6 +31,7 @@ export class Warrior extends Hero {
     warrior.learnAbility(WarriorInjuringStrike)
     warrior.learnAbility(SecondWind)
     warrior.learnAbility(WarriorDevastatingStrike)
+    warrior.learnAbility(WarriorUltimate)
     return warrior
   }
 }

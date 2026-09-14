@@ -13,6 +13,7 @@ export type AbilityTag =
   | 'warrior' | 'cleric'
   | 'physical' | 'fire' | 'holy'
   | 'damage' | 'heal' | 'buff' | 'aoe'
+  | 'ultimate'
 
 const abilityRegistry = new Map<string, IAbility>()
 const enemyAttackRegistry = new Map<string, DefensePatternConfig>()

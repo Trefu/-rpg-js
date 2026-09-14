@@ -83,6 +83,7 @@ export interface EnemyOptions {
   baseStats?: Partial<IEnemyStats>
   /** Multiplicadores por stat que se aplican al final del calculo. */
   classMultipliers?: EnemyClassMultipliers
+  enrageThreshold?: number | null
 }
 
 export abstract class Enemy extends Character implements ICombatant {
@@ -92,12 +93,14 @@ export abstract class Enemy extends Character implements ICombatant {
   public statusEffects: IStatusEffect[] = [];
   public attackPatterns: EnemyAction[] = [];
   public baseStats: IEnemyStats
+  public enrageThreshold: number | null
 
   constructor(opts: EnemyOptions) {
     super(opts.id, opts.name, opts.level ?? 1, opts.maxHealth)
     this.experienceReward = opts.experienceReward
     this.goldReward = opts.goldReward
     this.critChance = opts.critChance ?? 5
+    this.enrageThreshold = opts.enrageThreshold ?? null
     const stats = opts.baseStats ?? {}
     const defaultStat = (value: number): IStat => ({
       value,
@@ -194,21 +197,13 @@ export abstract class Enemy extends Character implements ICombatant {
     return Math.floor(scaled * multiplier)
   }
 
-  /**
-   * Override de `Character.takeDamage` que dispara el auto-buff `enraged`
-   * (Bloque D Tier 3) cuando el enemigo cae por debajo del 50% HP.
-   *
-   * Solo se aplica una vez por combate (chequea si ya tiene el buff), y
-   * solo si sigue vivo despues del golpe. Los enemigos que no implementen
-   * `enraged` en su AI (ej. dragon que tiene su propio comportamiento)
-   * pueden overridear este metodo y llamar `super` para saltarselo.
-   */
   public override takeDamage(amount: number, opts?: { damageType?: string }): void {
     super.takeDamage(amount, opts)
     if (
-      this.isAlive
+      this.enrageThreshold !== null
+      && this.isAlive
       && !this.hasStatusEffect(StatusEffects.ENRAGED.type)
-      && this.getHealthPercentage() < 50
+      && this.getHealthPercentage() < this.enrageThreshold
     ) {
       const template = StatusEffects.ENRAGED
       this.addStatusEffect({ ...template, turns: template.turns })

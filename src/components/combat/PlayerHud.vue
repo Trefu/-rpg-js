@@ -22,6 +22,12 @@ const energyPercent = computed(() => {
   return Math.max(0, Math.min(100, (props.player.energy / props.player.maxEnergy) * 100))
 })
 
+const heroismPercent = computed(() => {
+  const max = (props.player as any)?.maxHeroism
+  if (!props.player || !max) return 0
+  return Math.max(0, Math.min(100, (((props.player as any).heroism ?? 0) / max) * 100))
+})
+
 const hpDisplay = computed(() => {
   if (!props.player) return '0/0'
   return `${props.player.health}/${props.player.maxHealth}`
@@ -30,6 +36,19 @@ const hpDisplay = computed(() => {
 const energyDisplay = computed(() => {
   if (!props.player) return '0/0'
   return `${props.player.energy ?? 0}/${props.player.maxEnergy ?? 0}`
+})
+
+const heroismDisplay = computed(() => {
+  if (!props.player) return '0/0'
+  return `${Math.floor((props.player as any).heroism ?? 0)}/${(props.player as any).maxHeroism ?? 100}`
+})
+
+const isUltimateReady = computed(() => {
+  const hero = props.player as any
+  if (!hero) return false
+  return typeof hero.canUseUltimate === 'function'
+    ? hero.canUseUltimate()
+    : (hero.heroism ?? 0) >= (hero.maxHeroism ?? 100)
 })
 
 const playerName = computed(() => props.player?.name ?? 'Heroe')
@@ -100,6 +119,16 @@ onBeforeUnmount(() => {
             <span class="resource-bar-fill bar-energy" :style="{ width: `${energyPercent}%` }"></span>
           </span>
           <span class="resource-value">{{ energyDisplay }}</span>
+        </div>
+        <div class="resource-line heroism-line">
+          <span class="resource-bar-track">
+            <span
+              class="resource-bar-fill bar-heroism"
+              :class="{ 'bar-heroism--ready': isUltimateReady }"
+              :style="{ width: `${heroismPercent}%` }"
+            ></span>
+          </span>
+          <span class="resource-value resource-value-heroism">{{ heroismDisplay }}</span>
         </div>
       </div>
       <transition-group name="hud-hit" tag="div" class="hud-hit-container">
@@ -247,6 +276,26 @@ onBeforeUnmount(() => {
 
 .resource-bar-fill.bar-energy {
   background: linear-gradient(90deg, #40c4ff, #82b1ff);
+}
+
+.resource-bar-fill.bar-heroism {
+  background: linear-gradient(90deg, #ffd54f, #ff9f1c);
+  box-shadow: inset 0 0 6px rgba(255, 215, 0, 0.6);
+}
+
+.resource-bar-fill.bar-heroism--ready {
+  background: linear-gradient(90deg, #fff176, #ffb300, #ff6f00);
+  animation: heroismGlow 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes heroismGlow {
+  from { box-shadow: 0 0 4px rgba(255, 215, 0, 0.6), inset 0 0 6px rgba(255, 215, 0, 0.6); }
+  to   { box-shadow: 0 0 12px rgba(255, 215, 0, 1), inset 0 0 10px rgba(255, 215, 0, 0.9); }
+}
+
+.resource-value-heroism {
+  color: #ffe066;
+  text-shadow: 0 0 4px rgba(255, 200, 0, 0.6);
 }
 
 .resource-value {

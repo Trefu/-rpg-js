@@ -3,7 +3,8 @@ import {
   ClericBasicAttack,
   ClericRadiantStrike,
   ClericHeal,
-  ClericDivineSmite
+  ClericDivineSmite,
+  ClericUltimate
 } from '../abilities/Abilities'
 import clericSprite from '@/assets/sprites/heroes/cleric.png'
 
@@ -30,6 +31,7 @@ export class Cleric extends Hero {
     cleric.learnAbility(ClericRadiantStrike)
     cleric.learnAbility(ClericDivineSmite)
     cleric.learnAbility(ClericHeal)
+    cleric.learnAbility(ClericUltimate)
     return cleric
   }
 }

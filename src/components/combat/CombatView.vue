@@ -74,6 +74,7 @@ const {
   defenseClouded,
   defenseRooted,
   defenseRootedOverlay,
+  defenseBlinded,
   openAbilitiesModal,
   closeAbilitiesModal,
   selectAbility,
@@ -436,6 +437,7 @@ onUnmounted(() => {
       :clouded="defenseClouded"
       :rooted="defenseRooted"
       :rooted-overlay="defenseRootedOverlay"
+      :blinded="defenseBlinded"
       @phase-complete="onDefensePhaseComplete"
       @all-phases-complete="onDefenseAllPhasesComplete"
       @close="onDefenseClose"
