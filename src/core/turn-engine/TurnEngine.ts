@@ -23,15 +23,17 @@ export const STUN_EFFECT_TYPE = 'stun'
 /**
  * Tipos de status effect que causan "skip turno" en el motor de turnos.
  * El actor aparece en la cola de proximos turnos pero su entrada se marca
- * como `'skip'` en vez de `'act'`. Inicialmente solo `stun`; `rooted`
- * (Bloque B Tier 1) se suma para tener variedad de CC con misma mecanica.
+ * como `'skip'` en vez de `'act'`. Set canonico: `stun` y `horror`.
+ *
+ * NOTA: `rooted` NO entra aca porque dejo de skipear el turno: es un soft
+ * CC que solo impide bloquear durante el desafio de defensa (ver
+ * `DefenseChallenge.rooted` y `StatusEffects.ROOTED.defenseOverlay`).
  *
  * Cualquier nuevo CC que comparta la mecanica "skip turno" debe agregarse
  * aca para que `predictNextTurns` lo detecte.
  */
 export const SKIP_TURN_EFFECT_TYPES: ReadonlySet<string> = new Set([
   STUN_EFFECT_TYPE,
-  'rooted',
   'horror'
 ])
 
@@ -163,7 +165,6 @@ export function predictNextTurns(
     out.push({
       actorId: best.id,
       kind: best.activeEffectTypes.has(STUN_EFFECT_TYPE)
-        || best.activeEffectTypes.has('rooted')
         || best.activeEffectTypes.has('horror')
         ? 'skip'
         : 'act'

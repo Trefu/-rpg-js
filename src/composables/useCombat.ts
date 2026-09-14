@@ -279,6 +279,8 @@ const isProcessingDot = ref(false)
   const defenseEnemyId = ref<string | null>(null)
   const defenseIsCrit = ref(false)
   const defenseClouded = ref(false)
+  const defenseRooted = ref(false)
+  const defenseRootedOverlay = ref<string | null>(null)
   let pendingDefenseResolve: ((result: DefenseChallengeResult | null) => void) | null = null
   let pendingDefensePattern: DefensePatternConfig | null = null
   let pendingDefenseEnemy: IEnemy | null = null
@@ -337,6 +339,12 @@ const isProcessingDot = ref(false)
       defenseEnemyId.value = enemy.id
       defenseIsCrit.value = crit.isCrit
       defenseClouded.value = typeof target.hasStatusEffect === 'function' && target.hasStatusEffect('clouded')
+      defenseRooted.value = typeof target.hasStatusEffect === 'function' && target.hasStatusEffect('rooted')
+      defenseRootedOverlay.value = (() => {
+        if (!defenseRooted.value) return null
+        const fx = target.statusEffects.find(e => e.type === 'rooted')
+        return fx?.defenseOverlay ?? null
+      })()
       isDefenseActive.value = true
     })
   }
@@ -474,6 +482,8 @@ const isProcessingDot = ref(false)
     defenseEnemyId.value = null
     defenseIsCrit.value = false
     defenseClouded.value = false
+    defenseRooted.value = false
+    defenseRootedOverlay.value = null
   }
 
   function resetAbilityCooldowns() {
@@ -980,8 +990,7 @@ const isProcessingDot = ref(false)
     // Log diferenciado por tipo de CC. Mantiene compatibilidad con stun
     // (mensaje previo) y suma rooted/horror.
     let skipLabel: string
-    if (effectType === StatusEffects.ROOTED.type) skipLabel = 'enraizado y pierde su turno'
-    else if (effectType === StatusEffects.HORROR.type) skipLabel = 'aterrorizado y pierde su turno'
+    if (effectType === StatusEffects.HORROR.type) skipLabel = 'aterrorizado y pierde su turno'
     else skipLabel = 'aturdido y pierde su turno'
     addToLog(`${actor.name} está ${skipLabel}.`)
     showAnnouncement(`${actor.name} pierde su turno`, 'status', 1400)
@@ -1746,6 +1755,8 @@ const isProcessingDot = ref(false)
     defenseEnemyId,
     defenseIsCrit,
     defenseClouded,
+    defenseRooted,
+    defenseRootedOverlay,
     handleDefensePhaseComplete,
     handleDefenseAllPhasesComplete,
     closeDefenseChallenge,

@@ -72,6 +72,8 @@ const {
   defensePhaseIndex,
   defenseIsCrit,
   defenseClouded,
+  defenseRooted,
+  defenseRootedOverlay,
   openAbilitiesModal,
   closeAbilitiesModal,
   selectAbility,
@@ -432,6 +434,8 @@ onUnmounted(() => {
       :phase-index="defensePhaseIndex"
       :is-crit="defenseIsCrit"
       :clouded="defenseClouded"
+      :rooted="defenseRooted"
+      :rooted-overlay="defenseRootedOverlay"
       @phase-complete="onDefensePhaseComplete"
       @all-phases-complete="onDefenseAllPhasesComplete"
       @close="onDefenseClose"

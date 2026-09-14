@@ -18,6 +18,7 @@ import markIcon from '@/assets/icons/crosshair.png'
 import blindedIcon from '@/assets/icons/blindfold.png'
 import spellReflectIcon from '@/assets/icons/mirror-mirror.png'
 import rootedIcon from '@/assets/icons/root-tip.png'
+import enrootedOverlay from '@/assets/sprites/VFX/enrooted.png'
 import furyIcon from '@/assets/icons/enrage.png'
 import vulnerableIcon from '@/assets/icons/spiked-shield.png'
 import resistFireIcon from '@/assets/icons/fire-shield.png'
@@ -393,20 +394,27 @@ export class StatusEffects {
   })()
 
   /**
-   * "Enraizado": hard CC variante de stun. Misma mecánica (skip turno),
-   * distinto sabor: la diferencia visual/iconografica lo hace reconocible
-   * en el HUD. Dura 1 turno. Aplica tanto a jugadores como a enemigos.
+   * "Enraizado": soft CC que NO skipea el turno (el portador sigue
+   * pudiendo atacar y gastar energía), pero NO puede bloquear en el
+   * desafio de defensa: el `DefenseChallenge` detecta el flag y aplica
+   * un timeout de 1s + overlay visual sobre la barra indicando que el
+   * bloqueo es imposible. Dura 1 turno (consumido al defender una vez).
+   *
+   * Aplica a jugadores (caso principal) y enemigos (Dummy AI lo ignora
+   * ya que no defiende). Visualmente el HUD muestra la imagen
+   * `enrooted.png` superpuesta a la barra de defensa.
    */
   static readonly ROOTED: IStatusEffect = {
     type: 'rooted',
     name: 'Enraizado',
-    description: 'El personaje está sujeto al suelo y no puede actuar este turno.',
-    descriptionOnPlayer: 'Raíces brotan de tus pies: no puedes moverte ni atacar este turno.',
-    descriptionOnEnemy: 'Raíces brotan a sus pies: no puede actuar este turno.',
-    turns: 1,
+    description: 'Raíces brotan a tus pies: no puedes bloquear este turno.',
+    descriptionOnPlayer: 'Raíces brotan de tus pies: no puedes bloquear este turno.',
+    descriptionOnEnemy: 'Raíces brotan a sus pies: no puede bloquear este turno.',
+    turns: 2,
     icon: rootedIcon,
     isBuff: false,
-    turnLabel: '¡Está enraizado y pierde su turno!',
+    turnLabel: '¡Raíces le impiden bloquear!',
+    defenseOverlay: enrootedOverlay,
     announceOnTurn: true
   }
 

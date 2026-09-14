@@ -179,6 +179,16 @@ export interface IStatusEffect {
    * Pensado para buffs que el jugador quiere mantener activos (ej. Second Wind).
    */
   threatModifier?: number
+  /**
+   * Imagen (URL) que el `DefenseChallenge` muestra superpuesta a la barra
+   * de defensa mientras este efecto esta activo sobre el heroe que defiende.
+   * La imagen se adapta al ancho de la barra (objet-fit: contain) para
+   * funcionar en distintas resoluciones.
+   *
+   * Pensado para CC suaves que afectan el desafio de defensa sin skipear
+   * el turno (ej. `rooted`: el heroe puede atacar pero no puede bloquear).
+   */
+  defenseOverlay?: string
 }
 
 /**

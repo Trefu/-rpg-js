@@ -225,6 +225,36 @@ export const GUST_OF_FOG: DefensePatternConfig = {
 registerEnemyAttack(GUST_OF_FOG)
 
 /**
+ * Ataque Enredador: las vides del enemigo brotan del suelo y envuelven
+ * los pies del heroe. Al fallar el bloqueo, el heroe queda "Enraizado"
+ * durante 1 turno completo: NO pierde el turno (sigue pudiendo atacar
+ * y gastar skills), pero el `DefenseChallenge` le muestra la imagen
+ * `enrooted.png` sobre la barra y un timeout fijo de 1s que vuelve
+ * la fase automaticamente un fail.
+ *
+ * `maxDuration: 1` evita que `applyFailureEffect` use el default DoT
+ * (3 turnos); el efecto vive exactamente lo que dura el proximo turno
+ * del heroe.
+ *
+ * Fisico (escalado con `body`) porque son vides que atenazan, no un
+ * hechizo elemental — la defensa aplica `defense()` del heroe.
+ */
+export const ENTANGLE: DefensePatternConfig = {
+    name: 'Ataque Enredador',
+    type: 'physical',
+    damageType: 'physical',
+    waveSpeed: 40,
+    baseMaxBlockReduction: 0.5,
+    damageMultiplier: 0.9,
+    phases: [phase(4), phase(4)],
+    onFailureEffect: {
+        statusType: 'rooted',
+        stacks: 2
+    }
+}
+registerEnemyAttack(ENTANGLE)
+
+/**
  * Rugido del Dragon: ability AOE del Dragon Ancestral. NO usa defense
  * challenge — es un AoE puro que golpea a todos los heroes vivos con
  * el mismo daño final (con crit ya aplicado). Smoke test del sistema
