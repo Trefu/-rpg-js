@@ -68,7 +68,11 @@ export class Dummy extends Enemy implements IEnemy {
     }
   }
 
-  public override takeDamage(amount: number): void {
+  public override takeDamage(amount: number, opts?: { damageType?: string }): void {
+    // Dummy ignora damageType y resistances (no recibe daño real en training).
+    // Solo aplica el multiplicador de daño entrante del caster via opts si existe,
+    // pero como Dummy NO muere ni pierde HP por debajo de 1, no tiene efecto.
+    void opts
     this.health = Math.max(1, this.health - amount)
     this.isAlive = true
   }

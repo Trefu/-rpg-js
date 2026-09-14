@@ -1,6 +1,6 @@
 import type { IStatusEffect, DefenseEffectSide, DefenseContribution } from '../interfaces/IStatusEffect'
 import type { AttackType, DefenseBlockEffect } from './types'
-import { canonicalDamageType, MIND_SCALED_TYPES } from '../combat/damageTypes'
+import { canonicalDamageType, MIND_SCALED_TYPES, type DamageTypeId } from '../combat/damageTypes'
 
 export interface DefenseModifiers {
   waveSpeedMultiplier: number
@@ -8,6 +8,26 @@ export interface DefenseModifiers {
   phaseCountReduction: number
   blockReductionBonus: number
   counterAttackFraction: number
+  /**
+   * Multiplicador de daño saliente del portador (caster del ataque).
+   * Base: `1.0`. Cada efecto de tipo `attackDamageMultiplier` suma su delta
+   * (ej. `+0.25` → `1.25`). Aplicado en `rollAndApplyDamage` /
+   * `calculatePhaseDamage` via `getOutgoingDamageMultiplier`.
+   */
+  attackDamageMultiplier: number
+  /**
+   * Multiplicador de daño entrante del portador (target del ataque).
+   * Base: `1.0`. Cada efecto de tipo `damageTakenMultiplier` suma su delta
+   * (ej. `+0.25` → `1.25`). Aplicado en `takeDamage` via
+   * `getIncomingDamageMultiplier`.
+   */
+  damageTakenMultiplier: number
+  /**
+   * Reducciones de daño entrante por tipo elemental. Cada entrada es la
+   * fraccion a restar (ej. `{ fire: 0.4 }` = -40% daño fire). Se acumulan
+   * entre efectos activos con cap en `MAX_PER_TYPE_RESISTANCE`.
+   */
+  damageTypeResistances: Partial<Record<DamageTypeId, number>>
   /**
    * Efecto de bloqueo sobreescrito por perks/equipo/clase.
    * Si esta presente, reemplaza al `onBlockEffect` del patron.
@@ -25,7 +45,10 @@ export const DEFAULT_DEFENSE_MODIFIERS: DefenseModifiers = {
   successZoneSizeBonus: 0,
   phaseCountReduction: 0,
   blockReductionBonus: 0,
-  counterAttackFraction: 0
+  counterAttackFraction: 0,
+  attackDamageMultiplier: 1.0,
+  damageTakenMultiplier: 1.0,
+  damageTypeResistances: {}
 }
 
 export interface PlayerLikeForDefense {
@@ -45,6 +68,13 @@ export interface EnemyLikeForDefense {
 
 /** Tipos de daño que se consideran mágicos para la elección de stat. */
 const MAGIC_DAMAGE_TYPES: ReadonlySet<string> = MIND_SCALED_TYPES
+
+/**
+ * Cap superior por tipo elemental de la resistencia acumulada de un target.
+ * Evita que el stacking de buffs lleve a un personaje a ser invulnerable a
+ * un tipo de daño (ej. 3 buffs de "Resistencia al Fuego 40%" = 120% → cap 75%).
+ */
+export const MAX_PER_TYPE_RESISTANCE = 0.75
 
 /**
  * Indica si un `damageType` representa daño mágico (se reduce con `mind`).
@@ -84,6 +114,20 @@ function applyDefenseContributions(
     if (typeof contribution.blockReductionBonus === 'number') {
       modifiers.blockReductionBonus += contribution.blockReductionBonus
     }
+    if (typeof contribution.attackDamageMultiplier === 'number') {
+      modifiers.attackDamageMultiplier += contribution.attackDamageMultiplier
+    }
+    if (typeof contribution.damageTakenMultiplier === 'number') {
+      modifiers.damageTakenMultiplier += contribution.damageTakenMultiplier
+    }
+    if (contribution.damageTypeResistances) {
+      for (const [type, fraction] of Object.entries(contribution.damageTypeResistances)) {
+        if (typeof fraction !== 'number' || fraction <= 0) continue
+        const id = type as DamageTypeId
+        const current = modifiers.damageTypeResistances[id] ?? 0
+        modifiers.damageTypeResistances[id] = Math.min(MAX_PER_TYPE_RESISTANCE, current + fraction)
+      }
+    }
   }
 }
 
@@ -110,7 +154,10 @@ export function getDefenseModifiers(
   enemy?: EnemyLikeForDefense | null,
   damageType?: AttackType | string | null
 ): DefenseModifiers {
-  const modifiers: DefenseModifiers = { ...DEFAULT_DEFENSE_MODIFIERS }
+  const modifiers: DefenseModifiers = {
+    ...DEFAULT_DEFENSE_MODIFIERS,
+    damageTypeResistances: { ...DEFAULT_DEFENSE_MODIFIERS.damageTypeResistances }
+  }
 
   // TODO: mapear más stats del jugador a modifiers (fuerza → blockReductionBonus?,
   // destreza → successZoneSizeBonus?, etc.). Por ahora solo status effects + defensa.
@@ -128,6 +175,8 @@ export function getDefenseModifiers(
   if (modifiers.waveSpeedMultiplier > 2.0) modifiers.waveSpeedMultiplier = 2.0
   if (modifiers.successZoneSizeBonus < 0) modifiers.successZoneSizeBonus = 0
   if (modifiers.phaseCountReduction < 0) modifiers.phaseCountReduction = 0
+  if (modifiers.attackDamageMultiplier < 0.25) modifiers.attackDamageMultiplier = 0.25
+  if (modifiers.damageTakenMultiplier < 0.25) modifiers.damageTakenMultiplier = 0.25
 
   return modifiers
 }

@@ -10,6 +10,7 @@ import { getItemOrThrow } from '@/core/items/items'
 import { consumeItem, getInventoryEntries, type InventoryEntry } from '@/core/items/inventory'
 import { StatusEffects, applyFailureEffect } from '@/core/StatusEffects'
 import { applyDamageVariance } from '@/core/abilities/Abilities'
+import type { DamageTypeId } from '@/core/combat/damageTypes'
 import { DEFAULT_IMPACT_VFX, resolveFailureVfx } from '@/core/defense/failureVfx'
 import type {
   DefenseChallengeResult,
@@ -53,6 +54,16 @@ const DOT_KIND_LABEL: Record<string, string> = {
   [StatusEffects.BURN.type]: 'fuego',
   [StatusEffects.POISON.type]: 'veneno',
   [StatusEffects.FREEZE.type]: 'frío'
+}
+
+// Tipo elemental del daño que aplica cada DoT al portador. Usado por
+// `Character.takeDamage({ damageType })` para que las resistencias
+// elementales se apliquen tambien al dano por tiempo (ej. Resistencia al
+// Fuego reduce Quemadura, Resistencia al Agua reduce Congelado).
+const DOT_DAMAGE_TYPE: Record<string, DamageTypeId | undefined> = {
+  [StatusEffects.BURN.type]: 'fire',
+  [StatusEffects.POISON.type]: 'poison',
+  [StatusEffects.FREEZE.type]: 'water'
 }
 
 export interface CombatConfig {
@@ -295,7 +306,7 @@ const isProcessingDot = ref(false)
 
       if (result.outcome === 'success') {
         const blockedDmg = Math.floor(phaseDamage / 2)
-        target.takeDamage(blockedDmg)
+        target.takeDamage(blockedDmg, { damageType: pattern.damageType })
         showPlayerHit(blockedDmg, { heroId: target.id, variant: 'blocked' })
         audioManager.playBlockSound()
         if (typeof target.restoreEnergy === 'function') {
@@ -305,7 +316,7 @@ const isProcessingDot = ref(false)
         addToLog(`Bloqueaste el golpe. Recibes ${blockedDmg} de daño.`)
       } else {
         const dmg = Math.max(1, phaseDamage)
-        target.takeDamage(dmg)
+        target.takeDamage(dmg, { damageType: pattern.damageType })
         showPlayerHit(dmg, { heroId: target.id, isCrit: wasCrit, variant: wasCrit ? 'crit' : 'damage' })
         showHeroVfx(target.id, resolveFailureVfx(pattern, wasCrit, defensePhaseIndex.value))
         if (pattern.customSound) audioManager.playCustomSound(pattern.customSound)
@@ -1141,8 +1152,31 @@ const isProcessingDot = ref(false)
         await delay(BANNER_LEAD_IN)
         playDotSfx(effect.type)
         audioManager.playHitSound()
-        p.takeDamage(dmg)
+        p.takeDamage(dmg, { damageType: DOT_DAMAGE_TYPE[effect.type] })
         showPlayerHit(dmg, { heroId: p.id })
+
+        // damagePerTurn es un delta FIJO independiente del stack-count.
+        // Si esta definido, se aplica DESPUES del tick por stacks (asi un
+        // efecto con stacks=1 + damagePerTurn=3 hace 1+3=4 por turno).
+        // Soporta valores negativos para representar HOT (heal por turno):
+        // ej. `Regeneracion` con damagePerTurn=-5 cura 5 HP al portador.
+        const dpt = effect.damagePerTurn
+        if (typeof dpt === 'number' && dpt !== 0) {
+          if (dpt > 0) {
+            p.takeDamage(dpt, { damageType: DOT_DAMAGE_TYPE[effect.type] })
+            showPlayerHit(dpt, { heroId: p.id, variant: 'damage' })
+            addToLog(`${effect.name}: +${dpt} de daño extra por turno.`)
+          } else {
+            const before = p.health
+            p.heal(-dpt)
+            const restored = p.health - before
+            if (restored > 0) {
+              showPlayerHit(restored, { heroId: p.id, variant: 'heal' })
+              addToLog(`${effect.name}: curas ${restored} HP.`)
+            }
+          }
+        }
+
         await delay(BANNER_TOTAL - BANNER_LEAD_IN)
       }
     } finally {
@@ -1235,7 +1269,8 @@ const isProcessingDot = ref(false)
   async function applyHeroSplash(
     spec: NonNullable<IAbility['randomAttack']>,
     primaryTargetId: string,
-    primaryBaseDamage: number
+    primaryBaseDamage: number,
+    damageType?: DamageTypeId | string
   ) {
     const candidates = enemies.value.filter(e => e.isAlive && e.id !== primaryTargetId)
     if (candidates.length === 0) return
@@ -1249,10 +1284,11 @@ const isProcessingDot = ref(false)
     // nominal sea pequeño (ej. base 4 → rango real 3-4, no siempre 4).
     const splashBase = Math.max(0, primaryBaseDamage * spec.damageMultiplier)
     if (splashBase <= 0) return
+    const splashType = damageType ?? 'holy'
     for (const enemy of extras) {
       const splashDamage = applyDamageVariance(splashBase)
       if (splashDamage <= 0) continue
-      enemy.takeDamage(splashDamage)
+      enemy.takeDamage(splashDamage, { damageType: splashType })
       showEnemyHit(enemy.id, splashDamage)
       audioManager.playAttackSound()
       audioManager.playHitSound()
@@ -1295,7 +1331,7 @@ const isProcessingDot = ref(false)
     attackedHeroIds.value = [...baseIds, ...extras.map(h => h.id)]
     for (const hero of extras) {
       const dmg = Math.max(0, baseDmg)
-      hero.takeDamage(dmg)
+      hero.takeDamage(dmg, { damageType: 'physical' })
       showPlayerHit(dmg, { heroId: hero.id })
       showHeroVfx(hero.id, DEFAULT_IMPACT_VFX)
       audioManager.playAttackSound()
@@ -1321,14 +1357,16 @@ const isProcessingDot = ref(false)
   async function applyHeroAoe(
     primaryTargetId: string | null,
     finalDamage: number,
-    animationDelay: number = 1500
+    animationDelay: number = 1500,
+    damageType?: DamageTypeId | string
   ) {
     if (finalDamage <= 0) return
     const targets = enemies.value.filter(e => e.isAlive)
     if (targets.length === 0) return
+    const aoeType = damageType ?? 'physical'
     await Promise.all(
       targets.map(async enemy => {
-        enemy.takeDamage(finalDamage)
+        enemy.takeDamage(finalDamage, { damageType: aoeType })
         showEnemyHit(enemy.id, finalDamage)
         addToLog(
           primaryTargetId !== null && enemy.id === primaryTargetId
@@ -1377,7 +1415,7 @@ const isProcessingDot = ref(false)
       }
 
       if (ability.randomAttack && typeof abilityContext.lastPrimaryBaseDamage === 'number') {
-        await applyHeroSplash(ability.randomAttack, target.id, abilityContext.lastPrimaryBaseDamage)
+        await applyHeroSplash(ability.randomAttack, target.id, abilityContext.lastPrimaryBaseDamage, ability.damageType)
       }
 
       if (ability.aoe && typeof abilityContext.lastPrimaryFinalDamage === 'number') {
@@ -1388,7 +1426,7 @@ const isProcessingDot = ref(false)
          * `target.id` identifica al primario en el log).
          */
         const primaryId = ability.requiresTarget === false ? null : target?.id ?? null
-        await applyHeroAoe(primaryId, abilityContext.lastPrimaryFinalDamage, animationDelay)
+        await applyHeroAoe(primaryId, abilityContext.lastPrimaryFinalDamage, animationDelay, ability.damageType)
       }
     }
 

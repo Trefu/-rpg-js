@@ -1,6 +1,7 @@
 import type { IAbility, DamageType, AbilityDamagePreview, VfxEffect } from '@/core/interfaces/IAbility'
 import type { AbilityContext } from '@/core/interfaces/IAbility'
 import { getDamageTypeLabel, getDamageTypeInfo, type DamageTypeId } from '../combat/damageTypes'
+import { getOutgoingDamageMultiplier } from '../combat/damageModifiers'
 import type { Hero } from '../Hero'
 import { StatusEffects, DOT_STATUS_TYPES } from '../StatusEffects'
 import type { CritResult } from '../crit'
@@ -96,10 +97,16 @@ const rollAndApplyDamage = (
     if (baseDamage <= 0) {
         return { finalDamage: 0, crit: { multiplier: 1, isCrit: false, isOvercrit: false }, baseDamage: 0 }
     }
+    // Buffs/debuffs que afectan el daño saliente del caster (ej. STRENGTH_BOOST
+    // sube +25%). El multiplicador se aplica SOBRE el base post-varianza y
+    // ANTES del critico: asi el critico escala tambien el buff (un crit de un
+    // ataque buffado sigue pegando fuerte).
+    const outgoingMult = getOutgoingDamageMultiplier(caster.statusEffects)
+    const scaledDamage = Math.floor(baseDamage * outgoingMult)
     const crit = caster.rollCrit()
     const finalDamage = crit.isCrit
-        ? Math.floor(baseDamage * crit.multiplier)
-        : baseDamage
+        ? Math.floor(scaledDamage * crit.multiplier)
+        : scaledDamage
     return { finalDamage, crit, baseDamage }
 }
 
@@ -171,7 +178,7 @@ const executeBasicAttack = async (context: AbilityContext) => {
     if (finalDamage > 0) {
       const hitVfx = resolveVfxForHit(hitIndex, hitVfxList)
       if (hitVfx) context.playEnemyVfx?.(target.id, hitVfx)
-      target.takeDamage(finalDamage)
+      target.takeDamage(finalDamage, { damageType: ability?.damageType })
       context.showEnemyHit(target.id, finalDamage, crit.isCrit)
       playAbilitySfx(context.audioManager, ability)
       setTimeout(() => context.audioManager.playHitSound(), 150)
@@ -354,7 +361,7 @@ export const StunStrike: IAbility = {
         const rawDamage = (caster.baseStats.body.value * 0.7 + caster.level * 0.5) * 0.8
         const { finalDamage, crit } = rollAndApplyDamage(caster, rawDamage)
         if (finalDamage > 0) {
-            target.takeDamage(finalDamage)
+            target.takeDamage(finalDamage, { damageType: context.ability?.damageType })
             context.showEnemyHit(target.id, finalDamage, crit.isCrit)
             playAbilitySfx(context.audioManager, context.ability)
         }
@@ -389,7 +396,7 @@ export const StealthStrike: IAbility = {
         const rawDamage = (caster.baseStats.body.value * 0.7 + caster.level * 0.5) * 1.5
         const { finalDamage, crit } = rollAndApplyDamage(caster, rawDamage)
         if (finalDamage > 0) {
-            target.takeDamage(finalDamage)
+            target.takeDamage(finalDamage, { damageType: context.ability?.damageType })
             context.showEnemyHit(target.id, finalDamage, crit.isCrit)
             playAbilitySfx(context.audioManager, context.ability)
         }
@@ -424,7 +431,7 @@ export const Fireball: IAbility = {
         const rawDamage = caster.baseStats.mind.value * 2.0 + caster.level * 1.5
         const { finalDamage, crit } = rollAndApplyDamage(caster, rawDamage)
         if (finalDamage > 0) {
-            target.takeDamage(finalDamage)
+            target.takeDamage(finalDamage, { damageType: context.ability?.damageType })
             context.showEnemyHit(target.id, finalDamage, crit.isCrit)
             playAbilitySfx(context.audioManager, context.ability)
         }
@@ -460,7 +467,7 @@ export const WarriorInjuringStrike: IAbility = {
         const rawDamage = caster.baseStats.body.value * 0.7 + caster.level * 0.5
         const { finalDamage, crit } = rollAndApplyDamage(caster, rawDamage)
         if (finalDamage > 0) {
-            target.takeDamage(finalDamage)
+            target.takeDamage(finalDamage, { damageType: context.ability?.damageType })
             context.showEnemyHit(target.id, finalDamage, crit.isCrit)
             playAbilitySfx(context.audioManager, context.ability)
         }
@@ -603,7 +610,7 @@ export const ClericRadiantStrike: IAbility = {
         const { finalDamage, crit } = rollAndApplyDamage(caster, baseDamage)
         context.lastPrimaryBaseDamage = baseDamage
         if (finalDamage > 0) {
-            target.takeDamage(finalDamage)
+            target.takeDamage(finalDamage, { damageType: context.ability?.damageType })
             context.showEnemyHit(target.id, finalDamage, crit.isCrit)
             playAbilitySfx(context.audioManager, context.ability)
         }
@@ -638,7 +645,7 @@ export const ClericDivineSmite: IAbility = {
         const rawDamage = caster.baseStats.mind.value * 3.0 + caster.level * 2.5
         const { finalDamage, crit } = rollAndApplyDamage(caster, rawDamage)
         if (finalDamage > 0) {
-            target.takeDamage(finalDamage)
+            target.takeDamage(finalDamage, { damageType: context.ability?.damageType })
             context.showEnemyHit(target.id, finalDamage, crit.isCrit)
             playAbilitySfx(context.audioManager, context.ability)
         }

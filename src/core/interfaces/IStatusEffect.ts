@@ -50,6 +50,24 @@ export interface DefenseContribution {
   successZoneSizeBonus?: number
   /** Delta a sumar al bonus de reduccion de bloqueo. */
   blockReductionBonus?: number
+  /**
+   * Delta aditivo al multiplicador de daño saliente del portador.
+   * Ej. `+0.25` sobre el base `1.0` → final `1.25` (caster hace +25% daño).
+   * Aplicado en `getOutgoingDamageMultiplier` (combat/damageModifiers.ts).
+   */
+  attackDamageMultiplier?: number
+  /**
+   * Delta aditivo al multiplicador de daño entrante del portador.
+   * Ej. `+0.25` sobre el base `1.0` → final `1.25` (target recibe +25% daño).
+   * Aplicado en `getIncomingDamageMultiplier` (combat/damageModifiers.ts).
+   */
+  damageTakenMultiplier?: number
+  /**
+   * Reduccion de dano entrante POR TIPO (en fraccion: 0.4 = -40% dano de ese tipo).
+   * Si multiples efectos aportan resistencia al mismo tipo, se suman y se
+   * clampean al MAX_PER_TYPE_RESISTANCE definido en damageModifiers.ts.
+   */
+  damageTypeResistances?: Partial<Record<import('../combat/damageTypes').DamageTypeId, number>>
 }
 
 export type DefenseContributionFn = (

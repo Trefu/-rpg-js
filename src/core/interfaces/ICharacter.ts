@@ -3,8 +3,18 @@ import type { IAbility } from './IAbility'
 import type { DefensePatternConfig } from '../defense/types'
 import type { Hero } from '../Hero'
 import type { CritResult } from '../crit'
+import type { DamageTypeId } from '../combat/damageTypes'
 
 export type AttackPatternSelector = (player: ICharacter | null) => DefensePatternConfig
+
+export interface TakeDamageOptions {
+  /**
+   * Tipo elemental del daño entrante. Si se define, el `amount` se
+   * multiplica por `getIncomingDamageMultiplier(statusEffects, damageType)`
+   * (combina `damageTakenMultiplier` aditivo con resistencias elementales).
+   */
+  damageType?: DamageTypeId | string
+}
 
 export interface ICharacter {
   readonly id: string
@@ -20,7 +30,7 @@ export interface ICharacter {
   removeStatusEffect(effectType: string): void
   hasStatusEffect(type: string): boolean
   attack(): number
-  takeDamage(amount: number): void
+  takeDamage(amount: number, opts?: TakeDamageOptions): void
   heal(amount: number): void
   getHealthPercentage(): number
 }
@@ -48,7 +58,7 @@ export interface IEnemyStats {
 
 export interface ICombatant extends ICharacter {
   attack: () => number
-  takeDamage(amount: number): void
+  takeDamage(amount: number, opts?: TakeDamageOptions): void
   heal(amount: number): void
   statusEffects: IStatusEffect[]
 }

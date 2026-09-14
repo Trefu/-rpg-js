@@ -4,6 +4,7 @@ import type { IStatusEffect } from '../interfaces/IStatusEffect'
 import type { DefensePatternConfig } from '../defense/types'
 import type { Hero } from '../Hero'
 import { getScalingStat, getScalingCoefficient } from '../combat/damageTypes'
+import { getOutgoingDamageMultiplier } from '../combat/damageModifiers'
 import { computeDefense, computeMagicDefense } from '../defense/computeDefense'
 import { computeAgilityCritBonus, rollCritFromChance, type CritResult } from '../crit'
 import { applyDamageVariance } from '../abilities/Abilities'
@@ -24,9 +25,32 @@ export interface TargetScoreWeights {
  */
 export const ENEMY_STAT_GROWTH_PER_LEVEL = 0.5
 
-const FRIENDLY_DEBUFF_TYPES: ReadonlySet<string> = new Set([
+/**
+ * Set historico hardcoded de tipos considerados debuffs "agresivos" para
+ * el targeting de la IA (`countFriendlyDebuffs`). Mantenido solo como
+ * fallback defensivo: cualquier efecto nuevo con `isBuff: false` entra
+ * automaticamente al scoring via `isAggressiveDebuff` (definido mas abajo).
+ * Si en el futuro se quiere excluir un tipo concreto del targeting (ej.
+ * porque no encaja con la tematica "debuff penalizador"), basta con que
+ * el template lo marque `isBuff: false` y se excluya manualmente aqui.
+ */
+const LEGACY_FRIENDLY_DEBUFF_TYPES: ReadonlySet<string> = new Set([
   'injured', 'freeze', 'slow', 'weakness', 'poison', 'burn'
 ])
+
+/**
+ * Determina si un efecto cuenta como "debuff agresivo" para el scoring de
+ * targeting de la IA. Reglas:
+ *  - `isBuff === true` → no es debuff.
+ *  - `isBuff === false` o ausente → ES debuff (los DoTs y debuffs tradicionales
+ *    no tienen `isBuff` definido, asi que quedan incluidos por default).
+ *  - `stun` no cuenta: queremos que la IA NO priorize atacar heroes
+ *    aturdidos (ya estan fuera de combate un turno).
+ */
+export function isAggressiveDebuff(effect: IStatusEffect): boolean {
+  if (effect.type === 'stun') return false
+  return effect.isBuff !== true
+}
 
 /**
  * Multiplicadores por stat que dan "sabor" a cada clase de enemigo. Se
@@ -162,7 +186,11 @@ export abstract class Enemy extends Character implements ICombatant {
     // Varianza se aplica ANTES del multiplicador de critico para que el crit
     // escale un valor ya fluctuante (mismo criterio que en heroes).
     const variable = applyDamageVariance(finalDamage)
-    return Math.floor(variable * multiplier)
+    // Aplica buffs/debuffs propios del enemigo sobre su daño saliente
+    // (mismo helper que usan los heroes). Un Orc Enraged hara mas daño.
+    const outgoingMult = getOutgoingDamageMultiplier(this.statusEffects)
+    const scaled = Math.max(1, Math.floor(variable * outgoingMult))
+    return Math.floor(scaled * multiplier)
   }
 
   public rollCrit(): CritResult {
@@ -197,7 +225,16 @@ export abstract class Enemy extends Character implements ICombatant {
   }
 
   public reduceStatusEffects() {
-    this.statusEffects.forEach(e => e.turns--)
+    // Mismo contrato que Hero.reduceStatusEffects: los efectos basados en
+    // cargas (charges) se gobiernan por su propio mecanismo de consumo
+    // (ej. processPlayerOnBlockHooks para aliados, o logica equivalente para
+    // enemigos en el futuro), NUNCA por turnos. Sin este guard, un buff
+    // charge-based aplicado a un enemigo expiraria al final de su primer
+    // turno sin haberse consumido, lo que rompe la economia del efecto.
+    this.statusEffects.forEach(e => {
+      if (typeof e.charges === 'number') return
+      e.turns--
+    })
     this.removeExpiredStatusEffects()
   }
 
@@ -238,7 +275,15 @@ export abstract class Enemy extends Character implements ICombatant {
   }
 
   protected countFriendlyDebuffs(hero: Hero): number {
-    return hero.statusEffects.filter(e => e.turns > 0 && FRIENDLY_DEBUFF_TYPES.has(e.type)).length
+    // Auto-derivado de `isBuff: false` (via `isAggressiveDebuff`) mas el set
+    // legacy hardcoded. Esto garantiza que cualquier debuff nuevo (Tier 2/3)
+    // entre al scoring de targeting sin tocar este archivo: solo marcar
+    // `isBuff: false` en el template.
+    return hero.statusEffects.filter(e =>
+      e.turns > 0 && (
+        isAggressiveDebuff(e) || LEGACY_FRIENDLY_DEBUFF_TYPES.has(e.type)
+      )
+    ).length
   }
 
   protected sumThreatModifiers(hero: Hero): number {

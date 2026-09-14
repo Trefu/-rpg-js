@@ -12,6 +12,7 @@ import heartIcon from '@/assets/icons/heart-drop.png'
 import broomIcon from '@/assets/icons/broom.png'
 import sparklesIcon from '@/assets/icons/sparkles.png'
 import skullIcon from '@/assets/icons/skull-shield.png'
+import heartPlusIcon from '@/assets/icons/heart-drop.png'
 import cycleIcon from '@/assets/icons/cycle.png'
 import doorIcon from '@/assets/icons/door.png'
 import cancelIcon from '@/assets/icons/logic-gate-not.png'
@@ -123,6 +124,23 @@ const negativeStatusEffects = computed(() =>
     .map(type => StatusEffects.getByType(type))
     .filter((effect): effect is IStatusEffect =>
       effect !== null && effect.isBuff === false && !DOT_STATUS_TYPES.has(effect.type)
+    )
+    .map(effect => ({
+      type: effect.type,
+      label: effect.name,
+      description: effect.description ?? ''
+    }))
+)
+
+// Panel de buffs positivos: cualquier efecto con `isBuff: true`. Tras Bloque A
+// estos effects tienen impacto real (ej. STRENGTH_BOOST sube el daño saliente
+// +25%, DEFENSE_BOOST sube blockReductionBonus, etc.), por lo que son
+// directamente testeables desde la sala de entrenamiento.
+const positiveStatusEffects = computed(() =>
+  StatusEffects.getRegisteredTypes()
+    .map(type => StatusEffects.getByType(type))
+    .filter((effect): effect is IStatusEffect =>
+      effect !== null && effect.isBuff === true
     )
     .map(effect => ({
       type: effect.type,
@@ -485,6 +503,23 @@ function onTrainingEnded() {
             >
               <span class="pattern-label">{{ item.label }}</span>
               <span class="pattern-desc">{{ item.description }}</span>
+            </button>
+          </div>
+        </section>
+
+        <section class="panel-section">
+          <h3><img :src="heartPlusIcon" alt="" class="inline-icon" /> Estados Positivos (Buffs)</h3>
+          <p class="section-hint">Aplica buffs al heroe activo. Tras Bloque A: <strong>strength_boost</strong> +25% daño saliente, <strong>defense_boost</strong> +15% bloqueo, <strong>speed_boost</strong> onda lenta, <strong>weakness</strong> +25% daño entrante.</p>
+          <div class="pattern-scroll">
+            <button
+              v-for="status in positiveStatusEffects"
+              :key="status.type"
+              class="pattern-btn"
+              :disabled="!gameStore.activeHero"
+              @click="applyStatusToPlayer(status.type)"
+            >
+              <span class="pattern-label">{{ status.label }}</span>
+              <span class="pattern-desc">{{ status.description }}</span>
             </button>
           </div>
         </section>

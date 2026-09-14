@@ -98,11 +98,12 @@ export class StatusEffects {
   static readonly STRENGTH_BOOST: IStatusEffect = {
     type: 'strength_boost',
     name: 'Fuerza Aumentada',
-    description: 'Aumenta el ataque del personaje.',
+    description: 'Aumenta el daño infligido por el personaje en un 25%.',
     turns: 3,
     icon: strengthIcon,
     isBuff: true,
     turnLabel: '¡Su fuerza está aumentada!',
+    defenseContribution: () => ({ attackDamageMultiplier: 0.25 })
   }
 
   static readonly DEFENSE_BOOST: IStatusEffect = {
@@ -189,12 +190,13 @@ export class StatusEffects {
   static readonly WEAKNESS: IStatusEffect = {
     type: 'weakness',
     name: 'Debilitado',
-    description: 'Reduce el ataque del personaje.',
+    description: 'Aumenta el daño recibido por el personaje en un 25%.',
     turns: 2,
     icon: weaknessIcon,
     isBuff: false,
     turnLabel: '¡Está debilitado!',
-    announceOnTurn: true
+    announceOnTurn: true,
+    defenseContribution: () => ({ damageTakenMultiplier: 0.25 })
   }
 
   static readonly SLOW: IStatusEffect = {
