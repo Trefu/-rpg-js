@@ -157,7 +157,7 @@ export const TRIPLE_COMBO: DefensePatternConfig = {
     waveSpeed: 70,
     baseMaxBlockReduction: 0.4,
     damageMultiplier: 1.4,
-    phases: [phase(3), phase(3), phase(3)]
+    phases: [phase(4), phase(4), phase(4)]
 }
 registerEnemyAttack(TRIPLE_COMBO)
 
