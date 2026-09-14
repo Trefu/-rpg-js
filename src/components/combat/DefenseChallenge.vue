@@ -595,26 +595,11 @@ onUnmounted(() => {
   will-change: transform, opacity;
 }
 
-/**
- * Overlay del efecto "rooted": una imagen horizontal de raíces brotando
- * del suelo, superpuesta a la barra de defensa para indicar visualmente
- * que el heroe no puede actuar sobre ella.
- *
- * Se monta como hijo directo de `.defense-bar-wrap` (no de `.defense-bar`)
- * con `position: absolute` para poder extenderse visualmente por encima
- * de la barra sin estar limitada por su altura (la barra solo necesita
- * 60-200px para las columnas, pero el PNG aspect ~2.67:1 pide un ancho
- * mucho mayor para verse a buen tamaño). Usamos un ancho fijo grande
- * (`min(960px, 96vw)`) y `height: auto` para que la imagen mantenga su
- * proporción nativa y ocupe todo el ancho visible de la barra.
- *
- * El `defense-bar-wrap` tiene `overflow: visible`, asi que la imagen
- * puede crecer verticalmente sin recortarse.
- */
 .rooted-overlay {
   position: absolute;
   left: 50%;
   top: 40%;
+  height: 120%;
   transform: translate(-50%, -50%);
   width: min(800px, 92vw);
   height: auto;
@@ -624,6 +609,13 @@ onUnmounted(() => {
   z-index: 5;
   opacity: 0.96;
   filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.6));
+}
+
+@media (max-width: 640px) {
+  .rooted-overlay {
+    top: 40%;
+    height: 100%;
+  }
 }
 
 @keyframes cloud-float {
