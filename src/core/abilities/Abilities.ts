@@ -562,7 +562,7 @@ export const WARRIOR_ULTIMATE_HIT_MULTIPLIER = 3
 
 export const WarriorUltimate: IAbility = {
   name: 'Tormenta de Acero',
-  description: 'Definitiva del Guerrero. Desata el triple de golpes que su ataque basico a nivel actual, con el mismo daño y VFX por golpe. Solo disponible cuando la barra de Heroismo esta al maximo.',
+  description: 'Desata el triple de golpes que su ataque basico a nivel actual.',
   type: 'warriorUltimate',
   cooldown: 0,
   energyCost: 0,
@@ -591,7 +591,7 @@ registerAbility(WarriorUltimate)
 
 export const ClericUltimate: IAbility = {
   name: 'Luz Divina',
-  description: 'Definitiva del Clerigo. Canaliza una luz sagrada que cura a todos los heroes un 50% de su vida maxima, elimina todos los efectos de dano por tiempo (Quemadura, Veneno, Congelado, Hemorragia) y purga cualquier debuff. Solo disponible cuando la barra de Heroismo esta al maximo.',
+  description: 'Canaliza una luz sagrada que cura a todos los heroes un 50% de su vida maxima, elimina todos los efectos de dano por tiempo y purga cualquier debuff.',
   type: 'clericUltimate',
   cooldown: 0,
   energyCost: 0,
