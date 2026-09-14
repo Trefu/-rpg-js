@@ -87,7 +87,7 @@ export interface EnemyOptions {
 export abstract class Enemy extends Character implements ICombatant {
   public readonly experienceReward: number
   public readonly goldReward: { min: number; max: number }
-  public readonly critChance: number
+  public critChance: number
   public statusEffects: IStatusEffect[] = [];
   public attackPatterns: DefensePatternConfig[] = [];
   public baseStats: IEnemyStats

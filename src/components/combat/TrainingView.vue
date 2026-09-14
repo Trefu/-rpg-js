@@ -182,39 +182,14 @@ function syncDraftFromDummy() {
 }
 syncDraftFromDummy()
 
-function rebuildDummyWithStats(stats: {
-  body: number
-  mind: number
-  agility: number
-  constitution: number
-  critChance: number
-}): Dummy {
-  const level = Math.max(1, gameStore.activeHero?.level ?? 1)
-  const next = new Dummy(level)
-  next.baseStats.body.value = Math.max(1, stats.body)
-  next.baseStats.mind.value = Math.max(1, stats.mind)
-  next.baseStats.agility.value = Math.max(1, stats.agility)
-  next.baseStats.constitution.value = Math.max(1, stats.constitution)
-  next.critChance = Math.max(0, Math.min(200, stats.critChance))
-  const prevHealth = dummy.value.health
-  const prevForcedPattern = dummy.value.forcedPattern
-  const prevStatusEffects = [...dummy.value.statusEffects]
-  next.health = Math.min(prevHealth, next.maxHealth)
-  next.isAlive = true
-  if (prevForcedPattern) next.setForcedPattern(prevForcedPattern)
-  next.statusEffects = prevStatusEffects
-  return next
-}
-
 function applyDummyStats() {
-  dummy.value = rebuildDummyWithStats({
+  dummy.value.updateBaseStats({
     body: draftBody.value,
     mind: draftMind.value,
     agility: draftAgility.value,
-    constitution: draftConstitution.value,
-    critChance: draftCritChance.value
+    constitution: draftConstitution.value
   })
-  syncDraftFromDummy()
+  dummy.value.setBaseCritChance(draftCritChance.value)
 }
 
 const trainingSessionKey = ref(0)
