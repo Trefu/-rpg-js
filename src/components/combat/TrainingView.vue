@@ -218,7 +218,22 @@ function buildHeroFromRegistry(classId: string, targetLevel: number): Hero | nul
 
 function rebuildDummy() {
   const level = Math.max(1, gameStore.activeHero?.level ?? 1)
-  dummy.value = new Dummy(level)
+  const next = new Dummy(level)
+  const prev = dummy.value
+  next.health = Math.min(prev.health, next.maxHealth)
+  next.isAlive = true
+  if (prev.forcedPattern) next.setForcedPattern(prev.forcedPattern)
+  next.statusEffects = [...prev.statusEffects]
+  next.updateBaseStats({
+    body: prev.baseStats.body.value,
+    mind: prev.baseStats.mind.value,
+    agility: prev.baseStats.agility.value,
+    constitution: prev.baseStats.constitution.value
+  })
+  next.setBaseCritChance(prev.critChance)
+  if (prev.damageOverride !== null) next.setDamageOverride(prev.damageOverride)
+  if (prev.critChanceOverride !== null) next.setCritChanceOverride(prev.critChanceOverride)
+  dummy.value = next
   selectedPatternIndex.value = -1
   syncDraftFromDummy()
 }
@@ -261,7 +276,14 @@ const activeHeroClassLabel = computed(() => {
   return entry?.displayName ?? ''
 })
 
-watch(() => gameStore.activeHero?.level, () => rebuildDummy())
+// No auto-rebuild on level change: rotar el heroe activo durante el combate
+// cambia el activeHero (mismo nivel, distinta instancia) y disparaba
+// rebuildDummy en algunos casos, perdiendo las stats que el usuario acaba
+// de aplicar. El dummy se recrea solo en acciones explicitas del panel.
+watch(
+  () => gameStore.activeHero?.id,
+  () => { /* noop: preservamos el dummy al rotar heroes */ }
+)
 
 const selectedPatternIndex = ref<number>(-1)
 const panelCollapsed = ref<boolean>(false)

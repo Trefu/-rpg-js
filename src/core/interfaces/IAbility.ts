@@ -208,6 +208,18 @@ export interface IAbility {
    */
   aoe?: boolean
   /**
+   * Si es `true` (default), la ability se cancela cuando el caster tiene
+   * el debuff `silenced`. Poner `false` para abilities que no son
+   * "magicas" en sentido estricto (ej. un grito de guerra, un hechizo
+   * fisico, un buff de escudo natural) y deberian poder castearse aun
+   * estando silenciado. El ataque basico SIEMPRE puede usarse
+   * (no pasa por `executeAbility`).
+   *
+   * Solo aplica al jugador por ahora (la IA enemiga no tiene sistema de
+   * habilidades activas — solo patrones de defensa).
+   */
+  silencable?: boolean
+  /**
    * Path a un SFX custom (ej. `/assets/sounds/Buffs_Heals_SFX/Def_buff.wav`)
    * que se reproduce en lugar del `playAttackSound()` por defecto al ejecutar
    * la habilidad. Si se omite, se usa el fallback `playAttackSound`.

@@ -928,10 +928,11 @@ const isProcessingDot = ref(false)
       ?? heroes.value.find(h => h.id === actor.id)) as
       | { reduceStatusEffects?: () => void } | undefined
     // Log diferenciado por tipo de CC. Mantiene compatibilidad con stun
-    // (mensaje previo) y suma el nuevo rooted.
-    const skipLabel = effectType === StatusEffects.ROOTED.type
-      ? 'enraizado y pierde su turno'
-      : 'aturdido y pierde su turno'
+    // (mensaje previo) y suma rooted/horror.
+    let skipLabel: string
+    if (effectType === StatusEffects.ROOTED.type) skipLabel = 'enraizado y pierde su turno'
+    else if (effectType === StatusEffects.HORROR.type) skipLabel = 'aterrorizado y pierde su turno'
+    else skipLabel = 'aturdido y pierde su turno'
     addToLog(`${actor.name} está ${skipLabel}.`)
     showAnnouncement(`${actor.name} pierde su turno`, 'status', 1400)
     if (combatant && typeof combatant.reduceStatusEffects === 'function') {
@@ -1408,6 +1409,23 @@ const isProcessingDot = ref(false)
       const { ability, target } = currentAction.value
       const playerChar = player.value as Hero
       const animationDelay = ability.animationDurationMs ?? 1500
+
+      // Check Silenciado (Bloque C Tier 2): si el caster tiene el debuff
+      // y la ability es "silenceable" (default true), se cancela el cast.
+      // Asi se respetan excepciones como SecondWind (que es heal/buff
+      // fisico y podria no ser magic).
+      const silencable = ability.silencable !== false
+      if (silencable && playerChar.hasStatusEffect(StatusEffects.SILENCED.type)) {
+        addToLog(`${playerChar.name} está Silenciado y no puede lanzar ${ability.name}.`)
+        showAnnouncement(`${playerChar.name} está Silenciado`, 'status', 1500)
+        isExecutingAction.value = false
+        isSelectingTarget.value = false
+        selectedAbility.value = null
+        selectedEnemy.value = null
+        currentAction.value = null
+        clearAnnouncement()
+        return
+      }
 
       const abilityContext: AbilityContext = {
         caster: playerChar,

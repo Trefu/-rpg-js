@@ -18,6 +18,13 @@ import markIcon from '@/assets/icons/crosshair.png'
 import blindedIcon from '@/assets/icons/blindfold.png'
 import spellReflectIcon from '@/assets/icons/mirror-mirror.png'
 import rootedIcon from '@/assets/icons/root-tip.png'
+import furyIcon from '@/assets/icons/enrage.png'
+import vulnerableIcon from '@/assets/icons/spiked-shield.png'
+import resistFireIcon from '@/assets/icons/fire-shield.png'
+import resistIceIcon from '@/assets/icons/ice-shield.png'
+import resistHolyIcon from '@/assets/icons/checked-shield.png'
+import horrorIcon from '@/assets/icons/screaming.png'
+import silencedIcon from '@/assets/icons/silenced.png'
 
 export const MAX_DOT_DURATION = 3
 export const CRIT_DOT_DURATION = 5
@@ -398,6 +405,134 @@ export class StatusEffects {
     announceOnTurn: true
   }
 
+  // =====================================================================
+  // TIER 2 · Bloque C (efectos con modificadores de daño y CC adicional)
+  // =====================================================================
+
+  /**
+   * "Furia": buff ofensivo. Sube el multiplicador de daño saliente del
+   * portador en un +30% (1.30x). Combina con `strength_boost` (otro +25%)
+   * para llegar a 1.55x — el cap inferior en `getOutgoingDamageMultiplier`
+   * evita que stacking buggy baje del 0.25x.
+   */
+  static readonly FURY: IStatusEffect = {
+    type: 'fury',
+    name: 'Furia',
+    description: 'Aumenta el daño infligido por el personaje en un 30%.',
+    turns: 3,
+    icon: furyIcon,
+    isBuff: true,
+    turnLabel: '¡Entrá en modo Furia!',
+    defenseContribution: () => ({ attackDamageMultiplier: 0.30 })
+  }
+
+  /**
+   * "Vulnerable": debuff ofensivo. Sube el multiplicador de daño entrante
+   * del portador en un +40% (recibe 1.40x daño). Espejo de `Fury` desde la
+   * perspectiva del target. En enemigos, los heroes veran sus golpes pegar
+   * un 40% mas fuerte; en heroes, los enemigos harian mucho mas dano.
+   */
+  static readonly VULNERABLE: IStatusEffect = {
+    type: 'vulnerable',
+    name: 'Vulnerable',
+    description: 'Aumenta el daño recibido por el personaje en un 40%.',
+    turns: 3,
+    icon: vulnerableIcon,
+    isBuff: false,
+    turnLabel: '¡Es muy vulnerable!',
+    announceOnTurn: true,
+    threatModifier: 0.5,
+    defenseContribution: () => ({ damageTakenMultiplier: 0.40 })
+  }
+
+  /**
+   * "Resistencia al Fuego": buff defensivo. Reduce un 40% el daño
+   * elemental `fire` recibido. NO aplica al daño físico. Se acumula con
+   * otras resistencias (cap 75% en modifiers.ts) y respeta
+   * `damageTakenMultiplier` del mismo efecto.
+   */
+  static readonly RESIST_FIRE: IStatusEffect = {
+    type: 'resist_fire',
+    name: 'Resistencia al Fuego',
+    description: 'Reduce el daño de Fuego recibido en un 40%.',
+    turns: 4,
+    icon: resistFireIcon,
+    isBuff: true,
+    turnLabel: '¡Resiste el fuego!',
+    defenseContribution: () => ({ damageTypeResistances: { fire: 0.40 } })
+  }
+
+  /**
+   * "Resistencia al Hielo": buff defensivo. Reduce 40% el daño elemental
+   * `water` recibido. NO reduce `freeze` como DoT (su DOT_DAMAGE_TYPE es
+   * `water`, asi que SI reduce el tick por Congelado, pero no las stacks).
+   */
+  static readonly RESIST_ICE: IStatusEffect = {
+    type: 'resist_ice',
+    name: 'Resistencia al Hielo',
+    description: 'Reduce el daño de Hielo/Agua recibido en un 40%.',
+    turns: 4,
+    icon: resistIceIcon,
+    isBuff: true,
+    turnLabel: '¡Resiste el frío!',
+    defenseContribution: () => ({ damageTypeResistances: { water: 0.40 } })
+  }
+
+  /**
+   * "Resistencia Sagrada": buff defensivo. Reduce 40% el daño elemental
+   * `holy` recibido. Muy util contra Clerigos enemigos o bosses con
+   * hechizos sagrados.
+   */
+  static readonly RESIST_HOLY: IStatusEffect = {
+    type: 'resist_holy',
+    name: 'Resistencia Sagrada',
+    description: 'Reduce el daño Sagrado/Holy recibido en un 40%.',
+    turns: 4,
+    icon: resistHolyIcon,
+    isBuff: true,
+    turnLabel: '¡Resiste lo sagrado!',
+    defenseContribution: () => ({ damageTypeResistances: { holy: 0.40 } })
+  }
+
+  /**
+   * "Horror": hard CC variante de stun/rooted. Misma mecánica (skip turno
+   * + consumir `turns`), distinta narrativa: el personaje huye de miedo
+   * en vez de estar aturdido o enraizado. Se cablea en
+   * `useCombat.skipCCTurn` con un mensaje diferenciado.
+   */
+  static readonly HORROR: IStatusEffect = {
+    type: 'horror',
+    name: 'Horror',
+    description: 'El personaje está aterrorizado y pierde el turno por miedo.',
+    descriptionOnPlayer: 'Un terror paralizante te invade: no puedes actuar este turno.',
+    descriptionOnEnemy: 'Tiembla de miedo y huye despavorido.',
+    turns: 1,
+    icon: horrorIcon,
+    isBuff: false,
+    turnLabel: '¡Tiembla de miedo y pierde su turno!',
+    announceOnTurn: true
+  }
+
+  /**
+   * "Silenciado": soft CC. NO skipea el turno (el portador sigue
+   * haciendo acciones), pero NO puede lanzar habilidades activas (solo
+   * ataque basico, si lo tiene). Implementado en `useCombat.executeAbility`
+   * chequeando `caster.hasStatusEffect('silenced')` y la flag
+   * `ability.silencable` (default `true`).
+   */
+  static readonly SILENCED: IStatusEffect = {
+    type: 'silenced',
+    name: 'Silenciado',
+    description: 'No puedes lanzar habilidades. Solo ataque básico disponible.',
+    descriptionOnPlayer: 'Un hechizo te impide canalizar magia: solo puedes atacar físicamente.',
+    descriptionOnEnemy: 'Sus conjuros están sellados: solo puede golpear físicamente.',
+    turns: 2,
+    icon: silencedIcon,
+    isBuff: false,
+    turnLabel: '¡Está silenciado!',
+    announceOnTurn: true
+  }
+
   // Método para obtener un efecto por tipo (case-insensitive)
   static getByType(type: string): IStatusEffect | null {
     const effects = [
@@ -418,7 +553,14 @@ export class StatusEffects {
       this.MARK,
       this.BLINDED,
       this.SPELL_REFLECT,
-      this.ROOTED
+      this.ROOTED,
+      this.FURY,
+      this.VULNERABLE,
+      this.RESIST_FIRE,
+      this.RESIST_ICE,
+      this.RESIST_HOLY,
+      this.HORROR,
+      this.SILENCED
     ]
     const target = type.toLowerCase()
     return effects.find(effect => effect.type === target) || null
@@ -443,7 +585,14 @@ export class StatusEffects {
       this.MARK.type,
       this.BLINDED.type,
       this.SPELL_REFLECT.type,
-      this.ROOTED.type
+      this.ROOTED.type,
+      this.FURY.type,
+      this.VULNERABLE.type,
+      this.RESIST_FIRE.type,
+      this.RESIST_ICE.type,
+      this.RESIST_HOLY.type,
+      this.HORROR.type,
+      this.SILENCED.type
     ]
   }
 }

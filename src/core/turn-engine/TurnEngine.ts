@@ -31,7 +31,8 @@ export const STUN_EFFECT_TYPE = 'stun'
  */
 export const SKIP_TURN_EFFECT_TYPES: ReadonlySet<string> = new Set([
   STUN_EFFECT_TYPE,
-  'rooted'
+  'rooted',
+  'horror'
 ])
 
 /**
@@ -163,6 +164,7 @@ export function predictNextTurns(
       actorId: best.id,
       kind: best.activeEffectTypes.has(STUN_EFFECT_TYPE)
         || best.activeEffectTypes.has('rooted')
+        || best.activeEffectTypes.has('horror')
         ? 'skip'
         : 'act'
     })
