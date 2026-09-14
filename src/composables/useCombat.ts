@@ -417,6 +417,13 @@ const defenseBlinded = ref(false)
       defensePhaseIndex.value++
     } else {
       closeDefenseChallenge()
+      // ROOTED se consume tras el primer desafio de defensa donde el heroe
+      // participo (matches comment en StatusEffects.ROOTED:
+      // "consumido al defender una vez"). Asi no se mantiene activo un
+      // turno enemigo extra y la economia del CC queda clara.
+      if (target && target.isAlive && target.hasStatusEffect(StatusEffects.ROOTED.type)) {
+        target.removeStatusEffect(StatusEffects.ROOTED.type)
+      }
       // Mismo motivo: dejamos el badge "Defendiendo" hasta el siguiente
       // turno de heroe o hasta el siguiente ataque enemigo.
     }
@@ -1226,6 +1233,14 @@ const defenseBlinded = ref(false)
     if (enemy.isAlive && typeof enemy.reduceStatusEffects === 'function') {
       enemy.reduceStatusEffects()
     }
+    // Decrementa los debuffs de defensa (ROOTED, BLINDED, CLOUDED) sobre
+    // heroes al cierre del turno enemigo. Estos efectos tienen
+    // `cleanAtTurnStart: false`, asi que no se borran en startHeroTurn.
+    // Aqui los consumimos para que duren exactamente hasta el siguiente
+    // desafio de defensa. ROOTED tambien se consume explicitamente al
+    // cerrar el desafio (en startDefenseChallenge) cuando se "quema"
+    // tras una defensa efectiva.
+    decrementHeroesDefenseDebuffs()
     turnState.value = advanceAfterTurn(turnState.value, turnActors.value, actor.id)
     await runNextTurn()
   }
@@ -1267,6 +1282,25 @@ const defenseBlinded = ref(false)
     heroes.value.forEach(h => { h.statusEffects = [] })
     enemies.value.forEach(e => { e.statusEffects = [] })
     addToLog('Efectos de estado eliminados.')
+  }
+
+  /**
+   * Decrementa `turns--` en los efectos con `cleanAtTurnStart: false`
+   * (ROOTED, BLINDED, CLOUDED) sobre cada heroe y purga los que llegan a 0.
+   * Se invoca al cierre de cada turno enemigo para que estos debuffs
+   * sobrevivan el turno del heroe (donde son irrelevantes) y puedan
+   * afectar el siguiente desafio de defensa. ROOTED tambien se consume
+   * explicitamente al cerrar el desafio (`startDefenseChallenge`).
+   */
+  function decrementHeroesDefenseDebuffs() {
+    heroes.value.forEach(h => {
+      h.statusEffects.forEach(e => {
+        if (typeof e.charges === 'number') return
+        if (e.cleanAtTurnStart !== false) return
+        e.turns--
+      })
+      h.removeExpiredStatusEffects()
+    })
   }
 
   function restoreAllEnergy() {

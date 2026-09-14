@@ -194,6 +194,24 @@ describe('Enemy.removeExpiredStatusEffects + reduceStatusEffects', () => {
     e.reduceStatusEffects()
     expect(e.hasStatusEffect('stun')).toBe(false)
   })
+
+  it('reduceStatusEffects NO decrementa efectos con cleanAtTurnStart: false', () => {
+    const e = new TestEnemy(1)
+    e.addStatusEffect({
+      type: 'rooted',
+      name: 'Rooted',
+      description: 'test',
+      isBuff: false,
+      turns: 2,
+      icon: '',
+      cleanAtTurnStart: false
+    })
+    e.reduceStatusEffects()
+    e.reduceStatusEffects()
+    expect(e.hasStatusEffect('rooted')).toBe(true)
+    e.removeStatusEffect('rooted')
+    expect(e.hasStatusEffect('rooted')).toBe(false)
+  })
 })
 
 describe('Enemy.selectAttackPattern', () => {
