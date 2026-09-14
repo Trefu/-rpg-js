@@ -1367,11 +1367,12 @@ const defenseBlinded = ref(false)
             await delay(BANNER_LEAD_IN)
             audioManager.playHitSound()
             showPlayerHit(cur, { heroId: p.id, variant: 'damage' })
-            // Disparo al alcanzar maxStacks: aplica Vulnerable x2 al portador.
+            // Disparo al alcanzar maxStacks: aplica Vulnerable x2 al portador
+            // y disipa la maldicion (se elimina el efecto de stack).
             if (cur >= max) {
-              effect.stacks = 0
               p.addStatusEffect({ ...StatusEffects.VULNERABLE, turns: 2 })
-              addToLog(`¡La Maldición estalla! ${p.name} queda Vulnerable.`)
+              p.removeStatusEffect(effect.type)
+              addToLog(`¡La Maldición estalla! ${p.name} queda Vulnerable y la maldición se disipa.`)
               showAnnouncement(`${p.name} es Vulnerable!`, 'status', 1800)
             }
           }

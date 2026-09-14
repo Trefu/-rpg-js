@@ -38,6 +38,22 @@ export function getBasicAttackHitCount(level: number): number {
   return Math.max(1, Math.floor(Math.max(1, level) / BASIC_ATTACK_HITS_LEVEL_STEP) + 1)
 }
 
+/**
+ * Total de golpes que aplicara una ability sobre su objetivo primario.
+ * Usado por la UI para mostrar un "× N" al lado del rango de daño en
+ * abilities multi-hit. Devuelve `null` si la ability no tiene un numero
+ * de golpes variable conocido (single-hit default).
+ */
+export function getAbilityHitCount(ability: IAbility, level: number): number | null {
+  if (ability.type === 'warriorUltimate') {
+    return getBasicAttackHitCount(level) * WARRIOR_ULTIMATE_HIT_MULTIPLIER
+  }
+  if (ability.type === 'attack' || ability.type === 'warriorAttack' || ability.type === 'clericAttack') {
+    return getBasicAttackHitCount(level)
+  }
+  return null
+}
+
 const SECOND_WIND_HEAL_PCT = 0.20
 const SECOND_WIND_ENERGY_RESTORE_PCT = 0.10
 const SECOND_WIND_CHARGES = 3
@@ -182,7 +198,7 @@ export const WarriorBasicAttack: IAbility = {
   type: 'warriorAttack',
   tags: ['warrior', 'physical', 'damage'],
   previewDamage: previewFromPipeline(
-    damageStep({ stat: 'body', coef: 0.7, levelCoef: 1, statLabel: 'CUE' }),
+    damageStep({ stat: 'body', coef: 0.7, levelCoef: 2, statLabel: 'CUE' }),
     'physical'
   )
 }
@@ -535,9 +551,9 @@ export const WarriorUltimate: IAbility = {
   tags: ['warrior', 'physical', 'damage', 'ultimate'],
   icon: wingedSword,
   animationDurationMs: BASIC_ATTACK_DURATION_MS,
-  pipeline: damageStep({ stat: 'body', coef: 0.7, levelCoef: 1, statLabel: 'CUE' }),
+  pipeline: damageStep({ stat: 'body', coef: 0.7, levelCoef: 2, statLabel: 'CUE' }),
   previewDamage: previewFromPipeline(
-    damageStep({ stat: 'body', coef: 0.7, levelCoef: 1, statLabel: 'CUE' }),
+    damageStep({ stat: 'body', coef: 0.7, levelCoef: 2, statLabel: 'CUE' }),
     'physical'
   ),
   execute: async (context: AbilityContext) => {

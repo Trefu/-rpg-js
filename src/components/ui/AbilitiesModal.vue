@@ -9,7 +9,7 @@ import hourglassIcon from '@/assets/icons/hourglass.png'
 import boltIcon from '@/assets/icons/bolt-shield.png'
 import skillsIcon from '@/assets/icons/skills.png'
 import { getAbilityIcon } from '@/core/abilities/getAbilityIcon'
-import { getBasicAttackHitCount } from '@/core/abilities/Abilities'
+import { getBasicAttackHitCount, getAbilityHitCount } from '@/core/abilities/Abilities'
 
 interface Props {
   show: boolean
@@ -72,6 +72,12 @@ const previews = computed<(AbilityDamagePreview | null)[]>(() => {
 })
 
 const basicHitCount = computed(() => getBasicAttackHitCount(props.caster?.level ?? 1))
+
+/** Multi-hit count por ability (null si no aplica). Usado para mostrar "× N" al lado del daño. */
+function hitCountFor(ability: IAbility): number | null {
+  if (!props.caster) return null
+  return getAbilityHitCount(ability, props.caster.level)
+}
 
 /** Tipo de ability cuyo popover está expandido (solo uno a la vez). */
 const expandedType = ref<string | null>(null)
@@ -140,6 +146,11 @@ function damageTypeClass(id?: string): string {
                 >
                   <span class="damage-range-label">Daño</span>
                   <span class="damage-range-values">{{ previews[idx]!.min }}–{{ previews[idx]!.max }}</span>
+                  <span
+                    v-if="hitCountFor(ability)"
+                    class="damage-range-hits"
+                    :title="`${hitCountFor(ability)} ataques`"
+                  >× {{ hitCountFor(ability) }}</span>
                   <span
                     v-if="previews[idx]!.damageTypeLabel"
                     class="damage-type-tag"
@@ -484,6 +495,17 @@ function damageTypeClass(id?: string): string {
   color: #ff8a8a;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+}
+
+.damage-range-hits {
+  color: #ffe066;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  background: rgba(255, 230, 102, 0.15);
+  border: 1px solid rgba(255, 230, 102, 0.4);
+  padding: 0 0.45em;
+  border-radius: 4px;
+  font-size: 0.78rem;
 }
 
 .damage-type-tag {

@@ -4,7 +4,7 @@ import type { IAbility } from '@/core/interfaces/IAbility'
 import type { AbilityDamagePreview } from '@/core/interfaces/IAbility'
 import type { Hero } from '@/core/Hero'
 import { getAbilityIcon } from '@/core/abilities/getAbilityIcon'
-import { getBasicAttackHitCount } from '@/core/abilities/Abilities'
+import { getBasicAttackHitCount, getAbilityHitCount } from '@/core/abilities/Abilities'
 import backpackIcon from '@/assets/icons/backpack.png'
 import boltIcon from '@/assets/icons/bolt-shield.png'
 import hourglassIcon from '@/assets/icons/hourglass.png'
@@ -115,6 +115,11 @@ const infoPreview = computed<AbilityDamagePreview | null>(() => {
 })
 
 const basicHitCount = computed(() => getBasicAttackHitCount(props.caster?.level ?? 1))
+
+function hitCountFor(ability: IAbility): number | null {
+  if (!props.caster) return null
+  return getAbilityHitCount(ability, props.caster.level)
+}
 
 function toggleInfoFormula(event: Event) {
   event.stopPropagation()
@@ -246,6 +251,11 @@ function shortLabel(name: string, max = 5): string {
           >
             <span class="mab-info-damage-label">Daño</span>
             <span class="mab-info-damage-values">{{ infoPreview.min }}–{{ infoPreview.max }}</span>
+            <span
+              v-if="hitCountFor(infoAbility)"
+              class="mab-info-damage-hits"
+              :title="`${hitCountFor(infoAbility)} ataques`"
+            >× {{ hitCountFor(infoAbility) }}</span>
             <span v-if="infoPreview.damageTypeLabel" class="mab-info-damage-type">{{ infoPreview.damageTypeLabel }}</span>
           </button>
           <div v-if="infoPreview && infoFormulaOpen" class="mab-info-formula" @click.stop>
@@ -630,6 +640,17 @@ function shortLabel(name: string, max = 5): string {
   color: #ff8a8a;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+}
+
+.mab-info-damage-hits {
+  color: #ffe066;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  background: rgba(255, 230, 102, 0.15);
+  border: 1px solid rgba(255, 230, 102, 0.4);
+  padding: 0 0.4em;
+  border-radius: 4px;
+  font-size: 0.72rem;
 }
 
 .mab-info-damage-type {

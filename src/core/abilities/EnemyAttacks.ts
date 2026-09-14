@@ -41,6 +41,21 @@ export const POISON_ARROW: DefensePatternConfig = {
 }
 registerEnemyAttack(POISON_ARROW)
 
+export const TRIPLE_ARROW: DefensePatternConfig = {
+    name: 'Trío de Flechas',
+    type: 'physical',
+    damageType: 'physical',
+    waveSpeed: 70,
+    baseMaxBlockReduction: 0.5,
+    damageMultiplier: 0.7,
+    phases: [fixedPhase(22, 23, 24, 25, 26, 27), fixedPhase(22, 23, 24, 25, 26, 27), fixedPhase(28, 22, 23, 24, 25, 26, 27)],
+    onFailureEffect: {
+        statusType: 'poison',
+        stacks: 8
+    }
+}
+registerEnemyAttack(POISON_ARROW)
+
 export const EMBER: DefensePatternConfig = {
     name: 'Ascua',
     type: 'fire',
@@ -359,7 +374,7 @@ registerAbility(DragonRoar)
  * duración al valor del template (`turns: 5`).
  *
  * Stacks se capean a `maxStacks: 5` del template. Al llegar a 5, el
- * tick interno del efecto aplica `vulnerable x2` y resetea los stacks
+ * tick interno del efecto aplica `vulnerable x2` y disipa la maldicion
  * (ver `StatusEffects.CURSE`).
  */
 export const WarlockHex: IAbility = {

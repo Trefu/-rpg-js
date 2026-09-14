@@ -594,14 +594,12 @@ export class StatusEffects {
   /**
    * "Maldición": debufo acumulador sin daño directo. Cada turno (tick)
    * suma 1 stack; al alcanzar `maxStacks` aplica `vulnerable` x2 al
-   * portador y resetea los stacks (no consume la maldicion en si).
-   * Esto obliga al enemigo a "liberar" la maldición rapidamente o
-   * enfrentarse a un debuff mayor periodicamente.
+   * portador y disipa la maldicion (se elimina el efecto).
    */
   static readonly CURSE: IStatusEffect = {
     type: 'curse',
     name: 'Maldición',
-    description: 'Acumulas oscuridad. Al alcanzar 5 stacks, quedas Vulnerable durante 2 turnos (los stacks se resetean).',
+    description: 'Acumulas oscuridad. Al alcanzar 5 stacks, quedas Vulnerable durante 2 turnos y la maldición se disipa.',
     descriptionOnPlayer: 'Una oscuridad se acumula sobre ti. Llegará un punto de no retorno.',
     descriptionOnEnemy: 'Una maldición se cierne sobre él/ella.',
     turns: 5,

@@ -11,9 +11,9 @@ import clericSprite from '@/assets/sprites/heroes/cleric.png'
 import { MAX_HEROES } from '@/stores/game'
 import HeroStatChips from '@/components/combat/HeroStatChips.vue'
 import { getAbilityIcon } from '@/core/abilities/getAbilityIcon'
-import { getBasicAttackHitCount } from '@/core/abilities/Abilities'
+import { getBasicAttackHitCount, getAbilityHitCount } from '@/core/abilities/Abilities'
 import { getDamageTypeInfo } from '@/core/combat/damageTypes'
-import type { AbilityDamagePreview } from '@/core/interfaces/IAbility'
+import type { AbilityDamagePreview, IAbility } from '@/core/interfaces/IAbility'
 import boltIcon from '@/assets/icons/bolt-shield.png'
 import hourglassIcon from '@/assets/icons/hourglass.png'
 import '@/styles/hint-colors.css'
@@ -231,6 +231,12 @@ const focusedBasicHitCount = computed(() =>
   getBasicAttackHitCount(focusedHero.value?.level ?? 1)
 )
 
+function hitCountFor(ability: IAbility): number | null {
+  const hero = focusedHero.value
+  if (!hero) return null
+  return getAbilityHitCount(ability, hero.level)
+}
+
 /**
  * Devuelve la clase CSS del tipo de daño (`dmg-fire`, `dmg-holy`, etc.)
  * para colorear el chip de tipo. Usa el registro central
@@ -345,6 +351,11 @@ function damageTypeClass(id?: string): string {
                   </p>
                   <p v-if="focusedAbilityPreviews[idx]" class="ability-row__dmg">
                     Daño: <strong>{{ focusedAbilityPreviews[idx]!.min }}–{{ focusedAbilityPreviews[idx]!.max }}</strong>
+                    <span
+                      v-if="hitCountFor(ability)"
+                      class="ability-row__dmg-hits"
+                      :title="`${hitCountFor(ability)} ataques`"
+                    >× {{ hitCountFor(ability) }}</span>
                     <span
                     v-if="focusedAbilityPreviews[idx]!.damageTypeLabel"
                     class="ability-row__dmg-type"
@@ -819,6 +830,17 @@ function damageTypeClass(id?: string): string {
 .ability-row__dmg strong {
   color: #ff8a8a;
   font-variant-numeric: tabular-nums;
+}
+
+.ability-row__dmg-hits {
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.45rem;
+  border-radius: 4px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #ffe066;
+  background: rgba(255, 224, 102, 0.18);
+  border: 1px solid rgba(255, 224, 102, 0.45);
 }
 
 .ability-row__dmg-type {
