@@ -305,7 +305,7 @@ export const FLASH: DefensePatternConfig = {
     waveSpeed: 50,
     baseMaxBlockReduction: 0.4,
     damageMultiplier: 0.8,
-    phases: [phase(3)],
+    phases: [phase(9)],
     onFailureEffect: {
         statusType: 'blinded',
         stacks: 1,

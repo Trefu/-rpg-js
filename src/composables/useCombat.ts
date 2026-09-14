@@ -372,6 +372,7 @@ const defenseBlinded = ref(false)
         const blockedDmg = Math.floor(phaseDamage / 2)
         target.takeDamage(blockedDmg, { damageType: pattern.damageType })
         showPlayerHit(blockedDmg, { heroId: target.id, variant: 'blocked' })
+        showHeroVfx(target.id, { asset: 'hero-block', durationMs: 1000 })
         audioManager.playBlockSound()
         if (typeof target.restoreEnergy === 'function') {
           const restored = target.restoreEnergy(5)

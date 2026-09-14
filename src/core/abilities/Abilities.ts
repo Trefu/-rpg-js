@@ -214,9 +214,9 @@ export const ClericBasicAttack: IAbility = {
   tags: ['cleric', 'holy', 'damage'],
   icon: sabersChoc,
   animationDurationMs: BASIC_ATTACK_DURATION_MS,
-  pipeline: damageStep({ stat: 'body', coef: 0.7, levelCoef: 1, statLabel: 'CUE' }),
+  pipeline: damageStep({ stat: 'body', coef: 0., levelCoef: 2, statLabel: 'CUE' }),
   previewDamage: previewFromPipeline(
-    damageStep({ stat: 'body', coef: 0.7, levelCoef: 1, statLabel: 'CUE' }),
+    damageStep({ stat: 'body', coef: 0.7, levelCoef: 2, statLabel: 'CUE' }),
     'holy'
   ),
   execute: executeBasicAttack

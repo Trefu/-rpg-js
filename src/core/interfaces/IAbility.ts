@@ -185,6 +185,7 @@ export type VfxAssetId =
   | 'holy-smite'
   | 'holy-heal'
   | 'holy-light'
+  | 'hero-block'
 
 export interface VfxEffect {
   asset: VfxAssetId
