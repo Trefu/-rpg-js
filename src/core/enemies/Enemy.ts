@@ -243,7 +243,9 @@ export abstract class Enemy extends Character implements ICombatant {
   }
 
   public isStunned(): boolean {
-    return this.hasStatusEffect('stun')
+    return this.statusEffects.some(e => e.turns > 0 && (
+      e.type === 'stun' || e.type === 'rooted'
+    ))
   }
 
   public readonly scoreWeights: TargetScoreWeights = {

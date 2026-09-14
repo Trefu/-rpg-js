@@ -315,6 +315,10 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
   }
 
   public isStunned(): boolean {
-    return this.hasStatusEffect('stun')
+    // Cualquier CC que skipee el turno cuenta. Ver `isSkipTurnEffect` en
+    // TurnEngine.ts para el set canonico (stun, rooted, ...).
+    return this.statusEffects.some(e => e.turns > 0 && (
+      e.type === 'stun' || e.type === 'rooted'
+    ))
   }
 }

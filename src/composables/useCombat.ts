@@ -32,7 +32,7 @@ import {
   nextActorId,
   advanceAfterTurn,
   predictNextTurns,
-  STUN_EFFECT_TYPE,
+  isSkipTurnEffect,
   type TurnActor,
   type TurnCostState,
   type TurnQueueEntry
@@ -46,20 +46,24 @@ const TURN_QUEUE_SIZE = 8
 const DO_STATUS_TYPES: Set<string> = new Set([
   StatusEffects.BURN.type,
   StatusEffects.POISON.type,
-  StatusEffects.FREEZE.type
+  StatusEffects.FREEZE.type,
+  StatusEffects.BLEED.type
 ])
 
 // Etiqueta legible del "tipo de daño" que se muestra en el banner del DoT.
 const DOT_KIND_LABEL: Record<string, string> = {
   [StatusEffects.BURN.type]: 'fuego',
   [StatusEffects.POISON.type]: 'veneno',
-  [StatusEffects.FREEZE.type]: 'frío'
+  [StatusEffects.FREEZE.type]: 'frío',
+  [StatusEffects.BLEED.type]: 'sangrado'
 }
 
 // Tipo elemental del daño que aplica cada DoT al portador. Usado por
 // `Character.takeDamage({ damageType })` para que las resistencias
 // elementales se apliquen tambien al dano por tiempo (ej. Resistencia al
 // Fuego reduce Quemadura, Resistencia al Agua reduce Congelado).
+// BLEED intencionalmente sin tipo: es dano fisico puro, no se reduce con
+// resistencias elementales.
 const DOT_DAMAGE_TYPE: Record<string, DamageTypeId | undefined> = {
   [StatusEffects.BURN.type]: 'fire',
   [StatusEffects.POISON.type]: 'poison',
@@ -899,8 +903,12 @@ const isProcessingDot = ref(false)
     currentActorId.value = nextId
     const actor = turnActors.value.find(a => a.id === nextId)
     if (!actor) return
-    if (actor.activeEffectTypes.has(STUN_EFFECT_TYPE)) {
-      await skipStunnedTurn(actor)
+    // Detecta cualquier CC que skipee el turno (stun, rooted, etc.).
+    // Buscamos el primer efecto de skip en `activeEffectTypes` para logear
+    // el nombre correcto en el banner/announcement.
+    const skipEffectType = Array.from(actor.activeEffectTypes).find(t => isSkipTurnEffect(t))
+    if (skipEffectType) {
+      await skipCCTurn(actor, skipEffectType)
       return
     }
     if (!actor.isAlive) {
@@ -915,11 +923,16 @@ const isProcessingDot = ref(false)
     }
   }
 
-  async function skipStunnedTurn(actor: TurnActor) {
+  async function skipCCTurn(actor: TurnActor, effectType: string) {
     const combatant = (enemies.value.find(e => e.id === actor.id)
       ?? heroes.value.find(h => h.id === actor.id)) as
       | { reduceStatusEffects?: () => void } | undefined
-    addToLog(`${actor.name} está aturdido y pierde su turno.`)
+    // Log diferenciado por tipo de CC. Mantiene compatibilidad con stun
+    // (mensaje previo) y suma el nuevo rooted.
+    const skipLabel = effectType === StatusEffects.ROOTED.type
+      ? 'enraizado y pierde su turno'
+      : 'aturdido y pierde su turno'
+    addToLog(`${actor.name} está ${skipLabel}.`)
     showAnnouncement(`${actor.name} pierde su turno`, 'status', 1400)
     if (combatant && typeof combatant.reduceStatusEffects === 'function') {
       combatant.reduceStatusEffects()
@@ -1191,6 +1204,7 @@ const isProcessingDot = ref(false)
     if (type === StatusEffects.BURN.type) audioManager.playDotFireSound()
     else if (type === StatusEffects.POISON.type) audioManager.playDotPoisonSound()
     else if (type === StatusEffects.FREEZE.type) audioManager.playDotIceSound()
+    else if (type === StatusEffects.BLEED.type) audioManager.playDotBleedSound()
   }
 
   async function showEnemyStatusSequence(enemy: IEnemy) {

@@ -1,7 +1,7 @@
 import { Howl, Howler } from 'howler'
 
 type MusicTrack = 'menu' | 'combat' | 'boss'
-type SfxName = 'attack' | 'hit' | 'victory' | 'block' | 'dotFire' | 'dotPoison' | 'dotIce'
+type SfxName = 'attack' | 'hit' | 'victory' | 'block' | 'dotFire' | 'dotPoison' | 'dotIce' | 'dotBleed'
 type CuriositySfx = 'curiosityOpen' | 'curiosityConfirm' | 'curiosityReward' | 'curiosityPunishment' | 'curiosityAmbush' | 'curiosityNoop'
 
 const MENU_SRC = '/assets/music/menu_ost.mp3'
@@ -18,7 +18,8 @@ const SFX_SRC: Record<SfxName, string> = {
     block: '/assets/sounds/Battle_SFX/Impact_flesh.wav',
     dotFire: '/assets/sounds/Magic_attacks_SFX/Fire_explosion_medium.wav',
     dotPoison: '/assets/sounds/Magic_attacks_SFX/Poison.wav',
-    dotIce: '/assets/sounds/Magic_attacks_SFX/Ice_explosion.wav'
+    dotIce: '/assets/sounds/Magic_attacks_SFX/Ice_explosion.wav',
+    dotBleed: '/assets/sounds/Stab 4-1.wav'
 }
 
 /**
@@ -47,7 +48,8 @@ const SFX_VOLUME_MULT: Record<SfxName, number> = {
     block: 1.6,
     dotFire: 0.7,
     dotPoison: 1.2,
-    dotIce: 0.7
+    dotIce: 0.7,
+    dotBleed: 0.9
 }
 
 const CURIOSITY_SFX_VOLUME_MULT: Record<CuriositySfx, number> = {
@@ -248,6 +250,10 @@ export class AudioManager {
 
     public playDotIceSound(): void {
         this.tryPlay(this.getSfx('dotIce'))
+    }
+
+    public playDotBleedSound(): void {
+        this.tryPlay(this.getSfx('dotBleed'))
     }
 
     /** SFX al abrir el modal de un evento "?". */

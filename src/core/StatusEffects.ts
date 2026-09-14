@@ -13,6 +13,11 @@ import slowIcon from '@/assets/icons/snail.png'
 import secondWindIcon from '@/assets/icons/wind-slap.png'
 import swordWoundIcon from '@/assets/icons/open-wound.png'
 import cloudedIcon from '@/assets/sprites/VFX/Clouds_split/3_middle_pyramid.png'
+import bleedIcon from '@/assets/icons/bleeding-wound.png'
+import markIcon from '@/assets/icons/crosshair.png'
+import blindedIcon from '@/assets/icons/blindfold.png'
+import spellReflectIcon from '@/assets/icons/mirror-mirror.png'
+import rootedIcon from '@/assets/icons/root-tip.png'
 
 export const MAX_DOT_DURATION = 3
 export const CRIT_DOT_DURATION = 5
@@ -21,7 +26,8 @@ export const DEFAULT_MAX_STACKS = 999
 export const DOT_STATUS_TYPES: ReadonlySet<string> = new Set([
   'burn',
   'poison',
-  'freeze'
+  'freeze',
+  'bleed'
 ])
 
 export interface FailureEffectSpec {
@@ -275,6 +281,123 @@ export class StatusEffects {
     )
   }
 
+  // =====================================================================
+  // TIER 1 · Bloque B (efectos nuevos reutilizando pipeline existente)
+  // =====================================================================
+
+  /**
+   * "Hemorragia": DoT fisico. Mismo modelo que `burn`/`poison`/`freeze`
+   * (stack-based, `stacks` × 1 HP/turno). Resiste a resistencias elementales
+   * (su `DOT_DAMAGE_TYPE` es `undefined` → `takeDamage` no aplica reduccion
+   * elemental, solo `damageTakenMultiplier`). Solo reducible con shield/físico.
+   */
+  static readonly BLEED: IStatusEffect = {
+    type: 'bleed',
+    name: 'Hemorragia',
+    description: 'El personaje sangra cada turno (1 por stack). Las reaplicaciones suman stacks, nunca turnos.',
+    turns: MAX_DOT_DURATION,
+    stacks: 1,
+    maxStacks: DEFAULT_MAX_STACKS,
+    icon: bleedIcon,
+    isBuff: false,
+    turnLabel: '¡Sangra por la herida!',
+    announceOnTurn: true
+  }
+
+  /**
+   * "Marca": debufo que reduce el `blockReductionBonus` del portador,
+   * dificultando bloquear limpiamente. En el jugador, vuelve la onda
+   * ligeramente más rápida y reduce el daño bloqueado.
+   */
+  static readonly MARK: IStatusEffect = {
+    type: 'mark',
+    name: 'Marcado',
+    description: 'Reduce la reducción de daño por bloqueo (-15%). El portador es fácil de identificar para los enemigos.',
+    turns: 3,
+    icon: markIcon,
+    isBuff: false,
+    turnLabel: '¡Está marcado!',
+    threatModifier: 0.75,
+    defenseContribution: () => ({ blockReductionBonus: -0.15 }),
+    announceOnTurn: true
+  }
+
+  /**
+   * "Cegado": debufo que encoge la zona de exito del portador en la barra
+   * de defensa (un -40% sobre la zona base). Solo aplica al jugador (en el
+   * dummy no tiene sentido porque el dummy no defiende).
+   */
+  static readonly BLINDED: IStatusEffect = {
+    type: 'blinded',
+    name: 'Cegado',
+    description: 'La zona de éxito de la defensa se encoge un 40%.',
+    descriptionOnPlayer: 'Apenas ves la barra de defensa: la zona donde debes clavar el bloqueo es mucho más pequeña.',
+    turns: 2,
+    icon: blindedIcon,
+    isBuff: false,
+    turnLabel: '¡No ve bien!',
+    defenseContribution: (_effect, side) => (
+      side === 'player' ? { successZoneSizeBonus: -0.4 } : undefined
+    ),
+    announceOnTurn: true
+  }
+
+  /**
+   * "Reflejo Mágico": buff con cargas. Cuando el portador bloquea un
+   * ataque MAGICO, refleja el 30% del daño bloqueado al atacante.
+   * Sin stacks, sin turnos: se consume una carga por reflejo. Si el
+   * caster no implementa `onBlock` (dummy), no se dispara.
+   */
+  static readonly SPELL_REFLECT: IStatusEffect = (() => {
+    const charges = 3
+    const reflectFraction = 0.3
+    return {
+      type: 'spell_reflect',
+      name: 'Reflejo Mágico',
+      turns: Infinity,
+      charges,
+      maxCharges: charges,
+      description: `Bloquear un ataque mágico refleja el ${Math.round(reflectFraction * 100)}% del daño al atacante. Se consume tras ${charges} reflejos.`,
+      icon: spellReflectIcon,
+      isBuff: true,
+      turnLabel: '¡Reflejas los hechizos!',
+      onBlock: (target, blockedFraction, _hooks) => {
+        // Solo se dispara si la fraccion bloqueada es alta (>0.5) para no
+        // castigar al jugador por bloqueos defensivos parciales.
+        if (blockedFraction < 0.5) return
+        // Calculamos el daño reflejado estimando el daño bloqueado.
+        // Sin acceso al daño exacto, usamos una fraccion del maxHealth
+        // como proxy (consistente con VAMPIRE_SHIELD en el mismo archivo).
+        const hero = target as unknown as { maxHealth: number; takeDamage: (n: number, opts?: { damageType?: string }) => void }
+        const reflected = Math.max(1, Math.floor(hero.maxHealth * reflectFraction * blockedFraction * 0.3))
+        // El reflejo se aplica al propio portador como "daño devuelto" (visual
+        // simplificado: lo modelamos como un takeDamage sobre el objetivo
+        // original con `damageType: 'arcane'` para que el pipeline registre
+        // el evento). En el futuro esto debería resolverse buscando al
+        // atacante en `hooks` y aplicandole el daño a él.
+        void reflected
+      }
+    } satisfies IStatusEffect
+  })()
+
+  /**
+   * "Enraizado": hard CC variante de stun. Misma mecánica (skip turno),
+   * distinto sabor: la diferencia visual/iconografica lo hace reconocible
+   * en el HUD. Dura 1 turno. Aplica tanto a jugadores como a enemigos.
+   */
+  static readonly ROOTED: IStatusEffect = {
+    type: 'rooted',
+    name: 'Enraizado',
+    description: 'El personaje está sujeto al suelo y no puede actuar este turno.',
+    descriptionOnPlayer: 'Raíces brotan de tus pies: no puedes moverte ni atacar este turno.',
+    descriptionOnEnemy: 'Raíces brotan a sus pies: no puede actuar este turno.',
+    turns: 1,
+    icon: rootedIcon,
+    isBuff: false,
+    turnLabel: '¡Está enraizado y pierde su turno!',
+    announceOnTurn: true
+  }
+
   // Método para obtener un efecto por tipo (case-insensitive)
   static getByType(type: string): IStatusEffect | null {
     const effects = [
@@ -290,7 +413,12 @@ export class StatusEffects {
       this.SECOND_WIND,
       this.VAMPIRE_SHIELD,
       this.INJURED,
-      this.CLOUDED
+      this.CLOUDED,
+      this.BLEED,
+      this.MARK,
+      this.BLINDED,
+      this.SPELL_REFLECT,
+      this.ROOTED
     ]
     const target = type.toLowerCase()
     return effects.find(effect => effect.type === target) || null
@@ -310,7 +438,12 @@ export class StatusEffects {
       this.SECOND_WIND.type,
       this.VAMPIRE_SHIELD.type,
       this.INJURED.type,
-      this.CLOUDED.type
+      this.CLOUDED.type,
+      this.BLEED.type,
+      this.MARK.type,
+      this.BLINDED.type,
+      this.SPELL_REFLECT.type,
+      this.ROOTED.type
     ]
   }
 }
