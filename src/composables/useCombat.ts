@@ -50,6 +50,30 @@ const DO_STATUS_TYPES: Set<string> = new Set([
   StatusEffects.BLEED.type
 ])
 
+// Tipos de estado con HoT (Heal over Time). Su tick cura al portador en vez
+// de dañarlo. El monto a curar viene de `damagePerTurn` (interpretado
+// como negativo en el template, ej. `damagePerTurn: -5` cura 5 HP).
+// Bloque D Tier 3.
+const HOT_STATUS_TYPES: Set<string> = new Set([
+  StatusEffects.REGEN.type
+])
+
+// Tipos de estado "acumulador": cada turno suman 1 stack sin dañar. Al
+// alcanzar `maxStacks` aplican un efecto mayor y resetean stacks. El tick
+// custom vive inline en `applyPlayerStatusTick`.
+// Bloque D Tier 3.
+const ACCUMULATOR_STATUS_TYPES: Set<string> = new Set([
+  StatusEffects.CURSE.type
+])
+
+// Union de todos los efectos que disparan tick por turno en el heroe.
+// Mantener como union evita recorrer `p.statusEffects` entero por turno.
+const TICKABLE_STATUS_TYPES: Set<string> = new Set([
+  ...DO_STATUS_TYPES,
+  ...HOT_STATUS_TYPES,
+  ...ACCUMULATOR_STATUS_TYPES
+])
+
 // Etiqueta legible del "tipo de daño" que se muestra en el banner del DoT.
 const DOT_KIND_LABEL: Record<string, string> = {
   [StatusEffects.BURN.type]: 'fuego',
@@ -159,12 +183,31 @@ export function useCombat(config: CombatConfig = {}) {
     return new Set(combatant.statusEffects.filter(e => e.turns > 0).map(e => e.type))
   }
 
+  /**
+   * Calcula la agilidad efectiva de un combatiente sumando los bonuses
+   * de efectos activos (ej. Haste +3). Se aplica ANTES de pasar al motor
+   * de turnos para que la cola de turnos refleje la agilidad buffada.
+   */
+  function effectiveAgility(combatant: { baseStats: { agility: { value: number } }, statusEffects: IStatusEffect[] }): number {
+    let agility = combatant.baseStats.agility.value
+    for (const effect of combatant.statusEffects) {
+      if (effect.turns <= 0) continue
+      // Haste (Bloque D Tier 3): suma `speedBonus` a la agilidad.
+      // Extensible: cualquier futuro efecto puede exportar un delta de
+      // agilidad añadiendo `agilityBonus?: number` a IStatusEffect.
+      if (effect.type === StatusEffects.HASTE.type && typeof effect.speedBonus === 'number') {
+        agility += effect.speedBonus
+      }
+    }
+    return Math.max(1, agility)
+  }
+
   const turnActors = computed<TurnActor[]>(() => {
     const heroesList: TurnActor[] = heroes.value.map(h => ({
       id: h.id,
       name: h.name,
       kind: 'hero',
-      agility: h.baseStats.agility.value,
+      agility: effectiveAgility(h),
       isAlive: h.isAlive,
       activeEffectTypes: activeEffectTypesOf(h),
       icon: h.sprite ?? ''
@@ -173,7 +216,7 @@ export function useCombat(config: CombatConfig = {}) {
       id: e.id,
       name: e.name,
       kind: 'enemy',
-      agility: e.baseStats.agility.value,
+      agility: effectiveAgility(e),
       isAlive: e.isAlive,
       activeEffectTypes: activeEffectTypesOf(e),
       icon: (e as any).sprite ?? ''
@@ -1135,7 +1178,9 @@ const isProcessingDot = ref(false)
     const p = player.value
     if (!p || !Array.isArray(p.statusEffects) || p.statusEffects.length === 0) return
 
-    const active = p.statusEffects.filter(e => e.turns > 0 && DO_STATUS_TYPES.has(e.type))
+    const active = p.statusEffects.filter(e =>
+      e.turns > 0 && TICKABLE_STATUS_TYPES.has(e.type)
+    )
     if (active.length === 0) return
 
     isProcessingDot.value = true
@@ -1152,41 +1197,77 @@ const isProcessingDot = ref(false)
       const BANNER_TOTAL = 1800
 
       for (const effect of active) {
-        const stacks = effect.stacks ?? 1
-        const dmg = stacks
-
-        const stacksLabel = stacks > 1 ? ` ${stacks}` : ''
-        const damageKindLabel = DOT_KIND_LABEL[effect.type] ?? 'daño'
-        showAnnouncement(
-          `${p.name} recibe${stacksLabel} de daño por ${damageKindLabel}!`,
-          'status',
-          BANNER_TOTAL
-        )
-        addToLog(`${effect.name} x${stacks}: recibes ${dmg} de daño.`)
-        await delay(BANNER_LEAD_IN)
-        playDotSfx(effect.type)
-        audioManager.playHitSound()
-        p.takeDamage(dmg, { damageType: DOT_DAMAGE_TYPE[effect.type] })
-        showPlayerHit(dmg, { heroId: p.id })
-
-        // damagePerTurn es un delta FIJO independiente del stack-count.
-        // Si esta definido, se aplica DESPUES del tick por stacks (asi un
-        // efecto con stacks=1 + damagePerTurn=3 hace 1+3=4 por turno).
-        // Soporta valores negativos para representar HOT (heal por turno):
-        // ej. `Regeneracion` con damagePerTurn=-5 cura 5 HP al portador.
-        const dpt = effect.damagePerTurn
-        if (typeof dpt === 'number' && dpt !== 0) {
-          if (dpt > 0) {
+        // ---- DoT (burn / poison / freeze / bleed) ----
+        if (DO_STATUS_TYPES.has(effect.type)) {
+          const stacks = effect.stacks ?? 1
+          const dmg = stacks
+          const stacksLabel = stacks > 1 ? ` ${stacks}` : ''
+          const damageKindLabel = DOT_KIND_LABEL[effect.type] ?? 'daño'
+          showAnnouncement(
+            `${p.name} recibe${stacksLabel} de daño por ${damageKindLabel}!`,
+            'status',
+            BANNER_TOTAL
+          )
+          addToLog(`${effect.name} x${stacks}: recibes ${dmg} de daño.`)
+          await delay(BANNER_LEAD_IN)
+          playDotSfx(effect.type)
+          audioManager.playHitSound()
+          p.takeDamage(dmg, { damageType: DOT_DAMAGE_TYPE[effect.type] })
+          showPlayerHit(dmg, { heroId: p.id })
+          // `damagePerTurn` positivo puede sumarse como daño fijo extra
+          // (no es el caso de los DoT actuales; reservado para custom).
+          const dpt = effect.damagePerTurn
+          if (typeof dpt === 'number' && dpt > 0) {
             p.takeDamage(dpt, { damageType: DOT_DAMAGE_TYPE[effect.type] })
             showPlayerHit(dpt, { heroId: p.id, variant: 'damage' })
             addToLog(`${effect.name}: +${dpt} de daño extra por turno.`)
-          } else {
+          }
+        }
+
+        // ---- HoT (regen) ----
+        else if (HOT_STATUS_TYPES.has(effect.type)) {
+          // `damagePerTurn` NEGATIVO se interpreta como cantidad a curar.
+          // Si por algun motivo no esta definido, fallback a 0 (no hace nada).
+          const healAmount = typeof effect.damagePerTurn === 'number' && effect.damagePerTurn < 0
+            ? -effect.damagePerTurn
+            : 0
+          if (healAmount > 0) {
             const before = p.health
-            p.heal(-dpt)
+            p.heal(healAmount)
             const restored = p.health - before
-            if (restored > 0) {
-              showPlayerHit(restored, { heroId: p.id, variant: 'heal' })
-              addToLog(`${effect.name}: curas ${restored} HP.`)
+            showAnnouncement(
+              `${p.name} regenera ${healAmount} HP!`,
+              'status',
+              BANNER_TOTAL
+            )
+            addToLog(`${effect.name}: +${healAmount} HP.`)
+            await delay(BANNER_LEAD_IN)
+            audioManager.playHitSound()
+            if (restored > 0) showPlayerHit(restored, { heroId: p.id, variant: 'heal' })
+          }
+        }
+
+        // ---- Acumulador (curse) ----
+        else if (ACCUMULATOR_STATUS_TYPES.has(effect.type)) {
+          if (effect.type === StatusEffects.CURSE.type) {
+            const cur = (effect.stacks ?? 0) + 1
+            const max = effect.maxStacks ?? 5
+            effect.stacks = cur
+            showAnnouncement(
+              `${p.name}: Maldición ${cur}/${max}`,
+              'status',
+              BANNER_TOTAL
+            )
+            addToLog(`Maldición acumula: ${cur}/${max}.`)
+            await delay(BANNER_LEAD_IN)
+            audioManager.playHitSound()
+            showPlayerHit(cur, { heroId: p.id, variant: 'damage' })
+            // Disparo al alcanzar maxStacks: aplica Vulnerable x2 al portador.
+            if (cur >= max) {
+              effect.stacks = 0
+              p.addStatusEffect({ ...StatusEffects.VULNERABLE, turns: 2 })
+              addToLog(`¡La Maldición estalla! ${p.name} queda Vulnerable.`)
+              showAnnouncement(`${p.name} es Vulnerable!`, 'status', 1800)
             }
           }
         }

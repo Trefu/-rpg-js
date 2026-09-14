@@ -25,6 +25,11 @@ import resistIceIcon from '@/assets/icons/ice-shield.png'
 import resistHolyIcon from '@/assets/icons/checked-shield.png'
 import horrorIcon from '@/assets/icons/screaming.png'
 import silencedIcon from '@/assets/icons/silenced.png'
+import regenIcon from '@/assets/icons/regeneration.png'
+import hasteIcon from '@/assets/icons/wingfoot.png'
+import curseIcon from '@/assets/icons/cursed-star.png'
+import enragedIcon from '@/assets/icons/brute.png'
+import arcaneShieldIcon from '@/assets/icons/magic-shield.png'
 
 export const MAX_DOT_DURATION = 3
 export const CRIT_DOT_DURATION = 5
@@ -533,6 +538,110 @@ export class StatusEffects {
     announceOnTurn: true
   }
 
+  // =====================================================================
+  // TIER 3 · Bloque D (mecanicas nuevas: HoT, acumulador, shield, enrage)
+  // =====================================================================
+
+  /**
+   * "Regeneración": Heal over Time. Modelado con `damagePerTurn: -5`
+   * (interpretado como "resta 5 de daño por turno" → cura 5 HP por turno).
+   * El tick lo detecta por su presencia en `HOT_STATUS_TYPES` y aplica
+   * la cura via `Character.heal()`. NO es un DoT, asi que no entra en
+   * `DOT_STATUS_TYPES` (sino recibiria el banner rojo de daño).
+   */
+  static readonly REGEN: IStatusEffect = {
+    type: 'regen',
+    name: 'Regeneración',
+    description: 'Recuperas 5 HP cada turno.',
+    turns: 3,
+    icon: regenIcon,
+    isBuff: true,
+    turnLabel: '¡Tus heridas se cierran!',
+    damagePerTurn: -5
+  }
+
+  /**
+   * "Haste": buff que reduce el costo de turno del portador (mas agil
+   * = turnos mas frecuentes). Implementado en `useCombat.turnActors`
+   * sumando el delta de agilidad del efecto antes de pasar al motor
+   * de turnos. Ver `HASTE_AGILITY_BONUS`.
+   */
+  static readonly HASTE: IStatusEffect = {
+    type: 'haste',
+    name: 'Prisa',
+    description: 'Tu agilidad aumenta en 3 puntos (turnos más rápidos).',
+    turns: 3,
+    icon: hasteIcon,
+    isBuff: true,
+    turnLabel: '¡Se mueve más rápido!',
+    speedBonus: 3
+  }
+
+  /**
+   * "Maldición": debufo acumulador sin daño directo. Cada turno (tick)
+   * suma 1 stack; al alcanzar `maxStacks` aplica `vulnerable` x2 al
+   * portador y resetea los stacks (no consume la maldicion en si).
+   * Esto obliga al enemigo a "liberar" la maldición rapidamente o
+   * enfrentarse a un debuff mayor periodicamente.
+   */
+  static readonly CURSE: IStatusEffect = {
+    type: 'curse',
+    name: 'Maldición',
+    description: 'Acumulas oscuridad. Al alcanzar 5 stacks, quedas Vulnerable durante 2 turnos (los stacks se resetean).',
+    descriptionOnPlayer: 'Una oscuridad se acumula sobre ti. Llegará un punto de no retorno.',
+    descriptionOnEnemy: 'Una maldición se cierne sobre él/ella.',
+    turns: 5,
+    stacks: 0,
+    maxStacks: 5,
+    icon: curseIcon,
+    isBuff: false,
+    turnLabel: '¡La maldición se intensifica!',
+    announceOnTurn: true,
+    threatModifier: 0.4
+  }
+
+  /**
+   * "Enraged": auto-buff enemigo. Se aplica automaticamente al propio
+   * enemigo cuando cae por debajo del 50% HP (ver `Enemy.takeDamage`).
+   * Stats: +50% ataque saliente, -20% reduccion de bloqueo (recibe
+   * levemente mas daño bloqueado). En su mayoria enemigos cuerpo a
+   * cuerpo (Orc, Bandit Captain) lo activan al estar heridos.
+   */
+  static readonly ENRAGED: IStatusEffect = {
+    type: 'enraged',
+    name: 'Enfurecido',
+    description: 'Daño +50%, pero bloqueo -20% al estar herido.',
+    descriptionOnEnemy: 'Está fuera de sí: golpea con furia pero defiende peor.',
+    turns: 3,
+    icon: enragedIcon,
+    isBuff: true,
+    turnLabel: '¡Está fuera de sí!',
+    announceOnTurn: true,
+    defenseContribution: () => ({
+      attackDamageMultiplier: 0.50,
+      blockReductionBonus: -0.20
+    })
+  }
+
+  /**
+   * "Escudo Arcano": buff con cargas que ABSORBEN daño antes de reducir
+   * HP. Implementado en `Character.takeDamage` consumiendo
+   * `absorbRemaining` antes de aplicar el daño real. Cuando llega a 0,
+   * el efecto se elimina automaticamente. Las cargas no dependen de
+   * turnos: si no recibes daño, duran lo que diga `turns`.
+   */
+  static readonly ARCANE_SHIELD: IStatusEffect = {
+    type: 'arcane_shield',
+    name: 'Escudo Arcano',
+    description: 'Absorbe los próximos 30 puntos de daño antes de perder HP.',
+    turns: 5,
+    absorbRemaining: 30,
+    maxAbsorb: 30,
+    icon: arcaneShieldIcon,
+    isBuff: true,
+    turnLabel: '¡Un escudo arcano te protege!'
+  }
+
   // Método para obtener un efecto por tipo (case-insensitive)
   static getByType(type: string): IStatusEffect | null {
     const effects = [
@@ -560,7 +669,12 @@ export class StatusEffects {
       this.RESIST_ICE,
       this.RESIST_HOLY,
       this.HORROR,
-      this.SILENCED
+      this.SILENCED,
+      this.REGEN,
+      this.HASTE,
+      this.CURSE,
+      this.ENRAGED,
+      this.ARCANE_SHIELD
     ]
     const target = type.toLowerCase()
     return effects.find(effect => effect.type === target) || null
@@ -592,7 +706,12 @@ export class StatusEffects {
       this.RESIST_ICE.type,
       this.RESIST_HOLY.type,
       this.HORROR.type,
-      this.SILENCED.type
+      this.SILENCED.type,
+      this.REGEN.type,
+      this.HASTE.type,
+      this.CURSE.type,
+      this.ENRAGED.type,
+      this.ARCANE_SHIELD.type
     ]
   }
 }

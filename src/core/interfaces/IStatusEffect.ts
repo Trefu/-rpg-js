@@ -140,6 +140,23 @@ export interface IStatusEffect {
    */
   maxCharges?: number
   /**
+   * Daño restante que el escudo absorbe antes de reducir HP del portador.
+   * Implementado en `Character.takeDamage`: se consume primero, y solo el
+   * excedente reduce HP. Cuando llega a 0, el efecto se elimina.
+   *
+   * Si esta presente, el efecto funciona como escudo (cargas de daño
+   * absorbible, no de triggers como `charges`). Compatible con `turns`
+   * (si no recibe daño, expira por turnos normalmente).
+   *
+   * Bloque D Tier 3 — efecto `arcane_shield`.
+   */
+  absorbRemaining?: number
+  /**
+   * Valor inicial de `absorbRemaining`. Se usa en la UI para mostrar
+   * el progreso (`absorbRemaining / maxAbsorb`). Opcional.
+   */
+  maxAbsorb?: number
+  /**
    * Se invoca cuando el portador bloquea al menos una fraccion del dano
    * (`blockedFraction > 0`). Dentro del hook, decrementar `charges` consume
    * el efecto. Si `charges` baja a 0, el orquestador lo elimina.

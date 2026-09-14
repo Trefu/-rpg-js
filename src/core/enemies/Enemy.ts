@@ -8,6 +8,7 @@ import { getOutgoingDamageMultiplier } from '../combat/damageModifiers'
 import { computeDefense, computeMagicDefense } from '../defense/computeDefense'
 import { computeAgilityCritBonus, rollCritFromChance, type CritResult } from '../crit'
 import { applyDamageVariance } from '../abilities/Abilities'
+import { StatusEffects } from '../StatusEffects'
 
 export interface TargetScoreWeights {
   hpLow: number
@@ -191,6 +192,27 @@ export abstract class Enemy extends Character implements ICombatant {
     const outgoingMult = getOutgoingDamageMultiplier(this.statusEffects)
     const scaled = Math.max(1, Math.floor(variable * outgoingMult))
     return Math.floor(scaled * multiplier)
+  }
+
+  /**
+   * Override de `Character.takeDamage` que dispara el auto-buff `enraged`
+   * (Bloque D Tier 3) cuando el enemigo cae por debajo del 50% HP.
+   *
+   * Solo se aplica una vez por combate (chequea si ya tiene el buff), y
+   * solo si sigue vivo despues del golpe. Los enemigos que no implementen
+   * `enraged` en su AI (ej. dragon que tiene su propio comportamiento)
+   * pueden overridear este metodo y llamar `super` para saltarselo.
+   */
+  public override takeDamage(amount: number, opts?: { damageType?: string }): void {
+    super.takeDamage(amount, opts)
+    if (
+      this.isAlive
+      && !this.hasStatusEffect(StatusEffects.ENRAGED.type)
+      && this.getHealthPercentage() < 50
+    ) {
+      const template = StatusEffects.ENRAGED
+      this.addStatusEffect({ ...template, turns: template.turns })
+    }
   }
 
   public rollCrit(): CritResult {

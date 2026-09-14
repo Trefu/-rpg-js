@@ -106,6 +106,11 @@ export abstract class Character implements ICharacter {
    * El redondeo es `Math.max(1, floor(amount * mult))` para que un golpe
    * critico o un ataque fuerte nunca se evapore a 0 por reducciones
    * combinadas (cap inferior 1).
+   *
+   * Si el personaje tiene un escudo con `absorbRemaining > 0` (Bloque D
+   * Tier 3: `arcane_shield`), el escudo consume el daño primero y solo
+   * el excedente reduce HP. Cuando `absorbRemaining` llega a 0, el
+   * efecto se elimina.
    */
   public takeDamage(amount: number, opts?: { damageType?: DamageTypeId | string }): void {
     if (amount <= 0) return
@@ -119,6 +124,23 @@ export abstract class Character implements ICharacter {
       const mult = getIncomingDamageMultiplier(this.statusEffects, undefined)
       finalAmount = Math.max(1, Math.floor(amount * mult))
     }
+
+    // Absorcion por escudos activos. Solo se consume el PRIMER escudo que
+    // tenga absorbRemaining > 0 (los escudos no se stackean entre si; si
+    // en el futuro se quiere stacking, iterar y consumir en orden).
+    const shield = this.statusEffects.find(
+      e => e.turns > 0 && typeof e.absorbRemaining === 'number' && e.absorbRemaining > 0
+    )
+    if (shield) {
+      const absorbed = Math.min(shield.absorbRemaining!, finalAmount)
+      shield.absorbRemaining! -= absorbed
+      finalAmount -= absorbed
+      if (shield.absorbRemaining! <= 0) {
+        // Escudo agotado: eliminarlo (dispara `onRemove`).
+        this.removeStatusEffect(shield.type)
+      }
+    }
+
     this.health = Math.max(0, this.health - finalAmount)
     this.checkHealth()
   }
