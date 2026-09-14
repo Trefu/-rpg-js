@@ -17,7 +17,7 @@ interface Props {
   isAttacking: boolean
   showShortcut: boolean
   hitPopups?: { value: number, key: number, isCrit?: boolean, variant?: 'damage' | 'crit' | 'heal' | 'energy', suffix?: string, offsetX: number, offsetY: number, duration: number }[]
-  vfxEffects?: { key: number, asset: VfxAssetId }[]
+  vfxEffects?: { key: number, asset: VfxAssetId, rotationDeg?: number }[]
 }
 
 const props = defineProps<Props>()
@@ -83,6 +83,7 @@ function onClick() {
       :key="effect.key"
       :src="VFX_SOURCES[effect.asset]"
       class="enemy-vfx-effect"
+      :style="{ transform: `translate(-50%, -50%) rotate(${effect.rotationDeg ?? 0}deg)` }"
       alt=""
       aria-hidden="true"
     />

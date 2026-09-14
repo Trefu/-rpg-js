@@ -127,6 +127,12 @@ export interface VfxEffect {
    * Default: `false`.
    */
   mirrored?: boolean
+  /**
+   * Rotación (en grados) aplicada al GIF al renderizarlo. Se usa para que
+   * los slashes que se alternan entre frames (up/down) no caigan siempre en
+   * el mismo ángulo y cada golpe se sienta distinto. Default: `0`.
+   */
+  rotationDeg?: number
 }
 
 /**

@@ -66,6 +66,7 @@ interface EnemyVfxEffect {
   key: number
   asset: VfxAssetId
   durationMs: number
+  rotationDeg?: number
 }
 
 /**
@@ -83,6 +84,7 @@ interface HeroVfxEffect {
    * `VfxEffect` que origina el render (ver `failureVfx.ts`).
    */
   mirrored?: boolean
+  rotationDeg?: number
 }
 
 export function useCombat(config: CombatConfig = {}) {
@@ -766,7 +768,7 @@ const isProcessingDot = ref(false)
     const key = vfxEffectKey++
     enemyVfxEffects.value = [
       ...enemyVfxEffects.value,
-      { id: enemyId, key, asset: effect.asset, durationMs: effect.durationMs }
+      { id: enemyId, key, asset: effect.asset, durationMs: effect.durationMs, rotationDeg: effect.rotationDeg }
     ]
     setTimeout(() => {
       enemyVfxEffects.value = enemyVfxEffects.value.filter(effect => effect.key !== key)
@@ -787,7 +789,8 @@ const isProcessingDot = ref(false)
         key,
         asset: effect.asset,
         durationMs: effect.durationMs,
-        mirrored: effect.mirrored
+        mirrored: effect.mirrored,
+        rotationDeg: effect.rotationDeg
       }
     ]
     setTimeout(() => {

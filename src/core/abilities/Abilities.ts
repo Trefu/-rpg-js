@@ -112,12 +112,26 @@ const buildAttackLog = (abilityName: string, damage: number, crit: CritResult): 
 
 const resolveVfxForHit = (hitIndex: number, vfx: VfxEffect | VfxEffect[] | undefined): VfxEffect | undefined => {
   if (!vfx) return undefined
+  const pick = (effect: VfxEffect): VfxEffect => ({
+    ...effect,
+    rotationDeg: randBetween(-BASIC_ATTACK_ROTATION_DEG, BASIC_ATTACK_ROTATION_DEG)
+  })
   if (Array.isArray(vfx)) {
     if (vfx.length === 0) return undefined
-    return vfx[hitIndex % vfx.length]
+    return pick(vfx[hitIndex % vfx.length])
   }
-  return vfx
+  return pick(vfx)
 }
+
+const randBetween = (min: number, max: number): number => min + Math.random() * (max - min)
+
+/**
+ * Amplitud maxima (en grados) de la rotacion aleatoria aplicada a cada
+ * slash de un ataque basico. ±90° cubre casi cualquier orientacion (desde
+ * horizontal en un sentido hasta horizontal en el otro) sin llegar a
+ * invertir del todo el tajo, manteniendo el efecto legible.
+ */
+const BASIC_ATTACK_ROTATION_DEG = 90
 
 const getBasicAttackHitVfx = (ability: IAbility | undefined): VfxEffect[] => {
   const declared = ability?.hitVfx ?? ability?.vfx

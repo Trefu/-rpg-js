@@ -20,7 +20,7 @@ const props = defineProps<{
     activeHeroIndex?: number
     attackedHeroIds?: string[]
     hitPopups?: { heroId: string | null, value: number, key: number, isCrit?: boolean, variant?: 'damage' | 'crit' | 'blocked' | 'heal' | 'energy', suffix?: string, offsetX: number, offsetY: number, duration: number }[]
-    heroVfxEffects?: { heroId: string, key: number, asset: VfxAssetId, durationMs: number, mirrored?: boolean }[]
+    heroVfxEffects?: { heroId: string, key: number, asset: VfxAssetId, durationMs: number, mirrored?: boolean, rotationDeg?: number }[]
 }>()
 
 const emit = defineEmits<{
@@ -236,6 +236,7 @@ function onAllyRowClick(hero: Hero | null) {
                     :key="effect.key"
                     :src="VFX_SOURCES[effect.asset]"
                     :class="['mobile-vfx-effect', { 'mobile-vfx-effect--mirrored': effect.mirrored }]"
+                    :style="{ transform: `rotate(${effect.rotationDeg ?? 0}deg)${effect.mirrored ? ' scaleX(-1)' : ''}` }"
                     alt=""
                     aria-hidden="true"
                 />

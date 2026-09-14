@@ -28,7 +28,7 @@ interface Props {
   isBeingAttacked?: boolean
   hitPopups?: { value: number, key: number, isCrit?: boolean, variant?: 'damage' | 'crit' | 'blocked' | 'heal' | 'energy', suffix?: string, heroId?: string | null }[]
   /** VFX activos sobre este heroe (ej. impact / big-hit al fallar defensa). */
-  vfxEffects?: { key: number, asset: VfxAssetId, mirrored?: boolean }[]
+  vfxEffects?: { key: number, asset: VfxAssetId, mirrored?: boolean, rotationDeg?: number }[]
 }
 
 const props = defineProps<Props>()
@@ -222,6 +222,7 @@ defineExpose({
         :key="effect.key"
         :src="VFX_SOURCES[effect.asset]"
         :class="['hero-vfx-effect', { 'hero-vfx-effect--mirrored': effect.mirrored }]"
+        :style="{ transform: `translate(-50%, -50%) rotate(${effect.rotationDeg ?? 0}deg)${effect.mirrored ? ' scaleX(-1)' : ''}` }"
         alt=""
         aria-hidden="true"
       />

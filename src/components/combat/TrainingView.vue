@@ -47,7 +47,6 @@ import {
 import CombatView from './CombatView.vue'
 import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
 import type { DefensePatternConfig } from '@/core/defense/types'
-import type { IEnemyStats } from '@/core/interfaces/ICharacter'
 import { RECRUITABLE_HEROES } from '@/core/heroes/recruitment'
 import { MAX_HEROES } from '@/stores/game'
 import type { Hero } from '@/core/Hero'
@@ -150,6 +149,56 @@ const emit = defineEmits<{
 const gameStore = useGameStore()
 const dummy = ref<Dummy>(new Dummy(gameStore.activeHero?.level ?? 1))
 
+const draftBody = ref<number>(dummy.value.baseStats.body.value)
+const draftMind = ref<number>(dummy.value.baseStats.mind.value)
+const draftAgility = ref<number>(dummy.value.baseStats.agility.value)
+const draftConstitution = ref<number>(dummy.value.baseStats.constitution.value)
+const draftCritChance = ref<number>(dummy.value.critChance)
+
+function syncDraftFromDummy() {
+  draftBody.value = dummy.value.baseStats.body.value
+  draftMind.value = dummy.value.baseStats.mind.value
+  draftAgility.value = dummy.value.baseStats.agility.value
+  draftConstitution.value = dummy.value.baseStats.constitution.value
+  draftCritChance.value = dummy.value.critChance
+}
+syncDraftFromDummy()
+
+function rebuildDummyWithStats(stats: {
+  body: number
+  mind: number
+  agility: number
+  constitution: number
+  critChance: number
+}): Dummy {
+  const level = Math.max(1, gameStore.activeHero?.level ?? 1)
+  const next = new Dummy(level)
+  next.baseStats.body.value = Math.max(1, stats.body)
+  next.baseStats.mind.value = Math.max(1, stats.mind)
+  next.baseStats.agility.value = Math.max(1, stats.agility)
+  next.baseStats.constitution.value = Math.max(1, stats.constitution)
+  next.critChance = Math.max(0, Math.min(200, stats.critChance))
+  const prevHealth = dummy.value.health
+  const prevForcedPattern = dummy.value.forcedPattern
+  const prevStatusEffects = [...dummy.value.statusEffects]
+  next.health = Math.min(prevHealth, next.maxHealth)
+  next.isAlive = true
+  if (prevForcedPattern) next.setForcedPattern(prevForcedPattern)
+  next.statusEffects = prevStatusEffects
+  return next
+}
+
+function applyDummyStats() {
+  dummy.value = rebuildDummyWithStats({
+    body: draftBody.value,
+    mind: draftMind.value,
+    agility: draftAgility.value,
+    constitution: draftConstitution.value,
+    critChance: draftCritChance.value
+  })
+  syncDraftFromDummy()
+}
+
 const trainingSessionKey = ref(0)
 const rosterClass = ref<string[]>(Array.from({ length: MAX_HEROES }, () => ''))
 
@@ -178,6 +227,7 @@ function rebuildDummy() {
   const level = Math.max(1, gameStore.activeHero?.level ?? 1)
   dummy.value = new Dummy(level)
   selectedPatternIndex.value = -1
+  syncDraftFromDummy()
 }
 
 function applyRoster() {
@@ -241,22 +291,11 @@ function selectPattern(index: number) {
   }
 }
 
-function updateDummyStat(stat: keyof IEnemyStats, event: Event) {
-  const target = event.target as HTMLInputElement
-  const value = Math.max(0, Math.floor(Number(target.value) || 0))
-  dummy.value.baseStats[stat].value = value
-}
-
-function updateDummyCritChance(event: Event) {
-  const target = event.target as HTMLInputElement
-  const value = Math.max(0, Math.min(200, Math.floor(Number(target.value) || 0)))
-  dummy.value.critChance = value
-}
-
 function resetDummyStats() {
   const level = Math.max(1, gameStore.activeHero?.level ?? 1)
   dummy.value = new Dummy(level)
   selectedPatternIndex.value = -1
+  syncDraftFromDummy()
 }
 
 function resetDummy() {
@@ -373,14 +412,13 @@ function onTrainingEnded() {
 
         <section class="panel-section">
           <h3><img :src="swordsIcon" alt="" class="inline-icon" /> Stats del Dummy</h3>
-          <p class="section-hint">Modifica las stats base del dummy. Los cambios se reflejan en su ataque y critico.</p>
+          <p class="section-hint">Edita los valores y pulsa <strong>APLICAR</strong> para que surtan efecto. Mantienen la vida y patrón actuales.</p>
           <div class="stats-grid">
             <label class="stat-row">
               <span class="stat-name">Cuerpo</span>
               <input
                 type="number"
-                :value="dummy.baseStats.body.value"
-                @input="updateDummyStat('body', $event)"
+                v-model.number="draftBody"
                 class="stat-input"
                 min="1"
                 max="50"
@@ -390,8 +428,7 @@ function onTrainingEnded() {
               <span class="stat-name">Mente</span>
               <input
                 type="number"
-                :value="dummy.baseStats.mind.value"
-                @input="updateDummyStat('mind', $event)"
+                v-model.number="draftMind"
                 class="stat-input"
                 min="1"
                 max="50"
@@ -401,8 +438,7 @@ function onTrainingEnded() {
               <span class="stat-name">Agilidad</span>
               <input
                 type="number"
-                :value="dummy.baseStats.agility.value"
-                @input="updateDummyStat('agility', $event)"
+                v-model.number="draftAgility"
                 class="stat-input"
                 min="1"
                 max="50"
@@ -412,8 +448,7 @@ function onTrainingEnded() {
               <span class="stat-name">Constitución</span>
               <input
                 type="number"
-                :value="dummy.baseStats.constitution.value"
-                @input="updateDummyStat('constitution', $event)"
+                v-model.number="draftConstitution"
                 class="stat-input"
                 min="1"
                 max="50"
@@ -423,16 +458,16 @@ function onTrainingEnded() {
               <span class="stat-name">Critico %</span>
               <input
                 type="number"
-                :value="dummy.critChance"
-                @input="updateDummyCritChance($event)"
+                v-model.number="draftCritChance"
                 class="stat-input"
                 min="0"
                 max="200"
               />
             </label>
           </div>
-          <div class="button-grid">
-            <button class="action-btn warn" @click="resetDummyStats"><img :src="cycleIcon" alt="" class="btn-icon" /> Restablecer Stats</button>
+          <div class="button-grid two-col">
+            <button class="action-btn apply-stats-btn" @click="applyDummyStats"><img :src="cycleIcon" alt="" class="btn-icon" /> APLICAR</button>
+            <button class="action-btn warn" @click="resetDummyStats">Restablecer</button>
           </div>
         </section>
 
@@ -970,6 +1005,23 @@ function onTrainingEnded() {
 .action-btn.warn {
   background: linear-gradient(180deg, #6e5a2a 0%, #52441e 100%);
   border-color: #ffb300;
+}
+
+.apply-stats-btn {
+  background: linear-gradient(180deg, #ffe600 0%, #c9a900 100%);
+  border-color: #fff58a;
+  color: #1a1a2e;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  box-shadow: 0 0 10px rgba(255, 230, 0, 0.35);
+}
+.apply-stats-btn:hover:not(:disabled) {
+  background: linear-gradient(180deg, #fff58a 0%, #e6c800 100%);
+  box-shadow: 0 4px 14px rgba(255, 230, 0, 0.6);
+}
+.apply-stats-btn .btn-icon {
+  filter: none;
 }
 
 .action-btn.warn:hover:not(:disabled) {
