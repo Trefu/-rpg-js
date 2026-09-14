@@ -275,8 +275,16 @@ export function dealDamage(args: {
   rawDamage: number
   effects: AbilityEffects
   range?: DamageVarianceRange
+  /**
+   * Si `true`, NO aplica el daño al target ni dispara los efectos
+   * asociados (popup de hit, SFX, log). Solo calcula `finalDamage`,
+   * `crit` y `baseDamage` para que el caller los propague (tipicamente
+   * via `lastPrimaryFinalDamage` cuando un AoE sin target necesita el
+   * valor sin herir al caster usado como dummy). Default: `false`.
+   */
+  skipApply?: boolean
 }): { finalDamage: number, crit: CritResult, baseDamage: number } {
-  const { caster, target, ability, rawDamage, effects, range } = args
+  const { caster, target, ability, rawDamage, effects, range, skipApply = false } = args
   const baseDamage = applyDamageVariance(rawDamage, range)
 
   if (baseDamage <= 0) {
@@ -294,7 +302,7 @@ export function dealDamage(args: {
     ? Math.floor(scaledDamage * crit.multiplier)
     : scaledDamage
 
-  if (finalDamage > 0) {
+  if (finalDamage > 0 && !skipApply) {
     target.takeDamage(finalDamage, { damageType: ability.damageType })
     effects.showEnemyHit(target.id, finalDamage, crit.isCrit)
     playAbilitySfx(effects.audioManager, ability)
@@ -302,7 +310,7 @@ export function dealDamage(args: {
   }
 
   if (crit.isCrit) showCritAnnouncement(effects, ability, finalDamage, crit.isOvercrit)
-  effects.log(buildAttackLog(ability.name, finalDamage, crit))
+  if (!skipApply) effects.log(buildAttackLog(ability.name, finalDamage, crit))
 
   return { finalDamage, crit, baseDamage }
 }

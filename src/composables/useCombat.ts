@@ -9,7 +9,7 @@ import type { IItem, ItemTargetType } from '@/core/items/types'
 import { getItemOrThrow } from '@/core/items/items'
 import { consumeItem, getInventoryEntries, type InventoryEntry } from '@/core/items/inventory'
 import { StatusEffects, applyFailureEffect } from '@/core/StatusEffects'
-import { applyDamageVariance } from '@/core/abilities/Abilities'
+import { applyDamageVariance, getBasicAttackHitVfx } from '@/core/abilities/Abilities'
 import type { DamageTypeId } from '@/core/combat/damageTypes'
 import type { DamageType } from '@/core/interfaces/IAbility'
 import { DEFAULT_IMPACT_VFX, resolveFailureVfx } from '@/core/defense/failureVfx'
@@ -1629,27 +1629,39 @@ const defenseBlinded = ref(false)
     primaryTargetId: string | null,
     finalDamage: number,
     animationDelay: number = 1500,
-    damageType?: DamageTypeId | string
+    damageType?: DamageTypeId | string,
+    ability?: IAbility
   ) {
     if (finalDamage <= 0) return
     const targets = enemies.value.filter(e => e.isAlive)
     if (targets.length === 0) return
     const aoeType = damageType ?? 'physical'
+    // Pool de VFX por tipo de daño (mismo que basic attack) + rotación
+    // aleatoria para que cada golpe se sienta distinto.
+    const vfxPool = ability ? getBasicAttackHitVfx(ability) : []
     await Promise.all(
-      targets.map(async enemy => {
+      targets.map(async (enemy, idx) => {
         enemy.takeDamage(finalDamage, { damageType: aoeType })
         showEnemyHit(enemy.id, finalDamage)
+        const vfx = vfxPool.length > 0 ? vfxPool[idx % vfxPool.length] : undefined
+        if (vfx) {
+          showEnemyVfx(enemy.id, {
+            asset: vfx.asset,
+            durationMs: vfx.durationMs,
+            rotationDeg: Math.random() * 180 - 90
+          })
+        }
         addToLog(
           primaryTargetId !== null && enemy.id === primaryTargetId
-            ? `¡Golpe devastador golpea a ${enemy.name}! ${finalDamage} de daño.`
-            : `¡Golpe devastador alcanza a ${enemy.name}! ${finalDamage} de daño.`
+            ? `¡${ability?.name ?? 'Golpe devastador'} golpea a ${enemy.name}! ${finalDamage} de daño.`
+            : `¡${ability?.name ?? 'Golpe devastador'} alcanza a ${enemy.name}! ${finalDamage} de daño.`
         )
       })
     )
     audioManager.playAttackSound()
     audioManager.playHitSound()
     showAnnouncement(
-      `¡Golpe devastador! ${targets.length} enemigo${targets.length > 1 ? 's' : ''} simultaneamente`,
+      `¡${ability?.name ?? 'Golpe devastador'}! ${targets.length} enemigo${targets.length > 1 ? 's' : ''} simultaneamente`,
       'status',
       1200
     )
@@ -1705,7 +1717,13 @@ const defenseBlinded = ref(false)
          * `target.id` identifica al primario en el log).
          */
         const primaryId = ability.requiresTarget === false ? null : target?.id ?? null
-        await applyHeroAoe(primaryId, abilityContext.lastPrimaryFinalDamage, animationDelay, ability.damageType)
+        await applyHeroAoe(
+          primaryId,
+          abilityContext.lastPrimaryFinalDamage,
+          animationDelay,
+          ability.damageType,
+          ability
+        )
       }
     }
 

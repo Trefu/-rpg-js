@@ -83,7 +83,7 @@ const VFX_POOL_BY_DAMAGE_TYPE: Record<string, VfxEffect[]> = {
   ]
 }
 
-const getBasicAttackHitVfx = (ability: IAbility | undefined): VfxEffect[] => {
+export const getBasicAttackHitVfx = (ability: IAbility | undefined): VfxEffect[] => {
   const declared = ability?.hitVfx ?? ability?.vfx
   if (Array.isArray(declared)) return declared
   if (declared) return [declared]
@@ -359,7 +359,17 @@ export const WarriorDevastatingStrike: IAbility = {
   execute: async (context: AbilityContext) => {
     const caster = context.caster as Hero
     const rawDamage = computeRawDamage(context.ability.pipeline as DamageStep, caster)
-    const { finalDamage, crit } = dealDamage({ caster, target: context.target ?? caster, ability: context.ability, rawDamage, effects: context })
+    // AoE sin target: `applyHeroAoe` reparte `lastPrimaryFinalDamage` a
+    // TODOS los enemigos. `skipApply: true` evita que el caster (usado
+    // como dummy porque `context.target` es null) reciba daño propio.
+    const { finalDamage, crit } = dealDamage({
+      caster,
+      target: context.target ?? caster,
+      ability: context.ability,
+      rawDamage,
+      effects: context,
+      skipApply: true
+    })
     context.lastPrimaryFinalDamage = finalDamage
     if (crit.isCrit) {
       const dmgType = context.ability?.damageType

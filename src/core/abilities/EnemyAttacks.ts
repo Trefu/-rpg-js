@@ -100,9 +100,10 @@ export const MULTIPLE_AXE_STRIKES: DefensePatternConfig = {
     name: 'Hachazos Múltiples',
     type: 'physical',
     damageType: 'physical',
+    waveSpeed: 35,
     baseMaxBlockReduction: 0.5,
     damageMultiplier: 0.8,
-    phases: [phase(3), phase(3), phase(3), phase(3)]
+    phases: [phase(3), phase(3), phase(3), phase(3), phase(5)]
 }
 registerEnemyAttack(MULTIPLE_AXE_STRIKES)
 
@@ -112,7 +113,7 @@ export const CRUSHING_BLOW: DefensePatternConfig = {
     damageType: 'physical',
     baseMaxBlockReduction: 0.5,
     damageMultiplier: 1.5,
-    phases: [phase(3), phase(3)]
+    phases: [phase(5), phase(5)]
 }
 registerEnemyAttack(CRUSHING_BLOW)
 
@@ -131,10 +132,10 @@ export const QUICK_STRIKE: DefensePatternConfig = {
     name: 'Golpe Rápido',
     type: 'physical',
     damageType: 'physical',
-    waveSpeed: 55,
+    waveSpeed: 65,
     baseMaxBlockReduction: 0.5,
-    damageMultiplier: 0.7,
-    phases: [phase(2)]
+    damageMultiplier: 0.5,
+    phases: [phase(2),phase(2), phase(2), phase(2)]
 }
 registerEnemyAttack(QUICK_STRIKE)
 
@@ -195,13 +196,6 @@ export const GLACIAL_BREATH: DefensePatternConfig = {
 }
 registerEnemyAttack(GLACIAL_BREATH)
 
-/**
- * Tajo profundo: corte físico que deja una herida abierta. Si el jugador
- * falla el bloqueo, queda "Lesionado" durante 1 turno completo → la onda
- * del proximo ataque del enemigo se acelera (mas dificil bloquear).
- *
- * `maxDuration: 1` evita que `applyFailureEffect` use el default DoT (3 turnos).
- */
 export const DEEP_SLASH: DefensePatternConfig = {
     name: 'Tajo Profundo',
     type: 'physical',
@@ -218,15 +212,6 @@ export const DEEP_SLASH: DefensePatternConfig = {
 }
 registerEnemyAttack(DEEP_SLASH)
 
-/**
- * Rafaga de Niebla: ataque magico de viento que envuelve al jugador en nubes
- * al fallar el bloqueo. Aplica el debufo "Nublado" durante hasta 3 turnos,
- * lo que hace aparecer nubes flotantes sobre la barra de defensa y la vuelve
- * ligeramente mas dificil (onda +15% velocidad, zona de exito -3%).
- *
- * Reusa `applyFailureEffect` con `maxDuration: 3` para que la primera aplicacion
- * ya cargue los 3 turnos (sin default DoT).
- */
 export const GUST_OF_FOG: DefensePatternConfig = {
     name: 'Ráfaga de Niebla',
     type: 'arcane',
@@ -243,21 +228,6 @@ export const GUST_OF_FOG: DefensePatternConfig = {
 }
 registerEnemyAttack(GUST_OF_FOG)
 
-/**
- * Ataque Enredador: las vides del enemigo brotan del suelo y envuelven
- * los pies del heroe. Al fallar el bloqueo, el heroe queda "Enraizado"
- * durante 1 turno completo: NO pierde el turno (sigue pudiendo atacar
- * y gastar skills), pero el `DefenseChallenge` le muestra la imagen
- * `enrooted.png` sobre la barra y un timeout fijo de 1s que vuelve
- * la fase automaticamente un fail.
- *
- * `maxDuration: 1` evita que `applyFailureEffect` use el default DoT
- * (3 turnos); el efecto vive exactamente lo que dura el proximo turno
- * del heroe.
- *
- * Fisico (escalado con `body`) porque son vides que atenazan, no un
- * hechizo elemental — la defensa aplica `defense()` del heroe.
- */
 export const ENTANGLE: DefensePatternConfig = {
     name: 'Ataque Enredador',
     type: 'physical',
@@ -274,30 +244,6 @@ export const ENTANGLE: DefensePatternConfig = {
 }
 registerEnemyAttack(ENTANGLE)
 
-/**
- * Destello: pulso magico de luz cegadora. Si el jugador falla el
- * bloqueo, queda "Cegado" durante 2 turnos: aunque la zona de éxito
- * sigue existiendo mecánicamente (mismas columnas, mismo timing del
- * wave-cursor), el `DefenseChallenge` ESCONDE el highlighting verde
- * de las columnas de éxito. El jugador bloquea a ciegas — solo le
- * queda el sonido/click del input contra el timeout.
- *
- * El efecto es puramente UI: no encoge la zona, no la mueve, no
- * cambia la `successZoneSize`. Solo esconde la pista visual. Esto
- * lo hace complementario con `ENTANGLE` (que te saca el turno de
- * bloqueo con un fail automático) y `GUST_OF_FOG` (que nubla la
- * barra con sprites sobre las columnas): los tres CC "defensivos"
- * viven en capas distintas — UI, fail automático, overlay — y se
- * pueden combinar sin pisarse.
- *
- * `maxDuration: 2` evita que `applyFailureEffect` use el default DoT
- * (3 turnos); el efecto vive exactamente lo que dura el template.
- *
- * Compartido por goblins y bandidos — la IA de cada enemigo decide
- * cuando priorizarlo en su `selectAttackPattern` segun si el target
- * ya esta cegado (en ese caso cae al random base para no malgastar
- * el turno refrescando un debuff ya activo).
- */
 export const FLASH: DefensePatternConfig = {
     name: 'Destello',
     type: 'arcane',
@@ -314,17 +260,6 @@ export const FLASH: DefensePatternConfig = {
 }
 registerEnemyAttack(FLASH)
 
-/**
- * Rugido del Dragon: ability AOE del Dragon Ancestral. NO usa defense
- * challenge — es un AoE puro que golpea a todos los heroes vivos con
- * el mismo daño final (con crit ya aplicado). Smoke test del sistema
- * enemigo → IAbility unificado (Fase 3 del refactor de abilities).
- *
- * Pipeline `body × 2.0 + level × 5` → daño alto que escala bien con
- * el nivel del dragon. Se castea como IAbility y se registra en el
- * ability registry para que el training panel lo pueda listar si
- * queremos exponerlo.
- */
 export const DragonRoar: IAbility = {
   name: 'Rugido del Dragón',
   description: 'Onda sonora devastadora que golpea a TODOS los heroes vivos con daño físico masivo. No se puede bloquear.',
@@ -361,22 +296,6 @@ export const DragonRoar: IAbility = {
 }
 registerAbility(DragonRoar)
 
-/**
- * Maldición del Warlock: ability arcana SIN daño que aplica 1 stack
- * de `Maldición` al objetivo de forma inevitable (no se puede defender,
- * no se puede interrumpir con silence tradicional porque NO es
- * silencable — la maldición es intrínseca al warlock). Pensada para el
- * Goblin Warlock: usa `Maldición` como amenaza a largo plazo mientras
- * los demas patrones (`EMBER`, `GUST_OF_FOG`) hacen el daño inmediato.
- *
- * La maldición normalmente acumula 1 stack por turno via tick interno;
- * esta ability la "acelera" sumando 1 stack directo, refreshing la
- * duración al valor del template (`turns: 5`).
- *
- * Stacks se capean a `maxStacks: 5` del template. Al llegar a 5, el
- * tick interno del efecto aplica `vulnerable x2` y disipa la maldicion
- * (ver `StatusEffects.CURSE`).
- */
 export const WarlockHex: IAbility = {
   name: 'Maldición',
   description: 'El warlock susurra una maldición inevitable sobre el objetivo: aplica 1 stack de Maldición. No se puede bloquear.',

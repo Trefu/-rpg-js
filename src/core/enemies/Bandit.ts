@@ -2,11 +2,11 @@ import { Enemy } from './Enemy'
 import goblinSprite from '@/assets/sprites/enemies/bandit.png'
 import type { ICharacter } from '../interfaces/ICharacter'
 import type { DefensePatternConfig } from '../defense/types'
-import { SLASH, GUST_OF_FOG } from '../abilities/EnemyAttacks'
+import { SLASH, GUST_OF_FOG, QUICK_STRIKE } from '../abilities/EnemyAttacks'
 
 export class Bandit extends Enemy {
     public readonly sprite = goblinSprite
-    public attackPatterns: DefensePatternConfig[] = [SLASH, GUST_OF_FOG]
+    public attackPatterns: DefensePatternConfig[] = [SLASH, GUST_OF_FOG, QUICK_STRIKE]
 
     constructor(level: number = 1) {
         super({

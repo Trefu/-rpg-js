@@ -180,6 +180,12 @@ const handleCuriosityAmbush = (payload: { nodeId: string, enemies: any[] }) => {
 }
 
 const handleCombatEnded = (victory: boolean) => {
+  // Heroismo es un recurso por-combate: la barra no se mantiene entre
+  // combates (victoria o derrota) — siempre vuelve a 0 al salir.
+  for (const hero of gameStore.heroes) {
+    if (!hero) continue
+    hero.heroism = 0
+  }
   if (victory) {
     const node = expeditionStore.selectedNode
     if (node?.type === 'combat' || node?.type === 'boss' || node?.type === 'curiosity') {
