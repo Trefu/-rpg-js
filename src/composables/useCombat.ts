@@ -97,6 +97,19 @@ const DOT_DAMAGE_TYPE: Record<string, DamageTypeId | undefined> = {
 
 export interface CombatConfig {
   isTraining?: boolean
+  /**
+   * Duracion base (ms) del banner que anuncia el ataque del enemigo antes de
+   * que arranque el desafio de defensa. Default 3000 ms para que el jugador
+   * tenga tiempo de leer el nombre del ataque y a quien va dirigido. En
+   * criticos se suma un bonus fijo de `enemyAttackAnnouncementCritBonusMs`.
+   * En modo entrenamiento se ignora y se usa un valor fijo mas corto.
+   */
+  enemyAttackAnnouncementMs?: number
+  /**
+   * Bonus extra (ms) que se suma al banner del ataque enemigo cuando es
+   * critico. Default 500 ms.
+   */
+  enemyAttackAnnouncementCritBonusMs?: number
   onCombatEnd?: (victory: boolean) => void
   onTrainingEnd?: () => void
 }
@@ -1244,7 +1257,9 @@ const defenseBlinded = ref(false)
     const announceText = isCrit
       ? `Crítico ${enemyLabel} va a usar ${attackName} contra ${target.name}!`
       : `${enemyLabel} va a usar ${attackName} contra ${target.name}!`
-    const announceDuration = (config.isTraining ? 800 : 1400) + (isCrit ? 500 : 0)
+    const baseAnnouncement = config.enemyAttackAnnouncementMs ?? 3000
+    const critBonus = config.enemyAttackAnnouncementCritBonusMs ?? 500
+    const announceDuration = (config.isTraining ? 800 : baseAnnouncement) + (isCrit ? critBonus : 0)
     const announceVariant: 'attack' | 'crit-attack' = isCrit ? 'crit-attack' : 'attack'
     showAnnouncement(announceText, announceVariant, announceDuration)
     addToLog(isCrit
