@@ -53,7 +53,11 @@ function isSlotDisabled(slot: Slot): boolean {
   if (props.isPlayerInputLocked) return true
   if (slot.kind === 'empty') return true
   if (slot.kind === 'object' && props.usedItemThisTurn) return true
-  if (slot.kind === 'ability' && isCasterSilenced.value && !isBasicAttack(slot.ability)) return true
+  if (slot.kind === 'ability') {
+    if (isOnCooldown(slot.ability)) return true
+    if (!isAffordable(slot.ability)) return true
+    if (isCasterSilenced.value && !isBasicAttack(slot.ability)) return true
+  }
   return false
 }
 
@@ -89,9 +93,21 @@ function isOnCooldown(ability: IAbility) {
   return cooldownOf(ability.type) > 0
 }
 
+function hasEnoughEnergy(ability: IAbility) {
+  const cost = ability.energyCost ?? 0
+  if (cost <= 0) return true
+  return props.playerEnergy >= cost
+}
+
+function hasEnoughHeroism(ability: IAbility) {
+  const cost = ability.heroismCost ?? 0
+  if (cost <= 0) return true
+  const heroism = (props.caster as any)?.heroism ?? 0
+  return heroism >= cost
+}
+
 function isAffordable(ability: IAbility) {
-  if (!ability.energyCost) return true
-  return props.playerEnergy >= ability.energyCost
+  return hasEnoughEnergy(ability) && hasEnoughHeroism(ability)
 }
 
 function abilityState(ability: IAbility, index: number) {
@@ -159,6 +175,14 @@ function canUseInfo() {
   if (!isAffordable(a)) return false
   if (isCasterSilenced.value && !isBasicAttack(a)) return false
   return true
+}
+
+function infoUseLabel(a: IAbility): string {
+  if (isOnCooldown(a)) return 'Enfriando'
+  if (isCasterSilenced.value && !isBasicAttack(a)) return 'Silenciado'
+  if (!hasEnoughHeroism(a)) return 'Sin heroísmo suficiente'
+  if (!hasEnoughEnergy(a)) return 'Sin energía suficiente'
+  return 'Usar'
 }
 
 function slotClasses(slot: Slot) {
@@ -286,7 +310,7 @@ function shortLabel(name: string, max = 5): string {
               :disabled="!canUseInfo()"
               @click="useFromInfo"
             >
-              {{ isOnCooldown(infoAbility) ? 'Enfriando' : (isCasterSilenced && !isBasicAttack(infoAbility) ? 'Silenciado' : (isAffordable(infoAbility) ? 'Usar' : 'Sin energía')) }}
+              {{ infoUseLabel(infoAbility) }}
             </button>
           </footer>
         </div>

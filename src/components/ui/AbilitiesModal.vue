@@ -32,11 +32,21 @@ const closeModal = () => {
   emit('close')
 }
 
-const isAffordable = (ability: IAbility) => {
+const hasEnoughEnergy = (ability: IAbility, caster: Hero | null): boolean => {
   const cost = ability.energyCost ?? 0
   if (cost <= 0) return true
-  const caster = props.caster
   return !!caster && caster.energy >= cost
+}
+
+const hasEnoughHeroism = (ability: IAbility, caster: Hero | null): boolean => {
+  const cost = ability.heroismCost ?? 0
+  if (cost <= 0) return true
+  return !!caster && (caster as any).heroism >= cost
+}
+
+const isAffordable = (ability: IAbility) => {
+  const caster = props.caster
+  return hasEnoughEnergy(ability, caster) && hasEnoughHeroism(ability, caster)
 }
 
 const isCasterSilenced = computed(() => !!props.caster?.hasStatusEffect?.('silenced'))
@@ -179,7 +189,8 @@ function damageTypeClass(id?: string): string {
                 <span class="use-hint">
                   <template v-if="abilityCooldowns[ability.type] > 0">Enfriando...</template>
                   <template v-else-if="isCasterSilenced && !isBasicAttack(ability)">Silenciado</template>
-                  <template v-else-if="!isAffordable(ability)">Sin energía</template>
+                  <template v-else-if="!hasEnoughHeroism(ability, props.caster)">Sin heroísmo suficiente</template>
+                  <template v-else-if="!hasEnoughEnergy(ability, props.caster)">Sin energía suficiente</template>
                   <template v-else>Click para usar</template>
                 </span>
               </div>
