@@ -3,7 +3,7 @@ import type { IAbility } from './interfaces/IAbility'
 import type { IStatusEffect } from './interfaces/IStatusEffect'
 import type { ICombatant, IInventory, ILevelable, IPlayerStats, IStat } from './interfaces/ICharacter'
 import { BasicAttack } from './abilities/Abilities'
-import { DOT_STATUS_TYPES, STACKABLE_NON_DOT_STATUS_TYPES } from './StatusEffects'
+import { DOT_STATUS_TYPES, STACKABLE_NON_DOT_STATUS_TYPES, getEffectCategory, STACK_MERGING_CATEGORIES, NON_TURN_BASED_CATEGORIES } from './StatusEffects'
 import { computeDefense, computeMagicDefense } from './defense/computeDefense'
 import { computeAgilityCritBonus, rollCritFromChance, type CritResult } from './crit'
 
@@ -362,11 +362,10 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
 
   public addStatusEffect(effect: IStatusEffect) {
     const existing = this.statusEffects.find(e => e.type === effect.type)
-    const isDot = DOT_STATUS_TYPES.has(effect.type)
-    const isStackableNonDot = STACKABLE_NON_DOT_STATUS_TYPES.has(effect.type)
-    const isStackable = isDot || isStackableNonDot
+    const category = getEffectCategory(effect, DOT_STATUS_TYPES, STACKABLE_NON_DOT_STATUS_TYPES)
+    const isStackMerging = STACK_MERGING_CATEGORIES.has(category)
     if (existing) {
-      if (isStackable) {
+      if (isStackMerging) {
         const incomingStacks = effect.stacks ?? 1
         const maxStacks = existing.maxStacks ?? effect.maxStacks ?? 99
         existing.stacks = Math.min(maxStacks, (existing.stacks ?? 1) + incomingStacks)
@@ -377,7 +376,7 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
       }
     } else {
       const copy: IStatusEffect = { ...effect }
-      if (isStackable) {
+      if (isStackMerging) {
         copy.stacks = effect.stacks ?? 1
         copy.maxStacks = effect.maxStacks ?? 99
       }
@@ -393,12 +392,17 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
   public reduceStatusEffects() {
     // Los efectos basados en cargas (charges) se gobiernan por su propio
     // mecanismo de consumo (processPlayerOnBlockHooks), nunca por turnos.
-    // Los efectos con `cleanAtTurnStart: false` (ROOTED, BLINDED, CLOUDED)
-    // tampoco se decrementan aca: deben sobrevivir el turno del heroe para
-    // poder afectar el proximo desafio de defensa. Se decrementan/consumen
-    // en `useCombat.startEnemyTurn` al cierre del turno enemigo.
+    // Las categorias no-turn-based (stack-based: ROOTED, charge-based:
+    // SECOND_WIND/SPELL_REFLECT) tampoco: su lifecycle depende de stacks
+    // o charges, no de turnos. Se consumen via consumidores externos
+    // (`consumeRootedStack` / `processPlayerOnBlockHooks`).
+    // Los efectos con `cleanAtTurnStart: false` (BLINDED, CLOUDED) tampoco
+    // se decrementan aca: deben sobrevivir el turno del heroe para poder
+    // afectar el proximo desafio de defensa.
     this.statusEffects.forEach(e => {
       if (typeof e.charges === 'number') return
+      const category = getEffectCategory(e, DOT_STATUS_TYPES, STACKABLE_NON_DOT_STATUS_TYPES)
+      if (NON_TURN_BASED_CATEGORIES.has(category)) return
       if (e.cleanAtTurnStart === false) return
       e.turns--
     })

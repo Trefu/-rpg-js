@@ -8,7 +8,13 @@ import { computeDefense, computeMagicDefense } from '../defense/computeDefense'
 import { computeAgilityCritBonus, rollCritFromChance, type CritResult } from '../crit'
 import { applyDamageVariance } from '../abilities/damagePipeline'
 import { getOutgoingDamageMultiplier } from '../combat/damageModifiers'
-import { StatusEffects } from '../StatusEffects'
+import {
+  StatusEffects,
+  getEffectCategory,
+  DOT_STATUS_TYPES,
+  STACKABLE_NON_DOT_STATUS_TYPES,
+  NON_TURN_BASED_CATEGORIES
+} from '../StatusEffects'
 
 export interface TargetScoreWeights {
   hpLow: number
@@ -248,11 +254,13 @@ export abstract class Enemy extends Character implements ICombatant {
     // enemigos en el futuro), NUNCA por turnos. Sin este guard, un buff
     // charge-based aplicado a un enemigo expiraria al final de su primer
     // turno sin haberse consumido, lo que rompe la economia del efecto.
-    // Tambien se skipean los efectos con `cleanAtTurnStart: false` para
-    // mantener el contrato equivalente al del Hero (mismo trato de
-    // debuffs de defensa si algun dia se aplican sobre enemigos).
+    // Tambien se skipean las categorias no-turn-based (stack-based,
+    // charge-based) y los efectos con `cleanAtTurnStart: false` para
+    // mantener el contrato equivalente al del Hero.
     this.statusEffects.forEach(e => {
       if (typeof e.charges === 'number') return
+      const category = getEffectCategory(e, DOT_STATUS_TYPES, STACKABLE_NON_DOT_STATUS_TYPES)
+      if (NON_TURN_BASED_CATEGORIES.has(category)) return
       if (e.cleanAtTurnStart === false) return
       e.turns--
     })

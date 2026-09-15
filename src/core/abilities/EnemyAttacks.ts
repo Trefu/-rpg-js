@@ -238,8 +238,7 @@ export const ENTANGLE: DefensePatternConfig = {
     phases: [phase(4), phase(4)],
     onFailureEffect: {
         statusType: 'rooted',
-        stacks: 1,
-        maxDuration: 2
+        stacks: 1
     }
 }
 registerEnemyAttack(ENTANGLE)

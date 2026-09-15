@@ -1,5 +1,16 @@
 import type { IStatusEffect } from './interfaces/IStatusEffect'
-import { speedPenaltyDefenseContribution } from './interfaces/IStatusEffect'
+import {
+  speedPenaltyDefenseContribution,
+  getEffectCategory,
+  NON_TURN_BASED_CATEGORIES,
+  STACK_MERGING_CATEGORIES
+} from './interfaces/IStatusEffect'
+export type { StatusEffectCategory } from './interfaces/IStatusEffect'
+export {
+  getEffectCategory,
+  NON_TURN_BASED_CATEGORIES,
+  STACK_MERGING_CATEGORIES
+} from './interfaces/IStatusEffect'
 import type { Hero } from './Hero'
 import stunIcon from '@/assets/icons/ball-glow.png'
 import burnIcon from '@/assets/icons/fire.png'
@@ -93,6 +104,7 @@ export class StatusEffects {
     type: 'burn',
     name: 'Quemado',
     description: 'El personaje recibe daño por quemadura cada turno (1 por stack). Las reaplicaciones suman stacks.',
+    category: 'dot',
     turns: MAX_DOT_DURATION,
     stacks: 1,
     maxStacks: DEFAULT_MAX_STACKS,
@@ -106,6 +118,7 @@ export class StatusEffects {
     type: 'poison',
     name: 'Envenenado',
     description: 'El personaje recibe daño por veneno cada turno (1 por stack). Las reaplicaciones suman stacks, nunca turnos.',
+    category: 'dot',
     turns: MAX_DOT_DURATION,
     stacks: 1,
     maxStacks: DEFAULT_MAX_STACKS,
@@ -119,6 +132,7 @@ export class StatusEffects {
     type: 'freeze',
     name: 'Congelado',
     description: 'El personaje recibe daño por frío cada turno (1 por stack). Las reaplicaciones suman stacks, nunca turnos.',
+    category: 'dot',
     turns: MAX_DOT_DURATION,
     stacks: 1,
     maxStacks: DEFAULT_MAX_STACKS,
@@ -183,6 +197,7 @@ export class StatusEffects {
     return {
       type: 'second_wind',
       name: 'Segundo Aliento',
+      category: 'charge-based',
       turns: Infinity,
       charges,
       maxCharges: charges,
@@ -326,6 +341,7 @@ export class StatusEffects {
     type: 'bleed',
     name: 'Hemorragia',
     description: 'El personaje sangra cada turno (1 por stack). Las reaplicaciones suman stacks, nunca turnos.',
+    category: 'dot',
     turns: MAX_DOT_DURATION,
     stacks: 1,
     maxStacks: DEFAULT_MAX_STACKS,
@@ -392,6 +408,7 @@ export class StatusEffects {
     return {
       type: 'spell_reflect',
       name: 'Reflejo Mágico',
+      category: 'charge-based',
       turns: Infinity,
       charges,
       maxCharges: charges,
@@ -425,17 +442,21 @@ export class StatusEffects {
    * flag y aplica un timeout de 1s + overlay visual sobre la barra
    * indicando que el bloqueo es imposible.
    *
-   * Mecánica de stacks:
+   * Mecánica de stacks (unica forma de limpiar el efecto):
    *  - Cada golpe que el heroe enredado RECIBE (fase del desafio de
    *    defensa con outcome != 'success') consume 1 stack.
    *  - Si los stacks llegan a 0, el efecto se elimina y el heroe vuelve
    *    a poder bloquear normalmente.
    *  - Ejemplo: 2 stacks de rooted + ataque de 3 fases -> las primeras
    *    2 fases impactan inevitablemente; la 3ra fase se puede bloquear.
-   *  - Las reaplicaciones (`onFailureEffect`) suman stacks (cap
-   *    `maxStacks`), no refrescan duracion.
-   *  - `maxDuration` (3 turnos) actua como red de seguridad: si el
-   *    portador nunca recibe golpes, el efecto expira por turnos.
+   *  - Las reaplicaciones (`onFailureEffect`) sobre un target ya enraizado
+   *    se suprimen (no suman stacks, no refrescan nada).
+   *
+   * NO tiene expiracion por turnos: `turns: Infinity`. El efecto solo
+   * desaparece cuando los stacks llegan a 0 por golpes recibidos. Esto se
+   * garantiza excluyendo `rooted` del pipeline de decremento por turnos
+   * en `useCombat.decrementHeroesDefenseDebuffs` y forzando `turns = Infinity`
+   * en `applyFailureEffect` (override para STACKABLE_NON_DOT_STATUS_TYPES).
    *
    * Aplica a jugadores (caso principal) y enemigos (Dummy AI lo ignora
    * ya que no defiende). Visualmente el HUD muestra la imagen
@@ -448,8 +469,8 @@ export class StatusEffects {
     description: 'Raíces brotan a tus pies: cada golpe recibido consume 1 stack. No puedes bloquear mientras queden stacks.',
     descriptionOnPlayer: 'Raíces brotan de tus pies: cada golpe recibido consume 1 stack. No puedes bloquear mientras queden stacks.',
     descriptionOnEnemy: 'Raíces brotan a sus pies: cada golpe recibido consume 1 stack. No puede bloquear mientras queden stacks.',
-    turns: 3,
-    maxDuration: 3,
+    category: 'stack-based',
+    turns: Infinity,
     stacks: 1,
     maxStacks: 5,
     icon: rootedIcon,
@@ -774,6 +795,27 @@ export function applyFailureEffect(
     )
   }
 
+  // Resolvemos la categoria del template (puede venir explicita en `category`
+  // o inferirse por pertenencia a DOT_STATUS_TYPES / STACKABLE_NON_DOT_STATUS_TYPES
+  // / presencia de `charges` — ver `getEffectCategory`).
+  const templateCategory = getEffectCategory(template, DOT_STATUS_TYPES, STACKABLE_NON_DOT_STATUS_TYPES)
+
+  // Stack-based (ej. ROOTED): si el target ya tiene el efecto activo con
+  // stacks > 0, NO se reaplica ni se suman stacks al impactar. Asi un ataque
+  // que aplique 'rooted' sobre un heroe ya enraizado solo consume stacks via
+  // `consumeRootedStack` (manejado por useCombat antes de llamar a
+  // applyFailureEffect), pero no refresca la rooting indefinidamente. Esto
+  // evita el bug donde ENTANGLE aplicaba ROOTED en cada fase fallida,
+  // manteniendo al heroe enraizado para siempre aunque bloqueara fases intermedias.
+  if (templateCategory === 'stack-based') {
+    const existing = target.statusEffects.find(
+      e => e.type === statusType && e.turns > 0 && (e.stacks ?? 0) > 0
+    )
+    if (existing) {
+      return
+    }
+  }
+
   const stacks = Math.max(1, spec.stacks ?? 1)
   const maxStacks = template.maxStacks ?? DEFAULT_MAX_STACKS
   if (stacks > maxStacks) {
@@ -786,7 +828,15 @@ export function applyFailureEffect(
   const defaultDotDuration = opts.isCrit && DOT_STATUS_TYPES.has(statusType)
     ? CRIT_DOT_DURATION
     : MAX_DOT_DURATION
-  const maxDuration = spec.maxDuration ?? template.maxDuration ?? defaultDotDuration
+  const requestedMaxDuration = spec.maxDuration ?? template.maxDuration ?? defaultDotDuration
+  // Categorias no-turn-based (stack-based, charge-based): no tienen expiracion
+  // por turnos. Forzamos `Infinity` para que `hasStatusEffect` y
+  // `removeExpiredStatusEffects` siempre consideren el efecto vivo hasta que
+  // un consumidor externo (consumeRootedStack / processPlayerOnBlockHooks)
+  // lo elimine explicitamente al llegar a 0 stacks/charges.
+  const maxDuration = NON_TURN_BASED_CATEGORIES.has(templateCategory)
+    ? Infinity
+    : requestedMaxDuration
 
   const instance: IStatusEffect = {
     ...template,

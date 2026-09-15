@@ -4,6 +4,61 @@ export type StatusEffectSide = 'enemy' | 'player'
 export type DefenseEffectSide = 'player' | 'enemy'
 
 /**
+ * Categoria que define el ciclo de vida de un efecto de estado. Sirve para
+ * que el resto del pipeline (applyFailureEffect, addStatusEffect,
+ * reduceStatusEffects, decrementHeroesDefenseDebuffs, UI) decida su
+ * comportamiento sin tener que inspeccionar multiples campos sueltos
+ * (`stacks`, `charges`, `turns`, `cleanAtTurnStart`, pertenencia a
+ * `DOT_STATUS_TYPES`, etc.).
+ *
+ * - `'turn-based'` (default si se omite): el efecto se gobierna por `turns`,
+ *   se decrementa al inicio del turno del portador via `reduceStatusEffects`
+ *   y expira cuando `turns <= 0`. Las reaplicaciones solo refrescan la
+ *   duracion. No acumula stacks ni cargos. Cubre la mayoria de buffs/debuffs
+ *   (strength_boost, weakness, slow, etc.).
+ * - `'dot'` (damage-over-time): ademas de tener `turns`, acumula `stacks`
+ *   con dano por turno (`damagePerTurn`). Las reaplicaciones suman stacks
+ *   (no refrescan turnos). Tick se aplica al inicio del turno del portador.
+ *   Cubre burn/poison/freeze/bleed.
+ * - `'stack-based'`: el efecto se gobierna exclusivamente por `stacks`.
+ *   `turns` se fuerza a `Infinity` al aplicar (no expira por tiempo).
+ *   Las reaplicaciones sobre un target ya activo se suprimen (no suman
+ *   stacks). La unica via de limpieza es que un consumidor externo
+ *   (ej. `useCombat.consumeRootedStack`) decremente stacks hasta 0.
+ *   Cubre ROOTED.
+ * - `'charge-based'`: el efecto se gobierna por `charges`/`maxCharges`,
+ *   consumidos por hooks externos (tipicamente `onBlock`). `turns` se
+ *   fuerza a `Infinity`. Las reaplicaciones refrescan cargas al maximo
+ *   (no acumulan). Cubre SECOND_WIND, SPELL_REFLECT.
+ */
+export type StatusEffectCategory =
+  | 'turn-based'
+  | 'dot'
+  | 'stack-based'
+  | 'charge-based'
+
+/**
+ * Categorias que NO deben decrementar `turns` al inicio del turno del
+ * portador ni al final del turno enemigo. Sus lifecycles dependen de
+ * `stacks` o `charges`, no de `turns`.
+ */
+export const NON_TURN_BASED_CATEGORIES: ReadonlySet<StatusEffectCategory> = new Set([
+  'stack-based',
+  'charge-based'
+])
+
+/**
+ * Categorias cuyas reaplicaciones suman `stacks` (en vez de refrescar
+ * `turns`). DoT suma stacks hasta `maxStacks`; stack-based suma stacks
+ * pero la re-aplicacion se suprime si el target ya esta activo (ver
+ * `applyFailureEffect`).
+ */
+export const STACK_MERGING_CATEGORIES: ReadonlySet<StatusEffectCategory> = new Set([
+  'dot',
+  'stack-based'
+])
+
+/**
  * Payload del popup flotante disparado por un `onBlock` (o cualquier hook de
  * efecto de estado). Se reusa el mismo sistema de popups del jugador para
  * que las autocuraciones / auto-restauraciones de energia de los buffs
@@ -91,6 +146,19 @@ export interface IStatusEffect {
   type: string
   name: string
   description: string
+  /**
+   * Categoria que define el ciclo de vida del efecto. Ver
+   * `StatusEffectCategory` para el detalle de cada categoria. Si se omite,
+   * se infiere `'turn-based'` (comportamiento historico).
+   *
+   * La inferencia automatica se hace en `getEffectCategory()`: si el
+   * efecto tiene `charges` se trata como `'charge-based'`; si pertenece
+   * a `DOT_STATUS_TYPES` (burn/poison/freeze/bleed) se trata como
+   * `'dot'`; si pertenece a `STACKABLE_NON_DOT_STATUS_TYPES` (rooted)
+   * se trata como `'stack-based'`; en cualquier otro caso,
+   * `'turn-based'`.
+   */
+  category?: StatusEffectCategory
   /**
    * Descripcion alternativa cuando el portador del efecto es un enemigo.
    * Si esta definida, la UI que muestra efectos sobre enemigos la usa en
@@ -211,4 +279,32 @@ export function getEffectDescription(
   if (side === 'enemy' && effect.descriptionOnEnemy) return effect.descriptionOnEnemy
   if (side === 'player' && effect.descriptionOnPlayer) return effect.descriptionOnPlayer
   return effect.description
+}
+
+/**
+ * Resuelve la categoria de un efecto. Prioridad:
+ *  1. `effect.category` (campo explicito en el template).
+ *  2. Inferencia por campos/setas si el campo esta ausente.
+ *  3. Default: `'turn-based'`.
+ *
+ * La inferencia mantiene compatibilidad hacia atras: efectos definidos
+ * sin `category` siguen comportandose como antes (DoT si esta en
+ * DOT_STATUS_TYPES, stack-based si esta en STACKABLE_NON_DOT_STATUS_TYPES,
+ * charge-based si tiene `typeof charges === 'number'`, etc.).
+ *
+ * Nota: el parametro `dotTypes` y `stackableNonDotTypes` son opcionales
+ * para evitar una dependencia circular con `StatusEffects.ts`. Si se
+ * omiten, la inferencia se reduce a `typeof charges === 'number'` vs
+ * default 'turn-based'.
+ */
+export function getEffectCategory(
+  effect: Pick<IStatusEffect, 'category' | 'type' | 'charges'>,
+  dotTypes?: ReadonlySet<string>,
+  stackableNonDotTypes?: ReadonlySet<string>
+): StatusEffectCategory {
+  if (effect.category) return effect.category
+  if (typeof effect.charges === 'number') return 'charge-based'
+  if (dotTypes?.has(effect.type)) return 'dot'
+  if (stackableNonDotTypes?.has(effect.type)) return 'stack-based'
+  return 'turn-based'
 }

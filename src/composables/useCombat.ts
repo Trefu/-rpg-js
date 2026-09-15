@@ -8,7 +8,7 @@ import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
 import type { IItem, ItemTargetType } from '@/core/items/types'
 import { getItemOrThrow } from '@/core/items/items'
 import { consumeItem, getInventoryEntries, type InventoryEntry } from '@/core/items/inventory'
-import { StatusEffects, applyFailureEffect } from '@/core/StatusEffects'
+import { StatusEffects, applyFailureEffect, getEffectCategory, DOT_STATUS_TYPES, STACKABLE_NON_DOT_STATUS_TYPES, NON_TURN_BASED_CATEGORIES } from '@/core/StatusEffects'
 import { applyDamageVariance, getBasicAttackHitVfx } from '@/core/abilities/Abilities'
 import type { DamageTypeId } from '@/core/combat/damageTypes'
 import type { DamageType } from '@/core/interfaces/IAbility'
@@ -1417,6 +1417,13 @@ const defenseClouded = ref(false)
     heroes.value.forEach(h => {
       h.statusEffects.forEach(e => {
         if (typeof e.charges === 'number') return
+        // Categorias no-turn-based (stack-based: ROOTED, charge-based:
+        // SECOND_WIND/SPELL_REFLECT): no expiran por turnos, solo por
+        // consumo de stacks/charges via consumidor externo
+        // (`consumeRootedStack` / `processPlayerOnBlockHooks`). Sincronizado
+        // con el override de `maxDuration = Infinity` en `applyFailureEffect`.
+        const category = getEffectCategory(e, DOT_STATUS_TYPES, STACKABLE_NON_DOT_STATUS_TYPES)
+        if (NON_TURN_BASED_CATEGORIES.has(category)) return
         if (e.cleanAtTurnStart !== false) return
         if (defenseDebuffsAppliedThisTurn.has(e.type)) return
         e.turns--

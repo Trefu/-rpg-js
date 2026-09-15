@@ -186,9 +186,9 @@ function onAllyRowClick(hero: Hero | null) {
                 >
                     <img :src="effect.icon" :alt="effect.name" />
                     <span
-                        v-if="effect.turns !== undefined && Number.isFinite(effect.turns)"
-                        class="mobile-hud-status-icon-turns"
-                    >{{ effect.turns }}</span>
+                        v-if="typeof effect.stacks === 'number' && effect.stacks > 0"
+                        class="mobile-hud-status-icon-stacks"
+                    >x{{ effect.stacks }}</span>
                 </div>
             </div>
             <div class="mobile-hud-info">
@@ -521,11 +521,14 @@ function onAllyRowClick(hero: Hero | null) {
 }
 
 /*
- * Badge de turnos sobre el icono. Solo aparece cuando la duracion es finita
- * (los efectos "permanentes" como Second Wind no muestran numero para no
- * contaminar visualmente).
+ * Badge de stacks sobre el icono. Solo aparece cuando el efecto tiene
+ * stacks > 0 (efectos sin stacks, como buffs de turnos puros, no muestran
+ * numero). Mismo shape que el badge de turnos anterior pero en amarillo
+ * (anteriormente rojo) para diferenciar visualmente "stacks pendientes"
+ * de "turnos restantes". El prefijo "x" alinea con la convencion usada
+ * en `EnemyStatusIcons` y los dropdowns detallados del heroe.
  */
-.mobile-hud-status-icon-turns {
+.mobile-hud-status-icon-stacks {
     position: absolute;
     top: -5px;
     right: -5px;
@@ -533,8 +536,8 @@ function onAllyRowClick(hero: Hero | null) {
     height: 13px;
     padding: 0 2px;
     border-radius: 7px;
-    background: #ff3333;
-    color: #fff;
+    background: #ffe600;
+    color: #1a1a1a;
     font-family: 'Courier New', monospace;
     font-size: 0.55rem;
     font-weight: 800;
@@ -546,8 +549,9 @@ function onAllyRowClick(hero: Hero | null) {
     line-height: 1;
 }
 
-.mobile-hud-status-icon.kind-buff .mobile-hud-status-icon-turns {
-    background: #2e7d32;
+.mobile-hud-status-icon.kind-buff .mobile-hud-status-icon-stacks {
+    background: #ffd60a;
+    color: #1a1a1a;
 }
 
 .mobile-hud-info {

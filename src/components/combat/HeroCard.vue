@@ -286,9 +286,9 @@ defineExpose({
           >
             <img :src="effect.icon" :alt="effect.name" />
             <span
-              v-if="effect.turns !== undefined && Number.isFinite(effect.turns)"
-              class="hero-status-icon-turns"
-            >{{ effect.turns }}</span>
+              v-if="typeof effect.stacks === 'number' && effect.stacks > 0"
+              class="hero-status-icon-stacks"
+            >x{{ effect.stacks }}</span>
           </div>
         </div>
       </div>
@@ -768,11 +768,14 @@ defineExpose({
 }
 
 /*
- * Badge de turnos sobre el icono. Solo aparece cuando la duracion es finita
- * (los efectos "permanentes" como Second Wind no muestran numero para no
- * contaminar visualmente).
+ * Badge de stacks sobre el icono. Solo aparece cuando el efecto tiene
+ * stacks > 0 (efectos sin stacks, como buffs de turnos puros, no muestran
+ * numero). Mismo shape que el badge de turnos anterior pero en amarillo
+ * (anteriormente rojo) para diferenciar visualmente "stacks pendientes"
+ * de "turnos restantes". El prefijo "x" alinea con la convencion usada
+ * en `EnemyStatusIcons` y los dropdowns detallados del heroe.
  */
-.hero-status-icon-turns {
+.hero-status-icon-stacks {
   position: absolute;
   top: -6px;
   right: -6px;
@@ -780,8 +783,8 @@ defineExpose({
   height: 14px;
   padding: 0 3px;
   border-radius: 7px;
-  background: #ff3333;
-  color: #fff;
+  background: #ffe600;
+  color: #1a1a1a;
   font-family: 'Courier New', monospace;
   font-size: 0.58rem;
   font-weight: 800;
@@ -793,8 +796,9 @@ defineExpose({
   line-height: 1;
 }
 
-.hero-status-icon.kind-buff .hero-status-icon-turns {
-  background: #2e7d32;
+.hero-status-icon.kind-buff .hero-status-icon-stacks {
+  background: #ffd60a;
+  color: #1a1a1a;
 }
 
 .bar-line {
