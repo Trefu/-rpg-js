@@ -1,6 +1,6 @@
 import { ICharacter } from './interfaces/ICharacter'
 import type { IStatusEffect } from './interfaces/IStatusEffect'
-import { DOT_STATUS_TYPES } from './StatusEffects'
+import { DOT_STATUS_TYPES, STACKABLE_NON_DOT_STATUS_TYPES } from './StatusEffects'
 import { getIncomingDamageMultiplier } from './combat/damageModifiers'
 import type { DamageTypeId } from './combat/damageTypes'
 
@@ -37,8 +37,10 @@ export abstract class Character implements ICharacter {
   public addStatusEffect(effect: IStatusEffect) {
     const existingEffect = this.statusEffects.find(e => e.type === effect.type)
     const isDot = DOT_STATUS_TYPES.has(effect.type)
+    const isStackableNonDot = STACKABLE_NON_DOT_STATUS_TYPES.has(effect.type)
+    const isStackable = isDot || isStackableNonDot
     if (existingEffect) {
-      if (isDot) {
+      if (isStackable) {
         const incomingStacks = effect.stacks ?? 1
         const maxStacks = existingEffect.maxStacks ?? effect.maxStacks ?? 99
         const currentStacks = existingEffect.stacks ?? 1
@@ -54,7 +56,7 @@ export abstract class Character implements ICharacter {
         ...effect,
         turns: Math.min(maxDuration, effect.turns)
       }
-      if (isDot) {
+      if (isStackable) {
         instance.stacks = effect.stacks ?? 1
         instance.maxStacks = effect.maxStacks ?? 99
       }

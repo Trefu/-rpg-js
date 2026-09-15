@@ -25,12 +25,14 @@ const props = withDefaults(defineProps<{
   isCrit?: boolean
   clouded?: boolean
   rooted?: boolean
+  rootedStacks?: number
   rootedOverlay?: string | null
   blinded?: boolean
 }>(), {
   isCrit: false,
   clouded: false,
   rooted: false,
+  rootedStacks: 0,
   rootedOverlay: null,
   blinded: false
 })
@@ -395,6 +397,7 @@ onUnmounted(() => {
 
       <div v-if="rooted" class="defense-cta defense-cta-rooted">
         <span class="cta-text-rooted">No puedes bloquear, estás enraizado.</span>
+        <span class="cta-rooted-stacks">x{{ rootedStacks }}</span>
       </div>
       <div v-else class="defense-cta">
         <span class="cta-key">ESPACIO</span>
@@ -709,6 +712,25 @@ onUnmounted(() => {
 .cta-text-rooted {
   text-shadow: 0 1px 3px #000a;
   font-size: 1rem;
+}
+
+/**
+ * Contador de stacks de Enraizado visibles en el CTA. Se renderiza
+ * inline al lado del mensaje, como un chip/badgedor para que el jugador
+ * vea cuantos golpes mas tiene que recibir antes de poder bloquear.
+ */
+.cta-rooted-stacks {
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.45rem;
+  background: rgba(182, 226, 177, 0.15);
+  border: 1px solid rgba(182, 226, 177, 0.55);
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #e6ffe0;
+  text-shadow: 0 1px 2px #000a;
+  vertical-align: middle;
 }
 
 .defense-debug {

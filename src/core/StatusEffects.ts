@@ -43,6 +43,23 @@ export const DOT_STATUS_TYPES: ReadonlySet<string> = new Set([
   'bleed'
 ])
 
+/**
+ * Efectos no-DoT cuyas reaplicaciones suman STACKS (no turnos).
+ * Modelan CC/consumibles cuya "magnitud" (cuanto le queda al portador)
+ * escala con stacks, no con duracion. La cantidad de stacks persiste
+ * mientras el efecto siga vivo; cuando llega a 0 (consumido por su
+ * mecanica propia) o `turns <= 0`, el efecto se elimina.
+ *
+ * Caso de uso actual: `rooted` — cada golpe recibido por un heroe
+ * enredado consume 1 stack. Con 2 stacks y un ataque de 3 fases, las
+ * primeras 2 fases impactan inevitablemente pero la 3ra ya se puede
+ * bloquear. Mantiene `maxDuration` como red de seguridad: si el portador
+ * no recibe golpes, el efecto eventualmente expira por turnos.
+ */
+export const STACKABLE_NON_DOT_STATUS_TYPES: ReadonlySet<string> = new Set([
+  'rooted'
+])
+
 export interface FailureEffectSpec {
   statusType: string
   stacks?: number
@@ -402,23 +419,39 @@ export class StatusEffects {
   })()
 
   /**
-   * "Enraizado": soft CC que NO skipea el turno (el portador sigue
-   * pudiendo atacar y gastar energía), pero NO puede bloquear en el
-   * desafio de defensa: el `DefenseChallenge` detecta el flag y aplica
-   * un timeout de 1s + overlay visual sobre la barra indicando que el
-   * bloqueo es imposible. Dura 1 turno (consumido al defender una vez).
+   * "Enraizado": soft CC stack-based que NO skipea el turno (el portador
+   * sigue pudiendo atacar y gastar energía), pero NO puede bloquear
+   * mientras tenga al menos 1 stack: el `DefenseChallenge` detecta el
+   * flag y aplica un timeout de 1s + overlay visual sobre la barra
+   * indicando que el bloqueo es imposible.
+   *
+   * Mecánica de stacks:
+   *  - Cada golpe que el heroe enredado RECIBE (fase del desafio de
+   *    defensa con outcome != 'success') consume 1 stack.
+   *  - Si los stacks llegan a 0, el efecto se elimina y el heroe vuelve
+   *    a poder bloquear normalmente.
+   *  - Ejemplo: 2 stacks de rooted + ataque de 3 fases -> las primeras
+   *    2 fases impactan inevitablemente; la 3ra fase se puede bloquear.
+   *  - Las reaplicaciones (`onFailureEffect`) suman stacks (cap
+   *    `maxStacks`), no refrescan duracion.
+   *  - `maxDuration` (3 turnos) actua como red de seguridad: si el
+   *    portador nunca recibe golpes, el efecto expira por turnos.
    *
    * Aplica a jugadores (caso principal) y enemigos (Dummy AI lo ignora
    * ya que no defiende). Visualmente el HUD muestra la imagen
-   * `enrooted.png` superpuesta a la barra de defensa.
+   * `enrooted.png` superpuesta a la barra de defensa + el contador de
+   * stacks restantes.
    */
   static readonly ROOTED: IStatusEffect = {
     type: 'rooted',
     name: 'Enraizado',
-    description: 'Raíces brotan a tus pies: no puedes bloquear este turno.',
-    descriptionOnPlayer: 'Raíces brotan de tus pies: no puedes bloquear este turno.',
-    descriptionOnEnemy: 'Raíces brotan a sus pies: no puede bloquear este turno.',
-    turns: 2,
+    description: 'Raíces brotan a tus pies: cada golpe recibido consume 1 stack. No puedes bloquear mientras queden stacks.',
+    descriptionOnPlayer: 'Raíces brotan de tus pies: cada golpe recibido consume 1 stack. No puedes bloquear mientras queden stacks.',
+    descriptionOnEnemy: 'Raíces brotan a sus pies: cada golpe recibido consume 1 stack. No puede bloquear mientras queden stacks.',
+    turns: 3,
+    maxDuration: 3,
+    stacks: 1,
+    maxStacks: 5,
     icon: rootedIcon,
     isBuff: false,
     turnLabel: '¡Raíces le impiden bloquear!',

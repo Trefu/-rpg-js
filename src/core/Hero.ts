@@ -3,7 +3,7 @@ import type { IAbility } from './interfaces/IAbility'
 import type { IStatusEffect } from './interfaces/IStatusEffect'
 import type { ICombatant, IInventory, ILevelable, IPlayerStats, IStat } from './interfaces/ICharacter'
 import { BasicAttack } from './abilities/Abilities'
-import { DOT_STATUS_TYPES } from './StatusEffects'
+import { DOT_STATUS_TYPES, STACKABLE_NON_DOT_STATUS_TYPES } from './StatusEffects'
 import { computeDefense, computeMagicDefense } from './defense/computeDefense'
 import { computeAgilityCritBonus, rollCritFromChance, type CritResult } from './crit'
 
@@ -363,8 +363,10 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
   public addStatusEffect(effect: IStatusEffect) {
     const existing = this.statusEffects.find(e => e.type === effect.type)
     const isDot = DOT_STATUS_TYPES.has(effect.type)
+    const isStackableNonDot = STACKABLE_NON_DOT_STATUS_TYPES.has(effect.type)
+    const isStackable = isDot || isStackableNonDot
     if (existing) {
-      if (isDot) {
+      if (isStackable) {
         const incomingStacks = effect.stacks ?? 1
         const maxStacks = existing.maxStacks ?? effect.maxStacks ?? 99
         existing.stacks = Math.min(maxStacks, (existing.stacks ?? 1) + incomingStacks)
@@ -375,7 +377,7 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
       }
     } else {
       const copy: IStatusEffect = { ...effect }
-      if (isDot) {
+      if (isStackable) {
         copy.stacks = effect.stacks ?? 1
         copy.maxStacks = effect.maxStacks ?? 99
       }

@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { StatusEffects, DOT_STATUS_TYPES } from '@/core/StatusEffects'
+import {
+  StatusEffects,
+  DOT_STATUS_TYPES,
+  STACKABLE_NON_DOT_STATUS_TYPES,
+  applyFailureEffect
+} from '@/core/StatusEffects'
+import { Warrior } from '@/core/heroes/Warrior'
 
 describe('StatusEffects registry', () => {
   it('getByType devuelve el efecto correcto para types conocidos', () => {
@@ -79,5 +85,65 @@ describe('StatusEffects registry', () => {
     const silenced = StatusEffects.getByType('silenced')
     expect(silenced).not.toBeNull()
     expect(silenced?.isBuff).toBe(false)
+  })
+})
+
+describe('ROOTED stack semantics', () => {
+  it('el template define stacks y maxStacks (mecanica basada en stacks, no turnos)', () => {
+    const rooted = StatusEffects.getByType('rooted')
+    expect(rooted).not.toBeNull()
+    expect(typeof rooted?.stacks).toBe('number')
+    expect(typeof rooted?.maxStacks).toBe('number')
+    expect(rooted!.stacks!).toBeGreaterThan(0)
+    expect(rooted!.maxStacks!).toBeGreaterThan(0)
+  })
+
+  it('STACKABLE_NON_DOT_STATUS_TYPES incluye rooted', () => {
+    expect(STACKABLE_NON_DOT_STATUS_TYPES.has('rooted')).toBe(true)
+  })
+
+  it('applyFailureEffect reaplicaciones suman stacks de rooted (no refrescan turnos)', () => {
+    const hero = new Warrior(1)
+    // Primera aplicacion: 1 stack.
+    applyFailureEffect(hero, { statusType: 'rooted', stacks: 1 })
+    let fx = hero.statusEffects.find(e => e.type === 'rooted')!
+    expect(fx.stacks).toBe(1)
+
+    // Segunda aplicacion: suman a 2 (no reemplazan).
+    applyFailureEffect(hero, { statusType: 'rooted', stacks: 1 })
+    fx = hero.statusEffects.find(e => e.type === 'rooted')!
+    expect(fx.stacks).toBe(2)
+
+    // Tercera aplicacion: cappea en maxStacks (5).
+    applyFailureEffect(hero, { statusType: 'rooted', stacks: 1 })
+    applyFailureEffect(hero, { statusType: 'rooted', stacks: 1 })
+    applyFailureEffect(hero, { statusType: 'rooted', stacks: 1 })
+    fx = hero.statusEffects.find(e => e.type === 'rooted')!
+    expect(fx.stacks).toBe(5)
+  })
+
+  it('aplicar rooted + simular consumo manual de stacks reproduce el caso de uso "2 stacks y ataque de 3 fases"', () => {
+    const hero = new Warrior(1)
+    // Heroe llega al desafio con 2 stacks de rooted (ej. 2 aplicaciones previas).
+    applyFailureEffect(hero, { statusType: 'rooted', stacks: 1 })
+    applyFailureEffect(hero, { statusType: 'rooted', stacks: 1 })
+    let fx = hero.statusEffects.find(e => e.type === 'rooted')!
+    expect(fx.stacks).toBe(2)
+
+    // Fase 1 falla -> consume 1 stack (queda en 1).
+    fx.stacks = Math.max(0, (fx.stacks ?? 0) - 1)
+    fx = hero.statusEffects.find(e => e.type === 'rooted')!
+    expect(fx.stacks).toBe(1)
+
+    // Fase 2 falla -> consume 1 stack (queda en 0 -> se elimina el efecto).
+    const remaining = (fx.stacks ?? 0) - 1
+    if (remaining <= 0) {
+      hero.removeStatusEffect('rooted')
+    } else {
+      fx.stacks = remaining
+    }
+    expect(hero.hasStatusEffect('rooted')).toBe(false)
+
+    // Fase 3 ya no esta enraizada: el heroe puede bloquear.
   })
 })

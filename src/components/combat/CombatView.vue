@@ -73,6 +73,7 @@ const {
   defenseIsCrit,
   defenseClouded,
   defenseRooted,
+  defenseRootedStacks,
   defenseRootedOverlay,
   defenseBlinded,
   openAbilitiesModal,
@@ -436,6 +437,7 @@ onUnmounted(() => {
       :is-crit="defenseIsCrit"
       :clouded="defenseClouded"
       :rooted="defenseRooted"
+      :rooted-stacks="defenseRootedStacks"
       :rooted-overlay="defenseRootedOverlay"
       :blinded="defenseBlinded"
       @phase-complete="onDefensePhaseComplete"

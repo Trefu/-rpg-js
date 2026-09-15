@@ -292,15 +292,15 @@ const isProcessingDot = ref(false)
   const defenseEnemyId = ref<string | null>(null)
 const defenseIsCrit = ref(false)
 const defenseClouded = ref(false)
-const defenseRooted = ref(false)
-const defenseRootedOverlay = ref<string | null>(null)
-const defenseBlinded = ref(false)
+  const defenseRooted = ref(false)
+  const defenseRootedStacks = ref(0)
+  const defenseRootedOverlay = ref<string | null>(null)
+  const defenseBlinded = ref(false)
   let pendingDefenseResolve: ((result: DefenseChallengeResult | null) => void) | null = null
   let pendingDefensePattern: DefensePatternConfig | null = null
   let pendingDefenseEnemy: IEnemy | null = null
   let pendingDefenseTarget: Hero | null = null
   let pendingDefenseCrit: CritResult = { multiplier: 1, isCrit: false, isOvercrit: false }
-  let rootConsumableOnDefenseClose = false
   /**
    * Tipos de defense-debuff que fueron aplicados durante el turno enemigo
    * actual via `applyFailureEffect`. El decremento al cierre de este turno
@@ -339,14 +339,6 @@ const defenseBlinded = ref(false)
     preSelectedPattern?: DefensePatternConfig,
     opts: { crit?: CritResult } = {}
   ): Promise<DefenseChallengeResult | null> {
-    // Captura si ROOTED ya estaba aplicado ANTES de este desafio. ROOTED es
-    // "consumido al defender una vez" (ver StatusEffects.ROOTED), pero si
-    // fue aplicado por una fase anterior del MISMO patron (ej. ENTANGLE
-    // tiene 2 fases y la fase 1 falla aplicando ROOTED), NO debe consumirse
-    // aqui: debe persistir hasta el SIGUIENTE desafio de defensa.
-    rootConsumableOnDefenseClose =
-      typeof target.hasStatusEffect === 'function' &&
-      target.hasStatusEffect(StatusEffects.ROOTED.type)
     return new Promise((resolve) => {
       // `preSelectedPattern` siempre viene ya filtrado (startEnemyTurn branch
       // por tipo antes de llegar acá). Si por algún motivo llega sin
@@ -373,12 +365,14 @@ const defenseBlinded = ref(false)
       defenseEnemyId.value = enemy.id
       defenseIsCrit.value = crit.isCrit
       defenseClouded.value = typeof target.hasStatusEffect === 'function' && target.hasStatusEffect('clouded')
-      defenseRooted.value = typeof target.hasStatusEffect === 'function' && target.hasStatusEffect('rooted')
+      const rootedFx = target.statusEffects.find(e => e.type === 'rooted')
+      const initialRootedStacks = rootedFx ? (rootedFx.stacks ?? 0) : 0
+      defenseRootedStacks.value = initialRootedStacks
+      defenseRooted.value = initialRootedStacks > 0
       defenseBlinded.value = typeof target.hasStatusEffect === 'function' && target.hasStatusEffect('blinded')
       defenseRootedOverlay.value = (() => {
         if (!defenseRooted.value) return null
-        const fx = target.statusEffects.find(e => e.type === 'rooted')
-        return fx?.defenseOverlay ?? null
+        return rootedFx?.defenseOverlay ?? null
       })()
       isDefenseActive.value = true
     })
@@ -422,6 +416,13 @@ const defenseBlinded = ref(false)
         audioManager.playHitSound()
         addToLog(`¡El golpe atraviesa tu defensa! Recibes ${phaseDamage} de daño.`)
 
+        // El heroe RECIBIO el golpe: consumir 1 stack de ROOTED (si lo tiene).
+        // Cada fase que falla consume 1 stack, de modo que con N stacks y un
+        // ataque de M fases, las primeras N fases impactan inevitablemente y
+        // las restantes se pueden bloquear. Si los stacks llegan a 0, el
+        // efecto se elimina y el heroe recupera la capacidad de bloquear.
+        consumeRootedStack(target)
+
         if (pattern.onFailureEffect && target.isAlive) {
           applyFailureEffect(target, pattern.onFailureEffect, { isCrit: wasCrit })
           const fx = pattern.onFailureEffect
@@ -444,6 +445,12 @@ const defenseBlinded = ref(false)
         }
       }
 
+      // Refrescar el estado visual de ROOTED en la UI del DefenseChallenge:
+      // si los stacks cambiaron durante esta fase (consumidos o agregados por
+      // un onFailureEffect stackable), la barra de la fase siguiente tiene
+      // que reflejar el conteo actual, no el del inicio del desafio.
+      refreshDefenseRootedFromTarget(target)
+
       if (!target.isAlive) {
         closeDefenseChallenge()
         // No limpiamos `attackedHeroIds` aqui: el heroe cae en mid-defensa
@@ -457,24 +464,47 @@ const defenseBlinded = ref(false)
       defensePhaseIndex.value++
     } else {
       closeDefenseChallenge()
-      // ROOTED se consume tras el primer desafio de defensa donde el heroe
-      // participo, PERO solo si ya estaba aplicado ANTES de empezar este
-      // desafio. Si fue aplicado por una fase anterior del mismo patron
-      // (ej. ENTANGLE fase 1 falla -> ROOTED -> fase 2), debe persistir
-      // para el SIGUIENTE desafio. Ver `rootConsumableOnDefenseClose`
-      // seteado en `startDefenseChallenge`.
-      const consumeRoot = rootConsumableOnDefenseClose
-      rootConsumableOnDefenseClose = false
-      if (
-        consumeRoot &&
-        target && target.isAlive &&
-        target.hasStatusEffect(StatusEffects.ROOTED.type)
-      ) {
-        target.removeStatusEffect(StatusEffects.ROOTED.type)
-      }
       // Mismo motivo: dejamos el badge "Defendiendo" hasta el siguiente
       // turno de heroe o hasta el siguiente ataque enemigo.
     }
+  }
+
+  /**
+   * Consume 1 stack de ROOTED sobre el target. Si los stacks llegan a 0,
+   * el efecto se elimina automaticamente (removeStatusEffect dispara
+   * `onRemove` si esta definido). Si el target no tiene ROOTED, noop.
+   */
+  function consumeRootedStack(target: Hero | null): void {
+    if (!target || typeof target.statusEffects?.find !== 'function') return
+    const rooted = target.statusEffects.find(e => e.type === StatusEffects.ROOTED.type)
+    if (!rooted) return
+    const current = typeof rooted.stacks === 'number' ? rooted.stacks : 0
+    const next = current - 1
+    if (next <= 0) {
+      target.removeStatusEffect(StatusEffects.ROOTED.type)
+    } else {
+      rooted.stacks = next
+    }
+  }
+
+  /**
+   * Re-lee los stacks actuales de ROOTED sobre el target y sincroniza
+   * `defenseRooted`, `defenseRootedStacks` y `defenseRootedOverlay` para
+   * que la UI del `DefenseChallenge` (cuyas props son snapshots) muestre
+   * el estado correcto al iniciar la fase siguiente.
+   */
+  function refreshDefenseRootedFromTarget(target: Hero | null): void {
+    if (!target || typeof target.statusEffects?.find !== 'function') {
+      defenseRooted.value = false
+      defenseRootedStacks.value = 0
+      defenseRootedOverlay.value = null
+      return
+    }
+    const rooted = target.statusEffects.find(e => e.type === StatusEffects.ROOTED.type)
+    const stacks = rooted ? (rooted.stacks ?? 0) : 0
+    defenseRootedStacks.value = stacks
+    defenseRooted.value = stacks > 0
+    defenseRootedOverlay.value = stacks > 0 ? (rooted?.defenseOverlay ?? null) : null
   }
 
   /**
@@ -534,7 +564,6 @@ const defenseBlinded = ref(false)
     pendingDefenseEnemy = null
     pendingDefenseTarget = null
     pendingDefenseCrit = { multiplier: 1, isCrit: false, isOvercrit: false }
-    rootConsumableOnDefenseClose = false
     isDefenseActive.value = false
     defensePattern.value = null
     defenseZones.value = []
@@ -542,6 +571,7 @@ const defenseBlinded = ref(false)
     defenseIsCrit.value = false
     defenseClouded.value = false
     defenseRooted.value = false
+    defenseRootedStacks.value = 0
     defenseRootedOverlay.value = null
     defenseBlinded.value = false
   }
@@ -1983,6 +2013,7 @@ const defenseBlinded = ref(false)
     defenseIsCrit,
     defenseClouded,
     defenseRooted,
+    defenseRootedStacks,
     defenseRootedOverlay,
     defenseBlinded,
     handleDefensePhaseComplete,
