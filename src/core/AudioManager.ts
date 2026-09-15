@@ -14,7 +14,7 @@ const BOSS_SRC = '/assets/music/mountain_ost_boss.mp3'
 const SFX_SRC: Record<SfxName, string> = {
     attack: '/assets/sounds/Stab 4-1.wav',
     hit: '/assets/sounds/Hit Generic 2-1.wav',
-    victory: '/assets/sounds/Special Collectible 26-1.wav',
+    victory: '/assets/sounds/Coins 2-1.wav',
     block: '/assets/sounds/Battle_SFX/Impact_flesh.wav',
     dotFire: '/assets/sounds/Magic_attacks_SFX/Fire_explosion_medium.wav',
     dotPoison: '/assets/sounds/Magic_attacks_SFX/Poison.wav',
