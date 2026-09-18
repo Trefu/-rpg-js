@@ -1,13 +1,14 @@
-import { Goblin } from '@/core/enemies/Goblin'
-import { GoblinArcher } from '@/core/enemies/GoblinArcher'
-import { GoblinWarlock } from '@/core/enemies/GoblinWarlock'
-import { Wolf } from '@/core/enemies/Wolf'
-import { Bandit } from '@/core/enemies/Bandit'
-import { Orc } from '@/core/enemies/Orc'
-import { BanditCaptain } from '@/core/enemies/BanditCaptain'
-import { Dragon } from '@/core/enemies/Dragon'
-import { elite } from '@/core/zones/EnemyPools'
-import { mob } from './encounters'
+import {
+  bandit,
+  banditCaptain,
+  dragon,
+  goblin,
+  goblinArcher,
+  goblinWarlock,
+  orc,
+  wolf
+} from './factories'
+import { each, eliteMob, mob, roster } from './encounters'
 import type { IExpeditionConfig } from './types'
 
 /**
@@ -32,49 +33,30 @@ export const MOUNTAIN_PEAK: IExpeditionConfig = {
   presentation: {
     difficulty: 'easy',
     background: '',
-    rewards: { experience: 500, gold: 1200 }
+    rewards: { experience: 50, gold: 25 }
   },
 
-  enemyPools: {
+  enemyPools: roster({
     intro: [
-      () => new Goblin(1),
-      () => new Goblin(1)
+      mob(goblin(1), 2)
     ],
-    early: [
-      () => new Goblin(3),
-      () => new Goblin(3),
-      () => new GoblinArcher(3),
-      () => new GoblinArcher(3),
-      () => new GoblinWarlock(3),
-      () => new GoblinWarlock(3)
-    ],
+    early: each(2, goblin(3), goblinArcher(3), goblinWarlock(3)),
     mid: [
-      () => new Wolf(5),
-      () => new Wolf(5),
-      () => new Wolf(5),
-      () => new Bandit(5),
-      () => new Bandit(5),
-      () => new Bandit(5),
-      () => new Orc(5),
-      () => new Orc(5),
-      () => new Orc(5),
-      elite('bandit-captain', () => new BanditCaptain(5))
+      mob(wolf(5), 3),
+      mob(bandit(5), 3),
+      mob(orc(5), 3),
+      eliteMob('bandit-captain', banditCaptain(5))
     ],
     late: [
-      () => new Wolf(5),
-      () => new Wolf(5),
-      () => new Wolf(5),
-      () => new Bandit(5),
-      () => new Bandit(5),
-      () => new Bandit(5),
-      () => new Orc(5),
-      () => new Orc(5),
-      () => new Orc(5),
-      () => new Orc(5),
-      elite('bandit-captain', () => new BanditCaptain(6))
+      mob(wolf(5), 3),
+      mob(bandit(5), 3),
+      mob(orc(5), 4),
+      eliteMob('bandit-captain', banditCaptain(6))
     ],
-    boss: [() => new Dragon(8)]
-  },
+    boss: [
+      mob(dragon(8))
+    ]
+  }),
 
   enemyCountPerTier: {
     intro: [2, 2],
@@ -95,27 +77,27 @@ export const MOUNTAIN_PEAK: IExpeditionConfig = {
     'bandit-ambush-3': {
       id: 'bandit-ambush-3',
       flavor: 'Tres bandidos salen de entre los arbustos con los cuchillos desenvainados.',
-      mobs: [mob(() => new Bandit(4), 3)]
+      mobs: [mob(bandit(4), 3)]
     },
     'stone-guardians-2': {
       id: 'stone-guardians-2',
       flavor: 'Dos guardianes de piedra avanzan hacia ti desde la camara.',
-      mobs: [mob(() => new Orc(6), 2)]
+      mobs: [mob(orc(6), 2)]
     },
     'dragon-mother-arrives': {
       id: 'dragon-mother-arrives',
       flavor: 'La madre dragon aterriza frente a la cria con un rugido que sacude las paredes.',
-      mobs: [mob(() => new Dragon(7))]
+      mobs: [mob(dragon(7))]
     },
     'goblin-cousins': {
       id: 'goblin-cousins',
       flavor: 'Tres goblins del mercader caen sobre ti con cuchillos oxidados.',
-      mobs: [mob(() => new Goblin(4), 3)]
+      mobs: [mob(goblin(4), 3)]
     },
     'bandits-debt': {
       id: 'bandits-debt',
       flavor: 'Dos bandidos salen de entre el publico para cobrar la deuda del bardo.',
-      mobs: [mob(() => new Bandit(5), 2)]
+      mobs: [mob(bandit(5), 2)]
     }
   },
 
