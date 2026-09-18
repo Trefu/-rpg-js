@@ -652,7 +652,7 @@ function onTrainingEnded() {
 
 .collapse-btn {
   position: absolute;
-  top: 12px;
+  top: 72px;
   left: -16px;
   width: 32px;
   height: 32px;

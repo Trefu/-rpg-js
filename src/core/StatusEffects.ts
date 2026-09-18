@@ -649,23 +649,24 @@ export class StatusEffects {
   }
 
   /**
-   * "Maldición": debufo acumulador sin daño directo. Cada turno (tick)
-   * suma 1 stack; al alcanzar `maxStacks` aplica `vulnerable` x2 al
-   * portador y disipa la maldicion (se elimina el efecto).
+   * "Maldición": debufo acumulador sin daño directo. NO avanza por si solo:
+   * cada nueva aplicacion (p. ej. el hechizo `WarlockHex`) apila oscuridad
+   * sobre el portador. Al alcanzar `maxStacks` aplica `vulnerable` al
+   * portador y disipa la maldicion (se elimina el efecto). Si nadie vuelve
+   * a aplicarla antes de agotar sus turnos, la maldicion se disipa por si
+   * sola sin detonar.
    */
   static readonly CURSE: IStatusEffect = {
     type: 'curse',
     name: 'Maldición',
-    description: 'Acumulas oscuridad. Al alcanzar 5 stacks, quedas Vulnerable durante 2 turnos y la maldición se disipa.',
-    descriptionOnPlayer: 'Una oscuridad se acumula sobre ti. Llegará un punto de no retorno.',
-    descriptionOnEnemy: 'Una maldición se cierne sobre él/ella.',
+    description: 'La Maldición se intensifica con cada nueva aplicación. Alcanzado su tope, quedas Vulnerable y se disipa.',
+    descriptionOnPlayer: 'Una oscuridad se acumula sobre ti con cada aplicación. Llegado al punto crítico, quedas Vulnerable y la Maldición se disipa.',
+    descriptionOnEnemy: 'Una maldición se cierne sobre él/ella y se intensifica con cada nueva aplicación.',
     turns: 5,
     stacks: 0,
     maxStacks: 5,
     icon: curseIcon,
     isBuff: false,
-    turnLabel: '¡La maldición se intensifica!',
-    announceOnTurn: true,
     threatModifier: 0.4
   }
 

@@ -59,20 +59,11 @@ const HOT_STATUS_TYPES: Set<string> = new Set([
   StatusEffects.REGEN.type
 ])
 
-// Tipos de estado "acumulador": cada turno suman 1 stack sin dañar. Al
-// alcanzar `maxStacks` aplican un efecto mayor y resetean stacks. El tick
-// custom vive inline en `applyPlayerStatusTick`.
-// Bloque D Tier 3.
-const ACCUMULATOR_STATUS_TYPES: Set<string> = new Set([
-  StatusEffects.CURSE.type
-])
-
 // Union de todos los efectos que disparan tick por turno en el heroe.
 // Mantener como union evita recorrer `p.statusEffects` entero por turno.
 const TICKABLE_STATUS_TYPES: Set<string> = new Set([
   ...DO_STATUS_TYPES,
-  ...HOT_STATUS_TYPES,
-  ...ACCUMULATOR_STATUS_TYPES
+  ...HOT_STATUS_TYPES
 ])
 
 // Etiqueta legible del "tipo de daño" que se muestra en el banner del DoT.
@@ -186,7 +177,6 @@ export function useCombat(config: CombatConfig = {}) {
     offsetY: number
     duration: number
   }[]>([])
-  const showAbilitiesModal = ref(false)
   const abilityCooldowns = ref<{ [type: string]: number }>({})
 
   // ---- Motor de turnos (FF/Persona style) ----
@@ -593,19 +583,9 @@ const defenseClouded = ref(false)
     if (cooldown > 0) abilityCooldowns.value[type] = cooldown + 1
   }
 
-  function openAbilitiesModal() {
-    if (isPlayerInputLocked.value) return
-    showAbilitiesModal.value = true
-  }
-
-  function closeAbilitiesModal() {
-    showAbilitiesModal.value = false
-  }
-
   function selectAbility(ability: IAbility, _index: number) {
     if (isPlayerInputLocked.value) return
     if (!canCastAbility(ability)) {
-      closeAbilitiesModal()
       return
     }
     // Limpia cualquier sticky pendiente antes de empezar una nueva selección:
@@ -614,7 +594,6 @@ const defenseClouded = ref(false)
     // reemplazado por el de la nueva ability, no apilarse en la cola.
     clearAnnouncement()
     selectedAbility.value = ability
-    closeAbilitiesModal()
 
     if (!actionRequiresTarget(ability)) {
       const caster = player.value as Hero | null
@@ -942,32 +921,20 @@ const defenseClouded = ref(false)
     return keys.slice(0, abilities.value.length)
   })
 
-  function handleAbilitiesModalShortcuts(e: KeyboardEvent) {
-    if (!showAbilitiesModal.value) {
-      if (e.key.toLowerCase() === 'a' && !isPlayerInputLocked.value) {
-        openAbilitiesModal()
-        e.preventDefault()
-      }
-      return
-    }
-
-    if (e.key.toLowerCase() === 'a') {
-      closeAbilitiesModal()
-      e.preventDefault()
-      return
-    }
-
+  function handleAbilityBarShortcuts(e: KeyboardEvent) {
+    if (isPlayerInputLocked.value) return
+    if (isSelectingTarget.value) return
     const keyIndex = abilityShortcuts.value.indexOf(e.key.toLowerCase())
-    if (keyIndex !== -1 && abilities.value[keyIndex]) {
-      selectAbility(abilities.value[keyIndex], keyIndex)
-      e.preventDefault()
-    }
+    if (keyIndex === -1 || !abilities.value[keyIndex]) return
+    selectAbility(abilities.value[keyIndex], keyIndex)
+    e.preventDefault()
   }
 
   function handleCombatShortcuts(e: KeyboardEvent) {
     if (isCombatEnded.value) return
-    if (showAbilitiesModal.value) return
     if (showItemsModal.value) return
+    handleAbilityBarShortcuts(e)
+    if (e.defaultPrevented) return
 
     if (e.key.toLowerCase() === 'o' && !isPlayerInputLocked.value) {
       openItemsModal()
@@ -1516,31 +1483,10 @@ const defenseClouded = ref(false)
           }
         }
 
-        // ---- Acumulador (curse) ----
-        else if (ACCUMULATOR_STATUS_TYPES.has(effect.type)) {
-          if (effect.type === StatusEffects.CURSE.type) {
-            const cur = (effect.stacks ?? 0) + 1
-            const max = effect.maxStacks ?? 5
-            effect.stacks = cur
-            showAnnouncement(
-              `${p.name}: Maldición ${cur}/${max}`,
-              'status',
-              BANNER_TOTAL
-            )
-            addToLog(`Maldición acumula: ${cur}/${max}.`)
-            await delay(BANNER_LEAD_IN)
-            audioManager.playHitSound()
-            showPlayerHit(cur, { heroId: p.id, variant: 'damage' })
-            // Disparo al alcanzar maxStacks: aplica Vulnerable x2 al portador
-            // y disipa la maldicion (se elimina el efecto de stack).
-            if (cur >= max) {
-              p.addStatusEffect({ ...StatusEffects.VULNERABLE, turns: 2 })
-              p.removeStatusEffect(effect.type)
-              addToLog(`¡La Maldición estalla! ${p.name} queda Vulnerable y la maldición se disipa.`)
-              showAnnouncement(`${p.name} es Vulnerable!`, 'status', 1800)
-            }
-          }
-        }
+        // Nota: Maldición NO tickea por turno. Solo acumula stacks cuando
+        // alguien la reaplica (ver `WarlockHex` en EnemyAttacks.ts). Si nadie
+        // la reaplica antes de agotar sus turnos, `reduceStatusEffects` la
+        // elimina por expiracion sin detonar el efecto de Vulnerable.
 
         await delay(BANNER_TOTAL - BANNER_LEAD_IN)
       }
@@ -1995,7 +1941,6 @@ const defenseClouded = ref(false)
     heroVfxEffects,
     showHeroVfx,
     playerHitPopups,
-    showAbilitiesModal,
     abilityCooldowns,
     announcement,
     showAnnouncement,
@@ -2027,11 +1972,8 @@ const defenseClouded = ref(false)
     handleDefenseAllPhasesComplete,
     closeDefenseChallenge,
 
-    openAbilitiesModal,
-    closeAbilitiesModal,
     selectAbility,
     cancelAction,
-    handleAbilitiesModalShortcuts,
     handleCombatShortcuts,
     endPlayerTurn,
     startPlayerTurn,

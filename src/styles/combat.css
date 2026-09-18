@@ -677,3 +677,15 @@
     z-index: 20;
   }
 }
+
+/* Desktop: FAB del log abajo a la derecha, encima de la barra de
+   habilidades (que mide ~140-160px). Mismo patrón que mobile: bolita
+   con badge, tap expande un sheet con los mensajes. */
+@media (min-width: 721px) {
+  .combat-log-fab {
+    position: fixed;
+    right: 1rem;
+    bottom: 175px;
+    z-index: 25;
+  }
+}

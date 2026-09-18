@@ -297,7 +297,7 @@ registerAbility(DragonRoar)
 
 export const WarlockHex: IAbility = {
   name: 'Maldición',
-  description: 'El warlock susurra una maldición inevitable sobre el objetivo: aplica 1 stack de Maldición. No se puede bloquear.',
+  description: 'El warlock susurra una maldición inevitable sobre el objetivo: acumula oscuridad de Maldición sobre él. No se puede bloquear.',
   type: 'warlockHex',
   cooldown: 0,
   damageType: 'arcane',
