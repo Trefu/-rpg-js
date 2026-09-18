@@ -27,7 +27,10 @@ describe('abilities registry (auto-register)', () => {
     expect(types).toContain('fireball')
     expect(types).toContain('warriorInjuringStrike')
     expect(types).toContain('clericHeal')
-    expect(types).toContain('dragonRoar')
+    // `dragonRoar` ya no es una `IAbility`: ahora es un `DefensePatternConfig`
+    // con `mitigatedSplash` y se valida en `Enemy.test.ts`.
+    const enemyAttackNames = getRegisteredEnemyAttackNames()
+    expect(enemyAttackNames).toContain('Rugido del Dragón')
   })
 
   it('getAbility devuelve la ability correcta por type', () => {

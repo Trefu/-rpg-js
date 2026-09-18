@@ -252,11 +252,20 @@ describe('Subclases concretas', () => {
   it('Dragon tiene 4 acciones (3 patrones + DragonRoar)', () => {
     const d = new Dragon(8)
     expect(d.attackPatterns.length).toBe(4)
-    // Valida Fase 3: incluye tanto DefensePatternConfig como IAbility
-    const hasIAbility = d.attackPatterns.some(p => 'execute' in p && typeof (p as { execute?: unknown }).execute === 'function')
     const hasPattern = d.attackPatterns.some(p => 'phases' in p)
-    expect(hasIAbility).toBe(true) // DragonRoar
+    const hasMitigatedSplash = d.attackPatterns.some(p => 'mitigatedSplash' in p)
     expect(hasPattern).toBe(true) // los visuales
+    expect(hasMitigatedSplash).toBe(true) // DragonRoar (patron con splash)
+  })
+
+  it('DragonRoar declara mitigatedSplash con damageMultiplier 0.2', () => {
+    // Regression: el splash post-defense se calcula sobre el daño
+    // mitigado del primario; este multiplicador es la unica fuente
+    // de ese 20%. Cambiarlo sin actualizar tests rompe el balance.
+    const d = new Dragon(8)
+    const roar = d.attackPatterns.find(p => 'mitigatedSplash' in p)
+    expect(roar).toBeDefined()
+    expect((roar as { mitigatedSplash?: { damageMultiplier: number } }).mitigatedSplash?.damageMultiplier).toBe(0.2)
   })
 })
 

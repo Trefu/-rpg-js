@@ -3,8 +3,6 @@ import type { IAbility, AbilityContext } from '../interfaces/IAbility'
 import { fixedPhase, phase } from '../defense/attackPatterns'
 import { registerAbility, registerEnemyAttack } from './registry'
 import {
-  computeRawDamage,
-  dealDamage,
   damageStep,
   previewFromPipeline,
   type DamageStep
@@ -259,41 +257,50 @@ export const FLASH: DefensePatternConfig = {
 }
 registerEnemyAttack(FLASH)
 
-export const DragonRoar: IAbility = {
+/**
+ * Rugido del Dragon — patron de ataque con defense challenge contra un
+ * target primario (elegido por aggro) + splash al resto de heroes vivos.
+ *
+ * Antes era una `IAbility` con `aoe: true` que pegaba a TODOS los heroes
+ * por el mismo daño, sin defense challenge. Era injusto: el jugador no
+ * podia mitigar nada. Ahora el primario puede bloquear/reducir el daño
+ * via defense challenge, y los demas heroes reciben el 20% del daño
+ * MITIGADO (post-defense) como splash.
+ *
+ * El daño base equivalente al pipeline anterior
+ *   `damageStep({ stat: 'body', coef: 2.0, levelCoef: 5, statLabel: 'CUE' })`
+ * se aproxima con un patron de 4 fases con zonas anchas y wave lenta.
+ * El `damageMultiplier: 2.0` se conserva como en el original.
+ */
+export const DragonRoar: DefensePatternConfig = {
   name: 'Rugido del Dragón',
-  description: 'Onda sonora devastadora que golpea a TODOS los heroes vivos con daño físico masivo. No se puede bloquear.',
-  type: 'dragonRoar',
-  cooldown: 0,
+  type: 'physical',
   damageType: 'physical',
-  targetType: 'enemies-only',
-  tags: ['physical', 'damage', 'aoe'],
-  icon: dragonRoarIcon,
-  requiresTarget: false,
-  aoe: true,
-  pipeline: damageStep({ stat: 'body', coef: 2.0, levelCoef: 5, statLabel: 'CUE' }),
-  previewDamage: previewFromPipeline(
-    damageStep({ stat: 'body', coef: 2.0, levelCoef: 5, statLabel: 'CUE' }),
-    'physical'
-  ),
-  execute: async (context) => {
-    const caster = context.caster as unknown as Parameters<typeof dealDamage>[0]['caster']
-    const target = (context.target ?? caster) as Parameters<typeof dealDamage>[0]['target']
-    const pipeline = context.ability.pipeline as DamageStep
-    const rawDamage = computeRawDamage(pipeline, caster)
-    // El target primario es el caster mismo (la onda se expande desde el dragon);
-    // `useCombat.runEnemyAbility` lee `lastPrimaryFinalDamage` y lo replica
-    // a TODOS los heroes vivos via `applyEnemyAoe`.
-    const { finalDamage } = dealDamage({
-      caster,
-      target,
-      ability: context.ability,
-      rawDamage,
-      effects: context
-    })
-    context.lastPrimaryFinalDamage = finalDamage
-  }
+  waveSpeed: 40,
+  baseMaxBlockReduction: 0.5,
+  damageMultiplier: 2.0,
+  phases: [
+    phase(10, { waveSpeed: 35 }),
+    phase(10, { waveSpeed: 40 }),
+    phase(10, { waveSpeed: 45 }),
+    phase(10, { waveSpeed: 50 })
+  ],
+  mitigatedSplash: { damageMultiplier: 0.2 }
 }
-registerAbility(DragonRoar)
+registerEnemyAttack(DragonRoar)
+
+// Mantener un preview util para UIs que muestren el dano potencial del
+// DragonRoar (ej: la barra de preview de damage del dragon). Usa el
+// mismo pipeline que el patron original.
+export const DragonRoarPreview: DamageStep = damageStep({
+  stat: 'body',
+  coef: 2.0,
+  levelCoef: 5,
+  statLabel: 'CUE'
+})
+export const DragonRoarPreviewFn = previewFromPipeline(DragonRoarPreview, 'physical')
+// Icono exportado para UIs que lo necesiten (no se usa dentro del patron).
+export { dragonRoarIcon }
 
 export const WarlockHex: IAbility = {
   name: 'Maldición',

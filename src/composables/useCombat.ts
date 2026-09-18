@@ -290,6 +290,14 @@ const defenseClouded = ref(false)
   let pendingDefensePattern: DefensePatternConfig | null = null
   let pendingDefenseEnemy: IEnemy | null = null
   let pendingDefenseTarget: Hero | null = null
+  /**
+   * Dano real (post-bloqueo) que sufrio el primario durante el desafio
+   * de defensa actual. Se incrementa por fase y se resetea al iniciar
+   * cada desafio. Hoy no se consume fuera del propio phase handler
+   * (el splash post-defense se aplica PER FASE), pero lo conservamos
+   * como registro accesible para tooling / logs de debug.
+   */
+  let pendingDefensePrimaryDamageDealt = 0
   let pendingDefenseCrit: CritResult = { multiplier: 1, isCrit: false, isOvercrit: false }
   /**
    * Tipos de defense-debuff que fueron aplicados durante el turno enemigo
@@ -349,6 +357,7 @@ const defenseClouded = ref(false)
       pendingDefenseEnemy = enemy
       pendingDefenseTarget = target
       pendingDefenseCrit = crit
+      pendingDefensePrimaryDamageDealt = 0
       defensePattern.value = adjusted
       defenseZones.value = zones
       defensePhaseIndex.value = 0
@@ -368,7 +377,7 @@ const defenseClouded = ref(false)
     })
   }
 
-  function handleDefensePhaseComplete(result: DefensePhaseResult) {
+  async function handleDefensePhaseComplete(result: DefensePhaseResult) {
     // Dispara los hooks `onBlock` una vez por cada fase acertada del desafio de defensa.
     // Asi, una fase que entra en el area de exito consume 1 carga del buff.
     if (result.outcome === 'success') {
@@ -388,6 +397,7 @@ const defenseClouded = ref(false)
       if (result.outcome === 'success') {
         const blockedDmg = Math.floor(phaseDamage / 2)
         target.takeDamage(blockedDmg, { damageType: pattern.damageType })
+        pendingDefensePrimaryDamageDealt += blockedDmg
         showPlayerHit(blockedDmg, { heroId: target.id, variant: 'blocked' })
         showHeroVfx(target.id, { asset: 'hero-block', durationMs: 1000 })
         audioManager.playBlockSound()
@@ -396,15 +406,49 @@ const defenseClouded = ref(false)
           if (restored > 0) addToLog(`¡Bloqueo exitoso! +${restored} de energía.`)
         }
         addToLog(`Bloqueaste el golpe. Recibes ${blockedDmg} de daño.`)
+        // Splash per-fase: el resto del party recibe el `damageMultiplier`
+        // del daño mitigado de ESTA fase. Sin delay entre splashees para
+        // mantener el ritmo del desafio (FEEDBACK_DURATION_MS ya cubre
+        // el feedback visual entre fases). `splashKind: 'blocked'` para
+        // que el feedback de los splashees sea coherente con el bloqueo
+        // del primario (floater "blocked" + sin VFX de impacto).
+        if (pattern.mitigatedSplash) {
+          await applyEnemyMitigatedSplash(
+            blockedDmg,
+            pattern.mitigatedSplash.damageMultiplier,
+            target,
+            enemy,
+            pattern.damageType as DamageType | undefined,
+            { delayPerSplasheeMs: 0, splashKind: 'blocked' }
+          )
+        }
       } else {
         const dmg = Math.max(1, phaseDamage)
         target.takeDamage(dmg, { damageType: pattern.damageType })
+        pendingDefensePrimaryDamageDealt += dmg
         showPlayerHit(dmg, { heroId: target.id, isCrit: wasCrit, variant: wasCrit ? 'crit' : 'damage' })
-        showHeroVfx(target.id, resolveFailureVfx(pattern, wasCrit, defensePhaseIndex.value))
+        const failureVfx = resolveFailureVfx(pattern, wasCrit, defensePhaseIndex.value)
+        showHeroVfx(target.id, failureVfx)
         if (pattern.customSound) audioManager.playCustomSound(pattern.customSound)
         else audioManager.playAttackSound()
         audioManager.playHitSound()
         addToLog(`¡El golpe atraviesa tu defensa! Recibes ${phaseDamage} de daño.`)
+        // Splash per-fase (mismo caso que en success, sobre el daño real
+        // que sufrio el primario). `splashKind: 'damage'` para que los
+        // splashees muestren animacion de impacto + floater de daño,
+        // igual que el primario. Compartimos el mismo `failureVfx` con
+        // los splashees para que todos los heroes involucrados vean el
+        // mismo slash enemigo de la fase.
+        if (pattern.mitigatedSplash) {
+          await applyEnemyMitigatedSplash(
+            dmg,
+            pattern.mitigatedSplash.damageMultiplier,
+            target,
+            enemy,
+            pattern.damageType as DamageType | undefined,
+            { delayPerSplasheeMs: 0, splashKind: 'damage', vfxForSplashees: failureVfx }
+          )
+        }
 
         // El heroe RECIBIO el golpe: consumir 1 stack de ROOTED (si lo tiene).
         // Cada fase que falla consume 1 stack, de modo que con N stacks y un
@@ -553,6 +597,7 @@ const defenseClouded = ref(false)
     pendingDefensePattern = null
     pendingDefenseEnemy = null
     pendingDefenseTarget = null
+    pendingDefensePrimaryDamageDealt = 0
     pendingDefenseCrit = { multiplier: 1, isCrit: false, isOvercrit: false }
     isDefenseActive.value = false
     defensePattern.value = null
@@ -1273,8 +1318,14 @@ const defenseClouded = ref(false)
     if ('execute' in selectedPattern && typeof selectedPattern.execute === 'function') {
       await runEnemyAbility(enemy, target, selectedPattern, crit)
     } else {
-      await startDefenseChallenge(enemy, target, selectedPattern as DefensePatternConfig, { crit })
       const patternAsDefense = selectedPattern as DefensePatternConfig
+      const defenseResult = await startDefenseChallenge(enemy, target, patternAsDefense, { crit })
+      void defenseResult
+      // El splash (`mitigatedSplash`) se aplica PER FASE dentro de
+      // `handleDefensePhaseComplete` para que cada golpe del primario
+      // venga accompanied de su onda a los demas heroes — visualmente
+      // acompasado con el desafio de defensa. Aqui ya no se vuelve a
+      // disparar.
       if (patternAsDefense.multiHeroAttack) {
         await applyEnemyMultiHeroSplash(patternAsDefense.multiHeroAttack, target, enemy)
       }
@@ -1657,6 +1708,89 @@ const defenseClouded = ref(false)
       audioManager.playHitSound()
       addToLog(`¡${enemy.name} golpea a ${hero.name}! ${dmg} de daño.`)
       await delay(280)
+    }
+  }
+
+  /**
+   * Splash post-defense: tras la defense challenge contra el target
+   * primario, los heroes vivos restantes (excluyendo al primario)
+   * reciben `mitigatedDamage * damageMultiplier` como daño de splash.
+   *
+   * Este es el reemplazo del viejo `applyEnemyAoe` (que pegaba a todos
+   * por igual sin defense challenge). La diferencia clave: ahora el daño
+   * de splash es una FRACCION del daño MITIGADO del primario, asi que
+   * bloquear bien el ataque reduce proporcionalmente el splash. Los
+   * splashees NO tienen defense challenge propia (es un residual
+   * secundario, no un ataque nuevo).
+   *
+   * Coherencia visual con el resultado del desaf-io del primario:
+   * - `splashKind: 'blocked'`: si el primario bloqueo la fase, los
+   *   splashees muestran floater `blocked` (mismo variant que el
+   *   primario) y NO reproducen VFX de impacto — la animacion de
+   *   bloqueo del primario ya cubre el feedback visual del grupo.
+   * - `splashKind: 'damage'`: si el primario fallo la fase, los
+   *   splashees muestran floater `damage` y VFX de impacto (igual que
+   *   el primario), como cualquier golpe normal.
+   *
+   * Por defecto `splashKind: 'damage'` para mantener compatibilidad
+   * con callers legacy; los nuevos deben pasar el resultado del phase
+   * para que el feedback sea coherente.
+   */
+  async function applyEnemyMitigatedSplash(
+    mitigatedDamage: number,
+    damageMultiplier: number,
+    primaryTarget: Hero,
+    enemy: IEnemy,
+    damageType?: DamageType,
+    opts: {
+      delayPerSplasheeMs?: number
+      splashKind?: 'blocked' | 'damage'
+      /**
+       * VFX a mostrar sobre los splashees cuando `splashKind === 'damage'`.
+       * Si se omite, se usa `DEFAULT_IMPACT_VFX` (spray de impacto
+       * generico). El phase handler normalmente pasa el mismo VFX que
+       * se aplico al primario (enemy slash rotativo) para que todos los
+       * heroes involucrados muestren la misma animacion.
+       */
+      vfxForSplashees?: VfxEffect
+    } = {}
+  ) {
+    const splashDamage = Math.max(0, Math.floor(mitigatedDamage * damageMultiplier))
+    if (splashDamage <= 0) return
+    const pool = heroes.value.filter(h => h.isAlive && h.id !== primaryTarget.id)
+    if (pool.length === 0) return
+    const delayMs = opts.delayPerSplasheeMs ?? 280
+    const kind = opts.splashKind ?? 'damage'
+    // Anade los splashees a la lista visual de heroes atacados solo
+    // cuando la fase impacto (kind === 'damage'): asi el borde pulsante
+    // "Defendiendo" en HeroCard coincide con la fase del primario.
+    // En un bloqueo los splashees solo muestran el floater "blocked" y
+    // NO deben entrar al modo "siendo atacados" — la animacion de
+    // bloqueo del primario ya cubre el feedback visual de la fase.
+    if (kind === 'damage') {
+      const baseIds = attackedHeroIds.value.slice()
+      attackedHeroIds.value = [...baseIds, ...pool.map(h => h.id)]
+    }
+    // Audio una sola vez por splash (no por splashee), coherente con la
+    // fase que dispara el dano.
+    if (kind === 'blocked') {
+      audioManager.playBlockSound()
+    } else {
+      audioManager.playAttackSound()
+      audioManager.playHitSound()
+    }
+    for (const hero of pool) {
+      hero.takeDamage(splashDamage, { damageType })
+      if (kind === 'blocked') {
+        showPlayerHit(splashDamage, { heroId: hero.id, variant: 'blocked' })
+        // Sin VFX en el splashee: la animacion de bloqueo del primario
+        // ya cubre el feedback visual de la fase.
+      } else {
+        showPlayerHit(splashDamage, { heroId: hero.id })
+        showHeroVfx(hero.id, opts.vfxForSplashees ?? DEFAULT_IMPACT_VFX)
+      }
+      addToLog(`¡La onda de ${enemy.name} alcanza a ${hero.name}! ${splashDamage} de daño.`)
+      if (delayMs > 0) await delay(delayMs)
     }
   }
 

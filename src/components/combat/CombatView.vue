@@ -220,7 +220,7 @@ watch(() => enemies.value, (newEnemies) => {
 const showLogModal = ref(false)
 
 const onDefensePhaseComplete = (result: DefensePhaseResult) => {
-  handleDefensePhaseComplete(result)
+  void handleDefensePhaseComplete(result)
 }
 
 const onDefenseAllPhasesComplete = (results: DefensePhaseResult[]) => {
