@@ -214,8 +214,7 @@
 
 @media (min-width: 721px) {
   .mobile-top-hud,
-  .mobile-action-bar,
-  .combat-log-fab {
+  .mobile-action-bar {
     display: none !important;
   }
 }

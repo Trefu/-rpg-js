@@ -39,7 +39,6 @@ function close() {
     >
       <img v-if="!open" :src="infoIcon" alt="" class="log-fab-icon" />
       <img v-else :src="closeIcon" alt="" class="log-fab-icon" />
-      <span class="log-fab-label">LOG</span>
       <span v-if="!open && totalCount > 0" class="log-fab-badge">{{ totalCount }}</span>
     </button>
 
@@ -142,9 +141,9 @@ function close() {
   line-height: 1;
 }
 
-/* Desktop: FAB mas grande con etiqueta "LOG" para que sea facil de ver.
-   El color verde brillante y la sombra lo distinguen del fondo oscuro
-   del campo de batalla. */
+/* Desktop: FAB mas grande con solo el icono para que sea visible sin
+   tapar informacion del campo de batalla. El color verde brillante y
+   la sombra lo distinguen del fondo oscuro. */
 @media (min-width: 721px) {
   .log-fab-wrap {
     align-items: flex-end;
@@ -153,19 +152,10 @@ function close() {
     width: 52px;
     height: 52px;
     border-width: 2.5px;
-    gap: 2px;
   }
   .log-fab-icon {
     width: 22px;
     height: 22px;
-  }
-  .log-fab-label {
-    display: block;
-    font-size: 0.55rem;
-    font-weight: 900;
-    letter-spacing: 0.06em;
-    line-height: 1;
-    color: #b6f5b6;
   }
   .log-fab-badge {
     min-width: 18px;
@@ -174,12 +164,6 @@ function close() {
     font-size: 0.72rem;
     top: -4px;
     right: -4px;
-  }
-}
-
-@media (max-width: 720px) {
-  .log-fab-label {
-    display: none;
   }
 }
 
