@@ -50,7 +50,7 @@ const emit = defineEmits<{
 
 <template>
   <div v-if="expedition" class="expedition-map">
-    <h2>Expedición: {{ expedition.zone.name }}</h2>
+    <h2>Expedición: {{ expedition.config.displayName }}</h2>
     <div class="map-container">
       <!-- Líneas de conexión -->
       <svg class="connections">

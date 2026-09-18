@@ -1,35 +1,28 @@
-import { Goblin } from '../enemies/Goblin'
-import { GoblinArcher } from '../enemies/GoblinArcher'
-import { GoblinWarlock } from '../enemies/GoblinWarlock'
-import { Orc } from '../enemies/Orc'
-import { Wolf } from '../enemies/Wolf'
-import { Bandit } from '../enemies/Bandit'
 import type { IEnemy } from '../interfaces/ICharacter'
-import { BanditCaptain } from '../enemies/BanditCaptain'
-import { Dragon } from '../enemies/Dragon'
+import type {
+  EnemyCountRange,
+  EnemyFactory,
+  EnemyPool,
+  EnemyTier,
+  IExpeditionConfig
+} from '../expeditions/types'
 
-export type ZoneId = 'mountain-peak' | 'forgotten-castle' | 'crystal-caves'
-
-export type EnemyTier = 'intro' | 'early' | 'mid' | 'late' | 'boss'
-
-export type EnemyCountRange = readonly [number, number]
-
-export interface EnemyFactory {
-  (): IEnemy
-  /**
-   * Si true, el picker garantiza que no se generen duplicados de esta
-   * misma "categoria elite" en el mismo combate (ver `uniqueKey`).
-   */
-  unique?: boolean
-  /** Identificador estable de la categoria elite (p.ej. 'bandit-captain'). */
-  uniqueKey?: string
+/**
+ * Helpers re-exportados para mantener backwards-compat en callers
+ * existentes. La fuente de verdad ahora vive en `core/expeditions/`.
+ */
+export type {
+  EnemyCountRange,
+  EnemyFactory,
+  EnemyPool,
+  EnemyTier,
+  IExpeditionConfig
 }
 
 /**
- * Envuelve una factory marcandola como "elite unica": durante el muestreo
- * de enemigos para un combate, si ya hay un enemigo con el mismo
- * `uniqueKey`, esa factory no se vuelve a elegir. Usado para que el
- * Capitan Bandido aparezca como miniboss (max 1 por combate).
+ * Marca una factory como "elite unica": durante el muestreo de enemigos,
+ * si ya hay un enemigo con el mismo `uniqueKey`, esa factory no se
+ * vuelve a elegir. Usado para minibosses (max 1 por combate/encounter).
  */
 export function elite(key: string, factory: () => IEnemy): EnemyFactory {
   const f = factory as EnemyFactory
@@ -38,140 +31,10 @@ export function elite(key: string, factory: () => IEnemy): EnemyFactory {
   return f
 }
 
-export interface EnemyPool {
-  intro: EnemyFactory[]
-  early: EnemyFactory[]
-  mid: EnemyFactory[]
-  late: EnemyFactory[]
-  boss: EnemyFactory[]
-}
-
-export interface ZoneEnemyConfig {
-  id: ZoneId
-  displayName: string
-  pools: EnemyPool
-  enemyCountPerTier: Record<EnemyTier, EnemyCountRange>
-}
-
-export const DEFAULT_ZONE: ZoneId = 'mountain-peak'
-
-export const ZONE_ENEMY_POOLS: Record<ZoneId, ZoneEnemyConfig> = {
-  'mountain-peak': {
-    id: 'mountain-peak',
-    displayName: 'Montañas Rocosas',
-    pools: {
-      intro: [
-        () => new Goblin(1),
-        () => new Goblin(1)
-      ],
-      early: [
-        () => new Goblin(3),
-        () => new Goblin(3),
-        () => new GoblinArcher(3),
-        () => new GoblinArcher(3),
-        () => new GoblinWarlock(3),
-        () => new GoblinWarlock(3),
-      ],
-      mid: [
-        () => new Wolf(5),
-        () => new Wolf(5),
-        () => new Wolf(5),
-        () => new Bandit(5),
-        () => new Bandit(5),
-        () => new Bandit(5),
-        () => new Orc(5),
-        () => new Orc(5),
-        () => new Orc(5),
-        elite('bandit-captain', () => new BanditCaptain(5))
-      ],
-      late: [
-        () => new Wolf(5),
-        () => new Wolf(5),
-        () => new Wolf(5),
-        () => new Bandit(5),
-        () => new Bandit(5),
-        () => new Bandit(5),
-        () => new Orc(5),
-        () => new Orc(5),
-        () => new Orc(5),
-        () => new Orc(5),
-        elite('bandit-captain', () => new BanditCaptain(6))
-      ],
-      boss: [
-        () => new Dragon(8)
-      ]
-    },
-    enemyCountPerTier: {
-      intro: [2, 2],
-      early: [2, 2],
-      mid: [3, 3],
-      late: [3, 5],
-      boss: [1, 1]
-    }
-  },
-  'forgotten-castle': {
-    id: 'forgotten-castle',
-    displayName: 'Castillo Olvidado',
-    pools: {
-      intro: [
-        () => new Goblin(5)
-      ],
-      early: [
-        () => new Goblin(2),
-        () => new Goblin(3)
-      ],
-      mid: [
-        () => new Goblin(2),
-        () => new Goblin(3)
-      ],
-      late: [
-        () => new Goblin(3),
-        () => new Goblin(4)
-      ],
-      boss: [
-        () => new Goblin(5)
-      ]
-    },
-    enemyCountPerTier: {
-      intro: [1, 1],
-      early: [1, 2],
-      mid: [2, 3],
-      late: [3, 4],
-      boss: [1, 1]
-    }
-  },
-  'crystal-caves': {
-    id: 'crystal-caves',
-    displayName: 'Cavernas de Cristal',
-    pools: {
-      intro: [
-        () => new Goblin(1)
-      ],
-      early: [
-        () => new Goblin(1)
-      ],
-      mid: [
-        () => new Goblin(1),
-        () => new Goblin(2)
-      ],
-      late: [
-        () => new Goblin(2),
-        () => new Goblin(3)
-      ],
-      boss: [
-        () => new Goblin(4)
-      ]
-    },
-    enemyCountPerTier: {
-      intro: [1, 1],
-      early: [1, 2],
-      mid: [2, 3],
-      late: [3, 4],
-      boss: [1, 1]
-    }
-  }
-}
-
+/**
+ * Mapea un piso (1..totalFloors) a un tier de dificultad. La logica
+ * exacta se conserva del sistema previo para no alterar balance.
+ */
 export function determineEnemyTier(floor: number, totalFloors: number): EnemyTier {
   if (floor <= 1) return 'intro'
   if (floor >= totalFloors) return 'boss'
@@ -184,32 +47,10 @@ function randomInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min
 }
 
-export function getEnemiesForNode(zoneId: string, floor: number, totalFloors: number): IEnemy[] {
-  const zone = ZONE_ENEMY_POOLS[zoneId as ZoneId] ?? ZONE_ENEMY_POOLS[DEFAULT_ZONE]
-  const tier = determineEnemyTier(floor, totalFloors)
-  const pool = zone.pools[tier]
-  const [min, max] = zone.enemyCountPerTier[tier]
-  const count = randomInt(min, max)
-
-  const selected: IEnemy[] = []
-  const spawnedUniques = new Set<string>()
-
-  for (let i = 0; i < count; i++) {
-    const factory = pickFactory(pool, spawnedUniques)
-    const enemy = factory()
-    if (factory.unique && factory.uniqueKey) {
-      spawnedUniques.add(factory.uniqueKey)
-    }
-    selected.push(enemy)
-  }
-  return selected
-}
-
 /**
  * Elige una factory del pool respetando la restriccion de "elite unica":
  * si una factory tiene `unique === true` y su `uniqueKey` ya aparece en
- * `spawnedUniques`, se re-elige otra (hasta un limite de intentos para
- * evitar loops si el pool solo tiene elites ya spawneadas).
+ * `spawnedUniques`, se re-elige otra (hasta un limite de intentos).
  */
 function pickFactory(pool: EnemyFactory[], spawnedUniques: Set<string>): EnemyFactory {
   const maxAttempts = pool.length * 4
@@ -225,4 +66,33 @@ function pickFactory(pool: EnemyFactory[], spawnedUniques: Set<string>): EnemyFa
     attempts++
   }
   return factory
+}
+
+/**
+ * Resuelve un pool aleatorio segun el tier correspondiente al piso.
+ * Devuelve una lista fresca de `IEnemy`. Usado por el generador de mapa
+ * para nodos `combat`/`boss`/`start` que NO declaran un encounter fijo.
+ */
+export function getEnemiesForConfig(
+  config: IExpeditionConfig,
+  floor: number
+): IEnemy[] {
+  const totalFloors = config.totalFloors
+  const tier = determineEnemyTier(floor, totalFloors)
+  const pool = config.enemyPools[tier]
+  const [min, max] = config.enemyCountPerTier[tier]
+  const count = randomInt(min, max)
+
+  const selected: IEnemy[] = []
+  const spawnedUniques = new Set<string>()
+
+  for (let i = 0; i < count; i++) {
+    const factory = pickFactory(pool, spawnedUniques)
+    const enemy = factory()
+    if (factory.unique && factory.uniqueKey) {
+      spawnedUniques.add(factory.uniqueKey)
+    }
+    selected.push(enemy)
+  }
+  return selected
 }
