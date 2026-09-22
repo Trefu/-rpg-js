@@ -95,6 +95,8 @@ const {
   selectedItem,
   inventory,
   usedItemThisTurn,
+  openItemsModal,
+  closeItemsModal,
   selectItem,
   itemCanTargetAllies
 } = useCombat(combatOptions)
