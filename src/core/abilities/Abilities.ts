@@ -510,7 +510,7 @@ registerAbility(ClericDivineSmite)
 
 export const ClericHeal: IAbility = {
   name: 'Curar Heridas',
-  description: 'Canaliza luz radiante para restaurar 30% (+ bono por mente y nivel) de la vida maxima de un aliado (incluido el caster) y eliminar todos los efectos de dano por tiempo (Quemadura, Veneno, Congelado).',
+  description: 'Canaliza luz radiante para restaurar 30% (+ bono por mente y nivel) de la vida maxima de un aliado (incluido el caster) y eliminar todos los efectos de daño por tiempo (Quemadura, Veneno, Congelado).',
   type: 'clericHeal',
   cooldown: 0,
   energyCost: 30,
@@ -616,7 +616,7 @@ registerAbility(WarriorUltimate)
 
 export const ClericUltimate: IAbility = {
   name: 'Luz Divina',
-  description: 'Canaliza una luz sagrada que cura a todos los heroes un 50% de su vida maxima, elimina todos los efectos de dano por tiempo, purga cualquier debuff y bendice a los allies con +30% Cuerpo durante 3 turnos.',
+  description: 'Canaliza una luz sagrada que cura a todos los heroes un 50% de su vida maxima, elimina todos los efectos de daño por tiempo, purga cualquier debuff y bendice a los allies con +30% Cuerpo durante 3 turnos.',
   type: 'clericUltimate',
   cooldown: 0,
   energyCost: 0,

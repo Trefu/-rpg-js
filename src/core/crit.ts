@@ -16,7 +16,7 @@
 export type CritMultiplier = 1 | 2 | 3
 
 export interface CritResult {
-  /** Multiplicador de dano: 1 = no crit, 2 = crit, 3 = overcrit. */
+  /** Multiplicador de daño: 1 = no crit, 2 = crit, 3 = overcrit. */
   multiplier: CritMultiplier
   /** `true` cuando hubo crit (normal o over). Mantiene compatibilidad con
    *  call sites que solo necesitan el boolean. */

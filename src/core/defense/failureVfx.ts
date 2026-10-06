@@ -2,11 +2,11 @@ import type { VfxEffect } from '../interfaces/IAbility'
 import type { DefensePatternConfig } from './types'
 
 /**
- * VFX por defecto que se muestra sobre el heroe cuando recibe dano sin
+ * VFX por defecto que se muestra sobre el heroe cuando recibe daño sin
  * haber bloqueado durante un desafio de defensa.
  *
- * - `impact`: dano normal (no critico).
- * - `bigHit`: dano critico.
+ * - `impact`: daño normal (no critico).
+ * - `bigHit`: daño critico.
  *
  * NOTA: los nombres de archivo dicen "15 frames" / "12 frames" pero los
  * GIFs reales tienen **60 frames** cada uno (delays de 2cs = 20ms/frame

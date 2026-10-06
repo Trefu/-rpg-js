@@ -289,7 +289,7 @@ export const DragonRoar: DefensePatternConfig = {
 }
 registerEnemyAttack(DragonRoar)
 
-// Mantener un preview util para UIs que muestren el dano potencial del
+// Mantener un preview util para UIs que muestren el daño potencial del
 // DragonRoar (ej: la barra de preview de damage del dragon). Usa el
 // mismo pipeline que el patron original.
 export const DragonRoarPreview: DamageStep = damageStep({

@@ -101,7 +101,7 @@ export function summarizeCuriosityResult(
   let kind: CuriosityResultKind = 'noop'
   if (hasReward && hasDamage) {
     // Tradeoff: si el neto es positivo lo marcamos como reward, si no,
-    // como punishment. Si hay dano + item ganado (sin oro/xp/curacion
+    // como punishment. Si hay daño + item ganado (sin oro/xp/curacion
     // positivos netos) sigue siendo punishment.
     const net = (gold) + (xp) + (heals) - (damage) - (energyLoss)
     kind = net >= 0 ? 'reward' : 'punishment'

@@ -17,7 +17,7 @@ export type DefenseEffectSide = 'player' | 'enemy'
  *   duracion. No acumula stacks ni cargos. Cubre la mayoria de buffs/debuffs
  *   (strength_boost, weakness, slow, etc.).
  * - `'dot'` (damage-over-time): ademas de tener `turns`, acumula `stacks`
- *   con dano por turno (`damagePerTurn`). Las reaplicaciones suman stacks
+ *   con daño por turno (`damagePerTurn`). Las reaplicaciones suman stacks
  *   (no refrescan turnos). Tick se aplica al inicio del turno del portador.
  *   Cubre burn/poison/freeze/bleed.
  * - `'stack-based'`: el efecto se gobierna exclusivamente por `stacks`.
@@ -128,7 +128,7 @@ export interface DefenseContribution {
    */
   damageTakenMultiplier?: number
   /**
-   * Reduccion de dano entrante POR TIPO (en fraccion: 0.4 = -40% dano de ese tipo).
+*   Reduccion de daño entrante POR TIPO (en fraccion: 0.4 = -40% daño de ese tipo).
    * Si multiples efectos aportan resistencia al mismo tipo, se suman y se
    * clampean al MAX_PER_TYPE_RESISTANCE definido en damageModifiers.ts.
    */
@@ -235,7 +235,7 @@ export interface IStatusEffect {
    */
   maxAbsorb?: number
   /**
-   * Se invoca cuando el portador bloquea al menos una fraccion del dano
+*   Se invoca cuando el portador bloquea al menos una fraccion del daño
    * (`blockedFraction > 0`). Dentro del hook, decrementar `charges` consume
    * el efecto. Si `charges` baja a 0, el orquestador lo elimina.
    *

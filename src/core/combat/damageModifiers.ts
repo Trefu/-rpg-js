@@ -8,7 +8,7 @@ import { MAX_PER_TYPE_RESISTANCE } from '../defense/modifiers'
  * sobre el base `1.0`. Se invoca en `rollAndApplyDamage` (abilities) y
  * `calculatePhaseDamage` (enemigos) para multiplicar el daño saliente.
  *
- * Cualquier buff que suba el dano infligido debe devolver
+ * Cualquier buff que suba el daño infligido debe devolver
  * `{ attackDamageMultiplier: <delta> }` desde su `defenseContribution`,
  * igual que `STRENGTH_BOOST` ya hace.
  */

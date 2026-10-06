@@ -506,7 +506,7 @@ export class StatusEffects {
    * "Vulnerable": debuff ofensivo. Sube el multiplicador de daño entrante
    * del portador en un +40% (recibe 1.40x daño). Espejo de `Fury` desde la
    * perspectiva del target. En enemigos, los heroes veran sus golpes pegar
-   * un 40% mas fuerte; en heroes, los enemigos harian mucho mas dano.
+*   un 40% mas fuerte; en heroes, los enemigos harian mucho mas daño.
    */
   static readonly VULNERABLE: IStatusEffect = {
     type: 'vulnerable',

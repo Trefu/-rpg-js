@@ -1000,7 +1000,7 @@ function shortcutFor(index: number): string | null {
 
 /* Variante "curacion": paleta verde consistente con el icono heart-drop
    y con las clases .hint-heal del CSS de hint-colors. Diferencia visual
-   respecto al dano para que el jugador distinga de un vistazo que esta
+   respecto al daño para que el jugador distinga de un vistazo que esta
    mirando un heal. */
 .aab-info-damage.is-heal {
   background: rgba(92, 255, 138, 0.12);

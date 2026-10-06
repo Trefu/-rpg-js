@@ -245,7 +245,7 @@ describe('Hero.heroism', () => {
     expect(w.health).toBe(75)
   })
 
-  it('recibir dano rinde MAS Heroismo que infligirlo (ratio ~6:1)', () => {
+  it('recibir daño rinde MAS Heroismo que infligirlo (ratio ~6:1)', () => {
     const tank = new Warrior(1)
     tank.maxHealth = 1000; tank.health = 1000
     tank.takeDamage(60)

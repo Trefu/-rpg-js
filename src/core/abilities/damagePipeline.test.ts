@@ -198,7 +198,7 @@ describe('buildPreview · kind heal', () => {
     expect(preview.kind).toBe('heal')
   })
 
-  it('label default es "Curacion" para heals, "Dano" para damage', () => {
+  it('label default es "Curacion" para heals, "Daño" para damage', () => {
     const heal = buildPreview('', 10, undefined, { kind: 'heal' })
     expect(heal.label).toBe('Curación')
     const dmg = buildPreview('', 10, 'physical')

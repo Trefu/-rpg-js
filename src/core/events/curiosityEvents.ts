@@ -8,7 +8,7 @@ import type { Hero } from '../Hero'
 // juego (recompensa, castigo, emboscada o no-op).
 //
 // `reward` y `punishment` aceptan el mismo set de `Effect` para permitir
-// tradeoffs (ej. "te haces dano pero ganas un flask"). La diferencia entre
+// tradeoffs (ej. "te haces daño pero ganas un flask"). La diferencia entre
 // ambos esta solo en el texto de flavor.
 // ============================================================================
 

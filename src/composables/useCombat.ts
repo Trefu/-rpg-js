@@ -76,9 +76,9 @@ const DOT_KIND_LABEL: Record<string, string> = {
 
 // Tipo elemental del daño que aplica cada DoT al portador. Usado por
 // `Character.takeDamage({ damageType })` para que las resistencias
-// elementales se apliquen tambien al dano por tiempo (ej. Resistencia al
+// elementales se apliquen tambien al daño por tiempo (ej. Resistencia al
 // Fuego reduce Quemadura, Resistencia al Agua reduce Congelado).
-// BLEED intencionalmente sin tipo: es dano fisico puro, no se reduce con
+// BLEED intencionalmente sin tipo: es daño fisico puro, no se reduce con
 // resistencias elementales.
 const DOT_DAMAGE_TYPE: Record<string, DamageTypeId | undefined> = {
   [StatusEffects.BURN.type]: 'fire',
@@ -114,7 +114,7 @@ interface EnemyVfxEffect {
 }
 
 /**
- * VFX visual ligado a un heroe concreto. Se muestra cuando recibe dano sin
+ * VFX visual ligado a un heroe concreto. Se muestra cuando recibe daño sin
  * bloquear durante una fase del desafio de defensa (default) o cuando un
  * splash multi-hero del enemigo lo golpea.
  */
@@ -314,7 +314,7 @@ const defenseClouded = ref(false)
   let pendingDefenseEnemy: IEnemy | null = null
   let pendingDefenseTarget: Hero | null = null
   /**
-   * Dano real (post-bloqueo) que sufrio el primario durante el desafio
+   * Daño real (post-bloqueo) que sufrio el primario durante el desafio
    * de defensa actual. Se incrementa por fase y se resetea al iniciar
    * cada desafio. Hoy no se consume fuera del propio phase handler
    * (el splash post-defense se aplica PER FASE), pero lo conservamos
@@ -1066,7 +1066,7 @@ const defenseClouded = ref(false)
 
   /**
    * Inserta un VFX sobre el heroe indicado y lo elimina al cabo de
-   * `effect.durationMs`. Util cuando el heroe recibe dano sin bloquear
+   * `effect.durationMs`. Util cuando el heroe recibe daño sin bloquear
    * (fase fallida del desafio de defensa o splash multi-hero).
    */
   function showHeroVfx(heroId: string, effect: VfxEffect) {
@@ -1141,7 +1141,7 @@ const defenseClouded = ref(false)
       }
     }
     // Heroismo pasivo de fin de turno: mantiene la barra en movimiento
-    // incluso en turnos donde el heroe no ataca ni recibe dano.
+    // incluso en turnos donde el heroe no ataca ni recibe daño.
     if (hero && typeof hero.restoreHeroism === 'function') {
       const heroismRegen = typeof hero.getTurnEndHeroismRegen === 'function'
         ? hero.getTurnEndHeroismRegen()
@@ -1528,7 +1528,7 @@ const defenseClouded = ref(false)
     isProcessingDot.value = true
     try {
       // Espera a que termine el banner de "Turno de heroe" (y cualquier otro
-      // anuncio en pantalla/en cola) antes de mostrar el dano DoT.
+      // anuncio en pantalla/en cola) antes de mostrar el daño DoT.
       while (announcer.current.value || announcer.pending() > 0) {
         await delay(100)
       }
@@ -1827,7 +1827,7 @@ const defenseClouded = ref(false)
       attackedHeroIds.value = [...baseIds, ...pool.map(h => h.id)]
     }
     // Audio una sola vez por splash (no por splashee), coherente con la
-    // fase que dispara el dano.
+    // fase que dispara el daño.
     if (kind === 'blocked') {
       audioManager.playBlockSound()
     } else {
@@ -1913,7 +1913,7 @@ const defenseClouded = ref(false)
   /**
    * AOE de una ability de heroe: golpea a TODOS los enemigos vivos con el
    * mismo daño final (con crit ya aplicado) en un unico tick simultaneo.
-   * La ability NO debe aplicar dano ni popup a ningun target en su
+   * La ability NO debe aplicar daño ni popup a ningun target en su
    * `execute`; eso lo hace esta funcion para que todos los impactos
    * caigan a la vez. Sin critico adicional en los splashes.
    *

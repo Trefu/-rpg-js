@@ -28,11 +28,11 @@ export interface DefenseFailureEffect {
 }
 
 /**
- * Override de los VFX que se muestran sobre el heroe cuando recibe dano sin
+ * Override de los VFX que se muestran sobre el heroe cuando recibe daño sin
  * bloquear durante un desafio de defensa contra este patron.
  *
- * - `impact`: dano normal (no critico).
- * - `bigHit`: dano critico.
+ * - `impact`: daño normal (no critico).
+ * - `bigHit`: daño critico.
  *
  * Si una clave se omite, se usa el default registrado en
  * `src/core/defense/failureVfx.ts` (Effect_Impact / Effect_BigHit).
