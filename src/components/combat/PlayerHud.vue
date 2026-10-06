@@ -8,6 +8,14 @@ import hamburgerIcon from '@/assets/icons/hamburger-menu.png'
 interface Props {
   player: Hero | null
   hitPopups: { value: number, key: number, isCrit?: boolean }[]
+  /**
+   * Key (monotonic) que se actualiza cada vez que el usuario hace hover/click
+   * en el botón de la ulti del heroe activo. La card cuyo `player.id` coincida
+   * con `ultiHoverHeroId` debe disparar el flash `bar-heroism--pulse-flash`
+   * durante ~1.2s para reforzar la conexión visual ulti ↔ barra de Heroismo.
+   */
+  ultiHoverHeroId?: string | null
+  ultiHoverFlashKey?: number
 }
 
 const props = defineProps<Props>()
@@ -91,12 +99,38 @@ function onDocClick(e: MouseEvent) {
   }
 }
 
+// Pulse-flash de la barra de Heroismo al hover/click del botón de la ulti.
+// Mismo patron que `HeroCard.vue`: `:key` que cambia para re-disparar la
+// animacion en hovers sucesivos.
+const heroismFlashActive = ref(false)
+const heroismFlashToken = ref(0)
+const HEROISM_FLASH_MS = 1300
+let heroismFlashTimer: ReturnType<typeof setTimeout> | null = null
+
+function triggerHeroismFlash() {
+  if (heroismFlashTimer) clearTimeout(heroismFlashTimer)
+  heroismFlashToken.value++
+  heroismFlashActive.value = true
+  heroismFlashTimer = setTimeout(() => {
+    heroismFlashActive.value = false
+  }, HEROISM_FLASH_MS)
+}
+
+watch(
+  () => [props.ultiHoverHeroId, props.ultiHoverFlashKey] as const,
+  ([heroId, key]) => {
+    if (!heroId || !key) return
+    if (props.player && heroId === props.player.id) triggerHeroismFlash()
+  }
+)
+
 onMounted(() => {
   document.addEventListener('click', onDocClick)
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', onDocClick)
+  if (heroismFlashTimer) clearTimeout(heroismFlashTimer)
 })
 </script>
 
@@ -124,7 +158,11 @@ onBeforeUnmount(() => {
           <span class="resource-bar-track">
             <span
               class="resource-bar-fill bar-heroism"
-              :class="{ 'bar-heroism--ready': isUltimateReady }"
+              :class="{
+                'bar-heroism--ready': isUltimateReady,
+                'bar-heroism--pulse-flash': heroismFlashActive
+              }"
+              :key="`player-heroism-flash-${heroismFlashToken}`"
               :style="{ width: `${heroismPercent}%` }"
             ></span>
           </span>
@@ -286,6 +324,34 @@ onBeforeUnmount(() => {
 .resource-bar-fill.bar-heroism--ready {
   background: linear-gradient(90deg, #fff176, #ffb300, #ff6f00);
   animation: heroismGlow 1.2s ease-in-out infinite alternate;
+}
+
+/*
+ * Pulse-flash disparado al hover/click sobre el botón de la ulti.
+ * Refuerza el glow del `bar-heroism--ready` o lo dispara aunque la ulti
+ * NO este lista (Heroismo < max). Una sola iteracion, ~1.2s.
+ */
+.resource-bar-fill.bar-heroism--pulse-flash {
+  animation: resourceHeroismPulseFlash 1.2s ease-in-out 1;
+}
+
+@keyframes resourceHeroismPulseFlash {
+  0% {
+    box-shadow: 0 0 0 rgba(255, 215, 0, 0), inset 0 0 0 rgba(255, 215, 0, 0);
+    filter: brightness(1);
+  }
+  35% {
+    box-shadow: 0 0 16px rgba(255, 215, 0, 0.95), 0 0 28px rgba(255, 159, 28, 0.7), inset 0 0 10px rgba(255, 235, 130, 0.85);
+    filter: brightness(1.25);
+  }
+  100% {
+    box-shadow: 0 0 0 rgba(255, 215, 0, 0), inset 0 0 0 rgba(255, 215, 0, 0);
+    filter: brightness(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .resource-bar-fill.bar-heroism--pulse-flash { animation: none; }
 }
 
 @keyframes heroismGlow {

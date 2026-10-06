@@ -62,6 +62,21 @@
 .ability-formula-popover .hint-atk  { color: #ff8a3a; font-weight: 700; text-shadow: 0 1px 2px #000; }
 .ability-formula-popover .hint-mag  { color: #82b1ff; font-weight: 700; text-shadow: 0 1px 2px #000; }
 
+/* AbilitiesActionBar — `aab-info-formula-line` dentro de `.aab-info-formula`.
+   Popup flotante de la action bar (mismo contenido que el modal). Misma
+   paleta que `.ability-formula-popover` para que el coloreo sea coherente
+   al cruzar vistas. Antes estos spans se renderizaban en blanco porque no
+   existian reglas CSS — los estilos eran globales (no scoped) porque el
+   contenido va por v-html. */
+.aab-info-formula .hint-base { color: #b0bec5; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.aab-info-formula .hint-lvl  { color: #ffd54f; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.aab-info-formula .hint-cue  { color: #ff8a3a; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.aab-info-formula .hint-mind { color: #82b1ff; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.aab-info-formula .hint-agi  { color: #ffe066; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.aab-info-formula .hint-con  { color: #5cff8a; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.aab-info-formula .hint-atk  { color: #ff8a3a; font-weight: 700; text-shadow: 0 1px 2px #000; }
+.aab-info-formula .hint-mag  { color: #82b1ff; font-weight: 700; text-shadow: 0 1px 2px #000; }
+
 /* MobileActionBar — `mab-info-formula-line` dentro de `.mab-info-formula`.
    Misma paleta que el modal desktop. */
 .mab-info-formula .hint-base { color: #b0bec5; font-weight: 700; text-shadow: 0 1px 2px #000; }

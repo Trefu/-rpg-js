@@ -249,6 +249,19 @@ export function useCombat(config: CombatConfig = {}) {
   const usedItemThisTurn = ref(false)
 const isProcessingDot = ref(false)
 
+  // ---- Cross-system feedback: ulti-button hover/click debe resaltar la barra
+  // de Heroismo del caster activo. CombatView escucha el evento del
+  // AbilitiesActionBar y llama a `flashUltiBar(heroId)` para que la card
+  // correspondiente (HeroCard, PlayerHud o MobileCombatHud) ejecute la
+  // animación `bar-heroism--pulse-flash` por 1.2s.
+  const ultiHoverHeroId = ref<string | null>(null)
+  const ultiHoverFlashKey = ref(0)
+  function flashUltiBar(heroId: string | null | undefined) {
+    if (!heroId) return
+    ultiHoverHeroId.value = heroId
+    ultiHoverFlashKey.value++
+  }
+
   const announcer = useAnnouncer()
   const announcement = computed(() => announcer.current.value)
 
@@ -1148,6 +1161,19 @@ const defenseClouded = ref(false)
     if (currentActor.value?.kind !== 'hero') return
     usedItemThisTurn.value = false
     await applyPlayerStatusTick()
+    // FIX muerte-por-DoT (legacy flow): si el heroe activo murio durante el
+    // tick, rotamos al siguiente vivo o terminamos el combate. Mismo
+    // comportamiento que el fix aplicado en `startHeroTurn` — este hook
+    // es un wrapper que algunos componentes legacy siguen usando.
+    if (!player.value.isAlive) {
+      const rotated = rotateToNextAliveHero()
+      if (!rotated) {
+        addToLog('¡Los DoTs han consumido a tus heroes!')
+        endCombat(false)
+      } else if (player.value) {
+        addToLog(`¡${player.value.name} entra en combate!`)
+      }
+    }
   }
 
   async function runNextTurn() {
@@ -1233,6 +1259,25 @@ const defenseClouded = ref(false)
     addToLog(`Turno de ${actor.name}.`)
     showAnnouncement(`Turno de ${actor.name}`, 'turn', 1200)
     await applyPlayerStatusTick()
+    // FIX muerte-por-DoT: si el tick mató al heroe activo, debemos
+    // detectar el estado AHORA (no esperar al `endHeroTurn` del jugador)
+    // porque sin chequeo `player.value.isAlive === false` mantiene la UI
+    // como si pudiera actuar. Rotamos o terminamos combate según queden
+    // heroes en pie.
+    if (!actor.isAlive) {
+      const rotated = rotateToNextAliveHero()
+      if (!rotated) {
+        addToLog('¡Los DoTs han consumido a tus heroes!')
+        endCombat(false)
+      } else if (player.value) {
+        addToLog(`¡${player.value.name} entra en combate!`)
+      }
+      // Reanudar el ciclo de turnos: el heroe actual (muerto) ya consumio
+      // su turno, avanzar al siguiente actor.
+      turnState.value = advanceAfterTurn(turnState.value, turnActors.value, actor.id)
+      await runNextTurn()
+      return
+    }
     // Espera la accion del jugador; `endHeroTurn` (o `endPlayerTurn`) cierra el turno.
   }
 
@@ -2143,6 +2188,10 @@ const defenseClouded = ref(false)
     itemRequiresTarget,
 
     isBasicAttack,
-    getAbilityBlockReason
+    getAbilityBlockReason,
+
+    ultiHoverHeroId,
+    ultiHoverFlashKey,
+    flashUltiBar
   }
 }

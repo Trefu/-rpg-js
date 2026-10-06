@@ -5,6 +5,7 @@ import { getOutgoingDamageMultiplier } from '../combat/damageModifiers'
 import { getDamageTypeLabel, getDamageTypeInfo, type DamageTypeId } from '../combat/damageTypes'
 import type { IAbility, AbilityDamagePreview, DamageType } from '../interfaces/IAbility'
 import type { AbilityEffects } from '../interfaces/IAbility'
+import type { IStatusEffect } from '../interfaces/IStatusEffect'
 
 /**
  * Caster valido para `dealDamage`: cualquier combatiente con `baseStats`,
@@ -95,17 +96,48 @@ export function damageStep(s: DamageStep): DamageStep { return s }
  * Calcula el daño raw (sin varianza) de un pipeline para un caster.
  * Cada step contribuye `stat.value * coef + level * levelCoef` (multiplicado
  * por `multiplier` si está); se suman entre sí.
+ *
+ * Si el caster tiene statusEffects activos y la signature del caster extiende
+ * `DamageCaster` (con `statusEffects`), se aplica cualquier `bodyMultiplier`
+ * provisto por `defenseContribution` sobre el stat `body` ANTES del cálculo.
+ * Es el hook para buffs como `DIVINE_BLESSING` (+30% Cuerpo efectivo).
  */
-export function computeRawDamage(pipeline: DamageStep | DamageStep[], caster: StatBearer): number {
+export function computeRawDamage(pipeline: DamageStep | DamageStep[], caster: StatBearer & { statusEffects?: IStatusEffect[] }): number {
   const steps = Array.isArray(pipeline) ? pipeline : [pipeline]
+  const effects = caster.statusEffects
+  const bodyMult = computeBodyMultiplierFromEffects(effects)
   let total = 0
   for (const step of steps) {
-    const statValue = caster.baseStats[step.stat].value
+    const baseStatValue = caster.baseStats[step.stat].value
+    const statValue = step.stat === 'body'
+      ? baseStatValue * (1 + bodyMult)
+      : baseStatValue
     const base = statValue * step.coef + caster.level * step.levelCoef
     const mult = step.multiplier ?? 1
     total += base * mult
   }
   return total
+}
+
+/**
+ * Suma los deltas `bodyMultiplier` de cada efecto activo del caster sobre
+ * el base `1.0`. Misma estructura que `getOutgoingDamageMultiplier` pero
+ * para el stat `body` que alimenta el pipeline de daño. Vive aca (no en
+ * `damageModifiers.ts`) para evitar una dependencia circular: el pipeline
+ * no depende del sistema de modificadores, solo del caster.
+ */
+function computeBodyMultiplierFromEffects(effects: IStatusEffect[] | undefined): number {
+  if (!effects || effects.length === 0) return 0
+  let mult = 0
+  for (const effect of effects) {
+    if (effect.turns <= 0) continue
+    const contribution = effect.defenseContribution?.(effect, 'player')
+    if (!contribution) continue
+    if (typeof contribution.bodyMultiplier === 'number') {
+      mult += contribution.bodyMultiplier
+    }
+  }
+  return mult
 }
 
 /**

@@ -344,3 +344,68 @@ describe('dealDamage (pipeline completo)', () => {
     expect(boostedAvg).toBeGreaterThan(baseAvg * 1.18)
   })
 })
+
+describe('computeRawDamage · bodyMultiplier (DIVINE_BLESSING)', () => {
+  it('sin statusEffects, computeRawDamage usa el body base', () => {
+    const caster = fakeCaster(20, 0, 5)
+    const step = damageStep({ stat: 'body', coef: 1, levelCoef: 0, statLabel: 'CUE' })
+    expect(computeRawDamage(step, caster)).toBe(20)
+  })
+
+  it('con un effect bodyMultiplier=+0.30, el body efectivo pasa a 1.30x', () => {
+    const blessing: IStatusEffect = {
+      type: 'divine_blessing',
+      isBuff: true,
+      turns: 3,
+      defenseContribution: () => ({ bodyMultiplier: 0.30 })
+    } as unknown as IStatusEffect
+    const caster = { ...fakeCaster(20, 0, 5), statusEffects: [blessing] }
+    const step = damageStep({ stat: 'body', coef: 1, levelCoef: 0, statLabel: 'CUE' })
+    // 20 * 1.30 = 26
+    expect(computeRawDamage(step, caster)).toBe(26)
+  })
+
+  it('bodyMultiplier NO afecta a pipelines basados en mind', () => {
+    const blessing: IStatusEffect = {
+      type: 'divine_blessing',
+      isBuff: true,
+      turns: 3,
+      defenseContribution: () => ({ bodyMultiplier: 0.30 })
+    } as unknown as IStatusEffect
+    const caster = { ...fakeCaster(20, 30, 5), statusEffects: [blessing] }
+    const step = damageStep({ stat: 'mind', coef: 1, levelCoef: 0, statLabel: 'MEN' })
+    // mind no se ve afectado: 30
+    expect(computeRawDamage(step, caster)).toBe(30)
+  })
+
+  it('efectos con turns <= 0 no contribuyen al bodyMultiplier', () => {
+    const blessing: IStatusEffect = {
+      type: 'divine_blessing',
+      isBuff: true,
+      turns: 0,
+      defenseContribution: () => ({ bodyMultiplier: 0.30 })
+    } as unknown as IStatusEffect
+    const caster = { ...fakeCaster(20, 0, 5), statusEffects: [blessing] }
+    const step = damageStep({ stat: 'body', coef: 1, levelCoef: 0, statLabel: 'CUE' })
+    expect(computeRawDamage(step, caster)).toBe(20)
+  })
+
+  it('varios effects bodyMultiplier se suman (cap teorico via multiplicacion)', () => {
+    const blessingA: IStatusEffect = {
+      type: 'blessing_a',
+      isBuff: true,
+      turns: 3,
+      defenseContribution: () => ({ bodyMultiplier: 0.20 })
+    } as unknown as IStatusEffect
+    const blessingB: IStatusEffect = {
+      type: 'blessing_b',
+      isBuff: true,
+      turns: 3,
+      defenseContribution: () => ({ bodyMultiplier: 0.15 })
+    } as unknown as IStatusEffect
+    const caster = { ...fakeCaster(20, 0, 5), statusEffects: [blessingA, blessingB] }
+    const step = damageStep({ stat: 'body', coef: 1, levelCoef: 0, statLabel: 'CUE' })
+    // 20 * (1 + 0.20 + 0.15) = 27
+    expect(computeRawDamage(step, caster)).toBe(27)
+  })
+})

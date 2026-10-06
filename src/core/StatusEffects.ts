@@ -709,6 +709,30 @@ export class StatusEffects {
     turnLabel: '¡Un escudo arcano te protege!'
   }
 
+  /**
+   * "Bendición Divina": buff de la ulti `ClericUltimate` (Luz Divina).
+   * Otorga +30% al `body` efectivo del portador, lo que aumenta el daño
+   * del pipeline ofensivo del caster (warrior basic, devastating strike,
+   * tormenta de acero). NO afecta `Hero.attack()` (el cálculo "base" del
+   * HUD), solo el pipeline de daño de abilities que escalan con body.
+   *
+   * Duración: 3 turnos. Las reaplicaciones de Luz Divina reinician la
+   * duración al máximo (modelo turn-based, no stack-merging).
+   */
+  static readonly DIVINE_BLESSING: IStatusEffect = {
+    type: 'divine_blessing',
+    name: 'Bendición Divina',
+    description: 'Luz Divina infunde tu ser: +30% Cuerpo efectivo para tus habilidades. Dura 3 turnos.',
+    descriptionOnEnemy: 'Infligido por Luz Divina: +30% Cuerpo en habilidades.',
+    descriptionOnPlayer: 'Canalizada por Luz Divina: +30% Cuerpo efectivo en tus habilidades.',
+    turns: 3,
+    icon: strengthIcon,
+    isBuff: true,
+    turnLabel: '¡Bendición Divina activa!',
+    announceOnTurn: true,
+    defenseContribution: () => ({ bodyMultiplier: 0.30 })
+  }
+
   // Método para obtener un efecto por tipo (case-insensitive)
   static getByType(type: string): IStatusEffect | null {
     const effects = [
@@ -741,7 +765,8 @@ export class StatusEffects {
       this.HASTE,
       this.CURSE,
       this.ENRAGED,
-      this.ARCANE_SHIELD
+      this.ARCANE_SHIELD,
+      this.DIVINE_BLESSING
     ]
     const target = type.toLowerCase()
     return effects.find(effect => effect.type === target) || null
@@ -778,7 +803,8 @@ export class StatusEffects {
       this.HASTE.type,
       this.CURSE.type,
       this.ENRAGED.type,
-      this.ARCANE_SHIELD.type
+      this.ARCANE_SHIELD.type,
+      this.DIVINE_BLESSING.type
     ]
   }
 }

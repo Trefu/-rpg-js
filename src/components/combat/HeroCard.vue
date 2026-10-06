@@ -29,6 +29,14 @@ interface Props {
   hitPopups?: { value: number, key: number, isCrit?: boolean, variant?: 'damage' | 'crit' | 'blocked' | 'heal' | 'energy', suffix?: string, heroId?: string | null }[]
   /** VFX activos sobre este heroe (ej. impact / big-hit al fallar defensa). */
   vfxEffects?: { key: number, asset: VfxAssetId, mirrored?: boolean, rotationDeg?: number }[]
+  /**
+   * Key (monotonic) que se actualiza cada vez que el usuario hace hover/click
+   * en el botón de la ulti del heroe activo. La card cuyo `hero.id` coincida
+   * con `ultiHoverHeroId` debe disparar el flash `bar-heroism--pulse-flash`
+   * durante ~1.2s para reforzar la conexión visual ulti ↔ barra de Heroismo.
+   */
+  ultiHoverHeroId?: string | null
+  ultiHoverFlashKey?: number
 }
 
 const props = defineProps<Props>()
@@ -102,6 +110,37 @@ const menuButtonEl = ref<HTMLElement | null>(null)
 const dropdownEl = ref<HTMLElement | null>(null)
 const hoveredDot = ref<string | null>(null)
 const touchedDot = ref<string | null>(null)
+
+// Flag local que activa el glow pulsante en la barra de Heroismo. Se pone
+// en `true` cuando llega un nuevo `ultiHoverFlashKey` cuyo `ultiHoverHeroId`
+// corresponde a este heroe; un timer de 1.2s lo limpia. Implementado con un
+// `flashToken` numerico para que el :key del <div> fuerce re-mount del
+// animation y asi poder dispararlo en hoveres sucesivos.
+const heroismFlashActive = ref(false)
+const heroismFlashToken = ref(0)
+const HEROISM_FLASH_MS = 1300
+let heroismFlashTimer: ReturnType<typeof setTimeout> | null = null
+
+function triggerHeroismFlash() {
+  if (heroismFlashTimer) clearTimeout(heroismFlashTimer)
+  heroismFlashToken.value++
+  heroismFlashActive.value = true
+  heroismFlashTimer = setTimeout(() => {
+    heroismFlashActive.value = false
+  }, HEROISM_FLASH_MS)
+}
+
+watch(
+  () => [props.ultiHoverHeroId, props.ultiHoverFlashKey] as const,
+  ([heroId, key]) => {
+    if (!heroId || !key) return
+    if (props.hero && heroId === props.hero.id) triggerHeroismFlash()
+  }
+)
+
+onBeforeUnmount(() => {
+  if (heroismFlashTimer) clearTimeout(heroismFlashTimer)
+})
 const dropdownStyle = ref<{ top: string; left: string; width: string; placement: 'above' | 'below' }>({
   top: '-9999px',
   left: '-9999px',
@@ -265,7 +304,11 @@ defineExpose({
             <div class="bar-track">
               <div
                 class="bar-fill bar-heroism"
-                :class="{ 'bar-heroism--ready': isUltimateReady }"
+                :class="{
+                  'bar-heroism--ready': isUltimateReady,
+                  'bar-heroism--pulse-flash': heroismFlashActive
+                }"
+                :key="`heroism-flash-${heroismFlashToken}`"
                 :style="{ width: `${heroismPercent}%` }"
               ></div>
             </div>
@@ -838,6 +881,36 @@ defineExpose({
 .bar-fill.bar-heroism--ready {
   background: linear-gradient(90deg, #fff176, #ffb300, #ff6f00);
   animation: heroismGlow 1.2s ease-in-out infinite alternate;
+}
+
+/*
+ * Pulse-flash disparado al hover/click sobre el botón de la ulti.
+ * Una sola iteracion (1.2s) que refuerza el glow del `bar-heroism--ready`
+ * o lo dispara aunque la ulti NO este lista. El :key del <div> asegura
+ * que cada flash nuevo re-monta la animacion aunque la anterior no haya
+ * terminado (hover hovers en hover).
+ */
+.bar-fill.bar-heroism--pulse-flash {
+  animation: heroismPulseFlash 1.2s ease-in-out 1;
+}
+
+@keyframes heroismPulseFlash {
+  0% {
+    box-shadow: 0 0 0 rgba(255, 215, 0, 0), inset 0 0 0 rgba(255, 215, 0, 0);
+    filter: brightness(1);
+  }
+  35% {
+    box-shadow: 0 0 16px rgba(255, 215, 0, 0.95), 0 0 28px rgba(255, 159, 28, 0.7), inset 0 0 10px rgba(255, 235, 130, 0.85);
+    filter: brightness(1.25);
+  }
+  100% {
+    box-shadow: 0 0 0 rgba(255, 215, 0, 0), inset 0 0 0 rgba(255, 215, 0, 0);
+    filter: brightness(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar-fill.bar-heroism--pulse-flash { animation: none; }
 }
 
 @keyframes heroismGlow {

@@ -98,7 +98,12 @@ const {
   openItemsModal,
   closeItemsModal,
   selectItem,
-  itemCanTargetAllies
+  itemCanTargetAllies,
+
+  flashUltiBar,
+
+  ultiHoverHeroId,
+  ultiHoverFlashKey
 } = useCombat(combatOptions)
 
 const actorsById = computed<Record<string, import('@/core/turn-engine/TurnEngine').TurnActor>>(() => {
@@ -126,6 +131,16 @@ const canCancelSelectedAbility = computed(() => {
 
 function onCancelAbility() {
   cancelAction()
+}
+
+/**
+ * Hover/touch sobre el botón de la ulti (cualquier slot con `heroismCost > 0`).
+ * Propaga a `useCombat.flashUltiBar` para que la card del caster activo
+ * ejecute `bar-heroism--pulse-flash` durante ~1.2s. Asi el jugador entiende
+ * visualmente que la ulti requiere Heroísmo al máximo.
+ */
+function onUltiHoverHighlight(heroId: string | null) {
+  flashUltiBar(heroId)
 }
 
 function onItemsModalSelectItem(entryId: string) {
@@ -286,6 +301,8 @@ onUnmounted(() => {
           :is-being-attacked="!!hero && attackedHeroIds.includes(hero.id)"
           :hit-popups="hero ? playerHitPopups.filter(p => p.heroId === hero.id) : []"
           :vfx-effects="hero ? heroVfxEffects.filter(e => e.heroId === hero.id) : []"
+          :ulti-hover-hero-id="ultiHoverHeroId"
+          :ulti-hover-flash-key="ultiHoverFlashKey"
           @select="(h) => selectAlly(h)"
         />
       </div>
@@ -304,6 +321,8 @@ onUnmounted(() => {
       :attacked-hero-ids="attackedHeroIds"
       :hit-popups="playerHitPopups"
       :hero-vfx-effects="heroVfxEffects"
+      :ulti-hover-hero-id="ultiHoverHeroId"
+      :ulti-hover-flash-key="ultiHoverFlashKey"
       @select-ally="selectAlly"
     />
 
@@ -351,6 +370,7 @@ onUnmounted(() => {
         @select-ability="onMobileAbility"
         @object="onMobileObject"
         @cancel="onCancelAbility"
+        @ulti-hover-highlight="onUltiHoverHighlight"
       />
     </div>
 
@@ -370,6 +390,7 @@ onUnmounted(() => {
       @select-ability="onMobileAbility"
       @object="onMobileObject"
       @cancel="onCancelAbility"
+      @ulti-hover-highlight="onUltiHoverHighlight"
     />
 
     <CombatLogFab

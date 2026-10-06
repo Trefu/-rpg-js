@@ -1,4 +1,4 @@
-import type { IAbility, AbilityContext, VfxEffect } from '@/core/interfaces/IAbility'
+import type { IAbility, AbilityContext, VfxEffect, AbilityDamagePreview } from '@/core/interfaces/IAbility'
 import type { Hero } from '../Hero'
 import { StatusEffects, DOT_STATUS_TYPES } from '../StatusEffects'
 import {
@@ -6,6 +6,8 @@ import {
   dealDamage,
   damageStep,
   previewFromPipeline,
+  buildPreview,
+  F,
   type DamageStep
 } from './damagePipeline'
 import { registerAbility } from './registry'
@@ -515,6 +517,25 @@ export const ClericHeal: IAbility = {
   targetType: 'allies-only',
   tags: ['cleric', 'heal'],
   icon: heartDrop,
+  /**
+   * Preview custom porque `ClericHeal` no tiene pipeline ofensivo: es una
+   * cura con fórmula `target.maxHealth * 0.30 + caster.mind * 2 + caster.level * 2`.
+   * El modal muestra el valor base (min == max; las curas no varían) y
+   * permite expandir la fórmula con los valores del caster ya sustituidos
+   * (mismo coloreo que las abilities ofensivas, vía los `F.X()` helpers).
+   */
+  customPreview: (hero: Hero): AbilityDamagePreview => {
+    const mind = hero.baseStats.mind.value
+    const level = hero.level
+    // Estimación: el preview usa el caster como target por defecto (el caso
+    // "me curo a mi mismo" es el más común). Si el target fuera un aliado
+    // con más HP, el valor real podría ser mayor.
+    const targetMaxHp = hero.maxHealth
+    const healBase = Math.floor(targetMaxHp * 0.30 + mind * 2 + level * 2)
+    const formula =
+      `(${F.base('30% HP max')} ${F.base('+')} ${F.mind('MEN')} ${F.mind(Math.round(mind))} ${F.base('×')} ${F.base(2)} ${F.base('+')} ${F.lvl('nivel')} ${F.lvl(level)} ${F.base('×')} ${F.base(2)}) ${F.base('=')} ${F.atk(String(healBase))}`
+    return buildPreview(formula + '  ' + F.base('HP'), healBase, undefined)
+  },
   execute: async (context: AbilityContext) => {
     const caster = context.caster as Hero
     const target = context.target as Hero
@@ -558,11 +579,11 @@ export const ClericHeal: IAbility = {
 }
 registerAbility(ClericHeal)
 
-export const WARRIOR_ULTIMATE_HIT_MULTIPLIER = 3
+export const WARRIOR_ULTIMATE_HIT_MULTIPLIER = 5
 
 export const WarriorUltimate: IAbility = {
   name: 'Tormenta de Acero',
-  description: 'Desata el triple de golpes que su ataque basico a nivel actual.',
+  description: 'Desata cinco veces los golpes de su ataque basico a nivel actual.',
   type: 'warriorUltimate',
   cooldown: 0,
   energyCost: 0,
@@ -591,7 +612,7 @@ registerAbility(WarriorUltimate)
 
 export const ClericUltimate: IAbility = {
   name: 'Luz Divina',
-  description: 'Canaliza una luz sagrada que cura a todos los heroes un 50% de su vida maxima, elimina todos los efectos de dano por tiempo y purga cualquier debuff.',
+  description: 'Canaliza una luz sagrada que cura a todos los heroes un 50% de su vida maxima, elimina todos los efectos de dano por tiempo, purga cualquier debuff y bendice a los allies con +30% Cuerpo durante 3 turnos.',
   type: 'clericUltimate',
   cooldown: 0,
   energyCost: 0,
@@ -617,6 +638,7 @@ export const ClericUltimate: IAbility = {
     const totalHealed: number[] = []
     const cleansedNames: string[] = []
     const debuffCleansedNames: string[] = []
+    const blessedAllies: string[] = []
 
     for (const ally of allies) {
       if (!ally || !ally.isAlive) continue
@@ -649,6 +671,11 @@ export const ClericUltimate: IAbility = {
         ally.removeStatusEffect(effect.type)
         debuffCleansedNames.push(effect.name ?? effect.type)
       }
+
+      // Bendición Divina: +30% body efectivo en el pipeline de abilities
+      // (warrior basic, devastating strike, tormenta de acero). 3 turnos.
+      ally.addStatusEffect({ ...StatusEffects.DIVINE_BLESSING })
+      blessedAllies.push(ally.name)
     }
 
     const parts: string[] = []
@@ -662,6 +689,9 @@ export const ClericUltimate: IAbility = {
     if (debuffCleansedNames.length > 0) {
       const unique = Array.from(new Set(debuffCleansedNames))
       parts.push(`purgo debuffs: ${unique.join(', ')}`)
+    }
+    if (blessedAllies.length > 0) {
+      parts.push(`canalizo Bendicion Divina sobre ${blessedAllies.join(', ')} (+30% Cuerpo, 3t)`)
     }
     context.log(parts.length > 0 ? `${parts.join('; ')}.` : 'Luz Divina no tuvo efecto sobre nadie.')
 

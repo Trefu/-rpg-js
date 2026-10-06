@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch, onBeforeUnmount } from 'vue'
 import type { Hero } from '@/core/Hero'
 import type { IEnemy } from '@/core/interfaces/ICharacter'
 import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
@@ -21,6 +21,14 @@ const props = defineProps<{
     attackedHeroIds?: string[]
     hitPopups?: { heroId: string | null, value: number, key: number, isCrit?: boolean, variant?: 'damage' | 'crit' | 'blocked' | 'heal' | 'energy', suffix?: string, offsetX: number, offsetY: number, duration: number }[]
     heroVfxEffects?: { heroId: string, key: number, asset: VfxAssetId, durationMs: number, mirrored?: boolean, rotationDeg?: number }[]
+    /**
+     * Key (monotonic) que se actualiza cada vez que el usuario hace hover/click
+     * en el botón de la ulti del heroe activo. La card cuyo `hero.id` coincida
+     * con `ultiHoverHeroId` debe disparar el flash `bar-heroism--pulse-flash`
+     * durante ~1.2s para reforzar la conexión visual ulti ↔ barra de Heroismo.
+     */
+    ultiHoverHeroId?: string | null
+    ultiHoverFlashKey?: number
 }>()
 
 const emit = defineEmits<{
@@ -160,6 +168,57 @@ function heroIsUltimateReady(h: Hero & { canUseUltimate?: () => boolean; heroism
     return (h.heroism ?? 0) >= (h.maxHeroism ?? 100)
 }
 
+/**
+ * Pulse-flash de la barra de Heroismo al hover/click del botón de la ulti.
+ * MobileCombatHud renderiza DOS barras relevantes:
+ *  - la del heroe mostrado en la cabecera (`displayedHero`)
+ *  - las de los allies dentro del panel expandido (`heroSlots`)
+ * Mismo patron que HeroCard: key monotonico + timer de 1.3s para limpiar.
+ */
+const HEROISM_FLASH_MS = 1300
+const flashByHeroId = ref<Record<string, { active: boolean, timer: ReturnType<typeof setTimeout> | null }>>({})
+
+function flashHeroism(heroId: string) {
+    const prev = flashByHeroId.value[heroId]
+    if (prev?.timer) clearTimeout(prev.timer)
+    flashByHeroId.value = {
+        ...flashByHeroId.value,
+        [heroId]: {
+            active: true,
+            timer: setTimeout(() => {
+                flashByHeroId.value = {
+                    ...flashByHeroId.value,
+                    [heroId]: { active: false, timer: null }
+                }
+            }, HEROISM_FLASH_MS)
+        }
+    }
+}
+
+function isHeroismFlashing(heroId: string | null | undefined): boolean {
+    if (!heroId) return false
+    return !!flashByHeroId.value[heroId]?.active
+}
+
+watch(
+    () => [props.ultiHoverHeroId, props.ultiHoverFlashKey] as const,
+    ([heroId, key]) => {
+        if (!heroId || !key) return
+        // Solo flasheamos si el hero objetivo esta visible en este HUD:
+        //  - el heroe mostrado actualmente, o
+        //  - alguno de los allies del panel (que se abre con tap en portrait).
+        const inMainCard = displayedHero.value?.id === heroId
+        const inAllyPanel = props.heroes.some(h => h?.id === heroId)
+        if (inMainCard || inAllyPanel) flashHeroism(heroId)
+    }
+)
+
+onBeforeUnmount(() => {
+    for (const entry of Object.values(flashByHeroId.value)) {
+        if (entry.timer) clearTimeout(entry.timer)
+    }
+})
+
 const showAllyPreview = ref(false)
 const allyStatsOpen = ref<Record<string, boolean>>({})
 const portraitEl = ref<HTMLElement | null>(null)
@@ -257,9 +316,9 @@ function onAllyRowClick(hero: Hero | null) {
                     </span>
                 </div>
                 <div class="mobile-hud-bar mobile-hud-bar-heroism"
-                    :class="{ 'is-ult-ready': isUltimateReady }">
+                    :class="{ 'is-ult-ready': isUltimateReady, 'is-ult-flash': isHeroismFlashing(displayedHero?.id) }">
                     <div class="mobile-hud-bar-fill heroism"
-                        :class="{ 'mobile-hud-bar-fill--ready': isUltimateReady }"
+                        :class="{ 'mobile-hud-bar-fill--ready': isUltimateReady, 'mobile-hud-bar-fill--pulse-flash': isHeroismFlashing(displayedHero?.id) }"
                         :style="{ width: `${heroismPercent}%` }"></div>
                     <span class="mobile-hud-bar-value mobile-hud-bar-value-heroism">
                         {{ heroismDisplay }}
@@ -336,9 +395,9 @@ function onAllyRowClick(hero: Hero | null) {
                                     </span>
                                 </div>
                                 <div class="mobile-hud-ally-bar mobile-hud-ally-bar-heroism"
-                                    :class="{ 'is-ult-ready': heroIsUltimateReady(hero) }">
+                                    :class="{ 'is-ult-ready': heroIsUltimateReady(hero), 'is-ult-flash': isHeroismFlashing(hero.id) }">
                                     <div class="mobile-hud-ally-bar-fill heroism"
-                                        :class="{ 'mobile-hud-ally-bar-fill--ready': heroIsUltimateReady(hero) }"
+                                        :class="{ 'mobile-hud-ally-bar-fill--ready': heroIsUltimateReady(hero), 'mobile-hud-ally-bar-fill--pulse-flash': isHeroismFlashing(hero.id) }"
                                         :style="{ width: `${heroHeroismPercent(hero)}%` }"></div>
                                     <span class="mobile-hud-ally-bar-value mobile-hud-ally-bar-value-heroism">
                                         {{ (hero as any).heroism ?? 0 }}/{{ (hero as any).maxHeroism ?? 100 }}
@@ -692,6 +751,42 @@ function onAllyRowClick(hero: Hero | null) {
 
 .mobile-hud-bar.is-ult-ready {
     box-shadow: 0 0 0 1px rgba(255, 215, 0, 0.55), 0 0 8px rgba(255, 215, 0, 0.35);
+}
+
+/*
+ * Pulse-flash disparado al hover/tap del botón de la ulti. Una sola
+ * iteración de 1.3s que refuerza el glow del `is-ult-ready` (o lo dispara
+ * aunque la ulti NO este lista). Se aplica tanto a la barra principal del
+ * heroe mostrado como a las barras del panel de aliados.
+ */
+.mobile-hud-bar-fill.heroism.mobile-hud-bar-fill--pulse-flash {
+    animation: mobileHeroismPulseFlash 1.3s ease-in-out 1;
+}
+
+.mobile-hud-ally-bar-fill.heroism.mobile-hud-ally-bar-fill--pulse-flash {
+    animation: mobileHeroismPulseFlash 1.3s ease-in-out 1;
+}
+
+@keyframes mobileHeroismPulseFlash {
+    0% {
+        box-shadow: 0 0 0 rgba(255, 215, 0, 0), inset 0 0 0 rgba(255, 215, 0, 0);
+        filter: brightness(1);
+    }
+    35% {
+        box-shadow: 0 0 16px rgba(255, 215, 0, 0.95), 0 0 28px rgba(255, 159, 28, 0.7), inset 0 0 10px rgba(255, 235, 130, 0.85);
+        filter: brightness(1.25);
+    }
+    100% {
+        box-shadow: 0 0 0 rgba(255, 215, 0, 0), inset 0 0 0 rgba(255, 215, 0, 0);
+        filter: brightness(1);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mobile-hud-bar-fill.heroism.mobile-hud-bar-fill--pulse-flash,
+    .mobile-hud-ally-bar-fill.heroism.mobile-hud-ally-bar-fill--pulse-flash {
+        animation: none;
+    }
 }
 
 @keyframes mobileHeroismGlow {

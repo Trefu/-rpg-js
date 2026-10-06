@@ -112,6 +112,16 @@ export interface DefenseContribution {
    */
   attackDamageMultiplier?: number
   /**
+   * Multiplicador aditivo sobre el stat `body` del portador usado por el
+   * pipeline de daño. Ej. `+0.30` → el body efectivo para habilidades que
+   * escalan con body (warrior basic, devastating strike, tormenta de acero)
+   * es `body * 1.30`. NO afecta `Hero.attack()` (el cálculo "base" del HUD)
+   * ni las curas, solo el pipeline ofensivo del caster.
+   *
+   * Procesado en `damagePipeline.computeRawDamage`.
+   */
+  bodyMultiplier?: number
+  /**
    * Delta aditivo al multiplicador de daño entrante del portador.
    * Ej. `+0.25` sobre el base `1.0` → final `1.25` (target recibe +25% daño).
    * Aplicado en `getIncomingDamageMultiplier` (combat/damageModifiers.ts).
