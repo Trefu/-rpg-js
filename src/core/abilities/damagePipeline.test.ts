@@ -6,6 +6,8 @@ import {
   previewFromPipeline,
   describePipeline,
   dealDamage,
+  buildPreview,
+  formatPreviewRange,
   DAMAGE_VARIANCE_MIN,
   DAMAGE_VARIANCE_MAX
 } from '@/core/abilities/damagePipeline'
@@ -185,6 +187,40 @@ describe('previewFromPipeline', () => {
     const preview = previewFn(fakeStatBearer(0, 0, 1) as never)
     expect(preview.min).toBe(0)
     expect(preview.max).toBe(0)
+  })
+})
+
+describe('buildPreview · kind heal', () => {
+  it('con kind "heal" NO aplica varianza (min == max == raw)', () => {
+    const preview = buildPreview('', 50, undefined, { kind: 'heal' })
+    expect(preview.min).toBe(50)
+    expect(preview.max).toBe(50)
+    expect(preview.kind).toBe('heal')
+  })
+
+  it('label default es "Curacion" para heals, "Dano" para damage', () => {
+    const heal = buildPreview('', 10, undefined, { kind: 'heal' })
+    expect(heal.label).toBe('Curación')
+    const dmg = buildPreview('', 10, 'physical')
+    expect(dmg.label).toBe('Daño')
+  })
+
+  it('label custom tiene prioridad sobre el derivado del kind', () => {
+    const preview = buildPreview('', 10, undefined, { kind: 'heal', label: 'Cura especial' })
+    expect(preview.label).toBe('Cura especial')
+  })
+})
+
+describe('formatPreviewRange', () => {
+  it('si min === max (caso heal), devuelve solo el valor sin separador', () => {
+    expect(formatPreviewRange({ min: 50, max: 50 })).toBe('50')
+    expect(formatPreviewRange({ min: 0, max: 0 })).toBe('0')
+    expect(formatPreviewRange({ min: 100, max: 100 })).toBe('100')
+  })
+
+  it('si min !== max (caso damage con varianza), devuelve "min–max"', () => {
+    expect(formatPreviewRange({ min: 45, max: 55 })).toBe('45–55')
+    expect(formatPreviewRange({ min: 1, max: 100 })).toBe('1–100')
   })
 })
 

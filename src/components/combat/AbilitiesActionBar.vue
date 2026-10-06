@@ -4,6 +4,7 @@ import type { IAbility, AbilityDamagePreview } from '@/core/interfaces/IAbility'
 import type { Hero } from '@/core/Hero'
 import { getAbilityIcon } from '@/core/abilities/getAbilityIcon'
 import { getBasicAttackHitCount, getAbilityHitCount, isBasicAttack } from '@/core/abilities/Abilities'
+import { formatPreviewRange } from '@/core/abilities/damagePipeline'
 import backpackIcon from '@/assets/icons/backpack.png'
 import boltIcon from '@/assets/icons/bolt-shield.png'
 import hourglassIcon from '@/assets/icons/hourglass.png'
@@ -400,15 +401,18 @@ function shortcutFor(index: number): string | null {
             v-if="infoPreview"
             type="button"
             class="aab-info-damage"
-            :class="{ 'is-open': infoFormulaOpen }"
+            :class="{
+              'is-open': infoFormulaOpen,
+              'is-heal': infoPreview.kind === 'heal'
+            }"
             :aria-expanded="infoFormulaOpen"
-            :aria-label="`Toca para ver la fórmula de daño de ${infoAbility.name}`"
+            :aria-label="`Toca para ver la fórmula de ${infoPreview.label ?? 'daño'} de ${infoAbility.name}`"
             @click="toggleInfoFormula"
           >
-            <span class="aab-info-damage-label">Daño</span>
-            <span class="aab-info-damage-values">{{ infoPreview.min }}–{{ infoPreview.max }}</span>
+            <span class="aab-info-damage-label">{{ infoPreview.label ?? 'Daño' }}</span>
+            <span class="aab-info-damage-values">{{ formatPreviewRange(infoPreview) }}</span>
             <span
-              v-if="hitCountFor(infoAbility)"
+              v-if="infoPreview.kind !== 'heal' && hitCountFor(infoAbility)"
               class="aab-info-damage-hits"
               :title="`${hitCountFor(infoAbility)} ataques`"
             >× {{ hitCountFor(infoAbility) }}</span>
@@ -994,6 +998,25 @@ function shortcutFor(index: number): string | null {
   border-color: rgba(130, 177, 255, 0.55);
 }
 
+/* Variante "curacion": paleta verde consistente con el icono heart-drop
+   y con las clases .hint-heal del CSS de hint-colors. Diferencia visual
+   respecto al dano para que el jugador distinga de un vistazo que esta
+   mirando un heal. */
+.aab-info-damage.is-heal {
+  background: rgba(92, 255, 138, 0.12);
+  border-color: rgba(92, 255, 138, 0.4);
+}
+
+.aab-info-damage.is-heal:hover {
+  background: rgba(92, 255, 138, 0.22);
+  border-color: rgba(92, 255, 138, 0.65);
+}
+
+.aab-info-damage.is-heal.is-open {
+  background: rgba(130, 255, 170, 0.18);
+  border-color: rgba(130, 255, 170, 0.55);
+}
+
 .aab-info-damage-label {
   color: #ffb3b3;
   text-transform: uppercase;
@@ -1001,10 +1024,18 @@ function shortcutFor(index: number): string | null {
   font-size: 0.7rem;
 }
 
+.aab-info-damage.is-heal .aab-info-damage-label {
+  color: #b6f5b6;
+}
+
 .aab-info-damage-values {
   color: #ff8a8a;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+}
+
+.aab-info-damage.is-heal .aab-info-damage-values {
+  color: #5cff8a;
 }
 
 .aab-info-damage-hits {

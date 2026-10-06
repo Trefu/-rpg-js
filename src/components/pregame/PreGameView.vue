@@ -11,6 +11,7 @@ import { MAX_HEROES } from '@/stores/game'
 import HeroStatChips from '@/components/combat/HeroStatChips.vue'
 import { getAbilityIcon } from '@/core/abilities/getAbilityIcon'
 import { getBasicAttackHitCount, getAbilityHitCount } from '@/core/abilities/Abilities'
+import { formatPreviewRange } from '@/core/abilities/damagePipeline'
 import { getDamageTypeInfo } from '@/core/combat/damageTypes'
 import type { AbilityDamagePreview, IAbility } from '@/core/interfaces/IAbility'
 import boltIcon from '@/assets/icons/bolt-shield.png'
@@ -336,10 +337,15 @@ function damageTypeClass(id?: string): string {
                   <p v-if="ability.type === 'attack'" class="ability-row__hits">
                     Golpes base: <strong>{{ focusedBasicHitCount }}</strong>
                   </p>
-                  <p v-if="focusedAbilityPreviews[idx]" class="ability-row__dmg">
-                    Daño: <strong>{{ focusedAbilityPreviews[idx]!.min }}–{{ focusedAbilityPreviews[idx]!.max }}</strong>
+                  <p
+                    v-if="focusedAbilityPreviews[idx]"
+                    class="ability-row__dmg"
+                    :class="{ 'ability-row__dmg--heal': focusedAbilityPreviews[idx]!.kind === 'heal' }"
+                  >
+                    {{ focusedAbilityPreviews[idx]!.label ?? 'Daño' }}:
+                    <strong>{{ formatPreviewRange(focusedAbilityPreviews[idx]!) }}</strong>
                     <span
-                      v-if="hitCountFor(ability)"
+                      v-if="focusedAbilityPreviews[idx]!.kind !== 'heal' && hitCountFor(ability)"
                       class="ability-row__dmg-hits"
                       :title="`${hitCountFor(ability)} ataques`"
                     >× {{ hitCountFor(ability) }}</span>
@@ -814,10 +820,20 @@ function damageTypeClass(id?: string): string {
   color: rgba(255, 255, 255, 0.65);
 }
 
+/* Variante "curacion": numero y label en verde para que el jugador
+   distinga de un vistazo que esta mirando un heal (no un ataque). */
+.ability-row__dmg--heal {
+  color: rgba(176, 245, 182, 0.75);
+}
+
 .ability-row__hits strong,
 .ability-row__dmg strong {
   color: #ff8a8a;
   font-variant-numeric: tabular-nums;
+}
+
+.ability-row__dmg--heal strong {
+  color: #5cff8a;
 }
 
 .ability-row__dmg-hits {

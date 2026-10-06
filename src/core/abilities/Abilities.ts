@@ -518,23 +518,27 @@ export const ClericHeal: IAbility = {
   tags: ['cleric', 'heal'],
   icon: heartDrop,
   /**
-   * Preview custom porque `ClericHeal` no tiene pipeline ofensivo: es una
-   * cura con fórmula `target.maxHealth * 0.30 + caster.mind * 2 + caster.level * 2`.
-   * El modal muestra el valor base (min == max; las curas no varían) y
-   * permite expandir la fórmula con los valores del caster ya sustituidos
-   * (mismo coloreo que las abilities ofensivas, vía los `F.X()` helpers).
+   * Preview custom porque `ClericHeal` no tiene `pipeline` ofensivo: es una
+   * cura con formula `target.maxHealth * 0.30 + caster.mind * 2 + caster.level * 2`.
+   * El modal muestra el valor base (min == max; las curas son deterministas,
+   * no tienen varianza aleatoria) con label "Curación" en lugar de "Daño".
+   * Al tocarlo expande la fórmula completa con los valores del caster ya
+   * sustituidos (mismo coloreo que las abilities ofensivas, vía los `F.X()`
+   * helpers).
+   *
+   * El preview usa el caster como target por defecto (el caso "me curo a mi
+   * mismo" es el más común). Si el jugador apunta a un aliado con más HP,
+   * la parte "30% HP max" escala proporcionalmente — la fórmula sigue
+   * valiendo, solo cambia el primer término.
    */
-  customPreview: (hero: Hero): AbilityDamagePreview => {
+  previewDamage: (hero: Hero): AbilityDamagePreview => {
     const mind = hero.baseStats.mind.value
     const level = hero.level
-    // Estimación: el preview usa el caster como target por defecto (el caso
-    // "me curo a mi mismo" es el más común). Si el target fuera un aliado
-    // con más HP, el valor real podría ser mayor.
     const targetMaxHp = hero.maxHealth
     const healBase = Math.floor(targetMaxHp * 0.30 + mind * 2 + level * 2)
     const formula =
-      `(${F.base('30% HP max')} ${F.base('+')} ${F.mind('MEN')} ${F.mind(Math.round(mind))} ${F.base('×')} ${F.base(2)} ${F.base('+')} ${F.lvl('nivel')} ${F.lvl(level)} ${F.base('×')} ${F.base(2)}) ${F.base('=')} ${F.atk(String(healBase))}`
-    return buildPreview(formula + '  ' + F.base('HP'), healBase, undefined)
+      `(${F.base('30%')} ${F.base('HP max')} ${F.base('+')} ${F.mind('MEN')} ${F.mind(Math.round(mind))} ${F.base('×')} ${F.base(2)} ${F.base('+')} ${F.lvl('nivel')} ${F.lvl(level)} ${F.base('×')} ${F.base(2)}) ${F.base('=')} ${F.heal(String(healBase))} ${F.base('HP')}`
+    return buildPreview(formula, healBase, undefined, { kind: 'heal', label: 'Curación' })
   },
   execute: async (context: AbilityContext) => {
     const caster = context.caster as Hero

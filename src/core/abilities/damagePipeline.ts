@@ -181,6 +181,7 @@ export const F = {
   con:  (s: string | number) => `<span class="hint-con">${s}</span>`,
   atk:  (s: string | number) => `<span class="hint-atk">${s}</span>`,
   mag:  (s: string | number) => `<span class="hint-mag">${s}</span>`,
+  heal: (s: string | number) => `<span class="hint-heal">${s}</span>`,
   dmgType: (id: DamageTypeId | string) => {
     const info = getDamageTypeInfo(id)
     const cls = info?.className ?? 'hint-base'
@@ -238,18 +239,27 @@ export function describePipeline(pipeline: DamageStep | DamageStep[], caster: St
  * Helper para construir el previewDamage de una ability. Centraliza la
  * generación del rango y la metadata para que cada ability solo pase
  * su fórmula con los valores del caster ya sustituidos.
+ *
+ * Para curas (`kind: 'heal'`), `applyVariance` se fuerza a `false`: las
+ * curas son deterministas (no hay varianza ±10%). En ese caso `min == max`
+ * y el label default es "Curación" en lugar de "Daño".
  */
 export const buildPreview = (
   formula: string,
   raw: number,
-  damageType?: DamageType
+  damageType?: DamageType,
+  options?: { kind?: 'damage' | 'heal', label?: string }
 ): AbilityDamagePreview => {
-  const { min, max } = computeDamageRange(raw)
+  const kind = options?.kind ?? 'damage'
+  // Las curas son deterministas: misma formula siempre → mismo resultado.
+  const { min, max } = kind === 'heal' ? { min: raw, max: raw } : computeDamageRange(raw)
   return {
     min,
     max,
     formula,
-    damageTypeLabel: damageType ? getDamageTypeLabel(damageType) : undefined
+    damageTypeLabel: damageType ? getDamageTypeLabel(damageType) : undefined,
+    kind,
+    label: options?.label ?? (kind === 'heal' ? 'Curación' : 'Daño')
   }
 }
 
@@ -267,6 +277,16 @@ export function previewFromPipeline(
     const formula = describePipeline(pipeline, hero)
     return buildPreview(formula + '  ' + dmgSuffix(damageType ?? 'physical'), raw, damageType)
   }
+}
+
+/**
+ * Formatea el rango `min–max` del preview. Si no hay variabilidad
+ * (`min === max`, caso típico de las curas y de abilities con coef entero),
+ * devuelve solo el valor sin el separador `–`. Asi el modal muestra
+ * `50` en lugar de `50–50` cuando el resultado es determinista.
+ */
+export function formatPreviewRange(p: { min: number, max: number }): string {
+  return p.min === p.max ? `${p.min}` : `${p.min}–${p.max}`
 }
 
 export const showCritAnnouncement = (

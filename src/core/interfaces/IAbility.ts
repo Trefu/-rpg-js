@@ -208,23 +208,38 @@ export interface VfxEffect {
 }
 
 /**
- * Resultado del preview de daño de una ability ofensiva.
- * El modal de habilidades lo muestra como `daño min–daño max` y, al tocarlo,
- * expande una sola línea con la fórmula del daño (valores del caster ya
- * sustituidos). Sin multiplicadores raros ni jargon: legible a primera vista.
+ * Tipo de resultado del preview: 'damage' (ataque) o 'heal' (curación).
+ * Determina el label del modal, si se aplica varianza ±10% al rango, y si
+ * se muestra el multiplicador `× N` de hits. Default: 'damage'.
+ */
+export type AbilityPreviewKind = 'damage' | 'heal'
+
+/**
+ * Resultado del preview de daño/curación de una ability. El modal lo
+ * muestra como `min–max` y, al tocarlo, expande una sola línea con la
+ * fórmula (valores del caster ya sustituidos). Sin multiplicadores raros
+ * ni jargon: legible a primera vista.
+ *
+ * Para curas, `min == max` (no hay varianza aleatoria — la fórmula es
+ * determinista). El UI usa `kind: 'heal'` para mostrar "Curación" en vez
+ * de "Daño" y omitir el badge de hits.
  */
 export interface AbilityDamagePreview {
-  /** Daño mínimo posible (floored) sin critico. */
+  /** Valor mínimo posible (floored). */
   min: number
-  /** Daño máximo posible (floored) sin critico. */
+  /** Valor máximo posible (floored). */
   max: number
   /**
-   * Fórmula del daño con los valores del caster ya sustituidos, en una sola
-   * línea legible. Ej. `(14 × 0.7) + 3 = 9.8`.
+   * Fórmula con los valores del caster ya sustituidos, en una sola línea
+   * legible. Ej. `(MEN 17 × 2 + nivel 5 × 2 + 30% HP max) = 54`.
    */
   formula: string
-  /** Tipo de daño legible. `undefined` para abilities sin daño. */
+  /** Tipo de daño legible. `undefined` para abilities sin daño o curas. */
   damageTypeLabel?: string
+  /** 'damage' (default) o 'heal'. Determina label y comportamiento del UI. */
+  kind?: AbilityPreviewKind
+  /** Label corto del preview. Default: 'Daño' para damage, 'Curación' para heal. */
+  label?: string
 }
 
 export interface IAbility {
