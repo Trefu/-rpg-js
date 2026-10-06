@@ -250,16 +250,26 @@ export function useCombat(config: CombatConfig = {}) {
 const isProcessingDot = ref(false)
 
   // ---- Cross-system feedback: ulti-button hover/click debe resaltar la barra
-  // de Heroismo del caster activo. CombatView escucha el evento del
-  // AbilitiesActionBar y llama a `flashUltiBar(heroId)` para que la card
-  // correspondiente (HeroCard, PlayerHud o MobileCombatHud) ejecute la
-  // animación `bar-heroism--pulse-flash` por 1.2s.
+  // de Heroismo del caster activo. CombatView escucha los eventos del
+  // AbilitiesActionBar (`ulti-hover-active` / `ulti-hover-inactive`) y
+  // mantiene dos refs:
+  //   - `ultiHoverHeroId`: heroe cuyo boton esta highlighted (o null).
+  //   - `ultiHoverActive`: true mientras el usuario mantiene hover/touch.
+  // Las cards usan ambos para decidir entre loop continuo (`active`) y
+  // fade-out (`inactive`) sin cortar la animacion a mitad.
   const ultiHoverHeroId = ref<string | null>(null)
-  const ultiHoverFlashKey = ref(0)
+  const ultiHoverActive = ref(false)
+  /**
+   * Mantener retrocompatibilidad: `flashUltiBar(heroId)` se conserva como
+   * atajo de "activar para este hero". Internamente delega a `setUltiHover`.
+   */
   function flashUltiBar(heroId: string | null | undefined) {
     if (!heroId) return
-    ultiHoverHeroId.value = heroId
-    ultiHoverFlashKey.value++
+    setUltiHover(heroId, true)
+  }
+  function setUltiHover(heroId: string | null | undefined, active: boolean) {
+    ultiHoverHeroId.value = heroId ?? null
+    ultiHoverActive.value = active
   }
 
   const announcer = useAnnouncer()
@@ -2191,7 +2201,8 @@ const defenseClouded = ref(false)
     getAbilityBlockReason,
 
     ultiHoverHeroId,
-    ultiHoverFlashKey,
-    flashUltiBar
+    ultiHoverActive,
+    flashUltiBar,
+    setUltiHover
   }
 }

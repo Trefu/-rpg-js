@@ -30,13 +30,18 @@ interface Props {
   /** VFX activos sobre este heroe (ej. impact / big-hit al fallar defensa). */
   vfxEffects?: { key: number, asset: VfxAssetId, mirrored?: boolean, rotationDeg?: number }[]
   /**
-   * Key (monotonic) que se actualiza cada vez que el usuario hace hover/click
-   * en el botón de la ulti del heroe activo. La card cuyo `hero.id` coincida
-   * con `ultiHoverHeroId` debe disparar el flash `bar-heroism--pulse-flash`
-   * durante ~1.2s para reforzar la conexión visual ulti ↔ barra de Heroismo.
+   * `ultiHoverHeroId` es el id del heroe cuyo botón de ulti esta highlighted.
+   * La card cuyo `hero.id` coincida con este id debe ejecutar el flash de la
+   * barra de Heroismo. Combinado con `ultiHoverActive` decide si la
+   * animación es continua (mientras el usuario sostiene el botón) o un
+   * fade-out (cuando lo suelta).
    */
   ultiHoverHeroId?: string | null
-  ultiHoverFlashKey?: number
+  /**
+   * `true` mientras el usuario mantiene hover/touch sobre el botón de la
+   * ulti. `false` cuando lo suelta — dispara la animación de fade-out.
+   */
+  ultiHoverActive?: boolean
 }
 
 const props = defineProps<Props>()
@@ -111,35 +116,67 @@ const dropdownEl = ref<HTMLElement | null>(null)
 const hoveredDot = ref<string | null>(null)
 const touchedDot = ref<string | null>(null)
 
-// Flag local que activa el glow pulsante en la barra de Heroismo. Se pone
-// en `true` cuando llega un nuevo `ultiHoverFlashKey` cuyo `ultiHoverHeroId`
-// corresponde a este heroe; un timer de 1.2s lo limpia. Implementado con un
-// `flashToken` numerico para que el :key del <div> fuerce re-mount del
-// animation y asi poder dispararlo en hoveres sucesivos.
-const heroismFlashActive = ref(false)
+// Maquina de estados del flash de la barra de Heroismo:
+//   - 'idle'   : sin animacion
+//   - 'active' : el usuario esta sosteniendo el botón de ulti → LOOP continuo
+//   - 'fade'   : el usuario soltó el botón → una iteracion mas de fade-out
+//                y vuelta a idle despues de HEROISM_FADE_MS.
+// El `:key` del <div> incluye `heroismFlashToken` para forzar re-mount cuando
+// el usuario reentra al hover, garantizando que la animación arranque desde
+// 0 incluso si la anterior no terminó.
+type HeroismPulseState = 'idle' | 'active' | 'fade'
+const heroismPulseState = ref<HeroismPulseState>('idle')
 const heroismFlashToken = ref(0)
-const HEROISM_FLASH_MS = 1800
-let heroismFlashTimer: ReturnType<typeof setTimeout> | null = null
+const HEROISM_FADE_MS = 1600
+let heroismFadeTimer: ReturnType<typeof setTimeout> | null = null
 
-function triggerHeroismFlash() {
-  if (heroismFlashTimer) clearTimeout(heroismFlashTimer)
-  heroismFlashToken.value++
-  heroismFlashActive.value = true
-  heroismFlashTimer = setTimeout(() => {
-    heroismFlashActive.value = false
-  }, HEROISM_FLASH_MS)
+const heroismFlashActive = computed(() => heroismPulseState.value !== 'idle')
+const heroismFlashLoop = computed(() => heroismPulseState.value === 'active')
+const heroismFlashFading = computed(() => heroismPulseState.value === 'fade')
+
+function setHeroismPulse(state: HeroismPulseState) {
+  if (heroismFadeTimer) {
+    clearTimeout(heroismFadeTimer)
+    heroismFadeTimer = null
+  }
+  if (state === 'idle') {
+    heroismPulseState.value = 'idle'
+    return
+  }
+  if (state === 'active') {
+    // Forzar re-mount del div para que la animacion arranque de cero.
+    heroismFlashToken.value++
+    heroismPulseState.value = 'active'
+    return
+  }
+  if (state === 'fade') {
+    heroismFlashToken.value++
+    heroismPulseState.value = 'fade'
+    heroismFadeTimer = setTimeout(() => {
+      heroismPulseState.value = 'idle'
+      heroismFadeTimer = null
+    }, HEROISM_FADE_MS)
+  }
 }
 
 watch(
-  () => [props.ultiHoverHeroId, props.ultiHoverFlashKey] as const,
-  ([heroId, key]) => {
-    if (!heroId || !key) return
-    if (props.hero && heroId === props.hero.id) triggerHeroismFlash()
-  }
+  () => [props.ultiHoverHeroId, props.ultiHoverActive] as const,
+  ([heroId, active]) => {
+    const isMine = !!heroId && !!props.hero && heroId === props.hero.id
+    if (isMine && active) {
+      setHeroismPulse('active')
+    } else if (isMine && !active && heroismPulseState.value === 'active') {
+      // Solo el cast activo transiciona a fade. Otros heroes se quedan en idle.
+      setHeroismPulse('fade')
+    } else if (!isMine) {
+      setHeroismPulse('idle')
+    }
+  },
+  { immediate: false }
 )
 
 onBeforeUnmount(() => {
-  if (heroismFlashTimer) clearTimeout(heroismFlashTimer)
+  if (heroismFadeTimer) clearTimeout(heroismFadeTimer)
 })
 const dropdownStyle = ref<{ top: string; left: string; width: string; placement: 'above' | 'below' }>({
   top: '-9999px',
@@ -303,14 +340,18 @@ defineExpose({
           <div class="bar-line">
             <div
               class="bar-track bar-heroism-track"
-              :class="{ 'bar-heroism-track--pulse-flash': heroismFlashActive }"
+              :class="{
+                'bar-heroism-track--pulse-loop': heroismFlashLoop,
+                'bar-heroism-track--pulse-fade': heroismFlashFading
+              }"
               :key="`heroism-track-flash-${heroismFlashToken}`"
             >
               <div
                 class="bar-fill bar-heroism"
                 :class="{
                   'bar-heroism--ready': isUltimateReady,
-                  'bar-heroism--pulse-flash': heroismFlashActive
+                  'bar-heroism--pulse-loop': heroismFlashLoop,
+                  'bar-heroism--pulse-fade': heroismFlashFading
                 }"
                 :key="`heroism-flash-${heroismFlashToken}`"
                 :style="{ width: `${heroismPercent}%` }"
@@ -888,38 +929,62 @@ defineExpose({
 }
 
 /*
- * Pulse-flash disparado al hover/click sobre el botón de la ulti. Efecto
- * SUTIL: una onda respiratoria de 1.8s sobre el TRACK (no el fill) que
- * ilumina suavemente el contenedor de la barra de Heroismo. Asi el ojo
- * capta "esta barra esta relacionada con lo que tocaste" sin parpadear
- * agresivamente. Adicionalmente, el fill recibe un pulso de brillo mas
- * discreto para reforzar la asociacion.
+ * Pulse-flash de la barra de Heroismo disparado al hover/touch sobre el
+ * botón de la ulti. Maquina de estados:
  *
- * El :key del <div> (heroismFlashToken) asegura que cada hover re-monta
- * la animacion aunque la anterior no haya terminado.
+ *   `bar-heroism-track--pulse-loop`  → el usuario sostiene el botón.
+ *                                      Onda respiratoria CONTINUA (1.8s
+ *                                      en loop) sobre el track y el fill.
+ *   `bar-heroism-track--pulse-fade`  → el usuario soltó el botón.
+ *                                      Una iteracion final de 1.6s que
+ *                                      vuelve gradualmente a idle.
+ *
+ * La onda es sutil (no es un flash agresivo): el track recibe un borde
+ * amarillo suave que respira, y el fill un inset glow tenue. Asi el ojo
+ * asocia "esta barra esta relacionada con lo que tocaste" sin
+ * distracciones. El :key del <div> (heroismFlashToken) re-monta la
+ * animacion en cada nuevo hover para garantizar un arranque limpio.
  */
-.bar-track.bar-heroism-track--pulse-flash {
-  animation: heroismTrackPulseFlash 1.8s ease-in-out 1;
+.bar-track.bar-heroism-track--pulse-loop,
+.bar-track.bar-heroism-track--pulse-fade {
   border-color: rgba(255, 215, 0, 0.55);
-  box-shadow: 0 0 0 1px rgba(255, 215, 0, 0.25);
 }
 
-.bar-fill.bar-heroism--pulse-flash {
-  animation: heroismPulseFlash 1.8s ease-in-out 1;
+.bar-track.bar-heroism-track--pulse-loop {
+  animation: heroismTrackPulseLoop 1.8s ease-in-out infinite;
 }
 
-@keyframes heroismTrackPulseFlash {
+.bar-track.bar-heroism-track--pulse-fade {
+  animation: heroismTrackPulseFade 1.6s ease-in-out 1 forwards;
+}
+
+.bar-fill.bar-heroism--pulse-loop {
+  animation: heroismPulseLoop 1.8s ease-in-out infinite;
+}
+
+.bar-fill.bar-heroism--pulse-fade {
+  animation: heroismPulseFade 1.6s ease-in-out 1 forwards;
+}
+
+@keyframes heroismTrackPulseLoop {
   0%, 100% {
-    border-color: rgba(255, 255, 255, 0.08);
     box-shadow: 0 0 0 rgba(255, 215, 0, 0);
   }
   50% {
-    border-color: rgba(255, 215, 0, 0.6);
     box-shadow: 0 0 6px rgba(255, 215, 0, 0.45), 0 0 0 1px rgba(255, 215, 0, 0.35);
   }
 }
 
-@keyframes heroismPulseFlash {
+@keyframes heroismTrackPulseFade {
+  0% {
+    box-shadow: 0 0 6px rgba(255, 215, 0, 0.45), 0 0 0 1px rgba(255, 215, 0, 0.35);
+  }
+  100% {
+    box-shadow: 0 0 0 rgba(255, 215, 0, 0);
+  }
+}
+
+@keyframes heroismPulseLoop {
   0%, 100% {
     box-shadow: inset 0 0 0 rgba(255, 215, 0, 0);
     filter: brightness(1);
@@ -930,8 +995,22 @@ defineExpose({
   }
 }
 
+@keyframes heroismPulseFade {
+  0% {
+    box-shadow: inset 0 0 6px rgba(255, 235, 130, 0.55);
+    filter: brightness(1.08);
+  }
+  100% {
+    box-shadow: inset 0 0 0 rgba(255, 215, 0, 0);
+    filter: brightness(1);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .bar-fill.bar-heroism--pulse-flash { animation: none; }
+  .bar-track.bar-heroism-track--pulse-loop,
+  .bar-track.bar-heroism-track--pulse-fade,
+  .bar-fill.bar-heroism--pulse-loop,
+  .bar-fill.bar-heroism--pulse-fade { animation: none; }
 }
 
 @keyframes heroismGlow {

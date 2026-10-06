@@ -101,9 +101,10 @@ const {
   itemCanTargetAllies,
 
   flashUltiBar,
+  setUltiHover,
 
   ultiHoverHeroId,
-  ultiHoverFlashKey
+  ultiHoverActive
 } = useCombat(combatOptions)
 
 const actorsById = computed<Record<string, import('@/core/turn-engine/TurnEngine').TurnActor>>(() => {
@@ -135,13 +136,18 @@ function onCancelAbility() {
 
 /**
  * Hover/touch sobre el botón de la ulti (cualquier slot con `heroismCost > 0`).
- * Propaga a `useCombat.flashUltiBar` para que la card del caster activo
- * ejecute un flash sutil (~1.8s) sobre la barra de Heroísmo. Asi el jugador
- * entiende visualmente que la ulti requiere Heroísmo al máximo sin necesidad
- * de tooltipes ni flechas intrusivas.
+ * Propaga a `useCombat.setUltiHover` para que la card del caster activo
+ * ejecute un pulse SUTIL sobre la barra de Heroísmo:
+ *  - mientras el usuario sostiene el botón (active), la barra respira en loop.
+ *  - al soltar (inactive), la barra hace una última onda de fade-out y vuelve a idle.
  */
-function onUltiHoverHighlight(heroId: string | null) {
-  flashUltiBar(heroId)
+function onUltiHoverActive(heroId: string | null) {
+  setUltiHover(heroId, true)
+}
+function onUltiHoverInactive(heroId: string | null) {
+  // Mantenemos el heroId para que la card sepa que el highlight es para él
+  // mientras hace el fade-out; marcamos active=false para disparar la animación.
+  setUltiHover(heroId, false)
 }
 
 function onItemsModalSelectItem(entryId: string) {
@@ -303,7 +309,7 @@ onUnmounted(() => {
           :hit-popups="hero ? playerHitPopups.filter(p => p.heroId === hero.id) : []"
           :vfx-effects="hero ? heroVfxEffects.filter(e => e.heroId === hero.id) : []"
           :ulti-hover-hero-id="ultiHoverHeroId"
-          :ulti-hover-flash-key="ultiHoverFlashKey"
+          :ulti-hover-active="ultiHoverActive"
           @select="(h) => selectAlly(h)"
         />
       </div>
@@ -323,7 +329,7 @@ onUnmounted(() => {
       :hit-popups="playerHitPopups"
       :hero-vfx-effects="heroVfxEffects"
       :ulti-hover-hero-id="ultiHoverHeroId"
-      :ulti-hover-flash-key="ultiHoverFlashKey"
+      :ulti-hover-active="ultiHoverActive"
       @select-ally="selectAlly"
     />
 
@@ -371,7 +377,8 @@ onUnmounted(() => {
         @select-ability="onMobileAbility"
         @object="onMobileObject"
         @cancel="onCancelAbility"
-        @ulti-hover-highlight="onUltiHoverHighlight"
+        @ulti-hover-active="onUltiHoverActive"
+        @ulti-hover-inactive="onUltiHoverInactive"
       />
     </div>
 
@@ -391,7 +398,8 @@ onUnmounted(() => {
       @select-ability="onMobileAbility"
       @object="onMobileObject"
       @cancel="onCancelAbility"
-      @ulti-hover-highlight="onUltiHoverHighlight"
+      @ulti-hover-active="onUltiHoverActive"
+      @ulti-hover-inactive="onUltiHoverInactive"
     />
 
     <CombatLogFab

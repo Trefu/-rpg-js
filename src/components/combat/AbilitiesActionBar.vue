@@ -42,13 +42,18 @@ const emit = defineEmits<{
   (e: 'object'): void
   (e: 'cancel'): void
   /**
-   * Disparado al hover/touch sobre el botón de la ulti (cualquier ability con
-   * `heroismCost > 0`). El handler en `CombatView` lo propaga a
-   * `useCombat.flashUltiBar(caster.id)` para que la card del caster ejecute
-   * el flash `bar-heroism--pulse-flash` durante ~1.2s, comunicando al
-   * jugador que la ulti requiere Heroismo al maximo.
+   * Disparado al ENTRAR en hover/touch sobre el botón de la ulti. El handler
+   * en `CombatView` lo propaga a `useCombat.setUltiHover(caster.id, true)`
+   * para que la card del caster mantenga la barra de Heroismo pulsando en
+   * loop continuo mientras el usuario sostiene el boton.
    */
-  (e: 'ulti-hover-highlight', heroId: string | null): void
+  (e: 'ulti-hover-active', heroId: string | null): void
+  /**
+   * Disparado al SALIR del hover/touch sobre el botón de la ulti. El handler
+   * en `CombatView` lo propaga a `useCombat.setUltiHover(null, false)` para
+   * que la card haga una ultima iteracion de fade-out y luego vuelva a idle.
+   */
+  (e: 'ulti-hover-inactive', heroId: string | null): void
 }>()
 
 const isDesktop = computed(() => props.layout === 'desktop')
@@ -267,16 +272,23 @@ function canUseUltimateNow(): boolean {
  * Trackea que slot de ulti esta siendo hovered/tocado actualmente. Solo
  * guardamos el index del slot (siempre 4 en las clases actuales) para
  * activar el glow pulsante + emitir el highlight al CombatView.
+ *
+ * La comunicacion con CombatView es en dos fases:
+ *  - `ulti-hover-active` al entrar (mouseenter / touchstart): la card del
+ *    caster mantiene la barra de Heroismo pulsando en LOOP CONTINUO.
+ *  - `ulti-hover-inactive` al salir (mouseleave / touchend): la card hace
+ *    una ultima onda de fade-out y vuelve a idle.
  */
 const hoveredUltIdx = ref<number | null>(null)
 function onUltPointerEnter(ability: IAbility, idx: number) {
   if (!isUltimate(ability)) return
   hoveredUltIdx.value = idx
-  emit('ulti-hover-highlight', props.caster?.id ?? null)
+  emit('ulti-hover-active', props.caster?.id ?? null)
 }
 function onUltPointerLeave(ability: IAbility, idx: number) {
   if (!isUltimate(ability)) return
   if (hoveredUltIdx.value === idx) hoveredUltIdx.value = null
+  emit('ulti-hover-inactive', props.caster?.id ?? null)
 }
 function onUltTouchStart(ability: IAbility, idx: number, event: TouchEvent) {
   if (!isUltimate(ability)) return
@@ -285,7 +297,13 @@ function onUltTouchStart(ability: IAbility, idx: number, event: TouchEvent) {
   // la info card y castear la ulti.
   void event
   hoveredUltIdx.value = idx
-  emit('ulti-hover-highlight', props.caster?.id ?? null)
+  emit('ulti-hover-active', props.caster?.id ?? null)
+}
+function onUltTouchEnd(ability: IAbility, idx: number, event: TouchEvent) {
+  if (!isUltimate(ability)) return
+  void event
+  if (hoveredUltIdx.value === idx) hoveredUltIdx.value = null
+  emit('ulti-hover-inactive', props.caster?.id ?? null)
 }
 
 /**
@@ -323,6 +341,8 @@ function shortcutFor(index: number): string | null {
       @mouseenter="slot.kind === 'ability' && isUltimate(slot.ability) && onUltPointerEnter(slot.ability, idx)"
       @mouseleave="slot.kind === 'ability' && isUltimate(slot.ability) && onUltPointerLeave(slot.ability, idx)"
       @touchstart="slot.kind === 'ability' && isUltimate(slot.ability) && onUltTouchStart(slot.ability, idx, $event)"
+      @touchend="slot.kind === 'ability' && isUltimate(slot.ability) && onUltTouchEnd(slot.ability, idx, $event)"
+      @touchcancel="slot.kind === 'ability' && isUltimate(slot.ability) && onUltTouchEnd(slot.ability, idx, $event)"
     >
       <template v-if="slot.kind === 'ability'">
         <span v-if="isDesktop && shortcutFor(slot.index)" class="aab-shortcut">{{ shortcutFor(slot.index) }}</span>
@@ -916,22 +936,29 @@ function shortcutFor(index: number): string | null {
 }
 
 /*
- * `aab-ult-highlight` se activa brevemente al hover/touch sobre el botón
- * de la ulti. Hace un pulse extra + leve scale para reforzar el feedback
- * (mismo yellow flash que dispara `bar-heroism--pulse-flash` en la card).
+ * `aab-ult-highlight` se activa MIENTRAS el usuario mantiene hover/touch
+ * sobre el botón de la ulti. Animacion CONTINUA (no corta al medio tiempo)
+ * que refuerza el pulse + leve scale — sincronizada con el flash de la
+ * barra de Heroismo en la card del caster.
  */
 .aab-btn.aab-ult-highlight:not(.aab-ult-ready) {
-  animation: aab-ult-hover-pulse 1.2s ease-in-out 1;
+  animation: aab-ult-hover-pulse 1.8s ease-in-out infinite;
 }
 
 .aab-btn.aab-ult-highlight.aab-ult-ready {
-  animation: aab-ult-ready-glow 1.2s ease-in-out infinite alternate, aab-ult-hover-pulse 1.2s ease-in-out 1;
+  /* Combinar ambas: glow permanente de "lista" + pulse de hover. */
+  animation: aab-ult-ready-glow 1.2s ease-in-out infinite alternate, aab-ult-hover-pulse 1.8s ease-in-out infinite;
 }
 
 @keyframes aab-ult-hover-pulse {
-  0%   { transform: scale(1);    box-shadow: 0 0 0 rgba(255, 215, 0, 0); }
-  30%  { transform: scale(1.06); box-shadow: 0 0 14px rgba(255, 215, 0, 0.7); }
-  100% { transform: scale(1);    box-shadow: 0 0 0 rgba(255, 215, 0, 0); }
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: inset 0 2px 0 rgba(255, 215, 0, 0.55), 0 0 0 rgba(255, 215, 0, 0);
+  }
+  50% {
+    transform: scale(1.04);
+    box-shadow: inset 0 2px 0 rgba(255, 215, 0, 0.85), 0 0 10px rgba(255, 215, 0, 0.45);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
