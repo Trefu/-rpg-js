@@ -175,7 +175,7 @@ function heroIsUltimateReady(h: Hero & { canUseUltimate?: () => boolean; heroism
  *  - las de los allies dentro del panel expandido (`heroSlots`)
  * Mismo patron que HeroCard: key monotonico + timer de 1.3s para limpiar.
  */
-const HEROISM_FLASH_MS = 1300
+const HEROISM_FLASH_MS = 1800
 const flashByHeroId = ref<Record<string, { active: boolean, timer: ReturnType<typeof setTimeout> | null }>>({})
 
 function flashHeroism(heroId: string) {
@@ -754,31 +754,47 @@ function onAllyRowClick(hero: Hero | null) {
 }
 
 /*
- * Pulse-flash disparado al hover/tap del botón de la ulti. Una sola
- * iteración de 1.3s que refuerza el glow del `is-ult-ready` (o lo dispara
- * aunque la ulti NO este lista). Se aplica tanto a la barra principal del
- * heroe mostrado como a las barras del panel de aliados.
+ * Pulse-flash disparado al hover/tap del botón de la ulti. Efecto SUTIL:
+ * el track/bar-wrapper recibe una onda respiratoria de 1.8s y el fill un
+ * pulso de brillo suave. Asi el ojo capta "esta barra esta relacionada con
+ * lo que tocaste" sin parpadeo agresivo. Se aplica a la barra principal
+ * del heroe mostrado y a las barras del panel de aliados.
  */
+.mobile-hud-bar.mobile-hud-bar-heroism.is-ult-flash {
+    animation: mobileHeroismTrackPulseFlash 1.8s ease-in-out 1;
+    box-shadow: 0 0 0 1px rgba(255, 215, 0, 0.35), 0 0 6px rgba(255, 215, 0, 0.4);
+}
+
+.mobile-hud-ally-bar.mobile-hud-ally-bar-heroism.is-ult-flash {
+    animation: mobileHeroismTrackPulseFlash 1.8s ease-in-out 1;
+    box-shadow: 0 0 0 1px rgba(255, 215, 0, 0.35), 0 0 6px rgba(255, 215, 0, 0.4);
+}
+
 .mobile-hud-bar-fill.heroism.mobile-hud-bar-fill--pulse-flash {
-    animation: mobileHeroismPulseFlash 1.3s ease-in-out 1;
+    animation: mobileHeroismPulseFlash 1.8s ease-in-out 1;
 }
 
 .mobile-hud-ally-bar-fill.heroism.mobile-hud-ally-bar-fill--pulse-flash {
-    animation: mobileHeroismPulseFlash 1.3s ease-in-out 1;
+    animation: mobileHeroismPulseFlash 1.8s ease-in-out 1;
+}
+
+@keyframes mobileHeroismTrackPulseFlash {
+    0%, 100% {
+        box-shadow: 0 0 0 rgba(255, 215, 0, 0);
+    }
+    50% {
+        box-shadow: 0 0 0 1px rgba(255, 215, 0, 0.55), 0 0 8px rgba(255, 215, 0, 0.35);
+    }
 }
 
 @keyframes mobileHeroismPulseFlash {
-    0% {
-        box-shadow: 0 0 0 rgba(255, 215, 0, 0), inset 0 0 0 rgba(255, 215, 0, 0);
+    0%, 100% {
+        box-shadow: inset 0 0 0 rgba(255, 215, 0, 0);
         filter: brightness(1);
     }
-    35% {
-        box-shadow: 0 0 16px rgba(255, 215, 0, 0.95), 0 0 28px rgba(255, 159, 28, 0.7), inset 0 0 10px rgba(255, 235, 130, 0.85);
-        filter: brightness(1.25);
-    }
-    100% {
-        box-shadow: 0 0 0 rgba(255, 215, 0, 0), inset 0 0 0 rgba(255, 215, 0, 0);
-        filter: brightness(1);
+    50% {
+        box-shadow: inset 0 0 6px rgba(255, 235, 130, 0.55);
+        filter: brightness(1.08);
     }
 }
 

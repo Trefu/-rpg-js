@@ -136,8 +136,9 @@ function onCancelAbility() {
 /**
  * Hover/touch sobre el botón de la ulti (cualquier slot con `heroismCost > 0`).
  * Propaga a `useCombat.flashUltiBar` para que la card del caster activo
- * ejecute `bar-heroism--pulse-flash` durante ~1.2s. Asi el jugador entiende
- * visualmente que la ulti requiere Heroísmo al máximo.
+ * ejecute un flash sutil (~1.8s) sobre la barra de Heroísmo. Asi el jugador
+ * entiende visualmente que la ulti requiere Heroísmo al máximo sin necesidad
+ * de tooltipes ni flechas intrusivas.
  */
 function onUltiHoverHighlight(heroId: string | null) {
   flashUltiBar(heroId)

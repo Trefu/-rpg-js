@@ -869,14 +869,27 @@ function shortcutFor(index: number): string | null {
 }
 
 /*
- * Slot de la ulti: borde sutil amarillo para identificarlo como el slot
- * "especial" (consume Heroismo, no Energia). Cuando esta lista (Heroismo
- * 100) viste el gradiente amarillo-naranja del `bar-heroism--ready` y
- * glow pulsante — el jugador sabe de inmediato que puede castearla.
+ * Slot de la ulti: borde + franja superior sutil amarillo que lo identifica
+ * como el slot "especial" (consume Heroismo, no Energia). Cuando esta lista
+ * (Heroismo 100) viste el gradiente amarillo-naranja del `bar-heroism--ready`
+ * y glow pulsante — el jugador sabe de inmediato que puede castearla.
+ *
+ * Al hover/click, el slot dispara `bar-heroism--pulse-flash` en la card del
+ * caster (ver HeroCard/PlayerHud/MobileCombatHud): onda respiratoria
+ * sutil de 1.8s sobre el track de la barra de Heroismo que el ojo asocia a
+ * "esta barra esta relacionada con lo que tocaste".
  */
 .aab-btn.aab-ult {
   border-color: rgba(255, 215, 0, 0.55);
   background: linear-gradient(145deg, #3a2f10 0%, #2a2208 100%);
+  /* Franja superior amarilla sutil: indicador permanente de que este slot
+     consume Heroismo (no Energia). Refuerza la relacion visual sin
+     distraer — un jugador curioso entiende "este boton es especial". */
+  box-shadow: inset 0 2px 0 rgba(255, 215, 0, 0.55);
+}
+
+.aab-btn.aab-ult-ready {
+  box-shadow: inset 0 2px 0 #fff, 0 0 14px rgba(255, 215, 0, 0.7), inset 0 0 8px rgba(255, 255, 255, 0.35);
 }
 
 .aab-btn.aab-ult-ready {

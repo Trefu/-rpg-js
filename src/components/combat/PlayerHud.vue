@@ -104,7 +104,7 @@ function onDocClick(e: MouseEvent) {
 // animacion en hovers sucesivos.
 const heroismFlashActive = ref(false)
 const heroismFlashToken = ref(0)
-const HEROISM_FLASH_MS = 1300
+const HEROISM_FLASH_MS = 1800
 let heroismFlashTimer: ReturnType<typeof setTimeout> | null = null
 
 function triggerHeroismFlash() {
@@ -155,7 +155,11 @@ onBeforeUnmount(() => {
           <span class="resource-value">{{ energyDisplay }}</span>
         </div>
         <div class="resource-line heroism-line">
-          <span class="resource-bar-track">
+          <span
+            class="resource-bar-track heroism-track"
+            :class="{ 'heroism-track--pulse-flash': heroismFlashActive }"
+            :key="`player-heroism-track-flash-${heroismFlashToken}`"
+          >
             <span
               class="resource-bar-fill bar-heroism"
               :class="{
@@ -327,26 +331,40 @@ onBeforeUnmount(() => {
 }
 
 /*
- * Pulse-flash disparado al hover/click sobre el botón de la ulti.
- * Refuerza el glow del `bar-heroism--ready` o lo dispara aunque la ulti
- * NO este lista (Heroismo < max). Una sola iteracion, ~1.2s.
+ * Pulse-flash disparado al hover/click sobre el botón de la ulti. Efecto
+ * SUTIL: el TRACK recibe una onda respiratoria de 1.8s (ilumina el
+ * contenedor) y el fill un pulso de brillo discreto. Asi el ojo capta
+ * "esta barra esta relacionada con lo que tocaste" sin parpadeo fuerte.
  */
+.resource-bar-track.heroism-track--pulse-flash {
+  animation: resourceHeroismTrackPulseFlash 1.8s ease-in-out 1;
+  border-color: rgba(255, 215, 0, 0.55);
+  box-shadow: 0 0 0 1px rgba(255, 215, 0, 0.25);
+}
+
 .resource-bar-fill.bar-heroism--pulse-flash {
-  animation: resourceHeroismPulseFlash 1.2s ease-in-out 1;
+  animation: resourceHeroismPulseFlash 1.8s ease-in-out 1;
+}
+
+@keyframes resourceHeroismTrackPulseFlash {
+  0%, 100% {
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 0 rgba(255, 215, 0, 0);
+  }
+  50% {
+    border-color: rgba(255, 215, 0, 0.6);
+    box-shadow: 0 0 6px rgba(255, 215, 0, 0.45), 0 0 0 1px rgba(255, 215, 0, 0.35);
+  }
 }
 
 @keyframes resourceHeroismPulseFlash {
-  0% {
-    box-shadow: 0 0 0 rgba(255, 215, 0, 0), inset 0 0 0 rgba(255, 215, 0, 0);
+  0%, 100% {
+    box-shadow: inset 0 0 0 rgba(255, 215, 0, 0);
     filter: brightness(1);
   }
-  35% {
-    box-shadow: 0 0 16px rgba(255, 215, 0, 0.95), 0 0 28px rgba(255, 159, 28, 0.7), inset 0 0 10px rgba(255, 235, 130, 0.85);
-    filter: brightness(1.25);
-  }
-  100% {
-    box-shadow: 0 0 0 rgba(255, 215, 0, 0), inset 0 0 0 rgba(255, 215, 0, 0);
-    filter: brightness(1);
+  50% {
+    box-shadow: inset 0 0 6px rgba(255, 235, 130, 0.55);
+    filter: brightness(1.08);
   }
 }
 
