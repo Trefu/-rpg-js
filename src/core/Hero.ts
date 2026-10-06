@@ -3,7 +3,7 @@ import type { IAbility } from './interfaces/IAbility'
 import type { IStatusEffect } from './interfaces/IStatusEffect'
 import type { ICombatant, IInventory, ILevelable, IPlayerStats, IStat } from './interfaces/ICharacter'
 import { BasicAttack } from './abilities/Abilities'
-import { DOT_STATUS_TYPES } from './StatusEffects'
+import { DOT_STATUS_TYPES, STACKABLE_NON_DOT_STATUS_TYPES, getEffectCategory, STACK_MERGING_CATEGORIES, NON_TURN_BASED_CATEGORIES } from './StatusEffects'
 import { computeDefense, computeMagicDefense } from './defense/computeDefense'
 import { computeAgilityCritBonus, rollCritFromChance, type CritResult } from './crit'
 
@@ -78,6 +78,14 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
   public statusEffects: IStatusEffect[] = []
   public energy: number
   public maxEnergy: number
+  /**
+   * Recurso "Heroismo": barra dorada compartida por todas las clases
+   * (0..maxHeroism). Se carga pasivamente cada turno, al realizar ataques
+   * y al recibir daño. Al llegar a `maxHeroism`, el heroe puede desatar
+   * su habilidad definitiva (coste `heroismCost: 100`).
+   */
+  public heroism: number
+  public maxHeroism: number
   public baseStats: IPlayerStats
   public critChance: number
   public critDamageMultiplier: number
@@ -96,6 +104,29 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
    * Por defecto 0; clases, perks o equipo pueden modificarlo.
    */
   public passiveEnergyRegen: number = 0
+  /**
+   * Heroismo que se acumula automaticamente al final del turno del jugador.
+   * Se suma ademas al cargar por ataques y al recibir daño. Default 10.
+   */
+  public passiveHeroismRegen: number = 10
+  /**
+   * Divisor para convertir el daño infringido en Heroismo: el caster
+   * gana `floor(finalDamage / divisor)` por cada golpe que asesta
+   * (incluye el ultimate warrior). Default 20 → un golpe de 30 de
+   * daño aporta ~1-2 de Heroismo. Es deliberadamente BAJO para que
+   * pegar no sea la vía principal de carga — el daño recibido debe
+   * rendir mas (ver `heroismPerDamageTakenDivisor`).
+   */
+  public heroismPerDamageDealtDivisor: number = 20
+  /**
+   * Divisor para convertir el daño recibido en Heroismo: el heroe gana
+   * `floor(damageTaken / divisor)` cada vez que recibe un golpe.
+   * Default 3 → 30 de daño sufrido = 10 de Heroismo. Es DELIBERADAMENTE
+   * MAS GENEROSO que el daño hecho (1 cada 20 vs 1 cada 3) para que
+   * la definitiva se cargue sobre todo en peleas encarnizadas donde
+   * el heroe esta sufriendo.
+   */
+  public heroismPerDamageTakenDivisor: number = 3
 
   /**
    * Vida base de la clase al nivel 1, sin contar Constitución.
@@ -113,6 +144,8 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
     this.abilities = []
     this.maxEnergy = opts.maxEnergy ?? 50
     this.energy = opts.startingEnergy ?? this.maxEnergy
+    this.maxHeroism = 100
+    this.heroism = 0
     this.critChance = opts.critChance ?? 5
     this.critDamageMultiplier = 2.0
     this.sprite = opts.sprite ?? ''
@@ -262,8 +295,63 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
     return this.passiveEnergyRegen
   }
 
+  /**
+   * Cuanto Heroismo gana este heroe al final de su turno.
+   * Default: usa `passiveHeroismRegen`. Subclases o perks pueden override.
+   */
+  public getTurnEndHeroismRegen(): number {
+    return this.passiveHeroismRegen
+  }
+
+  /**
+   * Gasta `amount` puntos de Heroismo si hay suficiente. Devuelve `true`
+   * si se desconto; `false` si no alcanzaba (no se modifica el recurso).
+   */
+  public spendHeroism(amount: number): boolean {
+    if (amount <= 0) return true
+    if (this.heroism < amount) return false
+    this.heroism -= amount
+    return true
+  }
+
+  /**
+   * Suma `amount` puntos de Heroismo capeando en `maxHeroism`. Devuelve
+   * la cantidad realmente anadida (util para logs/feedback de UI).
+   */
+  public restoreHeroism(amount: number): number {
+    if (amount <= 0) return 0
+    const before = this.heroism
+    this.heroism = Math.min(this.maxHeroism, this.heroism + amount)
+    return this.heroism - before
+  }
+
+  /**
+   * `true` si la barra de Heroismo esta al maximo y el heroe esta en
+   * condiciones de desatar su habilidad definitiva.
+   */
+  public canUseUltimate(): boolean {
+    return this.isAlive && this.heroism >= this.maxHeroism
+  }
+
   public addGold(amount: number): void {
     this.gold += amount
+  }
+
+  /**
+   * Hook de Heroismo: al recibir daño, una fraccion del HP perdido se
+   * convierte en Heroismo (cuanto mas duele el golpe, mas heroismo se
+   * forja). Llama a `super.takeDamage` para mantener intacta la logica
+   * de escudos/multiplicadores de `Character`.
+   */
+  public takeDamage(amount: number, opts?: { damageType?: string }): void {
+    if (!this.isAlive || amount <= 0) return
+    const before = this.health
+    super.takeDamage(amount, opts)
+    const lost = before - this.health
+    if (lost <= 0) return
+    const divisor = Math.max(1, this.heroismPerDamageTakenDivisor)
+    const gained = Math.floor(lost / divisor)
+    if (gained > 0) this.restoreHeroism(gained)
   }
 
   public spendGold(amount: number): boolean {
@@ -274,9 +362,10 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
 
   public addStatusEffect(effect: IStatusEffect) {
     const existing = this.statusEffects.find(e => e.type === effect.type)
-    const isDot = DOT_STATUS_TYPES.has(effect.type)
+    const category = getEffectCategory(effect, DOT_STATUS_TYPES, STACKABLE_NON_DOT_STATUS_TYPES)
+    const isStackMerging = STACK_MERGING_CATEGORIES.has(category)
     if (existing) {
-      if (isDot) {
+      if (isStackMerging) {
         const incomingStacks = effect.stacks ?? 1
         const maxStacks = existing.maxStacks ?? effect.maxStacks ?? 99
         existing.stacks = Math.min(maxStacks, (existing.stacks ?? 1) + incomingStacks)
@@ -287,7 +376,7 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
       }
     } else {
       const copy: IStatusEffect = { ...effect }
-      if (isDot) {
+      if (isStackMerging) {
         copy.stacks = effect.stacks ?? 1
         copy.maxStacks = effect.maxStacks ?? 99
       }
@@ -303,8 +392,18 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
   public reduceStatusEffects() {
     // Los efectos basados en cargas (charges) se gobiernan por su propio
     // mecanismo de consumo (processPlayerOnBlockHooks), nunca por turnos.
+    // Las categorias no-turn-based (stack-based: ROOTED, charge-based:
+    // SECOND_WIND/SPELL_REFLECT) tampoco: su lifecycle depende de stacks
+    // o charges, no de turnos. Se consumen via consumidores externos
+    // (`consumeRootedStack` / `processPlayerOnBlockHooks`).
+    // Los efectos con `cleanAtTurnStart: false` (BLINDED, CLOUDED) tampoco
+    // se decrementan aca: deben sobrevivir el turno del heroe para poder
+    // afectar el proximo desafio de defensa.
     this.statusEffects.forEach(e => {
       if (typeof e.charges === 'number') return
+      const category = getEffectCategory(e, DOT_STATUS_TYPES, STACKABLE_NON_DOT_STATUS_TYPES)
+      if (NON_TURN_BASED_CATEGORIES.has(category)) return
+      if (e.cleanAtTurnStart === false) return
       e.turns--
     })
     this.removeExpiredStatusEffects()
@@ -315,6 +414,11 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
   }
 
   public isStunned(): boolean {
-    return this.hasStatusEffect('stun')
+    // Cualquier CC que skipee el turno cuenta. Ver `isSkipTurnEffect` en
+    // TurnEngine.ts para el set canonico (stun, horror). `rooted` ya no
+    // entra porque dejo de skipear el turno (ahora solo impide bloquear).
+    return this.statusEffects.some(e => e.turns > 0 && (
+      e.type === 'stun' || e.type === 'horror'
+    ))
   }
 }

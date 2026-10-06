@@ -12,62 +12,44 @@ import heartIcon from '@/assets/icons/heart-drop.png'
 import broomIcon from '@/assets/icons/broom.png'
 import sparklesIcon from '@/assets/icons/sparkles.png'
 import skullIcon from '@/assets/icons/skull-shield.png'
+import heartPlusIcon from '@/assets/icons/heart-drop.png'
 import cycleIcon from '@/assets/icons/cycle.png'
 import doorIcon from '@/assets/icons/door.png'
 import cancelIcon from '@/assets/icons/logic-gate-not.png'
-import {
-  BasicAttack,
-  StunStrike,
-  StealthStrike,
-  Fireball,
-  WarriorInjuringStrike,
-  WarriorDevastatingStrike,
-  ClericRadiantStrike,
-  ClericDivineSmite,
-  ClericHeal,
-  SecondWind
-} from '@/core/abilities/Abilities'
+import laurelsTrophyIcon from '@/assets/icons/laurels-trophy.png'
+import '@/core/abilities/Abilities'
+import '@/core/abilities/EnemyAttacks'
 import type { IAbility } from '@/core/interfaces/IAbility'
-import {
-  SLASH,
-  DEEP_SLASH,
-  POISON_ARROW,
-  EMBER,
-  FEROCIOUS_BITE,
-  QUICK_CLAWS,
-  MULTIPLE_AXE_STRIKES,
-  CRUSHING_BLOW,
-  GENTLE_STRIKE,
-  QUICK_STRIKE,
-  DOUBLE_COMBO,
-  TRIPLE_COMBO,
-  FIRE_BREATH,
-  GLACIAL_BREATH
-} from '@/core/abilities/EnemyAttacks'
+import { getAllAbilities, getAbilitiesByTag, getAllEnemyAttacks } from '@/core/abilities/registry'
 import CombatView from './CombatView.vue'
 import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
 import type { DefensePatternConfig } from '@/core/defense/types'
-import type { IEnemyStats } from '@/core/interfaces/ICharacter'
 import { RECRUITABLE_HEROES } from '@/core/heroes/recruitment'
 import { MAX_HEROES } from '@/stores/game'
 import type { Hero } from '@/core/Hero'
 
-const ALL_DUMMY_PATTERNS: DefensePatternConfig[] = [
-  SLASH,
-  DEEP_SLASH,
-  POISON_ARROW,
-  EMBER,
-  FEROCIOUS_BITE,
-  QUICK_CLAWS,
-  MULTIPLE_AXE_STRIKES,
-  CRUSHING_BLOW,
-  GENTLE_STRIKE,
-  QUICK_STRIKE,
-  DOUBLE_COMBO,
-  TRIPLE_COMBO,
-  FIRE_BREATH,
-  GLACIAL_BREATH
-]
+/**
+ * Side-effect imports anteriores (`Abilities.ts`, `EnemyAttacks.ts`) garantizan
+ * que cada `registerAbility`/`registerEnemyAttack` se ejecuta al cargar el
+ * módulo. A partir de acá el registry es la única fuente de verdad: añadir
+ * una ability nueva en `Abilities.ts` la hace aparecer automáticamente acá.
+ *
+ * `getAllEnemyAttacks()` devuelve los patrones en orden de registro
+ * (orden de declaración en `EnemyAttacks.ts`).
+ */
+const ALL_DUMMY_PATTERNS = getAllEnemyAttacks()
+
+/**
+ * Lista de abilities que el jugador puede aprender en la Sala de Pruebas.
+ * Filtramos por tag `damage` o `heal` para incluir todo lo ofensivo y
+ * las curas — quedan fuera los `attack` básicos y `warriorAttack`/etc.
+ * que son variantes del basic attack por clase.
+ */
+const TRAINABLE_ABILITIES: IAbility[] = getAllAbilities().filter(a => {
+  const tags = a.tags ?? []
+  return tags.includes('damage') || tags.includes('heal')
+})
+void getAbilitiesByTag // re-export disponible si se necesita filtrar por tag especifico
 
 function speedLabel(speed: number): string {
   if (speed <= 30) return 'lenta'
@@ -107,23 +89,28 @@ const ATTACK_PATTERN_INFOS: AttackPatternInfo[] = ALL_DUMMY_PATTERNS.map(p => ({
   onFailure: p.onFailureEffect?.statusType ?? null
 }))
 
-const TRAINABLE_ABILITIES: IAbility[] = [
-  StunStrike,
-  StealthStrike,
-  Fireball,
-  WarriorInjuringStrike,
-  WarriorDevastatingStrike,
-  ClericRadiantStrike,
-  ClericDivineSmite,
-  ClericHeal,
-  SecondWind
-]
-
 const negativeStatusEffects = computed(() =>
   StatusEffects.getRegisteredTypes()
     .map(type => StatusEffects.getByType(type))
     .filter((effect): effect is IStatusEffect =>
       effect !== null && effect.isBuff === false && !DOT_STATUS_TYPES.has(effect.type)
+    )
+    .map(effect => ({
+      type: effect.type,
+      label: effect.name,
+      description: effect.description ?? ''
+    }))
+)
+
+// Panel de buffs positivos: cualquier efecto con `isBuff: true`. Tras Bloque A
+// estos effects tienen impacto real (ej. STRENGTH_BOOST sube el daño saliente
+// +25%, DEFENSE_BOOST sube blockReductionBonus, etc.), por lo que son
+// directamente testeables desde la sala de entrenamiento.
+const positiveStatusEffects = computed(() =>
+  StatusEffects.getRegisteredTypes()
+    .map(type => StatusEffects.getByType(type))
+    .filter((effect): effect is IStatusEffect =>
+      effect !== null && effect.isBuff === true
     )
     .map(effect => ({
       type: effect.type,
@@ -149,6 +136,31 @@ const emit = defineEmits<{
 
 const gameStore = useGameStore()
 const dummy = ref<Dummy>(new Dummy(gameStore.activeHero?.level ?? 1))
+
+const draftBody = ref<number>(dummy.value.baseStats.body.value)
+const draftMind = ref<number>(dummy.value.baseStats.mind.value)
+const draftAgility = ref<number>(dummy.value.baseStats.agility.value)
+const draftConstitution = ref<number>(dummy.value.baseStats.constitution.value)
+const draftCritChance = ref<number>(dummy.value.critChance)
+
+function syncDraftFromDummy() {
+  draftBody.value = dummy.value.baseStats.body.value
+  draftMind.value = dummy.value.baseStats.mind.value
+  draftAgility.value = dummy.value.baseStats.agility.value
+  draftConstitution.value = dummy.value.baseStats.constitution.value
+  draftCritChance.value = dummy.value.critChance
+}
+syncDraftFromDummy()
+
+function applyDummyStats() {
+  dummy.value.updateBaseStats({
+    body: draftBody.value,
+    mind: draftMind.value,
+    agility: draftAgility.value,
+    constitution: draftConstitution.value
+  })
+  dummy.value.setBaseCritChance(draftCritChance.value)
+}
 
 const trainingSessionKey = ref(0)
 const rosterClass = ref<string[]>(Array.from({ length: MAX_HEROES }, () => ''))
@@ -176,8 +188,24 @@ function buildHeroFromRegistry(classId: string, targetLevel: number): Hero | nul
 
 function rebuildDummy() {
   const level = Math.max(1, gameStore.activeHero?.level ?? 1)
-  dummy.value = new Dummy(level)
+  const next = new Dummy(level)
+  const prev = dummy.value
+  next.health = Math.min(prev.health, next.maxHealth)
+  next.isAlive = true
+  if (prev.forcedPattern) next.setForcedPattern(prev.forcedPattern)
+  next.statusEffects = [...prev.statusEffects]
+  next.updateBaseStats({
+    body: prev.baseStats.body.value,
+    mind: prev.baseStats.mind.value,
+    agility: prev.baseStats.agility.value,
+    constitution: prev.baseStats.constitution.value
+  })
+  next.setBaseCritChance(prev.critChance)
+  if (prev.damageOverride !== null) next.setDamageOverride(prev.damageOverride)
+  if (prev.critChanceOverride !== null) next.setCritChanceOverride(prev.critChanceOverride)
+  dummy.value = next
   selectedPatternIndex.value = -1
+  syncDraftFromDummy()
 }
 
 function applyRoster() {
@@ -218,7 +246,14 @@ const activeHeroClassLabel = computed(() => {
   return entry?.displayName ?? ''
 })
 
-watch(() => gameStore.activeHero?.level, () => rebuildDummy())
+// No auto-rebuild on level change: rotar el heroe activo durante el combate
+// cambia el activeHero (mismo nivel, distinta instancia) y disparaba
+// rebuildDummy en algunos casos, perdiendo las stats que el usuario acaba
+// de aplicar. El dummy se recrea solo en acciones explicitas del panel.
+watch(
+  () => gameStore.activeHero?.id,
+  () => { /* noop: preservamos el dummy al rotar heroes */ }
+)
 
 const selectedPatternIndex = ref<number>(-1)
 const panelCollapsed = ref<boolean>(false)
@@ -241,22 +276,11 @@ function selectPattern(index: number) {
   }
 }
 
-function updateDummyStat(stat: keyof IEnemyStats, event: Event) {
-  const target = event.target as HTMLInputElement
-  const value = Math.max(0, Math.floor(Number(target.value) || 0))
-  dummy.value.baseStats[stat].value = value
-}
-
-function updateDummyCritChance(event: Event) {
-  const target = event.target as HTMLInputElement
-  const value = Math.max(0, Math.min(200, Math.floor(Number(target.value) || 0)))
-  dummy.value.critChance = value
-}
-
 function resetDummyStats() {
   const level = Math.max(1, gameStore.activeHero?.level ?? 1)
   dummy.value = new Dummy(level)
   selectedPatternIndex.value = -1
+  syncDraftFromDummy()
 }
 
 function resetDummy() {
@@ -271,6 +295,22 @@ function applyStatusToPlayer(type: string) {
   if (!template) return
   const effect: IStatusEffect = { ...template, turns: 3 }
   p.addStatusEffect(effect)
+}
+
+/**
+ * Sube la barra de Heroismo del heroe activo al maximo para poder
+ * probar la habilidad definitiva sin tener que esperar a que se
+ * cargue jugando. Pensado para la sala de pruebas: ignora
+ * `passiveEnergyRegen` y todas las reglas de carga — setea directo.
+ */
+function fillActiveHeroHeroism() {
+  const p = gameStore.activeHero
+  if (!p) return
+  if (typeof p.restoreHeroism === 'function') {
+    p.restoreHeroism(p.maxHeroism)
+  } else {
+    p.heroism = p.maxHeroism
+  }
 }
 
 function learnAbilityFromList(ability: IAbility) {
@@ -326,9 +366,10 @@ function onTrainingEnded() {
         <section class="panel-section">
           <h3><img :src="personIcon" alt="" class="inline-icon" /> Heroe Activo</h3>
           <p class="section-hint">{{ activeHeroClassLabel || 'Sin heroe' }} — Nv {{ gameStore.activeHero?.level ?? '—' }}</p>
-          <div class="button-grid two-col">
+          <div class="button-grid three-col">
             <button class="action-btn" @click="gameStore.activeHero && (gameStore.activeHero.health = gameStore.activeHero.maxHealth)"><img :src="heartIcon" alt="" class="btn-icon" /> Curar</button>
             <button class="action-btn" @click="gameStore.activeHero && (gameStore.activeHero.statusEffects = [])"><img :src="broomIcon" alt="" class="btn-icon" /> Limpiar efectos</button>
+            <button class="action-btn heroism-btn" :disabled="!gameStore.activeHero" @click="fillActiveHeroHeroism"><img :src="laurelsTrophyIcon" alt="" class="btn-icon" /> Cargar Heroismo</button>
           </div>
         </section>
 
@@ -373,14 +414,13 @@ function onTrainingEnded() {
 
         <section class="panel-section">
           <h3><img :src="swordsIcon" alt="" class="inline-icon" /> Stats del Dummy</h3>
-          <p class="section-hint">Modifica las stats base del dummy. Los cambios se reflejan en su ataque y critico.</p>
+          <p class="section-hint">Edita los valores y pulsa <strong>APLICAR</strong> para que surtan efecto. Mantienen la vida y patrón actuales.</p>
           <div class="stats-grid">
             <label class="stat-row">
               <span class="stat-name">Cuerpo</span>
               <input
                 type="number"
-                :value="dummy.baseStats.body.value"
-                @input="updateDummyStat('body', $event)"
+                v-model.number="draftBody"
                 class="stat-input"
                 min="1"
                 max="50"
@@ -390,8 +430,7 @@ function onTrainingEnded() {
               <span class="stat-name">Mente</span>
               <input
                 type="number"
-                :value="dummy.baseStats.mind.value"
-                @input="updateDummyStat('mind', $event)"
+                v-model.number="draftMind"
                 class="stat-input"
                 min="1"
                 max="50"
@@ -401,8 +440,7 @@ function onTrainingEnded() {
               <span class="stat-name">Agilidad</span>
               <input
                 type="number"
-                :value="dummy.baseStats.agility.value"
-                @input="updateDummyStat('agility', $event)"
+                v-model.number="draftAgility"
                 class="stat-input"
                 min="1"
                 max="50"
@@ -412,8 +450,7 @@ function onTrainingEnded() {
               <span class="stat-name">Constitución</span>
               <input
                 type="number"
-                :value="dummy.baseStats.constitution.value"
-                @input="updateDummyStat('constitution', $event)"
+                v-model.number="draftConstitution"
                 class="stat-input"
                 min="1"
                 max="50"
@@ -423,16 +460,16 @@ function onTrainingEnded() {
               <span class="stat-name">Critico %</span>
               <input
                 type="number"
-                :value="dummy.critChance"
-                @input="updateDummyCritChance($event)"
+                v-model.number="draftCritChance"
                 class="stat-input"
                 min="0"
                 max="200"
               />
             </label>
           </div>
-          <div class="button-grid">
-            <button class="action-btn warn" @click="resetDummyStats"><img :src="cycleIcon" alt="" class="btn-icon" /> Restablecer Stats</button>
+          <div class="button-grid two-col">
+            <button class="action-btn apply-stats-btn" @click="applyDummyStats"><img :src="cycleIcon" alt="" class="btn-icon" /> APLICAR</button>
+            <button class="action-btn warn" @click="resetDummyStats">Restablecer</button>
           </div>
         </section>
 
@@ -450,6 +487,23 @@ function onTrainingEnded() {
             >
               <span class="pattern-label">{{ item.label }}</span>
               <span class="pattern-desc">{{ item.description }}</span>
+            </button>
+          </div>
+        </section>
+
+        <section class="panel-section">
+          <h3><img :src="heartPlusIcon" alt="" class="inline-icon" /> Estados Positivos (Buffs)</h3>
+          <p class="section-hint">Aplica buffs al heroe activo. Tras Bloque A: <strong>strength_boost</strong> +25% daño saliente, <strong>defense_boost</strong> +15% bloqueo, <strong>speed_boost</strong> onda lenta, <strong>weakness</strong> +25% daño entrante.</p>
+          <div class="pattern-scroll">
+            <button
+              v-for="status in positiveStatusEffects"
+              :key="status.type"
+              class="pattern-btn"
+              :disabled="!gameStore.activeHero"
+              @click="applyStatusToPlayer(status.type)"
+            >
+              <span class="pattern-label">{{ status.label }}</span>
+              <span class="pattern-desc">{{ status.description }}</span>
             </button>
           </div>
         </section>
@@ -598,7 +652,7 @@ function onTrainingEnded() {
 
 .collapse-btn {
   position: absolute;
-  top: 12px;
+  top: 72px;
   left: -16px;
   width: 32px;
   height: 32px;
@@ -957,6 +1011,17 @@ function onTrainingEnded() {
   box-shadow: 0 3px 8px rgba(100, 181, 246, 0.4);
 }
 
+.action-btn.heroism-btn {
+  background: linear-gradient(180deg, #8a6a1a 0%, #5e4810 100%);
+  border-color: #ffd54f;
+  color: #fff7d6;
+}
+
+.action-btn.heroism-btn:hover:not(:disabled) {
+  background: linear-gradient(180deg, #b88a26 0%, #7e601a 100%);
+  box-shadow: 0 3px 8px rgba(255, 215, 0, 0.45);
+}
+
 .action-btn.debuff {
   background: linear-gradient(180deg, #6e2a2a 0%, #521e1e 100%);
   border-color: #ef5350;
@@ -970,6 +1035,23 @@ function onTrainingEnded() {
 .action-btn.warn {
   background: linear-gradient(180deg, #6e5a2a 0%, #52441e 100%);
   border-color: #ffb300;
+}
+
+.apply-stats-btn {
+  background: linear-gradient(180deg, #ffe600 0%, #c9a900 100%);
+  border-color: #fff58a;
+  color: #1a1a2e;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  box-shadow: 0 0 10px rgba(255, 230, 0, 0.35);
+}
+.apply-stats-btn:hover:not(:disabled) {
+  background: linear-gradient(180deg, #fff58a 0%, #e6c800 100%);
+  box-shadow: 0 4px 14px rgba(255, 230, 0, 0.6);
+}
+.apply-stats-btn .btn-icon {
+  filter: none;
 }
 
 .action-btn.warn:hover:not(:disabled) {

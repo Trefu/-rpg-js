@@ -1,23 +1,4 @@
-export interface IZone {
-  id: string
-  name: string
-  description: string
-  background: string
-  difficulty: 'easy' | 'medium' | 'hard'
-  minLevel: number
-  enabled?: boolean
-  /**
-   * Marcada como "En desarrollo": la zona aparece listada pero no es
-   * jugable todavia. Se muestra con un badge en la UI para distinguir
-   * de las zonas bloqueadas por nivel (`enabled: false`).
-   */
-  inDevelopment?: boolean
-  enemies: string[]
-  rewards: {
-    experience: number
-    gold: number
-  }
-}
+import type { IExpeditionConfig } from '@/core/expeditions/types'
 
 export interface INode {
   id: string
@@ -32,8 +13,9 @@ export interface INode {
 }
 
 export interface IExpedition {
-  zone: IZone
+  /** Configuracion completa de la expedicion (pools, encounters, generator, etc). */
+  config: IExpeditionConfig
   nodes: INode[]
   currentNode: INode | null
   completed: boolean
-} 
+}

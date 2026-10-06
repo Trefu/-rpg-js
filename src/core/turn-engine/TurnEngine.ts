@@ -20,6 +20,32 @@ export interface TurnQueueEntry {
 
 export const STUN_EFFECT_TYPE = 'stun'
 
+/**
+ * Tipos de status effect que causan "skip turno" en el motor de turnos.
+ * El actor aparece en la cola de proximos turnos pero su entrada se marca
+ * como `'skip'` en vez de `'act'`. Set canonico: `stun` y `horror`.
+ *
+ * NOTA: `rooted` NO entra aca porque dejo de skipear el turno: es un soft
+ * CC que solo impide bloquear durante el desafio de defensa (ver
+ * `DefenseChallenge.rooted` y `StatusEffects.ROOTED.defenseOverlay`).
+ *
+ * Cualquier nuevo CC que comparta la mecanica "skip turno" debe agregarse
+ * aca para que `predictNextTurns` lo detecte.
+ */
+export const SKIP_TURN_EFFECT_TYPES: ReadonlySet<string> = new Set([
+  STUN_EFFECT_TYPE,
+  'horror'
+])
+
+/**
+ * Helper puro: devuelve `true` si `effectType` es un CC que skipea el turno.
+ * Usado por `useCombat.runNextTurn` para decidir si el actor pierde su turno.
+ */
+export function isSkipTurnEffect(effectType: string | undefined | null): boolean {
+  if (!effectType) return false
+  return SKIP_TURN_EFFECT_TYPES.has(effectType)
+}
+
 export function turnCostBase(actor: TurnActor): number {
   return 100 / Math.max(1, actor.agility)
 }
@@ -138,7 +164,10 @@ export function predictNextTurns(
 
     out.push({
       actorId: best.id,
-      kind: best.activeEffectTypes.has(STUN_EFFECT_TYPE) ? 'skip' : 'act'
+      kind: best.activeEffectTypes.has(STUN_EFFECT_TYPE)
+        || best.activeEffectTypes.has('horror')
+        ? 'skip'
+        : 'act'
     })
 
     const elapsed = turnCostBase(best)

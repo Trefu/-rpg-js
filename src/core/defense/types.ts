@@ -159,6 +159,23 @@ export interface DefensePatternConfig {
     damageMultiplier: number
   }
   /**
+   * Si esta definido, el patron golpea a un target primario (elegido por
+   * aggro como cualquier ataque single-target) que pasa por su defense
+   * challenge normal. Tras resolver, el daño MITIGADO que sufrio el
+   * primario (`result.totalDamage`) se multiplica por `damageMultiplier`
+   * y se reparte como splash al resto de heroes vivos.
+   *
+   * Esto reemplaza el viejo modelo "AOE pega a todos por igual sin
+   * defense challenge": ahora el jugador puede mitigar el splash
+   * bloqueando bien el ataque contra el primario. Recomendado: 0.2.
+   *
+   * Los splashees NO tienen defense challenge propia.
+   */
+  mitigatedSplash?: {
+    /** Multiplicador aplicado al `totalDamage` del desafio de defensa. Default: 0.2 */
+    damageMultiplier: number
+  }
+  /**
    * Path a un SFX custom (ej. `/assets/sounds/Battle_SFX/swing.wav`) que
    * se reproduce cuando el enemigo lanza este patron, en lugar del
    * fallback `playAttackSound()`. Si se omite, se usa el fallback.

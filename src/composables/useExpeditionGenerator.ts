@@ -1,90 +1,74 @@
 import type { INode } from '@/core/interfaces/IExpedition'
-import { DEFAULT_ZONE, getEnemiesForNode, type ZoneId } from '@/core/zones/EnemyPools'
+import type { IExpeditionConfig } from '@/core/expeditions/types'
+import { resolveEncounterById } from '@/core/expeditions/encounters'
+import { getEnemiesForConfig } from '@/core/zones/EnemyPools'
 
-interface GeneratorConfig {
-  minNodesBeforeBoss: number
-  shopChance: number
-  curiosityChance: number
-  maxRetries: number
-  maxParentsPerNode: number
-  proximityThreshold: number
-  forcedSingleRows: number[]
-  forcedCombatRows: number[]
-  forcedNodeTypes: Record<number, 'combat' | 'shop' | 'curiosity' | 'recruit-hero'>
-  /**
-   * Mapa de zoneId -> fila del mapa en la que se fuerza un nodo
-   * "recruit-hero". Pensado para zonas tutoriales (mountain-peak) donde
-   * el jugador consigue un segundo heroe a mitad de camino.
-   */
-  recruitHeroRowByZone: Partial<Record<ZoneId, number>>
-  minCuriosityNodes: number
-  maxCuriosityNodes: number
-  maxConsecutiveCuriosity: number
-  minShopNodes: number
-  maxShopNodes: number
-  maxConsecutiveShop: number
-}
-
-const CONFIG: GeneratorConfig = {
-  minNodesBeforeBoss: 8,
-  shopChance: 0.15,
-  curiosityChance: 0.1,
-  maxRetries: 50,
-  maxParentsPerNode: 2,
-  proximityThreshold: 40,
-  forcedSingleRows: [5],
-  forcedCombatRows: [0, 1],
-  forcedNodeTypes: {},
-  recruitHeroRowByZone: { 'mountain-peak': 2 },
-  minCuriosityNodes: 2,
-  maxCuriosityNodes: 4,
-  maxConsecutiveCuriosity: 2,
-  minShopNodes: 1,
-  maxShopNodes: 2,
-  maxConsecutiveShop: 1
-}
-
-function createNode(id: string, type: INode['type'], position: { x: number; y: number }, enemies: any[] = []): INode {
+function createNode(
+  id: string,
+  type: INode['type'],
+  position: { x: number; y: number },
+  enemies: any[] = []
+): INode {
   return { id, type, position, connections: [], completed: false, enemies }
 }
 
-function pickNodeType(): INode['type'] {
+/**
+ * Construye los enemigos de un nodo `combat`/`boss`/`start`. Si la
+ * fila del nodo esta marcada como `forcedNode` con un `encounter`
+ * especifico en la config, ese encounter se resuelve; si no, se
+ * muestrea el pool aleatorio del tier correspondiente.
+ *
+ * Convencion de `row` en `IExpeditionConfig.generator.forcedNodes`:
+ *   row 0              = nodo 'start'
+ *   row 1..minNodes    = filas intermedias (mismas que `recruitHeroRow`,
+ *                        `forcedCombatRows` y `forcedSingleRows`)
+ *   row minNodes+1     = nodo 'boss'
+ */
+function buildEnemiesForRow(config: IExpeditionConfig, row: number, floor: number): any[] {
+  const forced = config.generator.forcedNodes.find(fn => fn.row === row)
+  if (forced && forced.encounter && (forced.type === 'combat' || forced.type === 'boss' || forced.type === 'recruit-hero')) {
+    return resolveEncounterById(config, forced.encounter)
+  }
+  return getEnemiesForConfig(config, floor)
+}
+
+function pickNodeType(config: IExpeditionConfig): INode['type'] {
   const roll = Math.random()
-  if (roll < CONFIG.shopChance) return 'shop'
-  if (roll < CONFIG.shopChance + CONFIG.curiosityChance) return 'curiosity'
+  if (roll < config.generator.shopChance) return 'shop'
+  if (roll < config.generator.shopChance + config.generator.curiosityChance) return 'curiosity'
   return 'combat'
 }
 
-function buildRows(zoneId: ZoneId): INode[][] {
+function buildRows(config: IExpeditionConfig): INode[][] {
+  const gen = config.generator
   const rows: INode[][] = []
-  const totalNodes = CONFIG.minNodesBeforeBoss + 2
+  const totalNodes = gen.minNodesBeforeBoss + 2
 
-  const startNode = createNode('start', 'combat', { x: 50, y: 5 }, getEnemiesForNode(zoneId, 1, totalNodes))
+  const startEnemies = buildEnemiesForRow(config, 0, 1)
+  const startNode = createNode('start', 'combat', { x: 50, y: 5 }, startEnemies)
   rows.push([startNode])
 
   let prevPathsCount = 1
-  for (let row = 0; row < CONFIG.minNodesBeforeBoss; row++) {
-    const y = 15 + (row * 80) / CONFIG.minNodesBeforeBoss
+  for (let row = 0; row < gen.minNodesBeforeBoss; row++) {
+    const y = 15 + (row * 80) / gen.minNodesBeforeBoss
+    const userRow = row + 1
 
-    const inRange = row >= 0 && row < CONFIG.minNodesBeforeBoss
-    const recruitRow = CONFIG.recruitHeroRowByZone[zoneId]
-    const isRecruitRow = inRange && recruitRow === row
-    const isForcedSingle = inRange && (CONFIG.forcedSingleRows.includes(row) || isRecruitRow)
-    const isForcedCombat = inRange && CONFIG.forcedCombatRows.includes(row)
-    const forcedType = inRange ? CONFIG.forcedNodeTypes[row] : undefined
+    const inRange = userRow >= 1 && userRow <= gen.minNodesBeforeBoss
+    const recruitRow = gen.recruitHeroRow
+    const isRecruitRow = inRange && recruitRow === userRow
+    const isForcedSingle = inRange && (gen.forcedSingleRows.includes(userRow) || isRecruitRow)
+    const isForcedCombat = inRange && gen.forcedCombatRows.includes(userRow)
+    const forcedNode = inRange ? gen.forcedNodes.find(fn => fn.row === userRow) : undefined
     const validForcedType =
-      forcedType === 'combat' || forcedType === 'shop' || forcedType === 'curiosity'
-        ? forcedType
+      forcedNode && (forcedNode.type === 'combat' || forcedNode.type === 'shop' || forcedNode.type === 'curiosity')
+        ? forcedNode.type
         : undefined
 
-    if (CONFIG.forcedSingleRows.includes(row) && !inRange) {
-      console.warn(`[useExpeditionGenerator] forcedSingleRows contains out-of-range index ${row}; ignoring`)
+    if (gen.forcedSingleRows.includes(userRow) && !inRange) {
+      console.warn(`[useExpeditionGenerator] forcedSingleRows contains out-of-range index ${userRow}; ignoring`)
     }
-    if (CONFIG.forcedCombatRows.includes(row) && !inRange) {
-      console.warn(`[useExpeditionGenerator] forcedCombatRows contains out-of-range index ${row}; ignoring`)
-    }
-    if (forcedType !== undefined && !validForcedType) {
-      console.warn(`[useExpeditionGenerator] forcedNodeTypes[${row}] is invalid: ${forcedType}; ignoring`)
+    if (gen.forcedCombatRows.includes(userRow) && !inRange) {
+      console.warn(`[useExpeditionGenerator] forcedCombatRows contains out-of-range index ${userRow}; ignoring`)
     }
 
     let pathsCount = isForcedSingle ? 1 : Math.floor(Math.random() * 3) + 1
@@ -100,9 +84,9 @@ function buildRows(zoneId: ZoneId): INode[][] {
       const x = baseX + (Math.random() * 6 - 3)
       const type: INode['type'] = isRecruitRow
         ? 'recruit-hero'
-        : (validForcedType ?? (isForcedCombat ? 'combat' : pickNodeType()))
-      const enemies = type === 'combat' ? getEnemiesForNode(zoneId, row + 2, totalNodes) : []
-      const nodeId = pathsCount > 1 ? `node-${row}-${p}` : `node-${row}`
+        : (validForcedType ?? (isForcedCombat ? 'combat' : pickNodeType(config)))
+      const enemies = type === 'combat' ? buildEnemiesForRow(config, userRow, userRow + 1) : []
+      const nodeId = pathsCount > 1 ? `node-${userRow}-${p}` : `node-${userRow}`
       const node = createNode(nodeId, type, { x, y }, enemies)
       rowNodes.push(node)
     }
@@ -111,7 +95,8 @@ function buildRows(zoneId: ZoneId): INode[][] {
     prevPathsCount = pathsCount
   }
 
-  const bossNode = createNode('boss', 'boss', { x: 50, y: 95 }, getEnemiesForNode(zoneId, totalNodes, totalNodes))
+  const bossEnemies = buildEnemiesForRow(config, gen.minNodesBeforeBoss + 1, totalNodes)
+  const bossNode = createNode('boss', 'boss', { x: 50, y: 95 }, bossEnemies)
   rows.push([bossNode])
 
   return rows
@@ -123,7 +108,7 @@ function closestNode(target: INode, candidates: INode[]): INode {
   )
 }
 
-function connectByReverseBFS(rows: INode[][]): Map<string, Set<string>> {
+function connectByReverseBFS(rows: INode[][], proximityThreshold: number, maxParentsPerNode: number): Map<string, Set<string>> {
   const childrenOf = new Map<string, Set<string>>()
   for (const row of rows) {
     for (const n of row) childrenOf.set(n.id, new Set())
@@ -137,9 +122,9 @@ function connectByReverseBFS(rows: INode[][]): Map<string, Set<string>> {
     const seen = new Set<string>()
 
     for (const child of layer) {
-      const within = candidates.filter(p => Math.abs(p.position.x - child.position.x) < CONFIG.proximityThreshold)
+      const within = candidates.filter(p => Math.abs(p.position.x - child.position.x) < proximityThreshold)
       const pool = within.length > 0 ? within : [closestNode(child, candidates)]
-      const pickCount = Math.min(CONFIG.maxParentsPerNode, pool.length)
+      const pickCount = Math.min(maxParentsPerNode, pool.length)
       const picks: INode[] = []
       const used = new Set<string>()
 
@@ -246,8 +231,8 @@ function attachConnections(rows: INode[][], childrenOf: Map<string, Set<string>>
   return allNodes
 }
 
-function enforceSpecialNodeRules(rows: INode[][], zoneId: ZoneId): void {
-  const totalNodes = CONFIG.minNodesBeforeBoss + 2
+function enforceSpecialNodeRules(rows: INode[][], config: IExpeditionConfig): void {
+  const gen = config.generator
   if (rows.length < 3) return
 
   const byId = new Map<string, INode>()
@@ -271,23 +256,24 @@ function enforceSpecialNodeRules(rows: INode[][], zoneId: ZoneId): void {
   const noCuriosityRows = new Set<number>([0, rows.length - 1])
   const noShopRows = new Set<number>([0, rows.length - 1])
   for (let i = 1; i < rows.length - 1; i++) {
-    const loopRow = i - 1
-    const isForcedCombat = CONFIG.forcedCombatRows.includes(loopRow)
-    const isRecruitRow = CONFIG.recruitHeroRowByZone[zoneId] === loopRow
-    const ft = CONFIG.forcedNodeTypes[loopRow]
-    const curiosityBlocked = isForcedCombat || isRecruitRow || ft === 'combat' || ft === 'shop'
-    const shopBlocked = isForcedCombat || isRecruitRow || ft === 'combat' || ft === 'curiosity'
+    const userRow = i
+    const isForcedCombat = gen.forcedCombatRows.includes(userRow)
+    const isRecruitRow = gen.recruitHeroRow === userRow
+    const fn = gen.forcedNodes.find(f => f.row === userRow)
+    const forcedType = fn?.type
+    const curiosityBlocked = isForcedCombat || isRecruitRow || forcedType === 'combat' || forcedType === 'shop'
+    const shopBlocked = isForcedCombat || isRecruitRow || forcedType === 'combat' || forcedType === 'curiosity'
     if (curiosityBlocked) noCuriosityRows.add(i)
     if (shopBlocked) noShopRows.add(i)
   }
 
   for (let i = 1; i < rows.length - 1; i++) {
-    const loopRow = i - 1
-    if (!CONFIG.forcedCombatRows.includes(loopRow)) continue
+    const userRow = i
+    if (!gen.forcedCombatRows.includes(userRow)) continue
     for (const node of rows[i]) {
       if (node.type !== 'combat') {
         node.type = 'combat'
-        node.enemies = getEnemiesForNode(zoneId, i + 2, totalNodes)
+        node.enemies = buildEnemiesForRow(config, userRow, i + 1)
       }
     }
   }
@@ -314,7 +300,7 @@ function enforceSpecialNodeRules(rows: INode[][], zoneId: ZoneId): void {
     if (type === 'combat') {
       const i = rowOf.get(n.id)!
       n.type = 'combat'
-      n.enemies = getEnemiesForNode(zoneId, i + 2, totalNodes)
+      n.enemies = buildEnemiesForRow(config, i, i + 1)
     } else {
       n.type = type
       n.enemies = []
@@ -384,44 +370,50 @@ function enforceSpecialNodeRules(rows: INode[][], zoneId: ZoneId): void {
   let globalChanged = true
   while (globalChanged && globalSafety-- > 0) {
     globalChanged = false
-    globalChanged = clampCount('curiosity', CONFIG.minCuriosityNodes, CONFIG.maxCuriosityNodes, noCuriosityRows) || globalChanged
-    globalChanged = clampCount('shop', CONFIG.minShopNodes, CONFIG.maxShopNodes, noShopRows) || globalChanged
-    globalChanged = fixChains('curiosity', noCuriosityRows, CONFIG.maxConsecutiveCuriosity) || globalChanged
-    globalChanged = fixChains('shop', noShopRows, CONFIG.maxConsecutiveShop) || globalChanged
+    globalChanged = clampCount('curiosity', gen.minCuriosityNodes, gen.maxCuriosityNodes, noCuriosityRows) || globalChanged
+    globalChanged = clampCount('shop', gen.minShopNodes, gen.maxShopNodes, noShopRows) || globalChanged
+    globalChanged = fixChains('curiosity', noCuriosityRows, gen.maxConsecutiveCuriosity) || globalChanged
+    globalChanged = fixChains('shop', noShopRows, gen.maxConsecutiveShop) || globalChanged
   }
 }
 
-function generateLinearFallback(zoneId: ZoneId): INode[] {
+function generateLinearFallback(config: IExpeditionConfig): INode[] {
   const rows: INode[][] = []
-  const totalNodes = CONFIG.minNodesBeforeBoss + 2
+  const totalNodes = config.generator.minNodesBeforeBoss + 2
 
-  const startNode = createNode('start', 'combat', { x: 50, y: 5 }, getEnemiesForNode(zoneId, 1, totalNodes))
+  const startNode = createNode('start', 'combat', { x: 50, y: 5 }, buildEnemiesForRow(config, 0, 1))
   rows.push([startNode])
 
   let prev = startNode
-  for (let row = 0; row < CONFIG.minNodesBeforeBoss; row++) {
-    const y = 15 + (row * 80) / CONFIG.minNodesBeforeBoss
-    const node = createNode(`node-${row}`, 'combat', { x: 50, y }, getEnemiesForNode(zoneId, row + 2, totalNodes))
+  for (let row = 0; row < config.generator.minNodesBeforeBoss; row++) {
+    const y = 15 + (row * 80) / config.generator.minNodesBeforeBoss
+    const userRow = row + 1
+    const node = createNode(`node-${userRow}`, 'combat', { x: 50, y }, buildEnemiesForRow(config, userRow, userRow + 1))
     rows.push([node])
     prev.connections = [node.id]
     prev = node
   }
 
-  const bossNode = createNode('boss', 'boss', { x: 50, y: 95 }, getEnemiesForNode(zoneId, totalNodes, totalNodes))
+  const bossNode = createNode(
+    'boss',
+    'boss',
+    { x: 50, y: 95 },
+    buildEnemiesForRow(config, config.generator.minNodesBeforeBoss + 1, totalNodes)
+  )
   rows.push([bossNode])
   prev.connections = [bossNode.id]
 
-  enforceSpecialNodeRules(rows, zoneId)
+  enforceSpecialNodeRules(rows, config)
   return rows.flat()
 }
 
 export function useExpeditionGenerator() {
-  function generateExpeditionNodes(zoneId: ZoneId = DEFAULT_ZONE): INode[] {
-    for (let attempt = 0; attempt < CONFIG.maxRetries; attempt++) {
-      const rows = buildRows(zoneId)
-      const childrenOf = connectByReverseBFS(rows)
+  function generateExpeditionNodes(config: IExpeditionConfig): INode[] {
+    for (let attempt = 0; attempt < config.generator.maxRetries; attempt++) {
+      const rows = buildRows(config)
+      const childrenOf = connectByReverseBFS(rows, config.generator.proximityThreshold, config.generator.maxParentsPerNode)
       attachConnections(rows, childrenOf)
-      enforceSpecialNodeRules(rows, zoneId)
+      enforceSpecialNodeRules(rows, config)
       const result = validateConnectivity(rows, childrenOf)
       if (result.ok) {
         return rows.flat()
@@ -429,7 +421,7 @@ export function useExpeditionGenerator() {
     }
 
     console.warn('[useExpeditionGenerator] Exhausted retries, falling back to linear layout')
-    return generateLinearFallback(zoneId)
+    return generateLinearFallback(config)
   }
 
   return {

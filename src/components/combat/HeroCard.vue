@@ -28,7 +28,7 @@ interface Props {
   isBeingAttacked?: boolean
   hitPopups?: { value: number, key: number, isCrit?: boolean, variant?: 'damage' | 'crit' | 'blocked' | 'heal' | 'energy', suffix?: string, heroId?: string | null }[]
   /** VFX activos sobre este heroe (ej. impact / big-hit al fallar defensa). */
-  vfxEffects?: { key: number, asset: VfxAssetId }[]
+  vfxEffects?: { key: number, asset: VfxAssetId, mirrored?: boolean, rotationDeg?: number }[]
 }
 
 const props = defineProps<Props>()
@@ -47,6 +47,12 @@ const energyPercent = computed(() => {
   return Math.max(0, Math.min(100, (props.hero.energy / props.hero.maxEnergy) * 100))
 })
 
+const heroismPercent = computed(() => {
+  const max = (props.hero as any)?.maxHeroism
+  if (!props.hero || !max) return 0
+  return Math.max(0, Math.min(100, (((props.hero as any).heroism ?? 0) / max) * 100))
+})
+
 const hpDisplay = computed(() => {
   if (!props.hero) return ''
   return `${props.hero.health}/${props.hero.maxHealth}`
@@ -55,6 +61,19 @@ const hpDisplay = computed(() => {
 const energyDisplay = computed(() => {
   if (!props.hero) return ''
   return `${props.hero.energy}/${props.hero.maxEnergy}`
+})
+
+const heroismDisplay = computed(() => {
+  if (!props.hero) return ''
+  return `${Math.floor((props.hero as any).heroism ?? 0)}/${(props.hero as any).maxHeroism ?? 100}`
+})
+
+const isUltimateReady = computed(() => {
+  const hero = props.hero as any
+  if (!hero) return false
+  return typeof hero.canUseUltimate === 'function'
+    ? hero.canUseUltimate()
+    : (hero.heroism ?? 0) >= (hero.maxHeroism ?? 100)
 })
 
 const activeEffects = computed<IStatusEffect[]>(() => {
@@ -221,7 +240,8 @@ defineExpose({
         v-for="effect in vfxEffects ?? []"
         :key="effect.key"
         :src="VFX_SOURCES[effect.asset]"
-        class="hero-vfx-effect"
+        :class="['hero-vfx-effect', { 'hero-vfx-effect--mirrored': effect.mirrored }]"
+        :style="{ transform: `translate(-50%, -50%) rotate(${effect.rotationDeg ?? 0}deg)${effect.mirrored ? ' scaleX(-1)' : ''}` }"
         alt=""
         aria-hidden="true"
       />
@@ -241,6 +261,16 @@ defineExpose({
             </div>
             <span class="bar-value">{{ energyDisplay }}</span>
           </div>
+          <div class="bar-line">
+            <div class="bar-track">
+              <div
+                class="bar-fill bar-heroism"
+                :class="{ 'bar-heroism--ready': isUltimateReady }"
+                :style="{ width: `${heroismPercent}%` }"
+              ></div>
+            </div>
+            <span class="bar-value bar-value-heroism">{{ heroismDisplay }}</span>
+          </div>
         </div>
         <div
           v-if="buffDebuffEffects.length > 0"
@@ -256,9 +286,9 @@ defineExpose({
           >
             <img :src="effect.icon" :alt="effect.name" />
             <span
-              v-if="effect.turns !== undefined && Number.isFinite(effect.turns)"
-              class="hero-status-icon-turns"
-            >{{ effect.turns }}</span>
+              v-if="typeof effect.stacks === 'number' && effect.stacks > 0"
+              class="hero-status-icon-stacks"
+            >x{{ effect.stacks }}</span>
           </div>
         </div>
       </div>
@@ -517,6 +547,12 @@ defineExpose({
   filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.85)) drop-shadow(0 0 18px rgba(255, 225, 120, 0.75));
 }
 
+/* Espejado horizontal para VFX cuyo origen visual esta en el lado
+   contrario (p.ej. ataques enemigos que "vienen desde la derecha"). */
+.hero-vfx-effect--mirrored {
+  transform: translate(-50%, -50%) scaleX(-1);
+}
+
 .hero-dot-icons {
   position: absolute;
   top: -10px;
@@ -732,11 +768,14 @@ defineExpose({
 }
 
 /*
- * Badge de turnos sobre el icono. Solo aparece cuando la duracion es finita
- * (los efectos "permanentes" como Second Wind no muestran numero para no
- * contaminar visualmente).
+ * Badge de stacks sobre el icono. Solo aparece cuando el efecto tiene
+ * stacks > 0 (efectos sin stacks, como buffs de turnos puros, no muestran
+ * numero). Mismo shape que el badge de turnos anterior pero en amarillo
+ * (anteriormente rojo) para diferenciar visualmente "stacks pendientes"
+ * de "turnos restantes". El prefijo "x" alinea con la convencion usada
+ * en `EnemyStatusIcons` y los dropdowns detallados del heroe.
  */
-.hero-status-icon-turns {
+.hero-status-icon-stacks {
   position: absolute;
   top: -6px;
   right: -6px;
@@ -744,8 +783,8 @@ defineExpose({
   height: 14px;
   padding: 0 3px;
   border-radius: 7px;
-  background: #ff3333;
-  color: #fff;
+  background: #ffe600;
+  color: #1a1a1a;
   font-family: 'Courier New', monospace;
   font-size: 0.58rem;
   font-weight: 800;
@@ -757,8 +796,9 @@ defineExpose({
   line-height: 1;
 }
 
-.hero-status-icon.kind-buff .hero-status-icon-turns {
-  background: #2e7d32;
+.hero-status-icon.kind-buff .hero-status-icon-stacks {
+  background: #ffd60a;
+  color: #1a1a1a;
 }
 
 .bar-line {
@@ -788,6 +828,26 @@ defineExpose({
 
 .bar-fill.bar-energy {
   background: linear-gradient(90deg, #40c4ff, #82b1ff);
+}
+
+.bar-fill.bar-heroism {
+  background: linear-gradient(90deg, #ffd54f, #ff9f1c);
+  box-shadow: inset 0 0 6px rgba(255, 215, 0, 0.6);
+}
+
+.bar-fill.bar-heroism--ready {
+  background: linear-gradient(90deg, #fff176, #ffb300, #ff6f00);
+  animation: heroismGlow 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes heroismGlow {
+  from { box-shadow: 0 0 4px rgba(255, 215, 0, 0.6), inset 0 0 6px rgba(255, 215, 0, 0.6); }
+  to   { box-shadow: 0 0 12px rgba(255, 215, 0, 1), inset 0 0 10px rgba(255, 215, 0, 0.9); }
+}
+
+.bar-value-heroism {
+  color: #ffe066;
+  text-shadow: 0 0 4px rgba(255, 200, 0, 0.6);
 }
 
 .bar-value {

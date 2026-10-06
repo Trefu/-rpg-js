@@ -8,7 +8,7 @@ import GameUI from './components/ui/GameUI.vue'
 import { useGameStore } from './stores/game'
 import { useExpeditionStore } from './stores/expedition'
 import { AudioManager } from './core/AudioManager'
-import type { ZoneId } from './core/zones/EnemyPools'
+import type { ExpeditionId } from './core/expeditions/types'
 import type { INode } from './core/interfaces/IExpedition'
 import type { Hero } from './core/Hero'
 import { restoreItemsToMax } from './core/items/items'
@@ -106,8 +106,8 @@ const handleResetGame = () => {
   dismissCuriosityToast()
 }
 
-const handleStartRun = (payload: { zoneId: ZoneId, heroes: Hero[] }) => {
-  gameStore.beginRun({ zoneId: payload.zoneId, heroes: payload.heroes })
+const handleStartRun = (payload: { expeditionId: ExpeditionId, heroes: Hero[] }) => {
+  gameStore.beginRun({ expeditionId: payload.expeditionId, heroes: payload.heroes })
 }
 
 const handleNodeSelected = (node: INode) => {
@@ -180,6 +180,12 @@ const handleCuriosityAmbush = (payload: { nodeId: string, enemies: any[] }) => {
 }
 
 const handleCombatEnded = (victory: boolean) => {
+  // Heroismo es un recurso por-combate: la barra no se mantiene entre
+  // combates (victoria o derrota) — siempre vuelve a 0 al salir.
+  for (const hero of gameStore.heroes) {
+    if (!hero) continue
+    hero.heroism = 0
+  }
   if (victory) {
     const node = expeditionStore.selectedNode
     if (node?.type === 'combat' || node?.type === 'boss' || node?.type === 'curiosity') {

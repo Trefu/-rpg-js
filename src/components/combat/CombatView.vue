@@ -7,20 +7,16 @@ import { useGameStore } from '@/stores/game'
 import { MAX_HEROES } from '@/stores/game'
 import type { Hero } from '@/core/Hero'
 import type { IAbility } from '@/core/interfaces/IAbility'
-import AbilitiesIcon from '@/assets/icons/shield.png'
-import ItemIcon from '@/assets/icons/backpack.png'
 import DefenseChallenge from './DefenseChallenge.vue'
 import AnnouncementBanner from './AnnouncementBanner.vue'
 import CombatLogModal from './CombatLogModal.vue'
-import CombatLogPanel from './CombatLogPanel.vue'
 import CombatLogFab from './CombatLogFab.vue'
 import HeroCard from './HeroCard.vue'
 import EnemyCard from './EnemyCard.vue'
 import TurnOrderBar from './TurnOrderBar.vue'
 import MobileCombatHud from './MobileCombatHud.vue'
-import MobileActionBar from './MobileActionBar.vue'
+import AbilitiesActionBar from './AbilitiesActionBar.vue'
 import EnemyDebugPanel from './EnemyDebugPanel.vue'
-import AbilitiesModal from '@/components/ui/AbilitiesModal.vue'
 import ItemsModal from '@/components/ui/ItemsModal.vue'
 import type { DefensePhaseResult } from '@/core/defense/types'
 import type { IEnemy } from '@/core/interfaces/ICharacter'
@@ -61,7 +57,6 @@ const {
   enemyHitPopups,
   enemyVfxEffects,
   heroVfxEffects,
-  showAbilitiesModal,
   abilityCooldowns,
   announcement,
   abilities,
@@ -72,11 +67,12 @@ const {
   defensePhaseIndex,
   defenseIsCrit,
   defenseClouded,
-  openAbilitiesModal,
-  closeAbilitiesModal,
+  defenseRooted,
+  defenseRootedStacks,
+  defenseRootedOverlay,
+  defenseBlinded,
   selectAbility,
   cancelAction,
-  handleAbilitiesModalShortcuts,
   handleCombatShortcuts,
   selectEnemy,
   selectAlly,
@@ -120,10 +116,6 @@ function onMobileAbility(ability: IAbility, index: number) {
   selectAbility(ability, index)
 }
 
-function onMobileAttack() {
-  selectAction('attack')
-}
-
 function onMobileObject() {
   selectAction('Objeto')
 }
@@ -136,10 +128,6 @@ function onCancelAbility() {
   cancelAction()
 }
 
-function onObjectAction() {
-  openItemsModal()
-}
-
 function onItemsModalSelectItem(entryId: string) {
   selectItem(entryId)
 }
@@ -147,13 +135,6 @@ function onItemsModalSelectItem(entryId: string) {
 function onItemsModalClose() {
   closeItemsModal()
 }
-
-const canCancelTargeting = computed(() => {
-  if (!isSelectingTarget.value) return false
-  if (selectedItem.value) return true
-  if (selectedAbility.value && actionRequiresTarget(selectedAbility.value)) return true
-  return false
-})
 
 function isAllySelectable(hero: Hero | null): boolean {
   if (!hero || !isSelectingTarget.value) return false
@@ -241,7 +222,7 @@ watch(() => enemies.value, (newEnemies) => {
 const showLogModal = ref(false)
 
 const onDefensePhaseComplete = (result: DefensePhaseResult) => {
-  handleDefensePhaseComplete(result)
+  void handleDefensePhaseComplete(result)
 }
 
 const onDefenseAllPhasesComplete = (results: DefensePhaseResult[]) => {
@@ -252,14 +233,9 @@ const onDefenseClose = () => {
   closeDefenseChallenge()
 }
 
-const handleAbilitySelect = (ability: any, index: number) => {
-  selectAbility(ability, index)
-}
-
 const handleKeyDown = (e: KeyboardEvent) => {
   if (isMobile.value) return
   handleCombatShortcuts(e)
-  handleAbilitiesModalShortcuts(e)
 }
 
 onMounted(() => {
@@ -360,61 +336,43 @@ onUnmounted(() => {
     </div>
 
     <div v-if="!isMobile" class="combat-bottom-bar">
-      <div class="combat-log-slot">
-        <CombatLogPanel
-          :messages="combatLog"
-          @open-full="showLogModal = true"
-        />
-      </div>
-
-      <div class="actions-area">
-        <div class="action-buttons">
-          <button class="action-btn" :disabled="isPlayerInputLocked" @click="openAbilitiesModal">
-            <img :src="AbilitiesIcon" alt="" class="btn-icon" /> Habilidades <span class="shortcut-badge">[A]</span>
-          </button>
-          <button
-            class="action-btn item"
-            :disabled="isPlayerInputLocked || usedItemThisTurn"
-            :class="{ 'action-used': usedItemThisTurn }"
-            @click="onObjectAction"
-          >
-            <img :src="ItemIcon" alt="" class="btn-icon" />
-            Objeto
-            <span v-if="usedItemThisTurn" class="action-used-tag">usado</span>
-          </button>
-          <button
-            class="action-btn cancel"
-            :class="{ 'is-hidden': !canCancelTargeting }"
-            :inert="!canCancelTargeting"
-            :aria-hidden="!canCancelTargeting"
-            :tabindex="canCancelTargeting ? 0 : -1"
-            @click="onCancelAbility"
-          >
-            ✕ Cancelar <span class="shortcut-badge">[Esc]</span>
-          </button>
-        </div>
-      </div>
+      <AbilitiesActionBar
+        class="desktop-actions"
+        layout="desktop"
+        :abilities="abilities"
+        :ability-cooldowns="abilityCooldowns"
+        :ability-shortcuts="abilityShortcuts"
+        :player-energy="player?.energy ?? 0"
+        :is-player-input-locked="isPlayerInputLocked"
+        :selected-ability="selectedAbility"
+        :is-selecting-target="isSelectingTarget"
+        :used-item-this-turn="usedItemThisTurn"
+        :caster="player"
+        @select-ability="onMobileAbility"
+        @object="onMobileObject"
+        @cancel="onCancelAbility"
+      />
     </div>
 
-    <MobileActionBar
+    <AbilitiesActionBar
       v-if="isMobile"
       class="mobile-action-bar"
+      layout="mobile"
       :abilities="abilities"
       :ability-cooldowns="abilityCooldowns"
+      :ability-shortcuts="abilityShortcuts"
       :player-energy="player?.energy ?? 0"
       :is-player-input-locked="isPlayerInputLocked"
       :selected-ability="selectedAbility"
       :is-selecting-target="isSelectingTarget"
       :used-item-this-turn="usedItemThisTurn"
       :caster="player"
-      @attack="onMobileAttack"
       @select-ability="onMobileAbility"
       @object="onMobileObject"
       @cancel="onCancelAbility"
     />
 
     <CombatLogFab
-      v-if="isMobile"
       class="combat-log-fab"
       :messages="combatLog"
       @open-full="showLogModal = true"
@@ -432,19 +390,13 @@ onUnmounted(() => {
       :phase-index="defensePhaseIndex"
       :is-crit="defenseIsCrit"
       :clouded="defenseClouded"
+      :rooted="defenseRooted"
+      :rooted-stacks="defenseRootedStacks"
+      :rooted-overlay="defenseRootedOverlay"
+      :blinded="defenseBlinded"
       @phase-complete="onDefensePhaseComplete"
       @all-phases-complete="onDefenseAllPhasesComplete"
       @close="onDefenseClose"
-    />
-
-    <AbilitiesModal
-      :show="showAbilitiesModal"
-      :abilities="abilities"
-      :ability-cooldowns="abilityCooldowns"
-      :ability-shortcuts="abilityShortcuts"
-      :caster="player"
-      @close="closeAbilitiesModal"
-      @select-ability="handleAbilitySelect"
     />
 
     <ItemsModal

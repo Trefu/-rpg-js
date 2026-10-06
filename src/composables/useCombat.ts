@@ -2,14 +2,16 @@ import { ref, computed, nextTick } from 'vue'
 import { useGameStore } from '@/stores/game'
 import type { Hero } from '@/core/Hero'
 import { AudioManager } from '@/core/AudioManager'
-import type { IEnemy } from '@/core/interfaces/ICharacter'
+import type { IEnemy, ICharacter } from '@/core/interfaces/ICharacter'
 import type { IAbility, AbilityContext, VfxAssetId, VfxEffect } from '@/core/interfaces/IAbility'
 import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
 import type { IItem, ItemTargetType } from '@/core/items/types'
 import { getItemOrThrow } from '@/core/items/items'
 import { consumeItem, getInventoryEntries, type InventoryEntry } from '@/core/items/inventory'
-import { StatusEffects, applyFailureEffect } from '@/core/StatusEffects'
-import { applyDamageVariance } from '@/core/abilities/Abilities'
+import { StatusEffects, applyFailureEffect, getEffectCategory, DOT_STATUS_TYPES, STACKABLE_NON_DOT_STATUS_TYPES, NON_TURN_BASED_CATEGORIES } from '@/core/StatusEffects'
+import { applyDamageVariance, getBasicAttackHitVfx } from '@/core/abilities/Abilities'
+import type { DamageTypeId } from '@/core/combat/damageTypes'
+import type { DamageType } from '@/core/interfaces/IAbility'
 import { DEFAULT_IMPACT_VFX, resolveFailureVfx } from '@/core/defense/failureVfx'
 import type {
   DefenseChallengeResult,
@@ -31,7 +33,7 @@ import {
   nextActorId,
   advanceAfterTurn,
   predictNextTurns,
-  STUN_EFFECT_TYPE,
+  isSkipTurnEffect,
   type TurnActor,
   type TurnCostState,
   type TurnQueueEntry
@@ -45,18 +47,60 @@ const TURN_QUEUE_SIZE = 8
 const DO_STATUS_TYPES: Set<string> = new Set([
   StatusEffects.BURN.type,
   StatusEffects.POISON.type,
-  StatusEffects.FREEZE.type
+  StatusEffects.FREEZE.type,
+  StatusEffects.BLEED.type
+])
+
+// Tipos de estado con HoT (Heal over Time). Su tick cura al portador en vez
+// de dañarlo. El monto a curar viene de `damagePerTurn` (interpretado
+// como negativo en el template, ej. `damagePerTurn: -5` cura 5 HP).
+// Bloque D Tier 3.
+const HOT_STATUS_TYPES: Set<string> = new Set([
+  StatusEffects.REGEN.type
+])
+
+// Union de todos los efectos que disparan tick por turno en el heroe.
+// Mantener como union evita recorrer `p.statusEffects` entero por turno.
+const TICKABLE_STATUS_TYPES: Set<string> = new Set([
+  ...DO_STATUS_TYPES,
+  ...HOT_STATUS_TYPES
 ])
 
 // Etiqueta legible del "tipo de daño" que se muestra en el banner del DoT.
 const DOT_KIND_LABEL: Record<string, string> = {
   [StatusEffects.BURN.type]: 'fuego',
   [StatusEffects.POISON.type]: 'veneno',
-  [StatusEffects.FREEZE.type]: 'frío'
+  [StatusEffects.FREEZE.type]: 'frío',
+  [StatusEffects.BLEED.type]: 'sangrado'
+}
+
+// Tipo elemental del daño que aplica cada DoT al portador. Usado por
+// `Character.takeDamage({ damageType })` para que las resistencias
+// elementales se apliquen tambien al dano por tiempo (ej. Resistencia al
+// Fuego reduce Quemadura, Resistencia al Agua reduce Congelado).
+// BLEED intencionalmente sin tipo: es dano fisico puro, no se reduce con
+// resistencias elementales.
+const DOT_DAMAGE_TYPE: Record<string, DamageTypeId | undefined> = {
+  [StatusEffects.BURN.type]: 'fire',
+  [StatusEffects.POISON.type]: 'poison',
+  [StatusEffects.FREEZE.type]: 'water'
 }
 
 export interface CombatConfig {
   isTraining?: boolean
+  /**
+   * Duracion base (ms) del banner que anuncia el ataque del enemigo antes de
+   * que arranque el desafio de defensa. Default 3000 ms para que el jugador
+   * tenga tiempo de leer el nombre del ataque y a quien va dirigido. En
+   * criticos se suma un bonus fijo de `enemyAttackAnnouncementCritBonusMs`.
+   * En modo entrenamiento se ignora y se usa un valor fijo mas corto.
+   */
+  enemyAttackAnnouncementMs?: number
+  /**
+   * Bonus extra (ms) que se suma al banner del ataque enemigo cuando es
+   * critico. Default 500 ms.
+   */
+  enemyAttackAnnouncementCritBonusMs?: number
   onCombatEnd?: (victory: boolean) => void
   onTrainingEnd?: () => void
 }
@@ -66,6 +110,7 @@ interface EnemyVfxEffect {
   key: number
   asset: VfxAssetId
   durationMs: number
+  rotationDeg?: number
 }
 
 /**
@@ -78,6 +123,12 @@ interface HeroVfxEffect {
   key: number
   asset: VfxAssetId
   durationMs: number
+  /**
+   * Si es `true`, la UI debe espejar el GIF horizontalmente. Lo emite el
+   * `VfxEffect` que origina el render (ver `failureVfx.ts`).
+   */
+  mirrored?: boolean
+  rotationDeg?: number
 }
 
 export function useCombat(config: CombatConfig = {}) {
@@ -126,7 +177,6 @@ export function useCombat(config: CombatConfig = {}) {
     offsetY: number
     duration: number
   }[]>([])
-  const showAbilitiesModal = ref(false)
   const abilityCooldowns = ref<{ [type: string]: number }>({})
 
   // ---- Motor de turnos (FF/Persona style) ----
@@ -137,12 +187,31 @@ export function useCombat(config: CombatConfig = {}) {
     return new Set(combatant.statusEffects.filter(e => e.turns > 0).map(e => e.type))
   }
 
+  /**
+   * Calcula la agilidad efectiva de un combatiente sumando los bonuses
+   * de efectos activos (ej. Haste +3). Se aplica ANTES de pasar al motor
+   * de turnos para que la cola de turnos refleje la agilidad buffada.
+   */
+  function effectiveAgility(combatant: { baseStats: { agility: { value: number } }, statusEffects: IStatusEffect[] }): number {
+    let agility = combatant.baseStats.agility.value
+    for (const effect of combatant.statusEffects) {
+      if (effect.turns <= 0) continue
+      // Haste (Bloque D Tier 3): suma `speedBonus` a la agilidad.
+      // Extensible: cualquier futuro efecto puede exportar un delta de
+      // agilidad añadiendo `agilityBonus?: number` a IStatusEffect.
+      if (effect.type === StatusEffects.HASTE.type && typeof effect.speedBonus === 'number') {
+        agility += effect.speedBonus
+      }
+    }
+    return Math.max(1, agility)
+  }
+
   const turnActors = computed<TurnActor[]>(() => {
     const heroesList: TurnActor[] = heroes.value.map(h => ({
       id: h.id,
       name: h.name,
       kind: 'hero',
-      agility: h.baseStats.agility.value,
+      agility: effectiveAgility(h),
       isAlive: h.isAlive,
       activeEffectTypes: activeEffectTypesOf(h),
       icon: h.sprite ?? ''
@@ -151,7 +220,7 @@ export function useCombat(config: CombatConfig = {}) {
       id: e.id,
       name: e.name,
       kind: 'enemy',
-      agility: e.baseStats.agility.value,
+      agility: effectiveAgility(e),
       isAlive: e.isAlive,
       activeEffectTypes: activeEffectTypesOf(e),
       icon: (e as any).sprite ?? ''
@@ -211,13 +280,36 @@ const isProcessingDot = ref(false)
   const defenseZones = ref<DefensePhaseZone[]>([])
   const defensePhaseIndex = ref(0)
   const defenseEnemyId = ref<string | null>(null)
-  const defenseIsCrit = ref(false)
-  const defenseClouded = ref(false)
+const defenseIsCrit = ref(false)
+const defenseClouded = ref(false)
+  const defenseRooted = ref(false)
+  const defenseRootedStacks = ref(0)
+  const defenseRootedOverlay = ref<string | null>(null)
+  const defenseBlinded = ref(false)
   let pendingDefenseResolve: ((result: DefenseChallengeResult | null) => void) | null = null
   let pendingDefensePattern: DefensePatternConfig | null = null
   let pendingDefenseEnemy: IEnemy | null = null
   let pendingDefenseTarget: Hero | null = null
+  /**
+   * Dano real (post-bloqueo) que sufrio el primario durante el desafio
+   * de defensa actual. Se incrementa por fase y se resetea al iniciar
+   * cada desafio. Hoy no se consume fuera del propio phase handler
+   * (el splash post-defense se aplica PER FASE), pero lo conservamos
+   * como registro accesible para tooling / logs de debug.
+   */
+  let pendingDefensePrimaryDamageDealt = 0
   let pendingDefenseCrit: CritResult = { multiplier: 1, isCrit: false, isOvercrit: false }
+  /**
+   * Tipos de defense-debuff que fueron aplicados durante el turno enemigo
+   * actual via `applyFailureEffect`. El decremento al cierre de este turno
+   * (`decrementHeroesDefenseDebuffs`) los skipea: queremos que sobrevivan
+   * el turno en que se aplicaron y puedan afectar el SIGUIENTE desafio
+   * de defensa. Se limpia al inicio de cada `startEnemyTurn`.
+   *
+   * Aplica a cualquier effect con `cleanAtTurnStart: false` (ROOTED,
+   * BLINDED, CLOUDED) — el sistema es generico, no discrimina por tipo.
+   */
+  const defenseDebuffsAppliedThisTurn = new Set<string>()
   let popupKey = 0
   let vfxEffectKey = 0
   let heroVfxKey = 0
@@ -246,7 +338,13 @@ const isProcessingDot = ref(false)
     opts: { crit?: CritResult } = {}
   ): Promise<DefenseChallengeResult | null> {
     return new Promise((resolve) => {
-      const selectedPattern = preSelectedPattern ?? enemy.selectAttackPattern(target)
+      // `preSelectedPattern` siempre viene ya filtrado (startEnemyTurn branch
+      // por tipo antes de llegar acá). Si por algún motivo llega sin
+      // preSelectedPattern y el enemigo devolvió una IAbility, caemos a un
+      // patron vacio para no romper.
+      const fallback = enemy.selectAttackPattern(target)
+      const selectedPattern: DefensePatternConfig = preSelectedPattern
+        ?? ('damageMultiplier' in fallback ? fallback : ({} as DefensePatternConfig))
       // Pasamos el damageType para que la defensa use mind ante daño mágico
       // (fire/frost/poison/shadow/arcane/holy/radiant) o body ante daño físico.
       const modifiers = getDefenseModifiers(target, enemy, selectedPattern.damageType)
@@ -259,17 +357,27 @@ const isProcessingDot = ref(false)
       pendingDefenseEnemy = enemy
       pendingDefenseTarget = target
       pendingDefenseCrit = crit
+      pendingDefensePrimaryDamageDealt = 0
       defensePattern.value = adjusted
       defenseZones.value = zones
       defensePhaseIndex.value = 0
       defenseEnemyId.value = enemy.id
       defenseIsCrit.value = crit.isCrit
       defenseClouded.value = typeof target.hasStatusEffect === 'function' && target.hasStatusEffect('clouded')
+      const rootedFx = target.statusEffects.find(e => e.type === 'rooted')
+      const initialRootedStacks = rootedFx ? (rootedFx.stacks ?? 0) : 0
+      defenseRootedStacks.value = initialRootedStacks
+      defenseRooted.value = initialRootedStacks > 0
+      defenseBlinded.value = typeof target.hasStatusEffect === 'function' && target.hasStatusEffect('blinded')
+      defenseRootedOverlay.value = (() => {
+        if (!defenseRooted.value) return null
+        return rootedFx?.defenseOverlay ?? null
+      })()
       isDefenseActive.value = true
     })
   }
 
-  function handleDefensePhaseComplete(result: DefensePhaseResult) {
+  async function handleDefensePhaseComplete(result: DefensePhaseResult) {
     // Dispara los hooks `onBlock` una vez por cada fase acertada del desafio de defensa.
     // Asi, una fase que entra en el area de exito consume 1 carga del buff.
     if (result.outcome === 'success') {
@@ -288,23 +396,66 @@ const isProcessingDot = ref(false)
 
       if (result.outcome === 'success') {
         const blockedDmg = Math.floor(phaseDamage / 2)
-        target.takeDamage(blockedDmg)
+        target.takeDamage(blockedDmg, { damageType: pattern.damageType })
+        pendingDefensePrimaryDamageDealt += blockedDmg
         showPlayerHit(blockedDmg, { heroId: target.id, variant: 'blocked' })
+        showHeroVfx(target.id, { asset: 'hero-block', durationMs: 1000 })
         audioManager.playBlockSound()
         if (typeof target.restoreEnergy === 'function') {
           const restored = target.restoreEnergy(5)
           if (restored > 0) addToLog(`¡Bloqueo exitoso! +${restored} de energía.`)
         }
         addToLog(`Bloqueaste el golpe. Recibes ${blockedDmg} de daño.`)
+        // Splash per-fase: el resto del party recibe el `damageMultiplier`
+        // del daño mitigado de ESTA fase. Sin delay entre splashees para
+        // mantener el ritmo del desafio (FEEDBACK_DURATION_MS ya cubre
+        // el feedback visual entre fases). `splashKind: 'blocked'` para
+        // que el feedback de los splashees sea coherente con el bloqueo
+        // del primario (floater "blocked" + sin VFX de impacto).
+        if (pattern.mitigatedSplash) {
+          await applyEnemyMitigatedSplash(
+            blockedDmg,
+            pattern.mitigatedSplash.damageMultiplier,
+            target,
+            enemy,
+            pattern.damageType as DamageType | undefined,
+            { delayPerSplasheeMs: 0, splashKind: 'blocked' }
+          )
+        }
       } else {
         const dmg = Math.max(1, phaseDamage)
-        target.takeDamage(dmg)
+        target.takeDamage(dmg, { damageType: pattern.damageType })
+        pendingDefensePrimaryDamageDealt += dmg
         showPlayerHit(dmg, { heroId: target.id, isCrit: wasCrit, variant: wasCrit ? 'crit' : 'damage' })
-        showHeroVfx(target.id, resolveFailureVfx(pattern, wasCrit))
+        const failureVfx = resolveFailureVfx(pattern, wasCrit, defensePhaseIndex.value)
+        showHeroVfx(target.id, failureVfx)
         if (pattern.customSound) audioManager.playCustomSound(pattern.customSound)
         else audioManager.playAttackSound()
         audioManager.playHitSound()
         addToLog(`¡El golpe atraviesa tu defensa! Recibes ${phaseDamage} de daño.`)
+        // Splash per-fase (mismo caso que en success, sobre el daño real
+        // que sufrio el primario). `splashKind: 'damage'` para que los
+        // splashees muestren animacion de impacto + floater de daño,
+        // igual que el primario. Compartimos el mismo `failureVfx` con
+        // los splashees para que todos los heroes involucrados vean el
+        // mismo slash enemigo de la fase.
+        if (pattern.mitigatedSplash) {
+          await applyEnemyMitigatedSplash(
+            dmg,
+            pattern.mitigatedSplash.damageMultiplier,
+            target,
+            enemy,
+            pattern.damageType as DamageType | undefined,
+            { delayPerSplasheeMs: 0, splashKind: 'damage', vfxForSplashees: failureVfx }
+          )
+        }
+
+        // El heroe RECIBIO el golpe: consumir 1 stack de ROOTED (si lo tiene).
+        // Cada fase que falla consume 1 stack, de modo que con N stacks y un
+        // ataque de M fases, las primeras N fases impactan inevitablemente y
+        // las restantes se pueden bloquear. Si los stacks llegan a 0, el
+        // efecto se elimina y el heroe recupera la capacidad de bloquear.
+        consumeRootedStack(target)
 
         if (pattern.onFailureEffect && target.isAlive) {
           applyFailureEffect(target, pattern.onFailureEffect, { isCrit: wasCrit })
@@ -317,9 +468,22 @@ const isProcessingDot = ref(false)
             const critLabel = wasCrit ? ' (crítico)' : ''
             addToLog(`¡Sufres el efecto: ${template.name}${stackLabel}${critLabel}!`)
             showAnnouncement(`¡${template.name}${stackLabel}${critLabel}!`, 'status', 1800)
+            // Marca el efecto como "aplicado este turno" si es un defense
+            // debuff (cleanAtTurnStart: false). Asi el decremento al cierre
+            // del turno enemigo actual NO lo borra: queremos que sobreviva
+            // hasta el siguiente desafio de defensa.
+            if (template.cleanAtTurnStart === false) {
+              defenseDebuffsAppliedThisTurn.add(fx.statusType)
+            }
           }
         }
       }
+
+      // Refrescar el estado visual de ROOTED en la UI del DefenseChallenge:
+      // si los stacks cambiaron durante esta fase (consumidos o agregados por
+      // un onFailureEffect stackable), la barra de la fase siguiente tiene
+      // que reflejar el conteo actual, no el del inicio del desafio.
+      refreshDefenseRootedFromTarget(target)
 
       if (!target.isAlive) {
         closeDefenseChallenge()
@@ -337,6 +501,44 @@ const isProcessingDot = ref(false)
       // Mismo motivo: dejamos el badge "Defendiendo" hasta el siguiente
       // turno de heroe o hasta el siguiente ataque enemigo.
     }
+  }
+
+  /**
+   * Consume 1 stack de ROOTED sobre el target. Si los stacks llegan a 0,
+   * el efecto se elimina automaticamente (removeStatusEffect dispara
+   * `onRemove` si esta definido). Si el target no tiene ROOTED, noop.
+   */
+  function consumeRootedStack(target: Hero | null): void {
+    if (!target || typeof target.statusEffects?.find !== 'function') return
+    const rooted = target.statusEffects.find(e => e.type === StatusEffects.ROOTED.type)
+    if (!rooted) return
+    const current = typeof rooted.stacks === 'number' ? rooted.stacks : 0
+    const next = current - 1
+    if (next <= 0) {
+      target.removeStatusEffect(StatusEffects.ROOTED.type)
+    } else {
+      rooted.stacks = next
+    }
+  }
+
+  /**
+   * Re-lee los stacks actuales de ROOTED sobre el target y sincroniza
+   * `defenseRooted`, `defenseRootedStacks` y `defenseRootedOverlay` para
+   * que la UI del `DefenseChallenge` (cuyas props son snapshots) muestre
+   * el estado correcto al iniciar la fase siguiente.
+   */
+  function refreshDefenseRootedFromTarget(target: Hero | null): void {
+    if (!target || typeof target.statusEffects?.find !== 'function') {
+      defenseRooted.value = false
+      defenseRootedStacks.value = 0
+      defenseRootedOverlay.value = null
+      return
+    }
+    const rooted = target.statusEffects.find(e => e.type === StatusEffects.ROOTED.type)
+    const stacks = rooted ? (rooted.stacks ?? 0) : 0
+    defenseRootedStacks.value = stacks
+    defenseRooted.value = stacks > 0
+    defenseRootedOverlay.value = stacks > 0 ? (rooted?.defenseOverlay ?? null) : null
   }
 
   /**
@@ -395,6 +597,7 @@ const isProcessingDot = ref(false)
     pendingDefensePattern = null
     pendingDefenseEnemy = null
     pendingDefenseTarget = null
+    pendingDefensePrimaryDamageDealt = 0
     pendingDefenseCrit = { multiplier: 1, isCrit: false, isOvercrit: false }
     isDefenseActive.value = false
     defensePattern.value = null
@@ -402,6 +605,10 @@ const isProcessingDot = ref(false)
     defenseEnemyId.value = null
     defenseIsCrit.value = false
     defenseClouded.value = false
+    defenseRooted.value = false
+    defenseRootedStacks.value = 0
+    defenseRootedOverlay.value = null
+    defenseBlinded.value = false
   }
 
   function resetAbilityCooldowns() {
@@ -421,20 +628,9 @@ const isProcessingDot = ref(false)
     if (cooldown > 0) abilityCooldowns.value[type] = cooldown + 1
   }
 
-  function openAbilitiesModal() {
-    if (isPlayerInputLocked.value) return
-    showAbilitiesModal.value = true
-  }
-
-  function closeAbilitiesModal() {
-    showAbilitiesModal.value = false
-  }
-
   function selectAbility(ability: IAbility, _index: number) {
     if (isPlayerInputLocked.value) return
-    if (abilityCooldowns.value[ability.type] > 0) return
-    if (!canAffordAbility(ability)) {
-      closeAbilitiesModal()
+    if (!canCastAbility(ability)) {
       return
     }
     // Limpia cualquier sticky pendiente antes de empezar una nueva selección:
@@ -443,7 +639,6 @@ const isProcessingDot = ref(false)
     // reemplazado por el de la nueva ability, no apilarse en la cola.
     clearAnnouncement()
     selectedAbility.value = ability
-    closeAbilitiesModal()
 
     if (!actionRequiresTarget(ability)) {
       const caster = player.value as Hero | null
@@ -465,11 +660,88 @@ const isProcessingDot = ref(false)
     const caster = player.value as Hero | null
     if (!caster) return false
     const cost = ability.energyCost ?? 0
-    if (cost <= 0) return true
-    if (caster.energy >= cost) return true
-    showAnnouncement(`¡Energia insuficiente! (${caster.energy}/${cost})`, 'status', 1500)
-    addToLog(`Energia insuficiente para ${ability.name} (necesitas ${cost}).`)
-    return false
+    if (cost > 0 && caster.energy < cost) {
+      showAnnouncement(`¡Energia insuficiente! (${caster.energy}/${cost})`, 'status', 1500)
+      addToLog(`Energia insuficiente para ${ability.name} (necesitas ${cost}).`)
+      return false
+    }
+    const heroismCost = ability.heroismCost ?? 0
+    if (heroismCost > 0) {
+      const heroism = (caster as any).heroism ?? 0
+      const maxHeroism = (caster as any).maxHeroism ?? 100
+      if (heroism < heroismCost) {
+        showAnnouncement(`¡Heroismo insuficiente! (${Math.floor(heroism)}/${heroismCost})`, 'status', 1500)
+        addToLog(`Heroismo insuficiente para ${ability.name} (necesitas ${heroismCost}).`)
+        return false
+      }
+      if (heroismCost >= maxHeroism && heroism < maxHeroism) {
+        showAnnouncement(`Necesitas la barra de Heroismo al maximo (${Math.floor(heroism)}/${maxHeroism}).`, 'status', 1500)
+        addToLog(`Heroismo al maximo requerido para ${ability.name}.`)
+        return false
+      }
+    }
+    return true
+  }
+
+  /**
+   * Devuelve `true` si la ability es un ataque basico (siempre casteable,
+   * incluso bajo Silenciado). Cubre los 3 tipos de basic attack:
+   * generico + variantes por clase.
+   */
+  function isBasicAttack(ability: IAbility): boolean {
+    return ability.type === 'attack'
+      || ability.type === 'warriorAttack'
+      || ability.type === 'clericAttack'
+  }
+
+  /**
+   * Razon por la que una ability esta pre-bloqueada en la UI, o `null`
+   * si puede castearse. Consumida por el action bar / modal de abilities
+   * para deshabilitar slots ANTES de que el jugador intente seleccionarlos
+   * (mismo patron visual que cooldown/sin-energia).
+   */
+  function getAbilityBlockReason(ability: IAbility): 'cooldown' | 'no-energy' | 'silenced' | null {
+    if (abilityCooldowns.value[ability.type] > 0) return 'cooldown'
+    if (!canAffordAbility(ability)) return 'no-energy'
+    const caster = player.value as Hero | null
+    if (caster && caster.hasStatusEffect(StatusEffects.SILENCED.type) && !isBasicAttack(ability)) {
+      return 'silenced'
+    }
+    return null
+  }
+
+  /**
+   * Gate unificado de "se puede castear esta ability ahora?".
+   *
+   * Reune los tres checks que bloquean el casteo en cualquier entry point
+   * (`selectAbility` desde el modal/shortcut, `triggerExecution` defensivo
+   * despues de seleccionar objetivo) para que no haya un check suelto en
+   * `executeAbility` que diverge de la UX de los otros dos:
+   *
+   * 1. **Cooldown**: si la ability esta activa en `abilityCooldowns`, retorna
+   *    `false` sin feedback (el modal ya muestra el cooldown en cada slot).
+   * 2. **Energia**: si `energyCost > caster.energy`, emite announcement + log
+   *    y retorna `false`. Mismo formato que el resto de rechazos visibles.
+   * 3. **Silenciado**: si el caster tiene `SILENCED` y la ability NO es un
+   *    ataque basico, emite announcement + log explicando que no se puede
+   *    castear (mismo formato que el rechazo de energia).
+   *
+   * Devuelve `true` si la ability pasa los tres gates. NO cobra energia — eso
+   * lo hace `triggerExecution` justo despues de pasar el gate.
+   */
+  function canCastAbility(ability: IAbility): boolean {
+    if (abilityCooldowns.value[ability.type] > 0) return false
+    if (!canAffordAbility(ability)) return false
+
+    const caster = player.value as Hero | null
+    if (!caster) return false
+
+    if (caster.hasStatusEffect(StatusEffects.SILENCED.type) && !isBasicAttack(ability)) {
+      showAnnouncement(`${caster.name} está Silenciado`, 'status', 1500)
+      addToLog(`${caster.name} está Silenciado y no puede lanzar ${ability.name}.`)
+      return false
+    }
+    return true
   }
 
   // ===== Objetos =====
@@ -640,12 +912,22 @@ const isProcessingDot = ref(false)
       return
     }
 
+    // Gate defensivo: en teoria `selectAbility` ya llamo a `canCastAbility`,
+    // pero el estado (cooldown/energy/silenced) podria haber cambiado entre
+    // la seleccion del objetivo y este trigger (ej: pasiva enemiga que
+    // silencia). Si falla, libera input sin consumir turno.
+    if (!canCastAbility(ability)) {
+      cancelAction()
+      return
+    }
+
     if (ability.energyCost && ability.energyCost > 0) {
-      if (caster.energy < ability.energyCost) {
-        cancelAction(`Energia insuficiente para ${ability.name} (necesitas ${ability.energyCost}).`)
-        return
-      }
       caster.spendEnergy(ability.energyCost)
+    }
+
+    if (ability.heroismCost && ability.heroismCost > 0 && typeof caster.spendHeroism === 'function') {
+      caster.spendHeroism(ability.heroismCost)
+      showAnnouncement(`¡${ability.name}!`, 'attack', 1800, { priority: 90 })
     }
 
     executeAbility(ability.energyCost ?? 0)
@@ -679,34 +961,25 @@ const isProcessingDot = ref(false)
     triggerExecution(hero)
   }
 
-  const abilityShortcuts = ['q', 'w', 'e', 'r']
+  const abilityShortcuts = computed<string[]>(() => {
+    const keys = ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p']
+    return keys.slice(0, abilities.value.length)
+  })
 
-  function handleAbilitiesModalShortcuts(e: KeyboardEvent) {
-    if (!showAbilitiesModal.value) {
-      if (e.key.toLowerCase() === 'a' && !isPlayerInputLocked.value) {
-        openAbilitiesModal()
-        e.preventDefault()
-      }
-      return
-    }
-
-    if (e.key.toLowerCase() === 'a') {
-      closeAbilitiesModal()
-      e.preventDefault()
-      return
-    }
-
-    const keyIndex = abilityShortcuts.indexOf(e.key.toLowerCase())
-    if (keyIndex !== -1 && abilities.value[keyIndex]) {
-      selectAbility(abilities.value[keyIndex], keyIndex)
-      e.preventDefault()
-    }
+  function handleAbilityBarShortcuts(e: KeyboardEvent) {
+    if (isPlayerInputLocked.value) return
+    if (isSelectingTarget.value) return
+    const keyIndex = abilityShortcuts.value.indexOf(e.key.toLowerCase())
+    if (keyIndex === -1 || !abilities.value[keyIndex]) return
+    selectAbility(abilities.value[keyIndex], keyIndex)
+    e.preventDefault()
   }
 
   function handleCombatShortcuts(e: KeyboardEvent) {
     if (isCombatEnded.value) return
-    if (showAbilitiesModal.value) return
     if (showItemsModal.value) return
+    handleAbilityBarShortcuts(e)
+    if (e.defaultPrevented) return
 
     if (e.key.toLowerCase() === 'o' && !isPlayerInputLocked.value) {
       openItemsModal()
@@ -761,7 +1034,7 @@ const isProcessingDot = ref(false)
     const key = vfxEffectKey++
     enemyVfxEffects.value = [
       ...enemyVfxEffects.value,
-      { id: enemyId, key, asset: effect.asset, durationMs: effect.durationMs }
+      { id: enemyId, key, asset: effect.asset, durationMs: effect.durationMs, rotationDeg: effect.rotationDeg }
     ]
     setTimeout(() => {
       enemyVfxEffects.value = enemyVfxEffects.value.filter(effect => effect.key !== key)
@@ -777,7 +1050,14 @@ const isProcessingDot = ref(false)
     const key = heroVfxKey++
     heroVfxEffects.value = [
       ...heroVfxEffects.value,
-      { heroId, key, asset: effect.asset, durationMs: effect.durationMs }
+      {
+        heroId,
+        key,
+        asset: effect.asset,
+        durationMs: effect.durationMs,
+        mirrored: effect.mirrored,
+        rotationDeg: effect.rotationDeg
+      }
     ]
     setTimeout(() => {
       heroVfxEffects.value = heroVfxEffects.value.filter(e => e.key !== key)
@@ -837,6 +1117,22 @@ const isProcessingDot = ref(false)
         }
       }
     }
+    // Heroismo pasivo de fin de turno: mantiene la barra en movimiento
+    // incluso en turnos donde el heroe no ataca ni recibe dano.
+    if (hero && typeof hero.restoreHeroism === 'function') {
+      const heroismRegen = typeof hero.getTurnEndHeroismRegen === 'function'
+        ? hero.getTurnEndHeroismRegen()
+        : 0
+      if (heroismRegen > 0) {
+        const wasReady = typeof hero.canUseUltimate === 'function' && hero.canUseUltimate()
+        const gained = hero.restoreHeroism(heroismRegen)
+        const isReadyNow = typeof hero.canUseUltimate === 'function' && hero.canUseUltimate()
+        if (gained > 0 && !wasReady && isReadyNow) {
+          showAnnouncement(`¡${hero.name} puede usar su definitiva!`, 'info', 1500)
+          addToLog(`¡${hero.name} carga su Heroismo al maximo!`)
+        }
+      }
+    }
     const id = currentActorId.value
     if (id) {
       turnState.value = advanceAfterTurn(turnState.value, turnActors.value, id)
@@ -874,8 +1170,12 @@ const isProcessingDot = ref(false)
     currentActorId.value = nextId
     const actor = turnActors.value.find(a => a.id === nextId)
     if (!actor) return
-    if (actor.activeEffectTypes.has(STUN_EFFECT_TYPE)) {
-      await skipStunnedTurn(actor)
+    // Detecta cualquier CC que skipee el turno (stun, rooted, etc.).
+    // Buscamos el primer efecto de skip en `activeEffectTypes` para logear
+    // el nombre correcto en el banner/announcement.
+    const skipEffectType = Array.from(actor.activeEffectTypes).find(t => isSkipTurnEffect(t))
+    if (skipEffectType) {
+      await skipCCTurn(actor, skipEffectType)
       return
     }
     if (!actor.isAlive) {
@@ -890,11 +1190,16 @@ const isProcessingDot = ref(false)
     }
   }
 
-  async function skipStunnedTurn(actor: TurnActor) {
+  async function skipCCTurn(actor: TurnActor, effectType: string) {
     const combatant = (enemies.value.find(e => e.id === actor.id)
       ?? heroes.value.find(h => h.id === actor.id)) as
       | { reduceStatusEffects?: () => void } | undefined
-    addToLog(`${actor.name} está aturdido y pierde su turno.`)
+    // Log diferenciado por tipo de CC. Mantiene compatibilidad con stun
+    // (mensaje previo) y suma rooted/horror.
+    let skipLabel: string
+    if (effectType === StatusEffects.HORROR.type) skipLabel = 'aterrorizado y pierde su turno'
+    else skipLabel = 'aturdido y pierde su turno'
+    addToLog(`${actor.name} está ${skipLabel}.`)
     showAnnouncement(`${actor.name} pierde su turno`, 'status', 1400)
     if (combatant && typeof combatant.reduceStatusEffects === 'function') {
       combatant.reduceStatusEffects()
@@ -932,6 +1237,11 @@ const isProcessingDot = ref(false)
   }
 
   async function startEnemyTurn(actor: TurnActor) {
+    // Reset del registro de defense-debuffs aplicados este turno. El
+    // decremento al cierre skipea cualquier effect marcado aqui, de modo
+    // que sobrevive el turno en el que se aplico y puede afectar el
+    // SIGUIENTE desafio de defensa.
+    defenseDebuffsAppliedThisTurn.clear()
     const enemy = enemies.value.find(e => e.id === actor.id)
     if (!enemy || !enemy.isAlive) {
       turnState.value = advanceAfterTurn(turnState.value, turnActors.value, actor.id)
@@ -989,7 +1299,9 @@ const isProcessingDot = ref(false)
     const announceText = isCrit
       ? `Crítico ${enemyLabel} va a usar ${attackName} contra ${target.name}!`
       : `${enemyLabel} va a usar ${attackName} contra ${target.name}!`
-    const announceDuration = (config.isTraining ? 800 : 1400) + (isCrit ? 500 : 0)
+    const baseAnnouncement = config.enemyAttackAnnouncementMs ?? 3000
+    const critBonus = config.enemyAttackAnnouncementCritBonusMs ?? 500
+    const announceDuration = (config.isTraining ? 800 : baseAnnouncement) + (isCrit ? critBonus : 0)
     const announceVariant: 'attack' | 'crit-attack' = isCrit ? 'crit-attack' : 'attack'
     showAnnouncement(announceText, announceVariant, announceDuration)
     addToLog(isCrit
@@ -1000,10 +1312,23 @@ const isProcessingDot = ref(false)
 
     await showEnemyStatusSequence(enemy)
 
-    await startDefenseChallenge(enemy, target, selectedPattern, { crit })
-
-    if (selectedPattern.multiHeroAttack) {
-      await applyEnemyMultiHeroSplash(selectedPattern.multiHeroAttack, target, enemy)
+    // Branch: si la accion seleccionada es una IAbility (ej: DragonRoar),
+    // se ejecuta directamente sin defense challenge. Si es un
+    // DefensePatternConfig, va por el flujo tradicional de defensa.
+    if ('execute' in selectedPattern && typeof selectedPattern.execute === 'function') {
+      await runEnemyAbility(enemy, target, selectedPattern, crit)
+    } else {
+      const patternAsDefense = selectedPattern as DefensePatternConfig
+      const defenseResult = await startDefenseChallenge(enemy, target, patternAsDefense, { crit })
+      void defenseResult
+      // El splash (`mitigatedSplash`) se aplica PER FASE dentro de
+      // `handleDefensePhaseComplete` para que cada golpe del primario
+      // venga accompanied de su onda a los demas heroes — visualmente
+      // acompasado con el desafio de defensa. Aqui ya no se vuelve a
+      // disparar.
+      if (patternAsDefense.multiHeroAttack) {
+        await applyEnemyMultiHeroSplash(patternAsDefense.multiHeroAttack, target, enemy)
+      }
     }
 
     attackedHeroIds.value = []
@@ -1038,6 +1363,14 @@ const isProcessingDot = ref(false)
     if (enemy.isAlive && typeof enemy.reduceStatusEffects === 'function') {
       enemy.reduceStatusEffects()
     }
+    // Decrementa los debuffs de defensa (ROOTED, BLINDED, CLOUDED) sobre
+    // heroes al cierre del turno enemigo. Estos efectos tienen
+    // `cleanAtTurnStart: false`, asi que no se borran en startHeroTurn.
+    // Aqui los consumimos para que duren exactamente hasta el siguiente
+    // desafio de defensa. ROOTED tambien se consume explicitamente al
+    // cerrar el desafio (en startDefenseChallenge) cuando se "quema"
+    // tras una defensa efectiva.
+    decrementHeroesDefenseDebuffs()
     turnState.value = advanceAfterTurn(turnState.value, turnActors.value, actor.id)
     await runNextTurn()
   }
@@ -1081,6 +1414,42 @@ const isProcessingDot = ref(false)
     addToLog('Efectos de estado eliminados.')
   }
 
+  /**
+   * Decrementa `turns--` en los efectos con `cleanAtTurnStart: false`
+   * (BLINDED, CLOUDED, ROOTED) sobre cada heroe y purga los que llegan a 0.
+   * Se invoca al cierre de cada turno enemigo para que estos debuffs
+   * sobrevivan el turno del heroe (donde son irrelevantes) y puedan
+   * afectar el siguiente desafio de defensa.
+   *
+   * Cualquier effect marcado en `defenseDebuffsAppliedThisTurn` se skipea:
+   * queremos que sobreviva el turno en el que se aplico y este disponible
+   * para el SIGUIENTE desafio. El decremento siguiente (turno enemigo + 1)
+   * lo consume, salvo que sea removido explicitamente por
+   * `handleDefensePhaseComplete` al cerrar un desafio (caso ROOTED).
+   *
+   * El sistema es generico: no discrimina por tipo de effect, solo por la
+   * marca "aplicado este turno". Asi ROOTED/BLINDED/CLOUDED se tratan de
+   * forma homogenea.
+   */
+  function decrementHeroesDefenseDebuffs() {
+    heroes.value.forEach(h => {
+      h.statusEffects.forEach(e => {
+        if (typeof e.charges === 'number') return
+        // Categorias no-turn-based (stack-based: ROOTED, charge-based:
+        // SECOND_WIND/SPELL_REFLECT): no expiran por turnos, solo por
+        // consumo de stacks/charges via consumidor externo
+        // (`consumeRootedStack` / `processPlayerOnBlockHooks`). Sincronizado
+        // con el override de `maxDuration = Infinity` en `applyFailureEffect`.
+        const category = getEffectCategory(e, DOT_STATUS_TYPES, STACKABLE_NON_DOT_STATUS_TYPES)
+        if (NON_TURN_BASED_CATEGORIES.has(category)) return
+        if (e.cleanAtTurnStart !== false) return
+        if (defenseDebuffsAppliedThisTurn.has(e.type)) return
+        e.turns--
+      })
+      h.removeExpiredStatusEffects()
+    })
+  }
+
   function restoreAllEnergy() {
     heroes.value.forEach(h => {
       const p = h as Hero
@@ -1096,7 +1465,9 @@ const isProcessingDot = ref(false)
     const p = player.value
     if (!p || !Array.isArray(p.statusEffects) || p.statusEffects.length === 0) return
 
-    const active = p.statusEffects.filter(e => e.turns > 0 && DO_STATUS_TYPES.has(e.type))
+    const active = p.statusEffects.filter(e =>
+      e.turns > 0 && TICKABLE_STATUS_TYPES.has(e.type)
+    )
     if (active.length === 0) return
 
     isProcessingDot.value = true
@@ -1113,22 +1484,61 @@ const isProcessingDot = ref(false)
       const BANNER_TOTAL = 1800
 
       for (const effect of active) {
-        const stacks = effect.stacks ?? 1
-        const dmg = stacks
+        // ---- DoT (burn / poison / freeze / bleed) ----
+        if (DO_STATUS_TYPES.has(effect.type)) {
+          const stacks = effect.stacks ?? 1
+          const dmg = stacks
+          const stacksLabel = stacks > 1 ? ` ${stacks}` : ''
+          const damageKindLabel = DOT_KIND_LABEL[effect.type] ?? 'daño'
+          showAnnouncement(
+            `${p.name} recibe${stacksLabel} de daño por ${damageKindLabel}!`,
+            'status',
+            BANNER_TOTAL
+          )
+          addToLog(`${effect.name} x${stacks}: recibes ${dmg} de daño.`)
+          await delay(BANNER_LEAD_IN)
+          playDotSfx(effect.type)
+          audioManager.playHitSound()
+          p.takeDamage(dmg, { damageType: DOT_DAMAGE_TYPE[effect.type] })
+          showPlayerHit(dmg, { heroId: p.id })
+          // `damagePerTurn` positivo puede sumarse como daño fijo extra
+          // (no es el caso de los DoT actuales; reservado para custom).
+          const dpt = effect.damagePerTurn
+          if (typeof dpt === 'number' && dpt > 0) {
+            p.takeDamage(dpt, { damageType: DOT_DAMAGE_TYPE[effect.type] })
+            showPlayerHit(dpt, { heroId: p.id, variant: 'damage' })
+            addToLog(`${effect.name}: +${dpt} de daño extra por turno.`)
+          }
+        }
 
-        const stacksLabel = stacks > 1 ? ` ${stacks}` : ''
-        const damageKindLabel = DOT_KIND_LABEL[effect.type] ?? 'daño'
-        showAnnouncement(
-          `${p.name} recibe${stacksLabel} de daño por ${damageKindLabel}!`,
-          'status',
-          BANNER_TOTAL
-        )
-        addToLog(`${effect.name} x${stacks}: recibes ${dmg} de daño.`)
-        await delay(BANNER_LEAD_IN)
-        playDotSfx(effect.type)
-        audioManager.playHitSound()
-        p.takeDamage(dmg)
-        showPlayerHit(dmg, { heroId: p.id })
+        // ---- HoT (regen) ----
+        else if (HOT_STATUS_TYPES.has(effect.type)) {
+          // `damagePerTurn` NEGATIVO se interpreta como cantidad a curar.
+          // Si por algun motivo no esta definido, fallback a 0 (no hace nada).
+          const healAmount = typeof effect.damagePerTurn === 'number' && effect.damagePerTurn < 0
+            ? -effect.damagePerTurn
+            : 0
+          if (healAmount > 0) {
+            const before = p.health
+            p.heal(healAmount)
+            const restored = p.health - before
+            showAnnouncement(
+              `${p.name} regenera ${healAmount} HP!`,
+              'status',
+              BANNER_TOTAL
+            )
+            addToLog(`${effect.name}: +${healAmount} HP.`)
+            await delay(BANNER_LEAD_IN)
+            audioManager.playHitSound()
+            if (restored > 0) showPlayerHit(restored, { heroId: p.id, variant: 'heal' })
+          }
+        }
+
+        // Nota: Maldición NO tickea por turno. Solo acumula stacks cuando
+        // alguien la reaplica (ver `WarlockHex` en EnemyAttacks.ts). Si nadie
+        // la reaplica antes de agotar sus turnos, `reduceStatusEffects` la
+        // elimina por expiracion sin detonar el efecto de Vulnerable.
+
         await delay(BANNER_TOTAL - BANNER_LEAD_IN)
       }
     } finally {
@@ -1143,6 +1553,7 @@ const isProcessingDot = ref(false)
     if (type === StatusEffects.BURN.type) audioManager.playDotFireSound()
     else if (type === StatusEffects.POISON.type) audioManager.playDotPoisonSound()
     else if (type === StatusEffects.FREEZE.type) audioManager.playDotIceSound()
+    else if (type === StatusEffects.BLEED.type) audioManager.playDotBleedSound()
   }
 
   async function showEnemyStatusSequence(enemy: IEnemy) {
@@ -1221,7 +1632,8 @@ const isProcessingDot = ref(false)
   async function applyHeroSplash(
     spec: NonNullable<IAbility['randomAttack']>,
     primaryTargetId: string,
-    primaryBaseDamage: number
+    primaryBaseDamage: number,
+    damageType?: DamageTypeId | string
   ) {
     const candidates = enemies.value.filter(e => e.isAlive && e.id !== primaryTargetId)
     if (candidates.length === 0) return
@@ -1230,16 +1642,24 @@ const isProcessingDot = ref(false)
     if (cap < min) return
     const count = min + Math.floor(Math.random() * (cap - min + 1))
     const extras = shuffle(candidates).slice(0, count)
-    // Daño base nominal del splash (sin varianza). El redondeo se hace
-    // despues de aplicar varianza para que el ±10% se sienta aunque el
-    // nominal sea pequeño (ej. base 4 → rango real 3-4, no siempre 4).
-    const splashBase = Math.max(0, primaryBaseDamage * spec.damageMultiplier)
-    if (splashBase <= 0) return
-    for (const enemy of extras) {
+    // Cascada de daño por rebote: el i-esimo objetivo extra recibe
+    // `damageMultiplier - i * bounceDamageReductionPerStep` (default 5%
+    // menos por escalon). Ej: damageMultiplier 0.95 + step 0.05 →
+    // 1er rebote 95%, 2do 90%, 3ro 85%, ...
+    const reductionPerStep = spec.bounceDamageReductionPerStep ?? 0.05
+    const splashType = damageType ?? 'holy'
+    for (let i = 0; i < extras.length; i++) {
+      const enemy = extras[i]
+      const multiplier = Math.max(0, spec.damageMultiplier - i * reductionPerStep)
+      const splashBase = Math.max(0, primaryBaseDamage * multiplier)
+      if (splashBase <= 0) continue
       const splashDamage = applyDamageVariance(splashBase)
       if (splashDamage <= 0) continue
-      enemy.takeDamage(splashDamage)
+      enemy.takeDamage(splashDamage, { damageType: splashType })
       showEnemyHit(enemy.id, splashDamage)
+      if (splashType === 'holy') {
+        showEnemyVfx(enemy.id, { asset: 'holy-light', durationMs: 900 })
+      }
       audioManager.playAttackSound()
       audioManager.playHitSound()
       addToLog(`¡La luz salta a ${enemy.name}! ${splashDamage} de daño.`)
@@ -1281,13 +1701,157 @@ const isProcessingDot = ref(false)
     attackedHeroIds.value = [...baseIds, ...extras.map(h => h.id)]
     for (const hero of extras) {
       const dmg = Math.max(0, baseDmg)
-      hero.takeDamage(dmg)
+      hero.takeDamage(dmg, { damageType: 'physical' })
       showPlayerHit(dmg, { heroId: hero.id })
       showHeroVfx(hero.id, DEFAULT_IMPACT_VFX)
       audioManager.playAttackSound()
       audioManager.playHitSound()
       addToLog(`¡${enemy.name} golpea a ${hero.name}! ${dmg} de daño.`)
       await delay(280)
+    }
+  }
+
+  /**
+   * Splash post-defense: tras la defense challenge contra el target
+   * primario, los heroes vivos restantes (excluyendo al primario)
+   * reciben `mitigatedDamage * damageMultiplier` como daño de splash.
+   *
+   * Este es el reemplazo del viejo `applyEnemyAoe` (que pegaba a todos
+   * por igual sin defense challenge). La diferencia clave: ahora el daño
+   * de splash es una FRACCION del daño MITIGADO del primario, asi que
+   * bloquear bien el ataque reduce proporcionalmente el splash. Los
+   * splashees NO tienen defense challenge propia (es un residual
+   * secundario, no un ataque nuevo).
+   *
+   * Coherencia visual con el resultado del desaf-io del primario:
+   * - `splashKind: 'blocked'`: si el primario bloqueo la fase, los
+   *   splashees muestran floater `blocked` (mismo variant que el
+   *   primario) y NO reproducen VFX de impacto — la animacion de
+   *   bloqueo del primario ya cubre el feedback visual del grupo.
+   * - `splashKind: 'damage'`: si el primario fallo la fase, los
+   *   splashees muestran floater `damage` y VFX de impacto (igual que
+   *   el primario), como cualquier golpe normal.
+   *
+   * Por defecto `splashKind: 'damage'` para mantener compatibilidad
+   * con callers legacy; los nuevos deben pasar el resultado del phase
+   * para que el feedback sea coherente.
+   */
+  async function applyEnemyMitigatedSplash(
+    mitigatedDamage: number,
+    damageMultiplier: number,
+    primaryTarget: Hero,
+    enemy: IEnemy,
+    damageType?: DamageType,
+    opts: {
+      delayPerSplasheeMs?: number
+      splashKind?: 'blocked' | 'damage'
+      /**
+       * VFX a mostrar sobre los splashees cuando `splashKind === 'damage'`.
+       * Si se omite, se usa `DEFAULT_IMPACT_VFX` (spray de impacto
+       * generico). El phase handler normalmente pasa el mismo VFX que
+       * se aplico al primario (enemy slash rotativo) para que todos los
+       * heroes involucrados muestren la misma animacion.
+       */
+      vfxForSplashees?: VfxEffect
+    } = {}
+  ) {
+    const splashDamage = Math.max(0, Math.floor(mitigatedDamage * damageMultiplier))
+    if (splashDamage <= 0) return
+    const pool = heroes.value.filter(h => h.isAlive && h.id !== primaryTarget.id)
+    if (pool.length === 0) return
+    const delayMs = opts.delayPerSplasheeMs ?? 280
+    const kind = opts.splashKind ?? 'damage'
+    // Anade los splashees a la lista visual de heroes atacados solo
+    // cuando la fase impacto (kind === 'damage'): asi el borde pulsante
+    // "Defendiendo" en HeroCard coincide con la fase del primario.
+    // En un bloqueo los splashees solo muestran el floater "blocked" y
+    // NO deben entrar al modo "siendo atacados" — la animacion de
+    // bloqueo del primario ya cubre el feedback visual de la fase.
+    if (kind === 'damage') {
+      const baseIds = attackedHeroIds.value.slice()
+      attackedHeroIds.value = [...baseIds, ...pool.map(h => h.id)]
+    }
+    // Audio una sola vez por splash (no por splashee), coherente con la
+    // fase que dispara el dano.
+    if (kind === 'blocked') {
+      audioManager.playBlockSound()
+    } else {
+      audioManager.playAttackSound()
+      audioManager.playHitSound()
+    }
+    for (const hero of pool) {
+      hero.takeDamage(splashDamage, { damageType })
+      if (kind === 'blocked') {
+        showPlayerHit(splashDamage, { heroId: hero.id, variant: 'blocked' })
+        // Sin VFX en el splashee: la animacion de bloqueo del primario
+        // ya cubre el feedback visual de la fase.
+      } else {
+        showPlayerHit(splashDamage, { heroId: hero.id })
+        showHeroVfx(hero.id, opts.vfxForSplashees ?? DEFAULT_IMPACT_VFX)
+      }
+      addToLog(`¡La onda de ${enemy.name} alcanza a ${hero.name}! ${splashDamage} de daño.`)
+      if (delayMs > 0) await delay(delayMs)
+    }
+  }
+
+  /**
+   * Ejecuta una ability enemiga (`IAbility`) sin defense challenge. Es
+   * el equivalente de `executeAbility` para el lado enemigo: arma un
+   * `AbilityContext` con caster=enemy/target=hero y llama `ability.execute(...)`.
+   *
+   * Usado por `startEnemyTurn` cuando `selectAttackPattern` retorna una
+   * `IAbility` en vez de un `DefensePatternConfig` (ej: DragonRoar).
+   * Mantiene la misma semántica de side-effects (log, hit popups, SFX,
+   * AOE/splash via `lastPrimaryFinalDamage`) que las abilities de heroes.
+   */
+  async function runEnemyAbility(
+    enemy: IEnemy,
+    target: ICharacter,
+    ability: IAbility,
+    crit: CritResult
+  ): Promise<void> {
+    const animationDelay = ability.animationDurationMs ?? 1500
+    const ctx: AbilityContext = {
+      caster: enemy,
+      target,
+      ability,
+      log: addToLog,
+      showEnemyHit,
+      playEnemyVfx: showEnemyVfx,
+      playHeroVfx: showHeroVfx,
+      showPlayerHit,
+      showAnnouncement: (text, variant, duration, opts) => showAnnouncement(text, variant ?? 'info', duration, opts),
+      audioManager,
+      animationDelay,
+      energySpent: 0
+    }
+    void crit
+    await ability.execute(ctx)
+    if (ability.aoe && typeof ctx.lastPrimaryFinalDamage === 'number') {
+      await applyEnemyAoe(ctx.lastPrimaryFinalDamage, animationDelay, ability.damageType)
+    }
+  }
+
+  /**
+   * Aplica el daño final de una ability AOE enemiga a todos los heroes
+   * vivos. Equivalente a `applyHeroAoe` pero del lado enemy.
+   */
+  async function applyEnemyAoe(
+    finalDamage: number,
+    animationDelay: number,
+    damageType?: DamageType
+  ): Promise<void> {
+    const aliveHeroes = heroes.value.filter(h => h.isAlive)
+    if (aliveHeroes.length === 0 || finalDamage <= 0) return
+    for (const hero of aliveHeroes) {
+      const dmg = Math.max(1, finalDamage)
+      hero.takeDamage(dmg, { damageType })
+      showPlayerHit(dmg, { heroId: hero.id })
+      showHeroVfx(hero.id, DEFAULT_IMPACT_VFX)
+      audioManager.playAttackSound()
+      audioManager.playHitSound()
+      addToLog(`¡La onda alcanza a ${hero.name}! ${dmg} de daño.`)
+      await delay(animationDelay)
     }
   }
 
@@ -1307,26 +1871,40 @@ const isProcessingDot = ref(false)
   async function applyHeroAoe(
     primaryTargetId: string | null,
     finalDamage: number,
-    animationDelay: number = 1500
+    animationDelay: number = 1500,
+    damageType?: DamageTypeId | string,
+    ability?: IAbility
   ) {
     if (finalDamage <= 0) return
     const targets = enemies.value.filter(e => e.isAlive)
     if (targets.length === 0) return
+    const aoeType = damageType ?? 'physical'
+    // Pool de VFX por tipo de daño (mismo que basic attack) + rotación
+    // aleatoria para que cada golpe se sienta distinto.
+    const vfxPool = ability ? getBasicAttackHitVfx(ability) : []
     await Promise.all(
-      targets.map(async enemy => {
-        enemy.takeDamage(finalDamage)
+      targets.map(async (enemy, idx) => {
+        enemy.takeDamage(finalDamage, { damageType: aoeType })
         showEnemyHit(enemy.id, finalDamage)
+        const vfx = vfxPool.length > 0 ? vfxPool[idx % vfxPool.length] : undefined
+        if (vfx) {
+          showEnemyVfx(enemy.id, {
+            asset: vfx.asset,
+            durationMs: vfx.durationMs,
+            rotationDeg: Math.random() * 180 - 90
+          })
+        }
         addToLog(
           primaryTargetId !== null && enemy.id === primaryTargetId
-            ? `¡Golpe devastador golpea a ${enemy.name}! ${finalDamage} de daño.`
-            : `¡Golpe devastador alcanza a ${enemy.name}! ${finalDamage} de daño.`
+            ? `¡${ability?.name ?? 'Golpe devastador'} golpea a ${enemy.name}! ${finalDamage} de daño.`
+            : `¡${ability?.name ?? 'Golpe devastador'} alcanza a ${enemy.name}! ${finalDamage} de daño.`
         )
       })
     )
     audioManager.playAttackSound()
     audioManager.playHitSound()
     showAnnouncement(
-      `¡Golpe devastador! ${targets.length} enemigo${targets.length > 1 ? 's' : ''} simultaneamente`,
+      `¡${ability?.name ?? 'Golpe devastador'}! ${targets.length} enemigo${targets.length > 1 ? 's' : ''} simultaneamente`,
       'status',
       1200
     )
@@ -1343,18 +1921,26 @@ const isProcessingDot = ref(false)
       const playerChar = player.value as Hero
       const animationDelay = ability.animationDurationMs ?? 1500
 
+      // Check Silenciado (Bloque C Tier 2): si el caster tiene el debuff
+      // y la ability es "silenceable" (default true), se cancela el cast.
+      // Silenced/cooldown/energy checks viven en `canCastAbility` (llamado
+      // desde `selectAbility` y `triggerExecution`). Si llegamos aca, los
+      // tres gates ya pasaron. No re-chequear.
+
       const abilityContext: AbilityContext = {
         caster: playerChar,
         target,
         ability,
-        addToLog,
+        log: addToLog,
         showEnemyHit,
         playEnemyVfx: showEnemyVfx,
+        playHeroVfx: showHeroVfx,
         showPlayerHit,
         showAnnouncement: (text, variant, duration, opts) => showAnnouncement(text, variant ?? 'info', duration, opts),
         audioManager,
         animationDelay,
-        energySpent
+        energySpent,
+        allies: heroes.value.filter(h => h.isAlive) as unknown as any[]
       }
 
       if (ability.execute) {
@@ -1363,7 +1949,7 @@ const isProcessingDot = ref(false)
       }
 
       if (ability.randomAttack && typeof abilityContext.lastPrimaryBaseDamage === 'number') {
-        await applyHeroSplash(ability.randomAttack, target.id, abilityContext.lastPrimaryBaseDamage)
+        await applyHeroSplash(ability.randomAttack, target.id, abilityContext.lastPrimaryBaseDamage, ability.damageType)
       }
 
       if (ability.aoe && typeof abilityContext.lastPrimaryFinalDamage === 'number') {
@@ -1374,7 +1960,13 @@ const isProcessingDot = ref(false)
          * `target.id` identifica al primario en el log).
          */
         const primaryId = ability.requiresTarget === false ? null : target?.id ?? null
-        await applyHeroAoe(primaryId, abilityContext.lastPrimaryFinalDamage, animationDelay)
+        await applyHeroAoe(
+          primaryId,
+          abilityContext.lastPrimaryFinalDamage,
+          animationDelay,
+          ability.damageType,
+          ability
+        )
       }
     }
 
@@ -1483,7 +2075,6 @@ const isProcessingDot = ref(false)
     heroVfxEffects,
     showHeroVfx,
     playerHitPopups,
-    showAbilitiesModal,
     abilityCooldowns,
     announcement,
     showAnnouncement,
@@ -1507,15 +2098,16 @@ const isProcessingDot = ref(false)
     defenseEnemyId,
     defenseIsCrit,
     defenseClouded,
+    defenseRooted,
+    defenseRootedStacks,
+    defenseRootedOverlay,
+    defenseBlinded,
     handleDefensePhaseComplete,
     handleDefenseAllPhasesComplete,
     closeDefenseChallenge,
 
-    openAbilitiesModal,
-    closeAbilitiesModal,
     selectAbility,
     cancelAction,
-    handleAbilitiesModalShortcuts,
     handleCombatShortcuts,
     endPlayerTurn,
     startPlayerTurn,
@@ -1548,6 +2140,9 @@ const isProcessingDot = ref(false)
     selectItem,
     selectItemAllyTarget,
     itemCanTargetAllies,
-    itemRequiresTarget
+    itemRequiresTarget,
+
+    isBasicAttack,
+    getAbilityBlockReason
   }
 }

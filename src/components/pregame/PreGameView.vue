@@ -1,32 +1,30 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import type { IZone } from '@/core/interfaces/IExpedition'
-import type { ZoneId } from '@/core/zones/EnemyPools'
+import type { ExpeditionId, IExpeditionConfig } from '@/core/expeditions/types'
 import { Warrior } from '@/core/heroes/Warrior'
 import { Cleric } from '@/core/heroes/Cleric'
 import type { Hero } from '@/core/Hero'
-import { listZones } from '@/core/zones/Zones'
+import { listExpeditions } from '@/core/expeditions/registry'
 import warriorSprite from '@/assets/sprites/heroes/warrior.png'
 import clericSprite from '@/assets/sprites/heroes/cleric.png'
 import { MAX_HEROES } from '@/stores/game'
 import HeroStatChips from '@/components/combat/HeroStatChips.vue'
-import { getAbilityIcon } from '@/core/abilities/abilityIcons'
-import { getBasicAttackHitCount } from '@/core/abilities/Abilities'
+import { getAbilityIcon } from '@/core/abilities/getAbilityIcon'
+import { getBasicAttackHitCount, getAbilityHitCount } from '@/core/abilities/Abilities'
 import { getDamageTypeInfo } from '@/core/combat/damageTypes'
-import type { AbilityDamagePreview } from '@/core/interfaces/IAbility'
+import type { AbilityDamagePreview, IAbility } from '@/core/interfaces/IAbility'
 import boltIcon from '@/assets/icons/bolt-shield.png'
 import hourglassIcon from '@/assets/icons/hourglass.png'
 import '@/styles/hint-colors.css'
 
 const emit = defineEmits<{
-  (e: 'start', payload: { zoneId: ZoneId, heroes: Hero[] }): void
+  (e: 'start', payload: { expeditionId: ExpeditionId, heroes: Hero[] }): void
 }>()
 
-const zones = listZones()
-const UNLOCKED_ZONE_IDS: ZoneId[] = ['mountain-peak']
+const expeditions = listExpeditions()
 
-function isZoneUnlocked(id: ZoneId): boolean {
-  return UNLOCKED_ZONE_IDS.includes(id)
+function isExpeditionUnlocked(_id: ExpeditionId): boolean {
+  return true
 }
 
 interface HeroChoice {
@@ -75,11 +73,11 @@ const maxHeroes = MAX_HEROES
  * no había elegido explícitamente, contradiciendo el nuevo flow.
  */
 const selectedHeroIds = ref<HeroChoice['id'][]>([])
-const selectedZoneId = ref<ZoneId | null>(zones[0]?.id ?? null)
+const selectedExpeditionId = ref<ExpeditionId | null>(expeditions[0]?.id ?? null)
 
-const selectedZone = computed<IZone | null>(() => {
-  if (!selectedZoneId.value) return null
-  return zones.find(z => z.id === selectedZoneId.value) ?? null
+const selectedExpedition = computed<IExpeditionConfig | null>(() => {
+  if (!selectedExpeditionId.value) return null
+  return expeditions.find(z => z.id === selectedExpeditionId.value) ?? null
 })
 
 /**
@@ -90,7 +88,7 @@ const selectedZone = computed<IZone | null>(() => {
 const hasPickedHero = computed(() => selectedHeroIds.value.length > 0)
 
 const canStart = computed(
-  () => selectedHeroIds.value.length > 0 && !!selectedZone.value
+  () => selectedHeroIds.value.length > 0 && !!selectedExpedition.value
 )
 
 /**
@@ -170,42 +168,31 @@ function setMultiHeroMode(enabled: boolean) {
   }
 }
 
-function selectZone(id: ZoneId) {
-  if (!isZoneUnlocked(id)) return
-  // Doble gate: ademas del flag del padre, exigimos que haya un heroe
-  // elegido. Aunque `canSelectZones` desactiva el click en el DOM, esto
-  // blinda el flujo si el metodo se invocara por otro medio.
+function selectExpedition(id: ExpeditionId) {
+  if (!isExpeditionUnlocked(id)) return
   if (!hasPickedHero.value) return
-  selectedZoneId.value = id
-  // En lugar de arrancar automaticamente, abrimos el modal de
-  // confirmacion. El usuario debe aceptar explicitamente para empezar
-  // la expedicion (mismo patron que los nodos de curiosidad/recruit).
-  const zone = zones.find(z => z.id === id)
-  if (zone) pendingConfirmZone.value = zone
+  selectedExpeditionId.value = id
+  const exp = expeditions.find(z => z.id === id)
+  if (exp) pendingConfirmExpedition.value = exp
 }
 
-/**
- * Modal de confirmacion. Vive como estado local porque solo afecta
- * a esta vista. `pendingConfirmZone` se popula al clickar una
- * expedicion y se consume al confirmar/cancelar.
- */
-const pendingConfirmZone = ref<IZone | null>(null)
+const pendingConfirmExpedition = ref<IExpeditionConfig | null>(null)
 
 function cancelConfirm() {
-  pendingConfirmZone.value = null
+  pendingConfirmExpedition.value = null
 }
 
 function confirmAndStart() {
-  const zone = pendingConfirmZone.value
-  if (!zone || !canStart.value) {
-    pendingConfirmZone.value = null
+  const exp = pendingConfirmExpedition.value
+  if (!exp || !canStart.value) {
+    pendingConfirmExpedition.value = null
     return
   }
   const payload = {
-    zoneId: zone.id as ZoneId,
+    expeditionId: exp.id,
     heroes: previewHeroes.value
   }
-  pendingConfirmZone.value = null
+  pendingConfirmExpedition.value = null
   emit('start', payload)
 }
 
@@ -230,6 +217,12 @@ const focusedAbilityPreviews = computed<(AbilityDamagePreview | null)[]>(() => {
 const focusedBasicHitCount = computed(() =>
   getBasicAttackHitCount(focusedHero.value?.level ?? 1)
 )
+
+function hitCountFor(ability: IAbility): number | null {
+  const hero = focusedHero.value
+  if (!hero) return null
+  return getAbilityHitCount(ability, hero.level)
+}
 
 /**
  * Devuelve la clase CSS del tipo de daño (`dmg-fire`, `dmg-holy`, etc.)
@@ -346,6 +339,11 @@ function damageTypeClass(id?: string): string {
                   <p v-if="focusedAbilityPreviews[idx]" class="ability-row__dmg">
                     Daño: <strong>{{ focusedAbilityPreviews[idx]!.min }}–{{ focusedAbilityPreviews[idx]!.max }}</strong>
                     <span
+                      v-if="hitCountFor(ability)"
+                      class="ability-row__dmg-hits"
+                      :title="`${hitCountFor(ability)} ataques`"
+                    >× {{ hitCountFor(ability) }}</span>
+                    <span
                     v-if="focusedAbilityPreviews[idx]!.damageTypeLabel"
                     class="ability-row__dmg-type"
                     :class="damageTypeClass(ability.damageType)"
@@ -375,27 +373,27 @@ function damageTypeClass(id?: string): string {
 
       <ul class="zone-list">
         <li
-          v-for="zone in zones"
-          :key="zone.id"
+          v-for="exp in expeditions"
+          :key="exp.id"
           class="zone-card"
           :class="{
-            selected: zone.id === selectedZoneId,
-            locked: !isZoneUnlocked(zone.id),
-            'in-dev': zone.inDevelopment === true,
-            disabled: !hasPickedHero || !isZoneUnlocked(zone.id)
+            selected: exp.id === selectedExpeditionId,
+            locked: !isExpeditionUnlocked(exp.id),
+            'in-dev': exp.presentation.inDevelopment === true,
+            disabled: !hasPickedHero || !isExpeditionUnlocked(exp.id)
           }"
-          :aria-disabled="!hasPickedHero || !isZoneUnlocked(zone.id)"
-          @click="selectZone(zone.id)"
+          :aria-disabled="!hasPickedHero || !isExpeditionUnlocked(exp.id)"
+          @click="selectExpedition(exp.id)"
         >
           <div class="zone-card__body">
-            <h3>{{ zone.name }}</h3>
-            <p>{{ zone.description }}</p>
+            <h3>{{ exp.displayName }}</h3>
+            <p>{{ exp.description }}</p>
             <div class="zone-card__meta">
-              <span class="badge" :class="`badge--${zone.difficulty}`">{{ zone.difficulty }}</span>
-              <small>Nivel minimo: {{ zone.minLevel }}</small>
+              <span class="badge" :class="`badge--${exp.presentation.difficulty}`">{{ exp.presentation.difficulty }}</span>
+              <small>Recompensas: +{{ exp.presentation.rewards.experience }} XP / +{{ exp.presentation.rewards.gold }} oro</small>
             </div>
-            <span v-if="zone.inDevelopment === true" class="dev-badge">En desarrollo</span>
-            <span v-else-if="!isZoneUnlocked(zone.id)" class="locked-badge">Bloqueado</span>
+            <span v-if="exp.presentation.inDevelopment === true" class="dev-badge">En desarrollo</span>
+            <span v-else-if="!isExpeditionUnlocked(exp.id)" class="locked-badge">Bloqueado</span>
           </div>
         </li>
       </ul>
@@ -403,11 +401,11 @@ function damageTypeClass(id?: string): string {
 
     <!-- ============== CONFIRM EXPEDITION MODAL ============== -->
     <transition name="modal-fade">
-      <div v-if="pendingConfirmZone" class="confirm-overlay" @mousedown.self="cancelConfirm">
+      <div v-if="pendingConfirmExpedition" class="confirm-overlay" @mousedown.self="cancelConfirm">
         <div class="confirm-modal">
           <h2>¿Empezar la expedicion?</h2>
-          <p class="confirm-modal__zone">{{ pendingConfirmZone.name }}</p>
-          <p class="confirm-modal__desc">{{ pendingConfirmZone.description }}</p>
+          <p class="confirm-modal__zone">{{ pendingConfirmExpedition.displayName }}</p>
+          <p class="confirm-modal__desc">{{ pendingConfirmExpedition.description }}</p>
 
           <ul class="confirm-modal__party">
             <li v-for="(hero, idx) in previewHeroes" :key="hero.id + '-' + idx">
@@ -420,10 +418,11 @@ function damageTypeClass(id?: string): string {
           </ul>
 
           <div class="confirm-modal__rewards">
-            <span class="badge" :class="`badge--${pendingConfirmZone.difficulty}`">
-              {{ pendingConfirmZone.difficulty }}
+            <span class="badge" :class="`badge--${pendingConfirmExpedition.presentation.difficulty}`">
+              {{ pendingConfirmExpedition.presentation.difficulty }}
             </span>
-            <span>Nivel minimo: {{ pendingConfirmZone.minLevel }}</span>
+            <span>+{{ pendingConfirmExpedition.presentation.rewards.experience }} XP</span>
+            <span>+{{ pendingConfirmExpedition.presentation.rewards.gold }} oro</span>
           </div>
 
           <div class="confirm-modal__actions">
@@ -819,6 +818,17 @@ function damageTypeClass(id?: string): string {
 .ability-row__dmg strong {
   color: #ff8a8a;
   font-variant-numeric: tabular-nums;
+}
+
+.ability-row__dmg-hits {
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.45rem;
+  border-radius: 4px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #ffe066;
+  background: rgba(255, 224, 102, 0.18);
+  border: 1px solid rgba(255, 224, 102, 0.45);
 }
 
 .ability-row__dmg-type {

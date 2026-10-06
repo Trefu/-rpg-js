@@ -1,15 +1,17 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useGameStore } from '@/stores/game'
 import { useExpeditionStore } from '@/stores/expedition'
-import { getEnemiesForNode } from '@/core/zones/EnemyPools'
+import { getEnemiesForConfig } from '@/core/zones/EnemyPools'
+import { resolveEncounterById } from '@/core/expeditions/encounters'
 import { AudioManager } from '@/core/AudioManager'
 import {
-  pickRandomCuriosityEvent,
   resolveCuriosityChoice,
   type CuriosityChoice,
+  type CuriosityEvent,
   type ResolveResult
 } from '@/core/events/curiosityEvents'
+import { pickRandomFromList } from '@/core/expeditions/pickRandom'
 import curiosityIcon from '@/assets/icons/magic-portal.png'
 import closeIcon from '@/assets/icons/cross-mark.png'
 
@@ -23,14 +25,17 @@ const gameStore = useGameStore()
 const expeditionStore = useExpeditionStore()
 const audioManager = AudioManager.getInstance()
 
-/** Evento elegido al abrir el modal; persiste durante toda la interaccion. */
-const event = pickRandomCuriosityEvent()
-
 /**
- * Despues de elegir una opcion guardamos el resultado completo para
- * mostrar el flavor de resolucion y, al cerrar, alimentar el toast
- * informativo del mapa. `null` mientras el jugador sigue decidiendo.
+ * Evento elegido al abrir el modal a partir del catalogo de la
+ * expedicion activa. Si la expedicion declara `curiosityEvents`, gana;
+ * si no, se usa el catalogo compartido (`SHARED_CURIOSITY_EVENTS`).
+ *
+ * Persiste durante toda la interaccion (no se re-rollea al elegir).
  */
+const event = computed<CuriosityEvent>(() =>
+  pickRandomFromList(expeditionStore.activeCuriosityEvents)
+)
+
 type Resolution =
   | { kind: 'effects-applied', flavor: string, effects: import('@/core/events/curiosityEvents').AppliedEffect[] }
   | { kind: 'noop', flavor: string }
@@ -42,18 +47,23 @@ onMounted(() => {
 })
 
 /**
- * Mapa de piso coherente con el que usa `useExpeditionGenerator` para
- * los nodos `combat`: cada fila del mapa se mapea a un piso entre 2 y
- * `totalNodes - 1`. Para un nodo `curiosity` en la misma fila que un
- * `combat` se obtiene la misma dificultad en la emboscada.
+ * Devuelve el floor asociado al nodo actualmente seleccionado. Coincide
+ * con la cuenta que usa `useExpeditionGenerator`: start = 1, cada fila
+ * intermedia suma 1, boss = totalFloors. Para un nodo `curiosity`
+ * intercalado entre dos `combat`, queda en el mismo piso que su fila.
  */
-function floorForNode(nodeId: string): number {
-  const node = expeditionStore.currentExpedition?.nodes.find(n => n.id === nodeId)
-  if (!node) return 5
-  const minNodesBeforeBoss = 8
-  const totalNodes = minNodesBeforeBoss + 2
-  const rowIndex = Math.round((node.position.y - 15) * minNodesBeforeBoss / 80)
-  return Math.max(2, Math.min(totalNodes - 1, rowIndex + 2))
+function floorForSelectedNode(): number {
+  const node = expeditionStore.selectedNode
+  if (!node) return 1
+  const config = expeditionStore.currentConfig
+  if (!config) return 1
+  if (node.id === 'start') return 1
+  if (node.id === 'boss') return config.totalFloors
+  // Para nodos intermedios: la posicion y va de 15 a 95, mapeada a
+  // floors 2..totalFloors-1 por el generador.
+  const rowFraction = (node.position.y - 15) / 80
+  const rowIndex = Math.round(rowFraction * config.generator.minNodesBeforeBoss)
+  return Math.max(2, Math.min(config.totalFloors - 1, rowIndex + 2))
 }
 
 function choose(choice: CuriosityChoice) {
@@ -70,9 +80,6 @@ function choose(choice: CuriosityChoice) {
     audioManager.playCuriosityNoopSound()
     resolution.value = { kind: 'noop', flavor: result.flavor }
   } else {
-    // effects-applied: el outcome es reward o punishment (puede incluir
-    // ambos tipos). Reproducimos el sonido segun la naturaleza del
-    // primer efecto para que el jugador reciba feedback inmediato.
     const hasDamage = result.effects.some(e =>
       e.kind === 'damage' || e.kind === 'energyLoss' || e.kind === 'loseItem'
     )
@@ -85,8 +92,6 @@ function choose(choice: CuriosityChoice) {
     } else if (hasReward && !hasDamage) {
       audioManager.playCuriosityRewardSound()
     } else if (hasDamage && hasReward) {
-      // Tradeoff (dano + item, energyLoss + xp, etc.): sonido de
-      // castigo porque suele ser el efecto dominante perceptivamente.
       audioManager.playCuriosityPunishmentSound()
     } else {
       audioManager.playCuriosityNoopSound()
@@ -98,27 +103,47 @@ function choose(choice: CuriosityChoice) {
 function continueAfterResolution() {
   if (resolution.value?.kind === 'ambush-ready') {
     const nodeId = expeditionStore.selectedNode?.id
-    const zoneId = expeditionStore.currentExpedition?.zone.id
-    if (!nodeId || !zoneId) {
+    const config = expeditionStore.currentConfig
+    if (!nodeId || !config) {
       emit('close')
       return
     }
-    const floor = floorForNode(nodeId)
-    const enemies = getEnemiesForNode(zoneId, floor, floor + 3)
+    const enemies = resolveAmbushEnemies(config)
     emit('ambush', { nodeId, enemies })
     return
   }
-  // Emitimos el resultado resuelto para que App.vue muestre el toast
-  // informativo al volver al mapa. El modal ya hizo su trabajo; lo
-  // cerramos a continuacion.
   if (resolution.value) {
     const r = resolution.value
     const lastResult: ResolveResult = r.kind === 'noop'
       ? { kind: 'noop', flavor: r.flavor }
       : { kind: 'effects-applied', log: [r.flavor], effects: r.effects }
-    emit('resolved', { eventId: event.id, title: event.title, result: lastResult })
+    emit('resolved', { eventId: event.value.id, title: event.value.title, result: lastResult })
   }
   emit('close')
+}
+
+/**
+ * Resuelve la composicion de enemigos del combate que sigue a la
+ * eleccion del jugador. Prioridad:
+ *   1. Si el `outcome` declara un `encounter` fijo, se resuelve ese.
+ *   2. Si no, fallback a un sample aleatorio del pool del tier del piso.
+ */
+function resolveAmbushEnemies(config: ReturnType<typeof useExpeditionStore>['currentConfig']): any[] {
+  if (!config) return []
+  // Buscamos el outcome que produjo el ambush para leer su `encounter`.
+  // Comparamos flavor del outcome contra el del resolution (es una
+  // lista pequena, ~3 entries por evento).
+  const matchingChoice = event.value.choices.find(c => {
+    const oc = c.outcome
+    return oc.kind === 'ambush' && oc.flavor === resolution.value?.flavor
+  })
+  const encounterId = matchingChoice?.outcome.kind === 'ambush'
+    ? matchingChoice.outcome.encounter
+    : undefined
+  if (encounterId) {
+    return resolveEncounterById(config, encounterId)
+  }
+  return getEnemiesForConfig(config, floorForSelectedNode())
 }
 
 function close() {
@@ -138,7 +163,6 @@ function close() {
           </button>
         </header>
 
-        <!-- Fase de decision -->
         <template v-if="!resolution">
           <p class="curiosity-flavor">{{ event.flavor }}</p>
           <ul class="curiosity-choices">
@@ -154,7 +178,6 @@ function close() {
           </ul>
         </template>
 
-        <!-- Fase de resolucion -->
         <template v-else>
           <p class="curiosity-resolution" :class="resolution.kind">
             {{ resolution.flavor }}

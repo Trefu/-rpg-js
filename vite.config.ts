@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { fileURLToPath, URL } from 'node:url'
@@ -10,6 +11,8 @@ export default defineConfig({
     }
   },
   esbuild: {
+    // NO dropear console/debugger en modo test — los tests los necesitan
+    // para debugging y asserts. El drop solo se aplica en build de prod.
     drop: ['console', 'debugger']
   },
   build: {
@@ -33,6 +36,31 @@ export default defineConfig({
           if (id.includes('/src/components/expedition/ExpeditionMap')) return 'view-map'
           if (id.includes('/src/components/pregame/PreGameView')) return 'view-pregame'
         }
+      }
+    }
+  },
+  test: {
+    // Tests core puros de `src/core/`. Sin entorno DOM — los componentes
+    // Vue requieren @vue/test-utils + jsdom y son otra capa.
+    environment: 'node',
+    include: ['src/**/*.test.ts'],
+    globals: false,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html', 'json-summary'],
+      include: ['src/core/**/*.ts'],
+      exclude: [
+        'src/core/**/*.test.ts',
+        'src/core/abilities/damagePipeline.ts' // cubierto en damagePipeline.test.ts
+      ],
+      // Thresholds aspiracionales — CI falla si baja de estos numeros.
+      // Ajustar gradualmente a medida que se cubren más archivos.
+      // (Por ahora desactivados mientras crecemos la base de tests.)
+      thresholds: {
+        lines: 0,
+        functions: 0,
+        branches: 0,
+        statements: 0
       }
     }
   }

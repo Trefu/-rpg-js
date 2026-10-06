@@ -17,7 +17,7 @@ interface Props {
   isAttacking: boolean
   showShortcut: boolean
   hitPopups?: { value: number, key: number, isCrit?: boolean, variant?: 'damage' | 'crit' | 'heal' | 'energy', suffix?: string, offsetX: number, offsetY: number, duration: number }[]
-  vfxEffects?: { key: number, asset: VfxAssetId }[]
+  vfxEffects?: { key: number, asset: VfxAssetId, rotationDeg?: number }[]
 }
 
 const props = defineProps<Props>()
@@ -83,6 +83,7 @@ function onClick() {
       :key="effect.key"
       :src="VFX_SOURCES[effect.asset]"
       class="enemy-vfx-effect"
+      :style="{ transform: `translate(-50%, -50%) rotate(${effect.rotationDeg ?? 0}deg)` }"
       alt=""
       aria-hidden="true"
     />
@@ -117,7 +118,7 @@ function onClick() {
   cursor: pointer;
   transition: all 0.3s ease;
   border-radius: 8px;
-  padding: 0.4rem;
+  padding: 0.25rem;
 }
 
 .enemy-card:hover {
@@ -163,13 +164,16 @@ function onClick() {
   }
   .enemy-name-top {
     font-size: 0.78rem;
-    padding: 0.05rem 0.3rem;
-    margin-bottom: 0.1rem;
+    padding: 0.02rem 0.3rem;
+    margin-bottom: 0.02rem;
     max-width: clamp(140px, calc((100vh - 290px) / 2.8), 240px);
   }
   .enemy-health {
-    margin-top: 0.2rem;
-    padding: 0.12rem;
+    margin-top: 0.08rem;
+    padding: 0.08rem;
+  }
+  .health-bar {
+    height: 10px;
   }
 }
 
@@ -212,25 +216,25 @@ function onClick() {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 240px;
-  padding: 0.1rem 0.4rem;
-  margin-bottom: 0.15rem;
+  padding: 0.05rem 0.4rem;
+  margin-bottom: 0.05rem;
 }
 
 .enemy-health {
   position: relative;
-  margin-top: 0.4rem;
+  margin-top: 0.15rem;
   width: 100%;
   background-color: rgba(0, 0, 0, 0.8);
   border-radius: 4px;
-  padding: 0.2rem;
+  padding: 0.12rem;
 }
 
 .health-bar {
   position: relative;
   width: 100%;
-  height: 16px;
+  height: 12px;
   background-color: #1a1a1a;
-  border-radius: 4px;
+  border-radius: 3px;
   overflow: hidden;
 }
 

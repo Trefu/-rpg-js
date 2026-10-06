@@ -20,7 +20,7 @@ const props = defineProps<{
     activeHeroIndex?: number
     attackedHeroIds?: string[]
     hitPopups?: { heroId: string | null, value: number, key: number, isCrit?: boolean, variant?: 'damage' | 'crit' | 'blocked' | 'heal' | 'energy', suffix?: string, offsetX: number, offsetY: number, duration: number }[]
-    heroVfxEffects?: { heroId: string, key: number, asset: VfxAssetId, durationMs: number }[]
+    heroVfxEffects?: { heroId: string, key: number, asset: VfxAssetId, durationMs: number, mirrored?: boolean, rotationDeg?: number }[]
 }>()
 
 const emit = defineEmits<{
@@ -108,6 +108,37 @@ const energyDisplay = computed(() =>
     displayedHero.value ? `${displayedHero.value.energy}/${displayedHero.value.maxEnergy}` : ''
 )
 
+/**
+ * Heroismo del heroe mostrado: barra + valor + flag de definitiva lista.
+ * Misma logica que `HeroCard.heroismPercent` / `isUltimateReady`: el
+ * `heroism` puede ser undefined en builds viejos del snapshot de tests,
+ * asi que se protege con `?? 0`. La barra usa `maxHeroism` directo
+ * (todos los heroes tienen 100 max). Si un futuro heroe cambiara el max,
+ * se reemplaza el denominador por `h.maxHeroism` y se ajusta el clamp.
+ */
+const heroismPercent = computed(() => {
+    const h = displayedHero.value as (Hero & { heroism?: number; maxHeroism?: number }) | null
+    if (!h) return 0
+    const max = h.maxHeroism ?? 100
+    if (!max) return 0
+    const cur = h.heroism ?? 0
+    return Math.max(0, Math.min(100, (cur / max) * 100))
+})
+
+const heroismDisplay = computed(() => {
+    const h = displayedHero.value as (Hero & { heroism?: number; maxHeroism?: number }) | null
+    if (!h) return ''
+    const max = h.maxHeroism ?? 100
+    return `${Math.floor(h.heroism ?? 0)}/${max}`
+})
+
+const isUltimateReady = computed(() => {
+    const h = displayedHero.value as (Hero & { canUseUltimate?: () => boolean; heroism?: number; maxHeroism?: number }) | null
+    if (!h) return false
+    if (typeof h.canUseUltimate === 'function') return h.canUseUltimate()
+    return (h.heroism ?? 0) >= (h.maxHeroism ?? 100)
+})
+
 function heroHpPercent(h: Hero) {
     if (h.maxHealth <= 0) return 0
     return Math.max(0, (h.health / h.maxHealth) * 100)
@@ -116,6 +147,17 @@ function heroHpPercent(h: Hero) {
 function heroEnergyPercent(h: Hero) {
     if (!h.maxEnergy) return 0
     return Math.max(0, (h.energy / h.maxEnergy) * 100)
+}
+
+function heroHeroismPercent(h: Hero & { heroism?: number; maxHeroism?: number }) {
+    const max = h.maxHeroism ?? 100
+    if (!max) return 0
+    return Math.max(0, Math.min(100, ((h.heroism ?? 0) / max) * 100))
+}
+
+function heroIsUltimateReady(h: Hero & { canUseUltimate?: () => boolean; heroism?: number; maxHeroism?: number }) {
+    if (typeof h.canUseUltimate === 'function') return h.canUseUltimate()
+    return (h.heroism ?? 0) >= (h.maxHeroism ?? 100)
 }
 
 const showAllyPreview = ref(false)
@@ -186,9 +228,9 @@ function onAllyRowClick(hero: Hero | null) {
                 >
                     <img :src="effect.icon" :alt="effect.name" />
                     <span
-                        v-if="effect.turns !== undefined && Number.isFinite(effect.turns)"
-                        class="mobile-hud-status-icon-turns"
-                    >{{ effect.turns }}</span>
+                        v-if="typeof effect.stacks === 'number' && effect.stacks > 0"
+                        class="mobile-hud-status-icon-stacks"
+                    >x{{ effect.stacks }}</span>
                 </div>
             </div>
             <div class="mobile-hud-info">
@@ -214,6 +256,15 @@ function onAllyRowClick(hero: Hero | null) {
                         {{ energyDisplay }}
                     </span>
                 </div>
+                <div class="mobile-hud-bar mobile-hud-bar-heroism"
+                    :class="{ 'is-ult-ready': isUltimateReady }">
+                    <div class="mobile-hud-bar-fill heroism"
+                        :class="{ 'mobile-hud-bar-fill--ready': isUltimateReady }"
+                        :style="{ width: `${heroismPercent}%` }"></div>
+                    <span class="mobile-hud-bar-value mobile-hud-bar-value-heroism">
+                        {{ heroismDisplay }}
+                    </span>
+                </div>
             </div>
             <HeroDotIcons v-if="displayedHero" :effects="displayedHero.statusEffects" />
         </button>
@@ -235,7 +286,8 @@ function onAllyRowClick(hero: Hero | null) {
                     v-for="effect in displayedHeroVfx"
                     :key="effect.key"
                     :src="VFX_SOURCES[effect.asset]"
-                    class="mobile-vfx-effect"
+                    :class="['mobile-vfx-effect', { 'mobile-vfx-effect--mirrored': effect.mirrored }]"
+                    :style="{ transform: `rotate(${effect.rotationDeg ?? 0}deg)${effect.mirrored ? ' scaleX(-1)' : ''}` }"
                     alt=""
                     aria-hidden="true"
                 />
@@ -281,6 +333,15 @@ function onAllyRowClick(hero: Hero | null) {
                                         :style="{ width: `${heroEnergyPercent(hero)}%` }"></div>
                                     <span class="mobile-hud-ally-bar-value">
                                         {{ hero.energy }}/{{ hero.maxEnergy }}
+                                    </span>
+                                </div>
+                                <div class="mobile-hud-ally-bar mobile-hud-ally-bar-heroism"
+                                    :class="{ 'is-ult-ready': heroIsUltimateReady(hero) }">
+                                    <div class="mobile-hud-ally-bar-fill heroism"
+                                        :class="{ 'mobile-hud-ally-bar-fill--ready': heroIsUltimateReady(hero) }"
+                                        :style="{ width: `${heroHeroismPercent(hero)}%` }"></div>
+                                    <span class="mobile-hud-ally-bar-value mobile-hud-ally-bar-value-heroism">
+                                        {{ (hero as any).heroism ?? 0 }}/{{ (hero as any).maxHeroism ?? 100 }}
                                     </span>
                                 </div>
                                 <EnemyStatusIcons v-if="hero.statusEffects && hero.statusEffects.length"
@@ -354,6 +415,12 @@ function onAllyRowClick(hero: Hero | null) {
     height: auto;
     object-fit: contain;
     filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.85)) drop-shadow(0 0 18px rgba(255, 225, 120, 0.75));
+}
+
+/* Espejado horizontal para VFX cuyo origen visual esta en el lado
+   contrario (p.ej. ataques enemigos que "vienen desde la derecha"). */
+.mobile-vfx-effect--mirrored {
+    transform: scaleX(-1);
 }
 
 .mobile-hit-popup {
@@ -514,11 +581,14 @@ function onAllyRowClick(hero: Hero | null) {
 }
 
 /*
- * Badge de turnos sobre el icono. Solo aparece cuando la duracion es finita
- * (los efectos "permanentes" como Second Wind no muestran numero para no
- * contaminar visualmente).
+ * Badge de stacks sobre el icono. Solo aparece cuando el efecto tiene
+ * stacks > 0 (efectos sin stacks, como buffs de turnos puros, no muestran
+ * numero). Mismo shape que el badge de turnos anterior pero en amarillo
+ * (anteriormente rojo) para diferenciar visualmente "stacks pendientes"
+ * de "turnos restantes". El prefijo "x" alinea con la convencion usada
+ * en `EnemyStatusIcons` y los dropdowns detallados del heroe.
  */
-.mobile-hud-status-icon-turns {
+.mobile-hud-status-icon-stacks {
     position: absolute;
     top: -5px;
     right: -5px;
@@ -526,8 +596,8 @@ function onAllyRowClick(hero: Hero | null) {
     height: 13px;
     padding: 0 2px;
     border-radius: 7px;
-    background: #ff3333;
-    color: #fff;
+    background: #ffe600;
+    color: #1a1a1a;
     font-family: 'Courier New', monospace;
     font-size: 0.55rem;
     font-weight: 800;
@@ -539,8 +609,9 @@ function onAllyRowClick(hero: Hero | null) {
     line-height: 1;
 }
 
-.mobile-hud-status-icon.kind-buff .mobile-hud-status-icon-turns {
-    background: #2e7d32;
+.mobile-hud-status-icon.kind-buff .mobile-hud-status-icon-stacks {
+    background: #ffd60a;
+    color: #1a1a1a;
 }
 
 .mobile-hud-info {
@@ -596,6 +667,46 @@ function onAllyRowClick(hero: Hero | null) {
 
 .mobile-hud-bar-fill.energy {
     background: linear-gradient(90deg, #40c4ff, #82b1ff);
+}
+
+/**
+ * Heroism bar (tercera barra del heroe). Mismo gradiente amarillo que
+ * `HeroCard.vue .bar-fill.bar-heroism` para mantener paridad visual con
+ * desktop. Cuando la definitiva esta lista, la barra parpadea con un glow
+ * (`heroismGlow`) que avisa al jugador que puede lanzar la ult.
+ */
+.mobile-hud-bar-fill.heroism {
+    background: linear-gradient(90deg, #ffd54f, #ff9f1c);
+    box-shadow: inset 0 0 6px rgba(255, 215, 0, 0.6);
+}
+
+.mobile-hud-bar-fill.heroism.mobile-hud-bar-fill--ready {
+    background: linear-gradient(90deg, #fff176, #ffb300, #ff6f00);
+    animation: mobileHeroismGlow 1.2s ease-in-out infinite alternate;
+}
+
+.mobile-hud-bar-value-heroism {
+    color: #ffe066;
+    text-shadow: 0 0 4px rgba(255, 200, 0, 0.6);
+}
+
+.mobile-hud-bar.is-ult-ready {
+    box-shadow: 0 0 0 1px rgba(255, 215, 0, 0.55), 0 0 8px rgba(255, 215, 0, 0.35);
+}
+
+@keyframes mobileHeroismGlow {
+    from {
+        box-shadow: 0 0 4px rgba(255, 215, 0, 0.6), inset 0 0 6px rgba(255, 215, 0, 0.6);
+    }
+    to {
+        box-shadow: 0 0 12px rgba(255, 215, 0, 1), inset 0 0 10px rgba(255, 215, 0, 0.9);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mobile-hud-bar-fill.heroism.mobile-hud-bar-fill--ready {
+        animation: none;
+    }
 }
 
 .mobile-hud-bar-value {
@@ -822,6 +933,29 @@ function onAllyRowClick(hero: Hero | null) {
 
 .mobile-hud-ally-bar-fill.energy {
     background: linear-gradient(90deg, #40c4ff, #82b1ff);
+}
+
+/**
+ * Heroism bar compacta de la fila de aliados. Variante reducida de la
+ * barra del heroe activo (sin glow animado cuando esta lista para no
+ * distraer en la lista — solo cambia el gradiente).
+ */
+.mobile-hud-ally-bar-fill.heroism {
+    background: linear-gradient(90deg, #ffd54f, #ff9f1c);
+    box-shadow: inset 0 0 4px rgba(255, 215, 0, 0.55);
+}
+
+.mobile-hud-ally-bar-fill.heroism.mobile-hud-ally-bar-fill--ready {
+    background: linear-gradient(90deg, #fff176, #ffb300, #ff6f00);
+}
+
+.mobile-hud-ally-bar-value-heroism {
+    color: #ffe066;
+    text-shadow: 0 0 3px rgba(255, 200, 0, 0.55);
+}
+
+.mobile-hud-ally-bar-heroism.is-ult-ready {
+    box-shadow: 0 0 0 1px rgba(255, 215, 0, 0.5);
 }
 
 .mobile-hud-ally-bar-value {

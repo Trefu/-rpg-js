@@ -141,6 +141,32 @@ function close() {
   line-height: 1;
 }
 
+/* Desktop: FAB mas grande con solo el icono para que sea visible sin
+   tapar informacion del campo de batalla. El color verde brillante y
+   la sombra lo distinguen del fondo oscuro. */
+@media (min-width: 721px) {
+  .log-fab-wrap {
+    align-items: flex-end;
+  }
+  .log-fab {
+    width: 52px;
+    height: 52px;
+    border-width: 2.5px;
+  }
+  .log-fab-icon {
+    width: 22px;
+    height: 22px;
+  }
+  .log-fab-badge {
+    min-width: 18px;
+    height: 18px;
+    padding: 0 6px;
+    font-size: 0.72rem;
+    top: -4px;
+    right: -4px;
+  }
+}
+
 .log-sheet-backdrop {
   position: fixed;
   inset: 0;

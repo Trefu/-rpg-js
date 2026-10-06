@@ -1,125 +1,118 @@
-import type { IAbility, DamageType, AbilityDamagePreview, VfxEffect } from '@/core/interfaces/IAbility'
-import type { AbilityContext } from '@/core/interfaces/IAbility'
-import { getDamageTypeLabel, getDamageTypeInfo, type DamageTypeId } from '../combat/damageTypes'
+import type { IAbility, AbilityContext, VfxEffect } from '@/core/interfaces/IAbility'
 import type { Hero } from '../Hero'
 import { StatusEffects, DOT_STATUS_TYPES } from '../StatusEffects'
-import type { CritResult } from '../crit'
+import {
+  computeRawDamage,
+  dealDamage,
+  damageStep,
+  previewFromPipeline,
+  type DamageStep
+} from './damagePipeline'
+import { registerAbility } from './registry'
+
+/**
+ * Re-export para retro-compatibilidad con imports legacy (`Enemy.ts`,
+ * `useCombat.ts` antes del refactor). El home del helper es
+ * `damagePipeline.ts`; nuevos usos deben importar desde ahí.
+ */
+export { applyDamageVariance, DAMAGE_VARIANCE_MIN, DAMAGE_VARIANCE_MAX } from './damagePipeline'
+
+import sabersChoc from '@/assets/icons/sabers-choc.png'
+import swordSlice from '@/assets/icons/sword-slice.png'
+import thunderBlade from '@/assets/icons/thunder-blade.png'
+import heartDrop from '@/assets/icons/heart-drop.png'
+import stunGrenade from '@/assets/icons/stun-grenade.png'
+import thrownKnife from '@/assets/icons/thrown-knife.png'
+import smallFire from '@/assets/icons/small-fire.png'
+import wingedSword from '@/assets/icons/winged-sword.png'
+import shiningHeart from '@/assets/icons/shining-heart.png'
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
-const FIRE_SLASH_DOWN: VfxEffect = { asset: 'fire-slash-down', durationMs: 1200 }
-const FIRE_SLASH_UP: VfxEffect = { asset: 'fire-slash-up', durationMs: 1200 }
-const HOLY_SLASH_DOWN: VfxEffect = { asset: 'holy-slash-down', durationMs: 1200 }
-const HOLY_SLASH_UP: VfxEffect = { asset: 'holy-slash-up', durationMs: 1200 }
 const BASIC_ATTACK_HITS_LEVEL_STEP = 4
 const BASIC_ATTACK_HIT_INTERVAL_MS = 200
 const BASIC_ATTACK_DURATION_MS = 800
+const DEFAULT_ANIMATION_DELAY_MS = 1500
 
 export function getBasicAttackHitCount(level: number): number {
   return Math.max(1, Math.floor(Math.max(1, level) / BASIC_ATTACK_HITS_LEVEL_STEP) + 1)
 }
 
 /**
- * Multiplicador minimo y maximo aplicado al daño base antes del critico.
- * Define la "ventana de variabilidad" del daño en este juego (estilo Diablo/LoL):
- * el golpe real fluctúa dentro de este rango en cada uso, manteniendo el promedio
- * igual al valor base. Centralizado aquí para que los enemigos (que copian la
- * mecánica) y los heroes compartan el mismo balance.
+ * Total de golpes que aplicara una ability sobre su objetivo primario.
+ * Usado por la UI para mostrar un "× N" al lado del rango de daño en
+ * abilities multi-hit. Devuelve `null` si la ability no tiene un numero
+ * de golpes variable conocido (single-hit default).
  */
-export const DAMAGE_VARIANCE_MIN = 0.90
-export const DAMAGE_VARIANCE_MAX = 1.10
-
-export interface DamageVarianceRange {
-    min: number
-    max: number
-}
-
-const DEFAULT_VARIANCE_RANGE: DamageVarianceRange = {
-    min: DAMAGE_VARIANCE_MIN,
-    max: DAMAGE_VARIANCE_MAX
+export function getAbilityHitCount(ability: IAbility, level: number): number | null {
+  if (ability.type === 'warriorUltimate') {
+    return getBasicAttackHitCount(level) * WARRIOR_ULTIMATE_HIT_MULTIPLIER
+  }
+  if (ability.type === 'attack' || ability.type === 'warriorAttack' || ability.type === 'clericAttack') {
+    return getBasicAttackHitCount(level)
+  }
+  return null
 }
 
 /**
- * Aplica la varianza aleatoria al daño base: lo multiplica por un factor uniforme
- * en `[min, max]`. Se aplica ANTES del critico para que el critico escale un
- * valor ya fluctuante (consistente con la mayoría de RPGs).
+ * `true` si la ability es un ataque basico (caster-type agnostic).
+ * Cubierto por el flag de Silenciado: el basic attack siempre se puede
+ * usar aun bajo el debuff.
  */
-export const applyDamageVariance = (
-    amount: number,
-    range: DamageVarianceRange = DEFAULT_VARIANCE_RANGE
-): number => {
-    if (amount <= 0) return 0
-    const { min, max } = range
-    const lo = Math.min(min, max)
-    const hi = Math.max(min, max)
-    const factor = lo + Math.random() * (hi - lo)
-    return Math.max(0, Math.floor(amount * factor))
+export function isBasicAttack(ability: IAbility): boolean {
+  return ability.type === 'attack'
+    || ability.type === 'warriorAttack'
+    || ability.type === 'clericAttack'
 }
+
+const SECOND_WIND_HEAL_PCT = 0.20
+const SECOND_WIND_ENERGY_RESTORE_PCT = 0.10
+const SECOND_WIND_CHARGES = 3
 
 /**
- * Dado un daño base sin varianza, devuelve el rango min/max que el modal muestra.
- * `min` usa el factor minimo de varianza, `max` el maximo.
+ * Helpers internos de presentation/UI (VFX por tipo, rotacion aleatoria).
+ * NO son parte del DSL de damage (esos viven en `damagePipeline.ts`).
  */
-const computeDamageRange = (raw: number, range: DamageVarianceRange = DEFAULT_VARIANCE_RANGE): { min: number, max: number } => {
-    if (raw <= 0) return { min: 0, max: 0 }
-    const lo = Math.min(range.min, range.max)
-    const hi = Math.max(range.min, range.max)
-    return {
-        min: Math.max(0, Math.floor(raw * lo)),
-        max: Math.max(0, Math.floor(raw * hi))
-    }
+const BASIC_ATTACK_ROTATION_DEG = 90
+const randBetween = (min: number, max: number): number => min + Math.random() * (max - min)
+
+const VFX_POOL_BY_DAMAGE_TYPE: Record<string, VfxEffect[]> = {
+  // Slashes del pool fisico: delays=0cs → browser default ~10fps (100ms/frame).
+  physical: [
+    { asset: 'physical-slash-1', durationMs: 880 },   // 9 frames
+    { asset: 'physical-slash-2', durationMs: 680 },   // 7 frames
+    { asset: 'physical-slash-3', durationMs: 880 }    // 9 frames
+  ],
+  // Holy/fire slashes: delays=3cs → 30ms/frame.
+  holy: [
+    { asset: 'holy-slash-down', durationMs: 1230 },  // 41 frames × 30ms
+    { asset: 'holy-slash-up', durationMs: 1230 }
+  ],
+  fire: [
+    { asset: 'fire-slash-down', durationMs: 1320 },  // 44 frames × 30ms
+    { asset: 'fire-slash-up', durationMs: 1320 }
+  ]
 }
 
-const showCritAnnouncement = (context: AbilityContext, damage: number, isOvercrit: boolean = false) => {
-    const dmgType = context.ability?.damageType as DamageTypeId | undefined
-    const typeLabel = dmgType ? getDamageTypeLabel(dmgType) : 'Físico'
-    const prefix = isOvercrit ? '¡Overcrit!' : 'Crítico'
-    context.showAnnouncement(`${prefix} ${damage} ${typeLabel}`, 'crit', 1800, { priority: 100, interrupt: true })
-}
-
-const rollAndApplyDamage = (
-    caster: Hero,
-    rawDamage: number,
-    range: DamageVarianceRange = DEFAULT_VARIANCE_RANGE
-): { finalDamage: number, crit: CritResult, baseDamage: number } => {
-    const baseDamage = applyDamageVariance(rawDamage, range)
-    if (baseDamage <= 0) {
-        return { finalDamage: 0, crit: { multiplier: 1, isCrit: false, isOvercrit: false }, baseDamage: 0 }
-    }
-    const crit = caster.rollCrit()
-    const finalDamage = crit.isCrit
-        ? Math.floor(baseDamage * crit.multiplier)
-        : baseDamage
-    return { finalDamage, crit, baseDamage }
-}
-
-const buildAttackLog = (abilityName: string, damage: number, crit: CritResult): string => {
-  const base = `Usaste ${abilityName} causando ${damage} de daño.`
-  if (crit.isOvercrit) return `¡Overcrit! ${base}`
-  if (crit.isCrit) return `Crítico ${base}`
-  return base
+export const getBasicAttackHitVfx = (ability: IAbility | undefined): VfxEffect[] => {
+  const declared = ability?.hitVfx ?? ability?.vfx
+  if (Array.isArray(declared)) return declared
+  if (declared) return [declared]
+  const pool = VFX_POOL_BY_DAMAGE_TYPE[ability?.damageType ?? 'physical']
+  return pool ?? VFX_POOL_BY_DAMAGE_TYPE.physical
 }
 
 const resolveVfxForHit = (hitIndex: number, vfx: VfxEffect | VfxEffect[] | undefined): VfxEffect | undefined => {
   if (!vfx) return undefined
+  const pick = (effect: VfxEffect): VfxEffect => ({
+    ...effect,
+    rotationDeg: randBetween(-BASIC_ATTACK_ROTATION_DEG, BASIC_ATTACK_ROTATION_DEG)
+  })
   if (Array.isArray(vfx)) {
     if (vfx.length === 0) return undefined
-    return vfx[hitIndex % vfx.length]
+    return pick(vfx[hitIndex % vfx.length])
   }
-  return vfx
-}
-
-const getBasicAttackHitVfx = (ability: IAbility | undefined): VfxEffect[] => {
-  const declared = ability?.hitVfx ?? ability?.vfx
-  if (Array.isArray(declared)) return declared
-  if (declared) return [declared]
-  return ability?.damageType === 'holy'
-    ? [HOLY_SLASH_DOWN, HOLY_SLASH_UP]
-    : [FIRE_SLASH_DOWN, FIRE_SLASH_UP]
-}
-
-const getBasicAttackRawDamage = (caster: Hero): number => {
-  return caster.baseStats.body.value * 0.7 + caster.level
+  return pick(vfx)
 }
 
 const executeBasicAttack = async (context: AbilityContext) => {
@@ -128,546 +121,553 @@ const executeBasicAttack = async (context: AbilityContext) => {
   if (!target || !target.isAlive) return
 
   const ability = context.ability
-  const abilityName = ability?.name ?? 'Ataque Básico'
   const levelBasedHitCount = getBasicAttackHitCount(caster.level)
   const hitCount = Math.max(levelBasedHitCount, ability?.hitCount ?? levelBasedHitCount)
-  const hitIntervalMs = hitCount > 1
+  await runHitStorm(context, caster, target, ability, hitCount)
+}
+
+/**
+ * Ejecuta una rafaga de golpes sobre `target` reutilizando la logica de
+ * `executeBasicAttack` (pipeline, restoreEnergy, restoreHeroism, VFX,
+ * delays entre hits). Es el corazon de los ataques multi-hits: el
+ * ataque basico, el ultimate del warrior, etc.
+ *
+ * `hitCount` es el numero TOTAL de golpes de la rafaga. Si la ability
+ * declara `hitCount` propio, se toma el maximo entre ese valor y el
+ * que pasemos aqui.
+ */
+const runHitStorm = async (
+  context: AbilityContext,
+  caster: Hero,
+  target: any,
+  ability: IAbility,
+  hitCount: number
+) => {
+  const levelBasedHitCount = getBasicAttackHitCount(caster.level)
+  const requested = Number.isFinite(hitCount) && hitCount > 0 ? hitCount : levelBasedHitCount
+  const useHitCount = Math.max(levelBasedHitCount, ability?.hitCount ?? 0, requested)
+  const hitIntervalMs = useHitCount > 1
     ? Math.max(0, ability?.hitIntervalMs ?? BASIC_ATTACK_HIT_INTERVAL_MS)
     : 0
   const hitVfxList = getBasicAttackHitVfx(ability)
+  const pipeline = ability?.pipeline as DamageStep
 
-  for (let hitIndex = 0; hitIndex < hitCount; hitIndex++) {
-    if (!target.isAlive) break
+  for (let hitIndex = 0; hitIndex < useHitCount; hitIndex++) {
+    if (!target || !target.isAlive) break
 
-    const { finalDamage, crit } = rollAndApplyDamage(
+    const rawDamage = pipeline ? computeRawDamage(pipeline, caster) : caster.baseStats.body.value * 0.7 + caster.level
+    const { finalDamage } = dealDamage({
       caster,
-      getBasicAttackRawDamage(caster)
-    )
+      target,
+      ability,
+      rawDamage,
+      effects: context
+    })
 
     if (finalDamage > 0) {
       const hitVfx = resolveVfxForHit(hitIndex, hitVfxList)
       if (hitVfx) context.playEnemyVfx?.(target.id, hitVfx)
-      target.takeDamage(finalDamage)
-      context.showEnemyHit(target.id, finalDamage, crit.isCrit)
-      playAbilitySfx(context.audioManager, ability)
-      setTimeout(() => context.audioManager.playHitSound(), 150)
     }
-
-    if (crit.isCrit) showCritAnnouncement(context, finalDamage, crit.isOvercrit)
-    context.addToLog(buildAttackLog(abilityName, finalDamage, crit))
 
     if (typeof caster.restoreEnergy === 'function') {
       const restored = caster.restoreEnergy(5)
-      if (restored > 0) context.addToLog(`+${restored} de energía.`)
+      if (restored > 0) context.log(`+${restored} de energía.`)
+    }
+
+    if (typeof caster.restoreHeroism === 'function') {
+      const divisor = Math.max(1, caster.heroismPerDamageDealtDivisor ?? 20)
+      const gained = Math.floor(finalDamage / divisor)
+      if (gained > 0) caster.restoreHeroism(gained)
     }
 
     await sleep(context.animationDelay)
-    if (hitIndex < hitCount - 1 && hitIntervalMs > 0) await sleep(hitIntervalMs)
+    if (hitIndex < useHitCount - 1 && hitIntervalMs > 0) await sleep(hitIntervalMs)
   }
 }
 
-/**
- * Helper para construir el previewDamage de una ability. Centraliza la
- * generación del rango y la metadata para que cada ability solo pase
- * su fórmula con los valores del caster ya sustituidos.
- */
-const buildPreview = (
-    formula: string,
-    raw: number,
-    damageType?: DamageType
-): AbilityDamagePreview => {
-    const { min, max } = computeDamageRange(raw)
-    return {
-        min,
-        max,
-        formula,
-        damageTypeLabel: damageType ? getDamageTypeLabel(damageType) : undefined
-    }
-}
-
-/**
- * Helpers de coloreo para las fórmulas de daño del modal de abilities.
- * Espejo de `T` en HeroStatChips.vue: cada label/valor va envuelto en un
- * `<span class="hint-XXX">` con el color del stat correspondiente
- * (Cuerpo→orange, Mente→azul, nivel→gold, ATQ→orange, ATQ MAG→azul, etc.).
- *
- * Los colores se aplican via `.ability-formula .hint-XXX`,
- * `.mab-info-formula .hint-XXX` y `.pregame-ability-formula .hint-XXX`
- * en `hint-colors.css` (estilos globales porque el contenido va por v-html).
- *
- * `dmgType()` envuelve el nombre del tipo de daño (ej. "Fuego") en su
- * clase de color (`hint-fire`, `hint-holy`, etc.) para que el ojo
- * identifique al instante de dónde viene el daño. Misma paleta que
- * los badges `.dmg-*` definidos en `damageTypes.ts`.
- *
- * Los inputs son números/strings calculados a partir de stats del caster
- * (no user input), así que v-html es seguro.
- */
-const F = {
-    base: (s: string | number) => `<span class="hint-base">${s}</span>`,
-    lvl:  (s: string | number) => `<span class="hint-lvl">${s}</span>`,
-    cue:  (s: string | number) => `<span class="hint-cue">${s}</span>`,
-    mind: (s: string | number) => `<span class="hint-mind">${s}</span>`,
-    agi:  (s: string | number) => `<span class="hint-agi">${s}</span>`,
-    con:  (s: string | number) => `<span class="hint-con">${s}</span>`,
-    atk:  (s: string | number) => `<span class="hint-atk">${s}</span>`,
-    mag:  (s: string | number) => `<span class="hint-mag">${s}</span>`,
-    /**
-     * Etiqueta de tipo de daño coloreada. Usa `className` del registro
-     * central `DAMAGE_TYPES` para mantener una única paleta. Si el ID es
-     * desconocido cae a `hint-base` (gris).
-     */
-    dmgType: (id: DamageTypeId | string) => {
-        const info = getDamageTypeInfo(id)
-        const cls = info?.className ?? 'hint-base'
-        const label = info?.label ?? id
-        return `<span class="${cls}">${label}</span>`
-    }
-}
-
-/**
- * Helper para componer el sufijo de fórmula `→ <Tipo>`. Centraliza el
- * `F.base('→ ')` + tipo coloreado para que todas las formulas usen el
- * mismo separador y la misma paleta de color por tipo.
- */
-const dmgSuffix = (id: DamageTypeId | string, extra?: string): string => {
-    const arrow = F.base('→')
-    const tag = F.dmgType(id)
-    return extra ? `${arrow} ${tag} ${F.base('· ' + extra)}` : `${arrow} ${tag}`
-}
-
-/**
- * Reproduce el SFX de la ability: si la ability define `customSound`,
- * se reproduce ese (pasado al `playCustomSound` del AudioManager);
- * si no, se usa el fallback generico `playAttackSound`.
- */
-const playAbilitySfx = (
-    audioManager: AbilityContext['audioManager'],
-    ability: IAbility | undefined
-): void => {
-    const custom = ability?.customSound
-    if (custom) audioManager.playCustomSound(custom)
-    else audioManager.playAttackSound()
-}
-
 export const BasicAttack: IAbility = {
-    name: 'Ataque Básico',
-    description: 'Un ataque simple con daño bajo',
-    type: 'attack',
-    cooldown: 0,
-    damageType: 'physical',
-    targetType: 'enemies-only',
-    animationDurationMs: BASIC_ATTACK_DURATION_MS,
-    previewDamage: (hero: Hero) => {
-        const body = hero.baseStats.body.value
-        const level = hero.level
-        const raw = body * 0.7 + level
-        const hitCount = getBasicAttackHitCount(level)
-        const totalRaw = raw * hitCount
-        const formula = `${F.cue('CUE')} ${F.cue(Math.round(body))} × 0.7 + ${F.lvl('nivel')} ${F.lvl(level)} = ${F.atk(raw.toFixed(1))}${hitCount > 1 ? ` × ${hitCount} = ${F.atk(totalRaw.toFixed(1))}` : ''}  ${dmgSuffix('physical')}`
-        return buildPreview(formula, totalRaw, 'physical')
-    },
-    execute: executeBasicAttack
+  name: 'Ataque Básico',
+  description: 'Un ataque simple con daño bajo',
+  type: 'attack',
+  cooldown: 0,
+  damageType: 'physical',
+  targetType: 'enemies-only',
+  tags: ['physical', 'damage'],
+  icon: sabersChoc,
+  animationDurationMs: BASIC_ATTACK_DURATION_MS,
+  pipeline: damageStep({ stat: 'body', coef: 0.7, levelCoef: 1, statLabel: 'CUE' }),
+  previewDamage: previewFromPipeline(
+    damageStep({ stat: 'body', coef: 0.7, levelCoef: 1, statLabel: 'CUE' }),
+    'physical'
+  ),
+  execute: executeBasicAttack
 }
+registerAbility(BasicAttack)
 
 export const WarriorBasicAttack: IAbility = {
-    ...BasicAttack,
-    damageType: 'fire',
-    description: 'Tajo de fuego que golpea al objetivo con daño de fuego.',
-    previewDamage: (hero: Hero) => {
-        const body = hero.baseStats.body.value
-        const level = hero.level
-        const raw = body * 0.7 + level
-        const hitCount = getBasicAttackHitCount(level)
-        const totalRaw = raw * hitCount
-        const formula = `${F.cue('CUE')} ${F.cue(Math.round(body))} × 0.7 + ${F.lvl('nivel')} ${F.lvl(level)} = ${F.atk(raw.toFixed(1))}${hitCount > 1 ? ` × ${hitCount} = ${F.atk(totalRaw.toFixed(1))}` : ''}  ${dmgSuffix('fire')}`
-        return buildPreview(formula, totalRaw, 'fire')
-    }
+  ...BasicAttack,
+  type: 'warriorAttack',
+  tags: ['warrior', 'physical', 'damage'],
+  previewDamage: previewFromPipeline(
+    damageStep({ stat: 'body', coef: 0.7, levelCoef: 2, statLabel: 'CUE' }),
+    'physical'
+  )
 }
+registerAbility(WarriorBasicAttack)
 
 export const ClericBasicAttack: IAbility = {
-    name: 'Ataque Sagrado',
-    description: 'Destello radiante que inflige daño sagrado al objetivo.',
-    type: 'attack',
-    cooldown: 0,
-    damageType: 'holy',
-    targetType: 'enemies-only',
-    animationDurationMs: BASIC_ATTACK_DURATION_MS,
-    previewDamage: (hero: Hero) => {
-        const body = hero.baseStats.body.value
-        const level = hero.level
-        const raw = body * 0.7 + level
-        const hitCount = getBasicAttackHitCount(level)
-        const totalRaw = raw * hitCount
-        const formula = `${F.cue('CUE')} ${F.cue(Math.round(body))} × 0.7 + ${F.lvl('nivel')} ${F.lvl(level)} = ${F.atk(raw.toFixed(1))}${hitCount > 1 ? ` × ${hitCount} = ${F.atk(totalRaw.toFixed(1))}` : ''}  ${dmgSuffix('holy')}`
-        return buildPreview(formula, totalRaw, 'holy')
-    },
-    execute: executeBasicAttack
+  name: 'Ataque Sagrado',
+  description: 'Destello radiante que inflige daño sagrado al objetivo.',
+  type: 'clericAttack',
+  cooldown: 0,
+  damageType: 'holy',
+  targetType: 'enemies-only',
+  tags: ['cleric', 'holy', 'damage'],
+  icon: sabersChoc,
+  animationDurationMs: BASIC_ATTACK_DURATION_MS,
+  pipeline: damageStep({ stat: 'body', coef: 0., levelCoef: 2, statLabel: 'CUE' }),
+  previewDamage: previewFromPipeline(
+    damageStep({ stat: 'body', coef: 0.7, levelCoef: 2, statLabel: 'CUE' }),
+    'holy'
+  ),
+  execute: executeBasicAttack
 }
+registerAbility(ClericBasicAttack)
 
 export const StunStrike: IAbility = {
-    name: 'Golpe Aturdidor',
-    description: 'Un golpe que puede aturdir al enemigo',
-    type: 'stunStrike',
-    cooldown: 3,
-    energyCost: 15,
-    damageType: 'physical',
-    targetType: 'enemies-only',
-    previewDamage: (hero: Hero) => {
-        const body = hero.baseStats.body.value
-        const level = hero.level
-        const raw = (body * 0.7 + level * 0.5) * 0.8
-        return buildPreview(
-            `(${F.cue('CUE')} ${F.cue(Math.round(body))} × 0.7 + ${F.lvl('nivel')} ${F.lvl(level)} × 0.5) × 0.8 = ${F.atk(raw.toFixed(1))}  ${dmgSuffix('physical')}`,
-            raw,
-            'physical'
-        )
-    },
-    execute: async (context: AbilityContext) => {
-        const caster = context.caster as Hero
-        const target = context.target
-        if (!target || !target.isAlive) return
-        const rawDamage = (caster.baseStats.body.value * 0.7 + caster.level * 0.5) * 0.8
-        const { finalDamage, crit } = rollAndApplyDamage(caster, rawDamage)
-        if (finalDamage > 0) {
-            target.takeDamage(finalDamage)
-            context.showEnemyHit(target.id, finalDamage, crit.isCrit)
-            playAbilitySfx(context.audioManager, context.ability)
-        }
-        if (crit.isCrit) showCritAnnouncement(context, finalDamage, crit.isOvercrit)
-        context.addToLog(buildAttackLog('Golpe Aturdidor', finalDamage, crit))
-        await sleep(context.animationDelay)
-    }
+  name: 'Golpe Aturdidor',
+  description: 'Un golpe que puede aturdir al enemigo',
+  type: 'stunStrike',
+  cooldown: 3,
+  energyCost: 15,
+  damageType: 'physical',
+  targetType: 'enemies-only',
+  tags: ['physical', 'damage'],
+  icon: stunGrenade,
+  pipeline: damageStep({ stat: 'body', coef: 0.7, levelCoef: 0.5, multiplier: 0.8, statLabel: 'CUE' }),
+  previewDamage: previewFromPipeline(
+    damageStep({ stat: 'body', coef: 0.7, levelCoef: 0.5, multiplier: 0.8, statLabel: 'CUE' }),
+    'physical'
+  ),
+  execute: async (context: AbilityContext) => {
+    const caster = context.caster as Hero
+    const target = context.target
+    if (!target || !target.isAlive) return
+    const rawDamage = computeRawDamage(context.ability.pipeline as DamageStep, caster)
+    dealDamage({ caster, target, ability: context.ability, rawDamage, effects: context })
+    await sleep(context.animationDelay)
+  }
 }
+registerAbility(StunStrike)
 
 export const StealthStrike: IAbility = {
-    name: 'Golpe Sigiloso',
-    description: 'Ataque furtivo que hace más daño',
-    type: 'stealthStrike',
-    cooldown: 2,
-    energyCost: 15,
-    damageType: 'physical',
-    targetType: 'enemies-only',
-    previewDamage: (hero: Hero) => {
-        const body = hero.baseStats.body.value
-        const level = hero.level
-        const raw = (body * 0.7 + level * 0.5) * 1.5
-        return buildPreview(
-            `(${F.cue('CUE')} ${F.cue(Math.round(body))} × 0.7 + ${F.lvl('nivel')} ${F.lvl(level)} × 0.5) × 1.5 = ${F.atk(raw.toFixed(1))}  ${dmgSuffix('physical')}`,
-            raw,
-            'physical'
-        )
-    },
-    execute: async (context: AbilityContext) => {
-        const caster = context.caster as Hero
-        const target = context.target
-        if (!target || !target.isAlive) return
-        const rawDamage = (caster.baseStats.body.value * 0.7 + caster.level * 0.5) * 1.5
-        const { finalDamage, crit } = rollAndApplyDamage(caster, rawDamage)
-        if (finalDamage > 0) {
-            target.takeDamage(finalDamage)
-            context.showEnemyHit(target.id, finalDamage, crit.isCrit)
-            playAbilitySfx(context.audioManager, context.ability)
-        }
-        if (crit.isCrit) showCritAnnouncement(context, finalDamage, crit.isOvercrit)
-        context.addToLog(buildAttackLog('Golpe Sigiloso', finalDamage, crit))
-        await sleep(context.animationDelay)
-    }
+  name: 'Golpe Sigiloso',
+  description: 'Ataque furtivo que hace más daño',
+  type: 'stealthStrike',
+  cooldown: 2,
+  energyCost: 15,
+  damageType: 'physical',
+  targetType: 'enemies-only',
+  tags: ['physical', 'damage'],
+  icon: thrownKnife,
+  pipeline: damageStep({ stat: 'body', coef: 0.7, levelCoef: 0.5, multiplier: 1.5, statLabel: 'CUE' }),
+  previewDamage: previewFromPipeline(
+    damageStep({ stat: 'body', coef: 0.7, levelCoef: 0.5, multiplier: 1.5, statLabel: 'CUE' }),
+    'physical'
+  ),
+  execute: async (context: AbilityContext) => {
+    const caster = context.caster as Hero
+    const target = context.target
+    if (!target || !target.isAlive) return
+    const rawDamage = computeRawDamage(context.ability.pipeline as DamageStep, caster)
+    dealDamage({ caster, target, ability: context.ability, rawDamage, effects: context })
+    await sleep(context.animationDelay)
+  }
 }
+registerAbility(StealthStrike)
 
 export const Fireball: IAbility = {
-    name: 'Bola de Fuego',
-    description: 'Hechizo de fuego que causa daño mágico',
-    type: 'fireball',
-    cooldown: 3,
-    energyCost: 25,
-    damageType: 'fire',
-    targetType: 'enemies-only',
-    previewDamage: (hero: Hero) => {
-        const mind = hero.baseStats.mind.value
-        const level = hero.level
-        const raw = mind * 2.0 + level * 1.5
-        return buildPreview(
-            `${F.mind('MEN')} ${F.mind(Math.round(mind))} × 2.0 + ${F.lvl('nivel')} ${F.lvl(level)} × 1.5 = ${F.mag(raw.toFixed(1))}  ${dmgSuffix('fire')}`,
-            raw,
-            'fire'
-        )
-    },
-    execute: async (context: AbilityContext) => {
-        const caster = context.caster as Hero
-        const target = context.target
-        if (!target || !target.isAlive) return
-        const rawDamage = caster.baseStats.mind.value * 2.0 + caster.level * 1.5
-        const { finalDamage, crit } = rollAndApplyDamage(caster, rawDamage)
-        if (finalDamage > 0) {
-            target.takeDamage(finalDamage)
-            context.showEnemyHit(target.id, finalDamage, crit.isCrit)
-            playAbilitySfx(context.audioManager, context.ability)
-        }
-        if (crit.isCrit) showCritAnnouncement(context, finalDamage, crit.isOvercrit)
-        context.addToLog(buildAttackLog('Bola de Fuego', finalDamage, crit))
-        await sleep(context.animationDelay)
-    }
+  name: 'Bola de Fuego',
+  description: 'Hechizo de fuego que causa daño mágico',
+  type: 'fireball',
+  cooldown: 3,
+  energyCost: 25,
+  damageType: 'fire',
+  targetType: 'enemies-only',
+  tags: ['fire', 'damage'],
+  icon: smallFire,
+  pipeline: damageStep({ stat: 'mind', coef: 2.0, levelCoef: 1.5, statLabel: 'MEN' }),
+  previewDamage: previewFromPipeline(
+    damageStep({ stat: 'mind', coef: 2.0, levelCoef: 1.5, statLabel: 'MEN' }),
+    'fire'
+  ),
+  execute: async (context: AbilityContext) => {
+    const caster = context.caster as Hero
+    const target = context.target
+    if (!target || !target.isAlive) return
+    const rawDamage = computeRawDamage(context.ability.pipeline as DamageStep, caster)
+    dealDamage({ caster, target, ability: context.ability, rawDamage, effects: context })
+    await sleep(context.animationDelay)
+  }
 }
+registerAbility(Fireball)
 
 export const WarriorInjuringStrike: IAbility = {
-    name: 'Golpe Lesionador',
-    description: 'Un tajo vertical preciso que inflige daño y aplica el debufo "Lesionado" al objetivo durante 1 turno.',
-    type: 'warriorInjuringStrike',
-    cooldown: 0,
-    energyCost: 20,
-    damageType: 'physical',
-    targetType: 'enemies-only',
-    animationDurationMs: 800,
-    previewDamage: (hero: Hero) => {
-        const body = hero.baseStats.body.value
-        const level = hero.level
-        const raw = body * 1.2 + level * 0.5
-        return buildPreview(
-            `${F.cue('CUE')} ${F.cue(Math.round(body))} × 1.2 + ${F.lvl('nivel')} ${F.lvl(level)} × 0.5 = ${F.atk(raw.toFixed(1))}  ${dmgSuffix('physical', 'aplica Lesionado')}`,
-            raw,
-            'physical'
-        )
-    },
-    execute: async (context: AbilityContext) => {
-        const caster = context.caster as Hero
-        const target = context.target as any
+  name: 'Golpe Lesionador',
+  description: 'Un tajo vertical preciso que inflige daño y aplica el debufo "Lesionado" al objetivo durante 1 turno.',
+  type: 'warriorInjuringStrike',
+  cooldown: 0,
+  energyCost: 20,
+  damageType: 'physical',
+  targetType: 'enemies-only',
+  tags: ['warrior', 'physical', 'damage'],
+  icon: swordSlice,
+  animationDurationMs: 800,
+  pipeline: damageStep({ stat: 'body', coef: 1.2, levelCoef: 0.5, statLabel: 'CUE' }),
+  previewDamage: previewFromPipeline(
+    damageStep({ stat: 'body', coef: 1.2, levelCoef: 0.5, statLabel: 'CUE' }),
+    'physical'
+  ),
+  execute: async (context: AbilityContext) => {
+    const caster = context.caster as Hero
+    const target = context.target as any
 
-        const rawDamage = caster.baseStats.body.value * 0.7 + caster.level * 0.5
-        const { finalDamage, crit } = rollAndApplyDamage(caster, rawDamage)
-        if (finalDamage > 0) {
-            target.takeDamage(finalDamage)
-            context.showEnemyHit(target.id, finalDamage, crit.isCrit)
-            playAbilitySfx(context.audioManager, context.ability)
-        }
-        if (crit.isCrit) showCritAnnouncement(context, finalDamage, crit.isOvercrit)
-        context.addToLog(buildAttackLog('Golpe Lesionador', finalDamage, crit))
+    const rawDamage = computeRawDamage(context.ability.pipeline as DamageStep, caster)
+    dealDamage({ caster, target, ability: context.ability, rawDamage, effects: context })
 
-        if (target && typeof target.addStatusEffect === 'function' && target.isAlive) {
-            const template = StatusEffects.INJURED
-            const warriorInjuringStrikeExtraInjuredTurns = 1
-            const baseTurns = template.turns + warriorInjuringStrikeExtraInjuredTurns
-            const turns = baseTurns + Math.floor((caster.level - 1) / 2)
-            target.addStatusEffect({ ...template, turns })
-            context.addToLog(`¡${target.name} ha sido Lesionado${turns > 1 ? ' durante ' + turns + ' turnos' : ''}!`)
-            context.showAnnouncement(`¡Lesionado${turns > 1 ? ' x' + turns : ''}!`, 'status', 1500)
-        }
-
-        await sleep(context.animationDelay)
+    if (target && typeof target.addStatusEffect === 'function' && target.isAlive) {
+      const template = StatusEffects.INJURED
+      const warriorInjuringStrikeExtraInjuredTurns = 1
+      const baseTurns = template.turns + warriorInjuringStrikeExtraInjuredTurns
+      const turns = baseTurns + Math.floor((caster.level - 1) / 2)
+      target.addStatusEffect({ ...template, turns })
+      context.log(`¡${target.name} ha sido Lesionado${turns > 1 ? ' durante ' + turns + ' turnos' : ''}!`)
+      context.showAnnouncement(`¡Lesionado${turns > 1 ? ' x' + turns : ''}!`, 'status', 1500)
     }
+
+    await sleep(context.animationDelay)
+  }
 }
+registerAbility(WarriorInjuringStrike)
 
 export const WarriorDevastatingStrike: IAbility = {
-    name: 'Golpe Devastador',
-    description: 'Un golpe devastador que golpea a todos los enemigos con el mismo daño.',
-    type: 'warriorDevastatingStrike',
-    cooldown: 0,
-    energyCost: 35,
-    damageType: 'physical',
-    targetType: 'enemies-only',
-    /**
-     * Es AOE puro: golpea a todos los enemigos vivos a la vez, asi que
-     * seleccionar un objetivo especifico es ruido. Combinado con
-     * `aoe: true` esto hace que la ability se caste al seleccionarla
-     * (sin pasar por el modo de seleccion de objetivo) y que
-     * `useCombat` aplique el daño a todos los enemigos sin distinguir
-     * un "primary target" en los logs.
-     */
-    requiresTarget: false,
-    aoe: true,
-    previewDamage: (hero: Hero) => {
-        const body = hero.baseStats.body.value
-        const level = hero.level
-        const raw = body * 1.5 + level * 3
-        return buildPreview(
-            `(${F.cue('CUE')} ${F.cue(Math.round(body))} × 1.5) + (${F.lvl('nivel')} ${F.lvl(level)} × 3) = ${F.atk(raw.toFixed(1))}  ${dmgSuffix('physical', 'golpea a todos')}`,
-            raw,
-            'physical'
-        )
-    },
-    execute: async (context: AbilityContext) => {
-        const caster = context.caster as Hero
-        const rawDamage = caster.baseStats.body.value * 1.5 + caster.level * 3
-        const { finalDamage, crit } = rollAndApplyDamage(caster, rawDamage)
-        context.lastPrimaryFinalDamage = finalDamage
-        if (crit.isCrit) showCritAnnouncement(context, finalDamage, crit.isOvercrit)
+  name: 'Golpe Devastador',
+  description: 'Un golpe devastador que golpea a todos los enemigos con el mismo daño.',
+  type: 'warriorDevastatingStrike',
+  cooldown: 0,
+  energyCost: 35,
+  damageType: 'physical',
+  targetType: 'enemies-only',
+  tags: ['warrior', 'physical', 'damage', 'aoe'],
+  icon: thunderBlade,
+  requiresTarget: false,
+  aoe: true,
+  pipeline: damageStep({ stat: 'body', coef: 1.5, levelCoef: 3, statLabel: 'CUE' }),
+  previewDamage: previewFromPipeline(
+    damageStep({ stat: 'body', coef: 1.5, levelCoef: 3, statLabel: 'CUE' }),
+    'physical'
+  ),
+  execute: async (context: AbilityContext) => {
+    const caster = context.caster as Hero
+    const rawDamage = computeRawDamage(context.ability.pipeline as DamageStep, caster)
+    // AoE sin target: `applyHeroAoe` reparte `lastPrimaryFinalDamage` a
+    // TODOS los enemigos. `skipApply: true` evita que el caster (usado
+    // como dummy porque `context.target` es null) reciba daño propio.
+    const { finalDamage, crit } = dealDamage({
+      caster,
+      target: context.target ?? caster,
+      ability: context.ability,
+      rawDamage,
+      effects: context,
+      skipApply: true
+    })
+    context.lastPrimaryFinalDamage = finalDamage
+    if (crit.isCrit) {
+      const dmgType = context.ability?.damageType
+      const { getDamageTypeLabel } = await import('../combat/damageTypes')
+      const typeLabel = dmgType ? getDamageTypeLabel(dmgType) : 'Físico'
+      const prefix = crit.isOvercrit ? '¡Overcrit!' : 'Crítico'
+      context.showAnnouncement(`${prefix} ${finalDamage} ${typeLabel}`, 'crit', 1800, { priority: 100, interrupt: true })
     }
+  }
 }
-
-const SECOND_WIND_HEAL_PCT = 0.20
-const SECOND_WIND_ENERGY_RESTORE_PCT = 0.10
-const SECOND_WIND_CHARGES = 3
+registerAbility(WarriorDevastatingStrike)
 
 export const SecondWind: IAbility = {
-    name: 'Segundo Aliento',
-    description: `Cura ${Math.round(SECOND_WIND_HEAL_PCT * 100)}% de vida maxima y aplica el buff Segundo Aliento: cada bloqueo siguiente restaura ${Math.round(SECOND_WIND_ENERGY_RESTORE_PCT * 100)}% de la energia maxima (${SECOND_WIND_CHARGES} bloqueos). Mientras tengas cargas activas, los enemigos te priorizaran mucho mas como objetivo (mayor agro).`,
-    type: 'secondWind',
-    cooldown: 2,
-    energyCost: 0,
-    targetType: 'allies-only',
-    requiresTarget: false,
-    animationDurationMs: 1200,
-    customSound: '/assets/sounds/Buffs_Heals_SFX/Def_buff.wav',
-    execute: async (context: AbilityContext) => {
-        const caster = context.caster as Hero
-        if (!caster.isAlive) {
-            context.addToLog('No puedes usar Segundo Aliento estando inconsciente.')
-            return
-        }
-        const mindBonus = Math.floor(caster.baseStats.mind.value * 0.5)
-        const healAmount = Math.floor(caster.maxHealth * SECOND_WIND_HEAL_PCT) + mindBonus
-        const beforeHeal = caster.health
-        caster.heal(healAmount)
-        const restored = caster.health - beforeHeal
-        if (restored > 0) context.showPlayerHit(restored, { heroId: caster.id, variant: 'heal' })
-
-        const buffTemplate = StatusEffects.SECOND_WIND
-        const maxCharges = SECOND_WIND_CHARGES
-        const existing = caster.statusEffects.find(e => e.type === buffTemplate.type)
-        if (existing) {
-            existing.charges = maxCharges
-            existing.maxCharges = maxCharges
-            existing.turns = Infinity
-            existing.onBlock = buffTemplate.onBlock
-        } else {
-            caster.addStatusEffect({
-                ...buffTemplate,
-                charges: maxCharges,
-                maxCharges,
-                turns: Infinity
-            })
-        }
-
-        context.addToLog(
-            `Usaste Segundo Aliento: cura ${healAmount} HP y activa el buff (${maxCharges} cargas).`
-        )
-        context.showAnnouncement('Segundo Aliento!', 'info', 1500)
-        playAbilitySfx(context.audioManager, context.ability)
-        await sleep(context.animationDelay)
+  name: 'Segundo Aliento',
+  description: `Cura ${Math.round(SECOND_WIND_HEAL_PCT * 100)}% de vida maxima y aplica el buff Segundo Aliento: cada bloqueo siguiente restaura ${Math.round(SECOND_WIND_ENERGY_RESTORE_PCT * 100)}% de la energia maxima (${SECOND_WIND_CHARGES} bloqueos). Mientras tengas cargas activas, los enemigos te priorizaran mucho mas como objetivo (mayor agro).`,
+  type: 'secondWind',
+  cooldown: 2,
+  energyCost: 0,
+  targetType: 'allies-only',
+  tags: ['buff', 'heal'],
+  icon: heartDrop,
+  requiresTarget: false,
+  animationDurationMs: 1200,
+  customSound: '/assets/sounds/Buffs_Heals_SFX/Def_buff.wav',
+  execute: async (context: AbilityContext) => {
+    const caster = context.caster as Hero
+    if (!caster.isAlive) {
+      context.log('No puedes usar Segundo Aliento estando inconsciente.')
+      return
     }
+    const mindBonus = Math.floor(caster.baseStats.mind.value * 0.5)
+    const healAmount = Math.floor(caster.maxHealth * SECOND_WIND_HEAL_PCT) + mindBonus
+    const beforeHeal = caster.health
+    caster.heal(healAmount)
+    const restored = caster.health - beforeHeal
+    context.playHeroVfx?.(caster.id, { asset: 'holy-heal', durationMs: 1200 })
+    if (restored > 0) context.showPlayerHit(restored, { heroId: caster.id, variant: 'heal' })
+
+    const buffTemplate = StatusEffects.SECOND_WIND
+    const maxCharges = SECOND_WIND_CHARGES
+    const existing = caster.statusEffects.find(e => e.type === buffTemplate.type)
+    if (existing) {
+      existing.charges = maxCharges
+      existing.maxCharges = maxCharges
+      existing.turns = Infinity
+      existing.onBlock = buffTemplate.onBlock
+    } else {
+      caster.addStatusEffect({
+        ...buffTemplate,
+        charges: maxCharges,
+        maxCharges,
+        turns: Infinity
+      })
+    }
+
+    context.log(`Usaste Segundo Aliento: cura ${healAmount} HP y activa el buff (${maxCharges} cargas).`)
+    context.showAnnouncement('Segundo Aliento!', 'info', 1500)
+    context.audioManager.playCustomSound('/assets/sounds/Buffs_Heals_SFX/Def_buff.wav')
+    await sleep(context.animationDelay)
+  }
 }
+registerAbility(SecondWind)
 
 export const ClericRadiantStrike: IAbility = {
-    name: 'Luz Sagrada',
-    description: 'Un destello radiante que causa daño sagrado al objetivo y puede saltar a 1-2 enemigos adicionales cercanos.',
-    type: 'clericRadiantStrike',
-    cooldown: 0,
-    energyCost: 30,
-    damageType: 'holy',
-    targetType: 'enemies-only',
-    randomAttack: {
-        minExtraTargets: 1,
-        maxExtraTargets: 2,
-        damageMultiplier: 0.6
-    },
-    previewDamage: (hero: Hero) => {
-        const mind = hero.baseStats.mind.value
-        const level = hero.level
-        const raw = mind * 2.4 + level * 1.2
-        const splash = raw * 0.6
-        return buildPreview(
-            `${F.mind('MEN')} ${F.mind(Math.round(mind))} × 2.4 + ${F.lvl('nivel')} ${F.lvl(level)} × 1.2 = ${F.mag(raw.toFixed(1))}  ${F.base('(salta a 1-2 con')} ${F.mag(splash.toFixed(1))}${F.base(')  ')}${dmgSuffix('holy')}`,
-            raw,
-            'holy'
-        )
-    },
-    execute: async (context: AbilityContext) => {
-        const caster = context.caster as Hero
-        const target = context.target
-        if (!target || !target.isAlive) return
-        const baseDamage = caster.baseStats.mind.value * 2.4 + caster.level * 1.2
-        const { finalDamage, crit } = rollAndApplyDamage(caster, baseDamage)
-        context.lastPrimaryBaseDamage = baseDamage
-        if (finalDamage > 0) {
-            target.takeDamage(finalDamage)
-            context.showEnemyHit(target.id, finalDamage, crit.isCrit)
-            playAbilitySfx(context.audioManager, context.ability)
-        }
-        if (crit.isCrit) showCritAnnouncement(context, finalDamage, crit.isOvercrit)
-        context.addToLog(buildAttackLog('Luz Sagrada', finalDamage, crit))
-        await sleep(context.animationDelay)
-    }
+  name: 'Luz Sagrada',
+  description: 'Un destello radiante que causa daño sagrado al objetivo y puede saltar a 1-2 enemigos adicionales cercanos.',
+  type: 'clericRadiantStrike',
+  cooldown: 0,
+  energyCost: 30,
+  damageType: 'holy',
+  targetType: 'enemies-only',
+  tags: ['cleric', 'holy', 'damage'],
+  icon: smallFire,
+  randomAttack: {
+    minExtraTargets: 1,
+    maxExtraTargets: 2,
+    damageMultiplier: 0.95,
+    bounceDamageReductionPerStep: 0.05
+  },
+  pipeline: damageStep({ stat: 'mind', coef: 2.4, levelCoef: 1.2, statLabel: 'MEN' }),
+  previewDamage: previewFromPipeline(
+    damageStep({ stat: 'mind', coef: 2.4, levelCoef: 1.2, statLabel: 'MEN' }),
+    'holy'
+  ),
+  execute: async (context: AbilityContext) => {
+    const caster = context.caster as Hero
+    const target = context.target
+    if (!target || !target.isAlive) return
+    context.playEnemyVfx?.(target.id, { asset: 'holy-light', durationMs: 1000 })
+    const baseDamage = computeRawDamage(context.ability.pipeline as DamageStep, caster)
+    const { finalDamage } = dealDamage({ caster, target, ability: context.ability, rawDamage: baseDamage, effects: context })
+    context.lastPrimaryBaseDamage = baseDamage
+    void finalDamage
+    await sleep(context.animationDelay)
+  }
 }
+registerAbility(ClericRadiantStrike)
 
 export const ClericDivineSmite: IAbility = {
-    name: 'Castigo Divino',
-    description: 'Un ataque radiante imbuido de fe pura.',
-    type: 'clericDivineSmite',
-    cooldown: 0,
-    energyCost: 40,
-    damageType: 'holy',
-    targetType: 'enemies-only',
-    previewDamage: (hero: Hero) => {
-        const mind = hero.baseStats.mind.value
-        const level = hero.level
-        const raw = mind * 3.0 + level * 2.5
-        return buildPreview(
-            `${F.mind('MEN')} ${F.mind(Math.round(mind))} × 3.0 + ${F.lvl('nivel')} ${F.lvl(level)} × 2.5 = ${F.mag(raw.toFixed(1))}  ${dmgSuffix('holy')}`,
-            raw,
-            'holy'
-        )
-    },
-    execute: async (context: AbilityContext) => {
-        const caster = context.caster as Hero
-        const target = context.target
-        if (!target || !target.isAlive) return
-        const rawDamage = caster.baseStats.mind.value * 3.0 + caster.level * 2.5
-        const { finalDamage, crit } = rollAndApplyDamage(caster, rawDamage)
-        if (finalDamage > 0) {
-            target.takeDamage(finalDamage)
-            context.showEnemyHit(target.id, finalDamage, crit.isCrit)
-            playAbilitySfx(context.audioManager, context.ability)
-        }
-        if (crit.isCrit) showCritAnnouncement(context, finalDamage, crit.isOvercrit)
-        context.addToLog(buildAttackLog('Castigo Divino', finalDamage, crit))
-        await sleep(context.animationDelay)
-    }
+  name: 'Castigo Divino',
+  description: 'Un ataque radiante imbuido de fe pura.',
+  type: 'clericDivineSmite',
+  cooldown: 0,
+  energyCost: 40,
+  damageType: 'holy',
+  targetType: 'enemies-only',
+  tags: ['cleric', 'holy', 'damage'],
+  icon: thunderBlade,
+  pipeline: damageStep({ stat: 'mind', coef: 3.0, levelCoef: 2.5, statLabel: 'MEN' }),
+  previewDamage: previewFromPipeline(
+    damageStep({ stat: 'mind', coef: 3.0, levelCoef: 2.5, statLabel: 'MEN' }),
+    'holy'
+  ),
+  execute: async (context: AbilityContext) => {
+    const caster = context.caster as Hero
+    const target = context.target
+    if (!target || !target.isAlive) return
+    context.playEnemyVfx?.(target.id, { asset: 'holy-smite', durationMs: 1200 })
+    const rawDamage = computeRawDamage(context.ability.pipeline as DamageStep, caster)
+    dealDamage({ caster, target, ability: context.ability, rawDamage, effects: context })
+    await sleep(context.animationDelay)
+  }
 }
+registerAbility(ClericDivineSmite)
 
 export const ClericHeal: IAbility = {
-    name: 'Curar Heridas',
-    description: 'Canaliza luz radiante para restaurar 30% (+ bono por mente y nivel) de la vida maxima de un aliado (incluido el caster) y eliminar todos los efectos de dano por tiempo (Quemadura, Veneno, Congelado).',
-    type: 'clericHeal',
-    cooldown: 0,
-    energyCost: 30,
-    targetType: 'allies-only',
-    execute: async (context: AbilityContext) => {
-        const caster = context.caster as Hero
-        const target = context.target as Hero
-        if (!target || !target.isAlive) {
-            context.addToLog('No hay un aliado valido para curar.')
-            return
-        }
-        const healAmount = Math.floor(
-            target.maxHealth * 0.30
-            + caster.baseStats.mind.value * 2
-            + caster.level * 2
-        )
-        const before = target.health
-        target.heal(healAmount)
-        const restored = target.health - before
-        if (restored > 0) context.showPlayerHit(restored, { heroId: target.id, variant: 'heal' })
-
-        const cleansed: string[] = []
-        const dotEffects = target.statusEffects.filter(e => DOT_STATUS_TYPES.has(e.type))
-        for (const effect of dotEffects) {
-            target.removeStatusEffect(effect.type)
-            cleansed.push(StatusEffects.getByType(effect.type)?.name ?? effect.type)
-        }
-
-        const parts: string[] = []
-        if (restored > 0) {
-            parts.push(
-                target === caster
-                    ? `Te curaste ${restored} HP con luz radiante`
-                    : `Curaste a ${target.name} ${restored} HP`
-            )
-        }
-        if (cleansed.length > 0) {
-            parts.push(`y eliminaste ${cleansed.join(', ')}`)
-        }
-        context.addToLog(parts.length > 0 ? `${parts.join(' ')}.` : `La luz radiante no tuvo efecto sobre ${target.name}.`)
-        context.showAnnouncement('Curar Heridas', 'info', 1500)
-        await sleep(context.animationDelay)
+  name: 'Curar Heridas',
+  description: 'Canaliza luz radiante para restaurar 30% (+ bono por mente y nivel) de la vida maxima de un aliado (incluido el caster) y eliminar todos los efectos de dano por tiempo (Quemadura, Veneno, Congelado).',
+  type: 'clericHeal',
+  cooldown: 0,
+  energyCost: 30,
+  targetType: 'allies-only',
+  tags: ['cleric', 'heal'],
+  icon: heartDrop,
+  execute: async (context: AbilityContext) => {
+    const caster = context.caster as Hero
+    const target = context.target as Hero
+    if (!target || !target.isAlive) {
+      context.log('No hay un aliado valido para curar.')
+      return
     }
+    const healAmount = Math.floor(
+      target.maxHealth * 0.30
+      + caster.baseStats.mind.value * 2
+      + caster.level * 2
+    )
+    const before = target.health
+    target.heal(healAmount)
+    const restored = target.health - before
+    context.playHeroVfx?.(target.id, { asset: 'holy-heal', durationMs: 1200 })
+    if (restored > 0) context.showPlayerHit(restored, { heroId: target.id, variant: 'heal' })
+
+    const cleansed: string[] = []
+    const dotEffects = target.statusEffects.filter(e => DOT_STATUS_TYPES.has(e.type))
+    for (const effect of dotEffects) {
+      target.removeStatusEffect(effect.type)
+      cleansed.push(StatusEffects.getByType(effect.type)?.name ?? effect.type)
+    }
+
+    const parts: string[] = []
+    if (restored > 0) {
+      parts.push(
+        target === caster
+          ? `Te curaste ${restored} HP con luz radiante`
+          : `Curaste a ${target.name} ${restored} HP`
+      )
+    }
+    if (cleansed.length > 0) {
+      parts.push(`y eliminaste ${cleansed.join(', ')}`)
+    }
+    context.log(parts.length > 0 ? `${parts.join(' ')}.` : `La luz radiante no tuvo efecto sobre ${target.name}.`)
+    context.showAnnouncement('Curar Heridas', 'info', 1500)
+    await sleep(context.animationDelay)
+  }
 }
+registerAbility(ClericHeal)
+
+export const WARRIOR_ULTIMATE_HIT_MULTIPLIER = 3
+
+export const WarriorUltimate: IAbility = {
+  name: 'Tormenta de Acero',
+  description: 'Desata el triple de golpes que su ataque basico a nivel actual.',
+  type: 'warriorUltimate',
+  cooldown: 0,
+  energyCost: 0,
+  heroismCost: 100,
+  damageType: 'physical',
+  targetType: 'enemies-only',
+  tags: ['warrior', 'physical', 'damage', 'ultimate'],
+  icon: wingedSword,
+  animationDurationMs: BASIC_ATTACK_DURATION_MS,
+  pipeline: damageStep({ stat: 'body', coef: 0.7, levelCoef: 2, statLabel: 'CUE' }),
+  previewDamage: previewFromPipeline(
+    damageStep({ stat: 'body', coef: 0.7, levelCoef: 2, statLabel: 'CUE' }),
+    'physical'
+  ),
+  execute: async (context: AbilityContext) => {
+    const caster = context.caster as Hero
+    const target = context.target
+    if (!target || !target.isAlive) return
+    const baseHits = getBasicAttackHitCount(caster.level)
+    const totalHits = baseHits * WARRIOR_ULTIMATE_HIT_MULTIPLIER
+    context.log(`¡${caster.name} desata Tormenta de Acero! ${totalHits} golpes.`)
+    await runHitStorm(context, caster, target, context.ability, totalHits)
+  }
+}
+registerAbility(WarriorUltimate)
+
+export const ClericUltimate: IAbility = {
+  name: 'Luz Divina',
+  description: 'Canaliza una luz sagrada que cura a todos los heroes un 50% de su vida maxima, elimina todos los efectos de dano por tiempo y purga cualquier debuff.',
+  type: 'clericUltimate',
+  cooldown: 0,
+  energyCost: 0,
+  heroismCost: 100,
+  targetType: 'allies-only',
+  tags: ['cleric', 'heal', 'ultimate'],
+  icon: shiningHeart,
+  animationDurationMs: 1500,
+  requiresTarget: false,
+  customSound: '/assets/sounds/Buffs_Heals_SFX/Def_buff.wav',
+  execute: async (context: AbilityContext) => {
+    const caster = context.caster as Hero
+    if (!caster.isAlive) {
+      context.log('No puedes canalizar Luz Divina estando inconsciente.')
+      return
+    }
+
+    const allies = (context.allies ?? []) as unknown as Hero[]
+    context.log(`¡${caster.name} canaliza Luz Divina!`)
+    context.showAnnouncement('¡Luz Divina!', 'info', 1800, { priority: 95, interrupt: true })
+    context.audioManager.playCustomSound('/assets/sounds/Buffs_Heals_SFX/Def_buff.wav')
+
+    const totalHealed: number[] = []
+    const cleansedNames: string[] = []
+    const debuffCleansedNames: string[] = []
+
+    for (const ally of allies) {
+      if (!ally || !ally.isAlive) continue
+
+      const healAmount = Math.floor(ally.maxHealth * 0.5)
+      const before = ally.health
+      ally.heal(healAmount)
+      const restored = ally.health - before
+      context.playHeroVfx?.(ally.id, { asset: 'holy-heal', durationMs: 1200 })
+      if (restored > 0) {
+        context.showPlayerHit(restored, { heroId: ally.id, variant: 'heal' })
+        totalHealed.push(restored)
+      }
+
+      const dots = ally.statusEffects.filter(e => DOT_STATUS_TYPES.has(e.type))
+      for (const effect of dots) {
+        ally.removeStatusEffect(effect.type)
+        const tpl = StatusEffects.getByType(effect.type)
+        cleansedNames.push(tpl?.name ?? effect.type)
+      }
+
+      // Purga de debuffs: cualquier efecto que NO sea DOT ni buff.
+      // Consideramos buff a `isBuff === true` (mismo criterio que la UI
+      // de HeroCard.vue). Si el effect no declara `isBuff` y tampoco es
+      // DOT, lo tratamos como debuff y lo eliminamos.
+      const debuffs = ally.statusEffects.filter(e =>
+        !DOT_STATUS_TYPES.has(e.type) && e.isBuff !== true
+      )
+      for (const effect of debuffs) {
+        ally.removeStatusEffect(effect.type)
+        debuffCleansedNames.push(effect.name ?? effect.type)
+      }
+    }
+
+    const parts: string[] = []
+    if (totalHealed.length > 0) {
+      parts.push(`Luz Divina curo ${totalHealed.length} heroes (total ${totalHealed.reduce((a, b) => a + b, 0)} HP)`)
+    }
+    if (cleansedNames.length > 0) {
+      const unique = Array.from(new Set(cleansedNames))
+      parts.push(`elimino DoTs: ${unique.join(', ')}`)
+    }
+    if (debuffCleansedNames.length > 0) {
+      const unique = Array.from(new Set(debuffCleansedNames))
+      parts.push(`purgo debuffs: ${unique.join(', ')}`)
+    }
+    context.log(parts.length > 0 ? `${parts.join('; ')}.` : 'Luz Divina no tuvo efecto sobre nadie.')
+
+    await sleep(context.animationDelay)
+  }
+}
+registerAbility(ClericUltimate)
+
+export { DEFAULT_ANIMATION_DELAY_MS }

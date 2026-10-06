@@ -24,9 +24,17 @@ const props = withDefaults(defineProps<{
   phaseIndex: number
   isCrit?: boolean
   clouded?: boolean
+  rooted?: boolean
+  rootedStacks?: number
+  rootedOverlay?: string | null
+  blinded?: boolean
 }>(), {
   isCrit: false,
-  clouded: false
+  clouded: false,
+  rooted: false,
+  rootedStacks: 0,
+  rootedOverlay: null,
+  blinded: false
 })
 
 const emit = defineEmits<{
@@ -52,6 +60,15 @@ const timeoutKey = ref(0)
 let animationFrame: number | null = null
 let phaseTimeoutHandle: number | null = null
 const FEEDBACK_DURATION_MS = 600
+
+/**
+ * Timeout fijo (ms) por fase cuando el heroe defensor esta enraizado.
+ * El desafio de defensa se vuelve automaticamente un fail: las raíces
+ * impiden bloquear, asi que la barra drena muy rapido y termina en
+ * `timeout`. El overlay visual (`enrooted.png`) + el CTA diferenciado
+ * se ocupan de la narrativa para que el jugador entienda por que.
+ */
+const ROOTED_PHASE_TIMEOUT_MS = 1000
 
 const barWidth = BAR_WIDTH
 
@@ -173,7 +190,13 @@ function resetForPhase() {
     const phaseWaveSpeed = currentZone.value?.waveSpeed
       ?? props.pattern.waveSpeed
       ?? DEFAULT_WAVE_SPEED
-    timeoutDuration.value = calculatePhaseTimeoutMs(phaseWaveSpeed)
+    // Si el heroe esta enraizado, el desafio de defensa se vuelve
+    // automaticamente un fail (timeout fijo de 1s): las raíces le impiden
+    // bloquear, asi que la barra drena muy rapido y termina la fase
+    // sin exito. El overlay visual + el CTA se ocupan de la narrativa.
+    timeoutDuration.value = props.rooted
+      ? ROOTED_PHASE_TIMEOUT_MS
+      : calculatePhaseTimeoutMs(phaseWaveSpeed)
     timeoutKey.value++
     phaseTimeoutHandle = window.setTimeout(() => {
       handleTimeout()
@@ -199,6 +222,10 @@ function handleTimeout() {
 
 function handleInput() {
   if (!isActive.value || !props.pattern || !currentZone.value) return
+  // Si el heroe esta enraizado, el input se ignora: las raíces le
+  // impiden bloquear, asi que ni space ni pointerdown pueden disparar
+  // el desafio. La fase termina con `timeout` cuando drene la barra.
+  if (props.rooted) return
   isActive.value = false
   if (animationFrame) cancelAnimationFrame(animationFrame)
   clearPhaseTimeout()
@@ -311,20 +338,27 @@ onUnmounted(() => {
       </div>
 
       <div class="defense-bar-wrap">
-        <div class="defense-bar">
+        <div class="defense-bar" :class="{ 'is-rooted': rooted }">
           <div
             v-for="i in barWidth"
             :key="i"
             class="defense-column"
             :class="{
-              success: !!currentZone && currentZone.successColumns.includes(i - 1),
+              success: !blinded && !!currentZone && currentZone.successColumns.includes(i - 1),
               'under-wave': waveColumn >= i - 1 && waveColumn <= i
             }"
           />
-          <div class="wave-cursor" :style="{ left: waveLeft }">
+          <div v-if="!rooted" class="wave-cursor" :style="{ left: waveLeft }">
             <div class="wave-cursor-inner"></div>
           </div>
         </div>
+        <img
+          v-if="rooted && rootedOverlay"
+          :src="rootedOverlay"
+          class="rooted-overlay"
+          alt=""
+          aria-hidden="true"
+        />
         <div v-if="clouded" class="cloud-overlay" aria-hidden="true">
           <img
             v-for="c in clouds"
@@ -361,7 +395,11 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <div class="defense-cta">
+      <div v-if="rooted" class="defense-cta defense-cta-rooted">
+        <span class="cta-text-rooted">No puedes bloquear, estás enraizado.</span>
+        <span class="cta-rooted-stacks">x{{ rootedStacks }}</span>
+      </div>
+      <div v-else class="defense-cta">
         <span class="cta-key">ESPACIO</span>
         <span class="cta-text">para bloquear</span>
       </div>
@@ -480,6 +518,16 @@ onUnmounted(() => {
   gap: 4px;
 }
 
+/**
+ * Cuando el heroe esta enraizado, la barra crece verticalmente para
+ * darle al overlay `enrooted.png` (aspect ratio ~3:1) el espacio que
+ * necesita sin quedar como una tira delgada en el medio. Las columnas
+ * mantienen su altura original (50px) y se centran via `align-items`.
+ */
+.defense-bar.is-rooted {
+  height: 200px;
+}
+
 .defense-column {
   flex: 1;
   height: 50px;
@@ -548,6 +596,29 @@ onUnmounted(() => {
   animation-fill-mode: forwards;
   user-select: none;
   will-change: transform, opacity;
+}
+
+.rooted-overlay {
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  height: 120%;
+  transform: translate(-50%, -50%);
+  width: min(800px, 92vw);
+  height: auto;
+  max-width: none;
+  pointer-events: none;
+  user-select: none;
+  z-index: 5;
+  opacity: 0.96;
+  filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.6));
+}
+
+@media (max-width: 640px) {
+  .rooted-overlay {
+    top: 40%;
+    height: 100%;
+  }
 }
 
 @keyframes cloud-float {
@@ -624,6 +695,42 @@ onUnmounted(() => {
   gap: 0.7rem;
   color: #fff;
   font-size: 1rem;
+}
+
+/**
+ * Variante del CTA cuando el heroe esta enraizado: en lugar del keybind
+ * "ESPACIO para bloquear", se muestra un mensaje explicativo. Sin fondo
+ * amarillo (no es accion) pero con borde temático verde para mantener
+ * coherencia con la barra.
+ */
+.defense-cta-rooted {
+  color: #b6e2b1;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.cta-text-rooted {
+  text-shadow: 0 1px 3px #000a;
+  font-size: 1rem;
+}
+
+/**
+ * Contador de stacks de Enraizado visibles en el CTA. Se renderiza
+ * inline al lado del mensaje, como un chip/badgedor para que el jugador
+ * vea cuantos golpes mas tiene que recibir antes de poder bloquear.
+ */
+.cta-rooted-stacks {
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.45rem;
+  background: rgba(182, 226, 177, 0.15);
+  border: 1px solid rgba(182, 226, 177, 0.55);
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #e6ffe0;
+  text-shadow: 0 1px 2px #000a;
+  vertical-align: middle;
 }
 
 .defense-debug {

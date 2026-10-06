@@ -1,5 +1,5 @@
 import { Enemy } from './Enemy'
-import { ICharacter, IEnemy } from '../interfaces/ICharacter'
+import { ICharacter, IEnemy, type EnemyAction } from '../interfaces/ICharacter'
 import dummySprite from '@/assets/sprites/enemies/dummy.png'
 import type { DefensePatternConfig } from '../defense/types'
 import {
@@ -54,7 +54,7 @@ export class Dummy extends Enemy implements IEnemy {
     })
   }
 
-  public override selectAttackPattern(_player: ICharacter | null): DefensePatternConfig {
+  public override selectAttackPattern(_player: ICharacter | null): EnemyAction {
     if (this.forcedPattern) {
       return this.forcedPattern
     }
@@ -68,7 +68,11 @@ export class Dummy extends Enemy implements IEnemy {
     }
   }
 
-  public override takeDamage(amount: number): void {
+  public override takeDamage(amount: number, opts?: { damageType?: string }): void {
+    // Dummy ignora damageType y resistances (no recibe daño real en training).
+    // Solo aplica el multiplicador de daño entrante del caster via opts si existe,
+    // pero como Dummy NO muere ni pierde HP por debajo de 1, no tiene efecto.
+    void opts
     this.health = Math.max(1, this.health - amount)
     this.isAlive = true
   }
@@ -101,5 +105,40 @@ export class Dummy extends Enemy implements IEnemy {
     }
     const clamped = Math.max(0, Math.min(200, value))
     this.critChanceOverride = clamped
+  }
+
+  /**
+   * Actualiza las stats base del dummy en el sitio. Necesario para que la
+   * Sala de Pruebas pueda ajustar los stats sin reemplazar la instancia
+   * (CombatView guarda su propia referencia en `enemies`; reemplazarla
+   * dejaria el debug panel con datos stale).
+   */
+  public updateBaseStats(stats: {
+    body?: number
+    mind?: number
+    agility?: number
+    constitution?: number
+  }): void {
+    if (typeof stats.body === 'number') {
+      this.baseStats.body.value = Math.max(1, stats.body)
+    }
+    if (typeof stats.mind === 'number') {
+      this.baseStats.mind.value = Math.max(1, stats.mind)
+    }
+    if (typeof stats.agility === 'number') {
+      this.baseStats.agility.value = Math.max(1, stats.agility)
+    }
+    if (typeof stats.constitution === 'number') {
+      this.baseStats.constitution.value = Math.max(1, stats.constitution)
+    }
+  }
+
+  /**
+   * Sobrescribe el `critChance` base del dummy. Pensado para que la Sala de
+   * Pruebas pueda tunearlo en sitio sin reemplazar la instancia.
+   */
+  public setBaseCritChance(value: number): void {
+    const clamped = Math.max(0, Math.min(200, Math.floor(value)))
+    this.critChance = clamped
   }
 }
