@@ -6,7 +6,7 @@ export class Rogue extends Hero {
   constructor(level: number = 1) {
     super({
       id: `rogue-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      name: 'Pícaro',
+      name: 'Dagel',
       level,
       heroClassId: 'rogue',
       basicAttack: RogueBasicAttack,
