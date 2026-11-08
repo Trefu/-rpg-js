@@ -28,6 +28,8 @@ import thrownKnife from '@/assets/icons/thrown-knife.png'
 import smallFire from '@/assets/icons/small-fire.png'
 import wingedSword from '@/assets/icons/winged-sword.png'
 import shiningHeart from '@/assets/icons/shining-heart.png'
+import poisonIcon from '@/assets/icons/poison-gas.png'
+import hasteIcon from '@/assets/icons/wingfoot.png'
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
@@ -47,10 +49,11 @@ export function getBasicAttackHitCount(level: number): number {
  * de golpes variable conocido (single-hit default).
  */
 export function getAbilityHitCount(ability: IAbility, level: number): number | null {
+  if (ability.type === 'rogueUltimate') return getBasicAttackHitCount(level) * 4
   if (ability.type === 'warriorUltimate') {
     return getBasicAttackHitCount(level) * WARRIOR_ULTIMATE_HIT_MULTIPLIER
   }
-  if (ability.type === 'attack' || ability.type === 'warriorAttack' || ability.type === 'clericAttack') {
+  if (isBasicAttack(ability)) {
     return getBasicAttackHitCount(level)
   }
   return null
@@ -65,6 +68,7 @@ export function isBasicAttack(ability: IAbility): boolean {
   return ability.type === 'attack'
     || ability.type === 'warriorAttack'
     || ability.type === 'clericAttack'
+    || ability.type === 'rogueAttack'
 }
 
 const SECOND_WIND_HEAL_PCT = 0.20
@@ -143,7 +147,8 @@ const runHitStorm = async (
   caster: Hero,
   target: any,
   ability: IAbility,
-  hitCount: number
+  hitCount: number,
+  onHit?: () => void
 ) => {
   const levelBasedHitCount = getBasicAttackHitCount(caster.level)
   const requested = Number.isFinite(hitCount) && hitCount > 0 ? hitCount : levelBasedHitCount
@@ -167,6 +172,7 @@ const runHitStorm = async (
     })
 
     if (finalDamage > 0) {
+      onHit?.()
       const hitVfx = resolveVfxForHit(hitIndex, hitVfxList)
       if (hitVfx) context.playEnemyVfx?.(target.id, hitVfx)
     }
@@ -235,6 +241,132 @@ export const ClericBasicAttack: IAbility = {
   execute: executeBasicAttack
 }
 registerAbility(ClericBasicAttack)
+
+const poisonSlash: VfxEffect = { asset: 'poison-slash', durationMs: 900 }
+const rogueBasicPipeline = damageStep({ stat: 'body', coef: 0.65, levelCoef: 1, statLabel: 'CUE' })
+
+function applyRoguePoison(context: AbilityContext, stacks: number): void {
+  const target = context.target
+  if (!target?.isAlive) return
+  target.addStatusEffect({ ...StatusEffects.POISON, stacks })
+  context.log(`${target.name} recibe ${stacks} cargas de veneno.`)
+}
+
+export const RogueBasicAttack: IAbility = {
+  ...BasicAttack,
+  name: 'Daga Envenenada',
+  description: 'Un tajo físico que aplica 1 carga de veneno por impacto y recupera energía. Gana golpes con el nivel.',
+  type: 'rogueAttack',
+  tags: ['rogue', 'physical', 'poison', 'damage'],
+  icon: thrownKnife,
+  hitVfx: poisonSlash,
+  animationDurationMs: 900,
+  pipeline: rogueBasicPipeline,
+  previewDamage: previewFromPipeline(rogueBasicPipeline, 'physical'),
+  execute: async (context: AbilityContext) => {
+    const caster = context.caster as Hero
+    if (!context.target?.isAlive) return
+    await runHitStorm(context, caster, context.target, context.ability,
+      getBasicAttackHitCount(caster.level), () => applyRoguePoison(context, 1))
+  }
+}
+registerAbility(RogueBasicAttack)
+
+const roguePoisonPipeline = damageStep({ stat: 'body', coef: 1.2, levelCoef: 2, statLabel: 'CUE' })
+export const RoguePoisonStrike: IAbility = {
+  name: 'Golpe Tóxico',
+  description: 'Inflige daño de veneno y aplica 4 cargas de veneno, más 1 por cada 3 niveles.',
+  type: 'roguePoisonStrike',
+  cooldown: 1,
+  energyCost: 25,
+  damageType: 'poison',
+  targetType: 'enemies-only',
+  tags: ['rogue', 'poison', 'damage'],
+  icon: poisonIcon,
+  animationDurationMs: 900,
+  pipeline: roguePoisonPipeline,
+  previewDamage: previewFromPipeline(roguePoisonPipeline, 'poison'),
+  execute: async (context: AbilityContext) => {
+    const caster = context.caster as Hero
+    const target = context.target
+    if (!target?.isAlive) return
+    const rawDamage = computeRawDamage(context.ability.pipeline as DamageStep, caster)
+    const { finalDamage } = dealDamage({ caster, target, ability: context.ability, rawDamage, effects: context })
+    if (finalDamage > 0) {
+      context.playEnemyVfx?.(target.id, poisonSlash)
+      applyRoguePoison(context, 4 + Math.floor(caster.level / 3))
+    }
+    await sleep(context.animationDelay)
+  }
+}
+registerAbility(RoguePoisonStrike)
+
+const rogueBackstabPipeline = damageStep({ stat: 'body', coef: 2.2, levelCoef: 2, statLabel: 'CUE' })
+export const RogueBackstab: IAbility = {
+  name: 'Puñalada',
+  description: 'Una estocada precisa que inflige un gran daño físico a un enemigo.',
+  type: 'rogueBackstab',
+  cooldown: 1,
+  energyCost: 30,
+  damageType: 'physical',
+  targetType: 'enemies-only',
+  tags: ['rogue', 'physical', 'damage'],
+  icon: swordSlice,
+  animationDurationMs: 900,
+  pipeline: rogueBackstabPipeline,
+  previewDamage: previewFromPipeline(rogueBackstabPipeline, 'physical'),
+  execute: async (context: AbilityContext) => {
+    const caster = context.caster as Hero
+    const target = context.target
+    if (!target?.isAlive) return
+    const rawDamage = computeRawDamage(rogueBackstabPipeline, caster)
+    const { finalDamage } = dealDamage({ caster, target, ability: context.ability, rawDamage, effects: context })
+    if (finalDamage > 0) context.playEnemyVfx?.(target.id, poisonSlash)
+    await sleep(context.animationDelay)
+  }
+}
+registerAbility(RogueBackstab)
+
+export const RogueHaste: IAbility = {
+  name: 'Paso Ligero',
+  description: 'Gana Prisa durante 3 turnos: +3 de agilidad para actuar más frecuentemente.',
+  type: 'rogueHaste',
+  cooldown: 4,
+  energyCost: 15,
+  targetType: 'allies-only',
+  requiresTarget: false,
+  tags: ['rogue', 'buff'],
+  icon: hasteIcon,
+  animationDurationMs: 800,
+  execute: async (context: AbilityContext) => {
+    const caster = context.caster as Hero
+    if (!caster.isAlive) return
+    caster.addStatusEffect({ ...StatusEffects.HASTE })
+    context.log(`${caster.name} gana Prisa durante 3 turnos.`)
+    context.showAnnouncement('¡Paso Ligero!', 'status', 1200)
+    await sleep(context.animationDelay)
+  }
+}
+registerAbility(RogueHaste)
+
+export const RogueUltimate: IAbility = {
+  ...RogueBasicAttack,
+  name: 'Danza de Víboras',
+  description: 'Desata cuatro veces los golpes del ataque básico. Cada impacto aplica 2 cargas de veneno.',
+  type: 'rogueUltimate',
+  tags: ['rogue', 'physical', 'poison', 'damage', 'ultimate'],
+  icon: wingedSword,
+  heroismCost: 100,
+  execute: async (context: AbilityContext) => {
+    const caster = context.caster as Hero
+    if (!context.target?.isAlive) return
+    const hits = getBasicAttackHitCount(caster.level) * 4
+    context.log(`¡${caster.name} desata Danza de Víboras! ${hits} golpes.`)
+    await runHitStorm(context, caster, context.target, context.ability, hits,
+      () => applyRoguePoison(context, 2))
+  }
+}
+registerAbility(RogueUltimate)
 
 export const StunStrike: IAbility = {
   name: 'Golpe Aturdidor',

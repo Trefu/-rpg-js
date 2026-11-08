@@ -9,7 +9,7 @@ import type { IItem, ItemTargetType } from '@/core/items/types'
 import { getItemOrThrow } from '@/core/items/items'
 import { consumeItem, getInventoryEntries, type InventoryEntry } from '@/core/items/inventory'
 import { StatusEffects, applyFailureEffect, getEffectCategory, DOT_STATUS_TYPES, STACKABLE_NON_DOT_STATUS_TYPES, NON_TURN_BASED_CATEGORIES } from '@/core/StatusEffects'
-import { applyDamageVariance, getBasicAttackHitVfx } from '@/core/abilities/Abilities'
+import { applyDamageVariance, getBasicAttackHitVfx, isBasicAttack } from '@/core/abilities/Abilities'
 import type { DamageTypeId } from '@/core/combat/damageTypes'
 import type { DamageType } from '@/core/interfaces/IAbility'
 import { DEFAULT_IMPACT_VFX, resolveFailureVfx } from '@/core/defense/failureVfx'
@@ -704,17 +704,6 @@ const defenseClouded = ref(false)
       }
     }
     return true
-  }
-
-  /**
-   * Devuelve `true` si la ability es un ataque basico (siempre casteable,
-   * incluso bajo Silenciado). Cubre los 3 tipos de basic attack:
-   * generico + variantes por clase.
-   */
-  function isBasicAttack(ability: IAbility): boolean {
-    return ability.type === 'attack'
-      || ability.type === 'warriorAttack'
-      || ability.type === 'clericAttack'
   }
 
   /**

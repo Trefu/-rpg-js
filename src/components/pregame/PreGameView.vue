@@ -3,6 +3,8 @@ import { computed, ref } from 'vue'
 import type { ExpeditionId, IExpeditionConfig } from '@/core/expeditions/types'
 import { Warrior } from '@/core/heroes/Warrior'
 import { Cleric } from '@/core/heroes/Cleric'
+import { Rogue } from '@/core/heroes/Rogue'
+import rogueSprite from '@/assets/sprites/heroes/rogue.png'
 import type { Hero } from '@/core/Hero'
 import { listExpeditions } from '@/core/expeditions/registry'
 import warriorSprite from '@/assets/sprites/heroes/warrior.png'
@@ -29,7 +31,7 @@ function isExpeditionUnlocked(_id: ExpeditionId): boolean {
 }
 
 interface HeroChoice {
-  id: 'warrior' | 'cleric'
+  id: 'warrior' | 'cleric' | 'rogue'
   name: string
   description: string
   sprite: string
@@ -50,6 +52,13 @@ const heroes: HeroChoice[] = [
     description: 'Cleriga con ataques radiantes. Soporte sagrado: daño radiante y curación de aliados.',
     sprite: clericSprite,
     factory: () => Cleric.createStarter()
+  },
+  {
+    id: 'rogue',
+    name: 'Pícaro',
+    description: 'Ágil especialista en dagas y venenos. Acumula daño por turno y desata ráfagas de tajos.',
+    sprite: rogueSprite,
+    factory: () => Rogue.createStarter()
   }
 ]
 

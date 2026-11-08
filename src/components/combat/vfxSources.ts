@@ -18,6 +18,7 @@ import holySmiteGif from '@/assets/VFX/holy/smite.gif'
 import holyHealGif from '@/assets/VFX/holy/heal.gif'
 import sacredLightGif from '@/assets/VFX/holy/sacred-light.gif'
 import blockGif from '@/assets/VFX/block.gif'
+import poisonSlash from '@/assets/VFX/poison-slash.gif'
 
 /**
  * Mapa unico asset id -> URL del GIF. Compartido por `HeroCard`,
@@ -33,6 +34,7 @@ export const VFX_SOURCES: Record<VfxAssetId, string> = {
   'physical-slash-1': physicalSlash1,
   'physical-slash-2': physicalSlash2,
   'physical-slash-3': physicalSlash3,
+  'poison-slash': poisonSlash,
   'enemy-slash-1': enemySlash1,
   'enemy-slash-2': enemySlash2,
   'enemy-slash-3': enemySlash3,

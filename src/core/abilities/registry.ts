@@ -4,14 +4,14 @@ import type { DefensePatternConfig } from '../defense/types'
 /**
  * Tags categorizan abilities y enemy attacks para auto-poblar UIs (training,
  * filtros, recomendaciones) sin tener que mantener listas hardcodeadas.
- * - `warrior` / `cleric`: clase de heroe dueña (enemies pueden ser ambos).
+ * - `warrior` / `cleric` / `rogue`: clase de heroe dueña.
  * - `physical` / `fire` / `holy` / etc.: tipo de daño.
  * - `damage` / `heal` / `buff`: mecánica principal.
  * - `aoe`: golpea a multiples objetivos.
  */
 export type AbilityTag =
-  | 'warrior' | 'cleric'
-  | 'physical' | 'fire' | 'holy'
+   | 'warrior' | 'cleric' | 'rogue'
+   | 'physical' | 'fire' | 'holy' | 'poison'
   | 'damage' | 'heal' | 'buff' | 'aoe'
   | 'ultimate'
 

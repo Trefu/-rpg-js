@@ -175,6 +175,7 @@ export type VfxAssetId =
   | 'physical-slash-1'
   | 'physical-slash-2'
   | 'physical-slash-3'
+  | 'poison-slash'
   | 'enemy-slash-1'
   | 'enemy-slash-2'
   | 'enemy-slash-3'
