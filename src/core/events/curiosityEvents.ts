@@ -53,6 +53,7 @@ export interface CuriosityEvent {
 export interface EventContext {
   heroes: Hero[]
   teamItems: string[]
+  wallet?: { gold: number }
 }
 
 export type AppliedEffect =
@@ -102,6 +103,12 @@ function applyEffect(eff: Effect, ctx: EventContext): AppliedEffect[] {
 
   switch (eff.kind) {
     case 'gold': {
+      if (ctx.wallet) {
+        const before = ctx.wallet.gold
+        ctx.wallet.gold = Math.max(0, before + eff.amount)
+        out.push({ kind: 'gold', heroName: 'Compañía', delta: ctx.wallet.gold - before })
+        break
+      }
       if (eff.amount === 0 || living.length === 0) break
       if (eff.amount > 0) {
         const perHero = Math.floor(eff.amount / living.length)

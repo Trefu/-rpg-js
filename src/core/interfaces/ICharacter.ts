@@ -102,6 +102,9 @@ export interface IEnemy extends ICombatant {
   attackPatterns: EnemyAction[]
   selectAttackPattern(player: ICharacter | null): EnemyAction
   selectTarget(heroes: Hero[]): Hero | null
+  selectAction?(heroes: Hero[], pressure?: ReadonlyMap<string, number>): { target: Hero; action: EnemyAction } | null
+  afterAction?(): void
+  readonly intention?: string
   rollCrit?(): CritResult
   calculatePhaseDamage(pattern: DefensePatternConfig, multiplier?: number): number
 }

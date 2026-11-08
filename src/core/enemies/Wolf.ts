@@ -1,11 +1,11 @@
 import { Enemy } from './Enemy'
 import wolfSprite from '@/assets/sprites/enemies/wolf.png'
 import type { DefensePatternConfig } from '../defense/types'
-import { FEROCIOUS_BITE, QUICK_CLAWS } from '../abilities/EnemyAttacks'
+import { FEROCIOUS_BITE, QUICK_CLAWS, WOLF_POUNCE, RENDING_BITE } from '../abilities/EnemyAttacks'
 
 export class Wolf extends Enemy {
   public readonly sprite = wolfSprite
-  public attackPatterns: DefensePatternConfig[] = [FEROCIOUS_BITE, QUICK_CLAWS]
+  public attackPatterns: DefensePatternConfig[] = [FEROCIOUS_BITE, QUICK_CLAWS, WOLF_POUNCE, RENDING_BITE]
 
   constructor(level: number = 1) {
     super({

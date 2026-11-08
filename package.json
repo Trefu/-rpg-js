@@ -11,6 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:company": "node scripts/check-company.mjs",
+    "test:campaign-ui": "node scripts/check-campaign-ui.mjs",
     "prepare": "husky"
   },
   "dependencies": {

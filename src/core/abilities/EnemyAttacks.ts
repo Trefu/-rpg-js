@@ -52,7 +52,7 @@ export const TRIPLE_ARROW: DefensePatternConfig = {
         stacks: 8
     }
 }
-registerEnemyAttack(POISON_ARROW)
+registerEnemyAttack(TRIPLE_ARROW)
 
 export const EMBER: DefensePatternConfig = {
     name: 'Ascua',
@@ -93,6 +93,89 @@ export const QUICK_CLAWS: DefensePatternConfig = {
     phases: [fixedPhase(1, 2, 3, 4), fixedPhase(1, 2, 3, 4, 5), fixedPhase(4, 5, 6, 7, 8)]
 }
 registerEnemyAttack(QUICK_CLAWS)
+
+export const WOLF_POUNCE: DefensePatternConfig = {
+    name: 'Embestida Salvaje',
+    type: 'physical',
+    damageType: 'physical',
+    waveSpeed: 35,
+    baseMaxBlockReduction: 0.6,
+    damageMultiplier: 1.25,
+    phases: [phase(8)],
+    onFailureEffect: { statusType: 'slow', maxDuration: 1 }
+}
+registerEnemyAttack(WOLF_POUNCE)
+
+export const RENDING_BITE: DefensePatternConfig = {
+    name: 'Desgarro Sangrante',
+    type: 'physical',
+    damageType: 'physical',
+    waveSpeed: 35,
+    baseMaxBlockReduction: 0.6,
+    damageMultiplier: 0.85,
+    phases: [phase(6), phase(8)],
+    onFailureEffect: { statusType: 'bleed', stacks: 2 }
+}
+registerEnemyAttack(RENDING_BITE)
+
+export const HEAVY_ARROW: DefensePatternConfig = {
+    name: 'Flecha Perforante',
+    type: 'physical',
+    damageType: 'physical',
+    waveSpeed: 30,
+    baseMaxBlockReduction: 0.6,
+    damageMultiplier: 1.6,
+    phases: [phase(7)],
+    onFailureEffect: { statusType: 'injured', maxDuration: 1 }
+}
+registerEnemyAttack(HEAVY_ARROW)
+
+export const AXE_CLEAVE: DefensePatternConfig = {
+    name: 'Hachazo Amplio',
+    type: 'physical',
+    damageType: 'physical',
+    waveSpeed: 24,
+    baseMaxBlockReduction: 0.6,
+    damageMultiplier: 1.4,
+    phases: [phase(9)]
+}
+registerEnemyAttack(AXE_CLEAVE)
+
+export const AXE_HOOK: DefensePatternConfig = {
+    name: 'Gancho de Hacha',
+    type: 'physical',
+    damageType: 'physical',
+    waveSpeed: 30,
+    baseMaxBlockReduction: 0.6,
+    damageMultiplier: 1.0,
+    phases: [phase(8), phase(9)],
+    onFailureEffect: { statusType: 'bleed', stacks: 2 }
+}
+registerEnemyAttack(AXE_HOOK)
+
+export const DIRTY_STAB: DefensePatternConfig = {
+    name: 'Puñalada Sucia',
+    type: 'physical',
+    damageType: 'physical',
+    waveSpeed: 38,
+    baseMaxBlockReduction: 0.55,
+    damageMultiplier: 0.9,
+    phases: [phase(8), phase(9)],
+    onFailureEffect: { statusType: 'poison', stacks: 2 }
+}
+registerEnemyAttack(DIRTY_STAB)
+
+export const BACKSTAB: DefensePatternConfig = {
+    name: 'Golpe Bajo',
+    type: 'physical',
+    damageType: 'physical',
+    waveSpeed: 30,
+    baseMaxBlockReduction: 0.6,
+    damageMultiplier: 1.5,
+    phases: [phase(10)],
+    onFailureEffect: { statusType: 'injured', maxDuration: 1 }
+}
+registerEnemyAttack(BACKSTAB)
 
 export const MULTIPLE_AXE_STRIKES: DefensePatternConfig = {
     name: 'Hachazos Múltiples',

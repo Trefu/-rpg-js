@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import type { Hero } from '@/core/Hero'
 import { useGameStore, MAX_HEROES } from '@/stores/game'
+import { useExpeditionStore } from '@/stores/expedition'
 import { RECRUITABLE_HEROES, type RecruitableHero } from '@/core/heroes/recruitment'
 import closeIcon from '@/assets/icons/cross-mark.png'
 import partyIcon from '@/assets/icons/shield.png'
@@ -13,10 +14,10 @@ const emit = defineEmits<{
 }>()
 
 const gameStore = useGameStore()
+const expeditionStore = useExpeditionStore()
 
 /**
- * Lista de heroes disponibles para reclutar. Por ahora solo el Cleric,
- * pero la coleccion RECRUITABLE_HEROES esta pensada para crecer.
+ * Lista de clases todavía no incorporadas a la compañía permanente.
  *
  * Filtramos los que ya estan en la party para no permitir duplicados
  * de la misma clase (asi el modal nunca ofrece reclutar a Elara dos
@@ -25,9 +26,10 @@ const gameStore = useGameStore()
  */
 const availableChoices = computed<RecruitableHero[]>(() => {
   const currentClassIds = new Set(
-    gameStore.activeHeroes.map(h => h.heroClassId)
+    gameStore.companyHeroes.map(h => h.heroClassId)
   )
-  return RECRUITABLE_HEROES.filter(r => !currentClassIds.has(r.id))
+  const allowedIds = expeditionStore.currentConfig?.recruitableHeroIds
+  return RECRUITABLE_HEROES.filter(r => !currentClassIds.has(r.id) && (!allowedIds || allowedIds.includes(r.id)))
 })
 
 const hasFreeSlot = computed(
@@ -41,9 +43,8 @@ function closeModal() {
 }
 
 function recruit(choice: RecruitableHero) {
-  if (!hasFreeSlot.value) return
   const newHero = choice.factory()
-  const ok = gameStore.addHeroToFirstFreeSlot(newHero)
+  const ok = gameStore.recruitHero(newHero)
   if (!ok) return
   emit('heroRecruited', newHero)
   closeModal()
@@ -71,7 +72,7 @@ function recruit(choice: RecruitableHero) {
         </p>
 
         <div v-if="!hasFreeSlot" class="recruit-warning">
-          Tu grupo ya tiene {{ MAX_HEROES }}heroes y no hay espacio.
+          El grupo ya tiene {{ MAX_HEROES }} héroes. El nuevo recluta quedará en reserva.
         </div>
 
         <ul class="recruit-list">
@@ -79,7 +80,7 @@ function recruit(choice: RecruitableHero) {
             v-for="choice in availableChoices"
             :key="choice.id"
             class="recruit-card"
-            :class="{ disabled: !hasFreeSlot }"
+            :class="{ reserve: !hasFreeSlot }"
           >
             <div class="recruit-portrait">
               <img :src="choice.sprite" :alt="choice.displayName" />
@@ -96,11 +97,10 @@ function recruit(choice: RecruitableHero) {
             <button
               class="recruit-btn"
               type="button"
-              :disabled="!hasFreeSlot"
               @click="recruit(choice)"
             >
               <img :src="partyIcon" alt="" class="recruit-btn-icon" />
-              <span>Unirse</span>
+              <span>{{ hasFreeSlot ? 'Unirse' : 'Reclutar en reserva' }}</span>
             </button>
           </li>
         </ul>

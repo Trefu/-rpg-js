@@ -2,8 +2,7 @@ import type { IStatusEffect } from './interfaces/IStatusEffect'
 import {
   speedPenaltyDefenseContribution,
   getEffectCategory,
-  NON_TURN_BASED_CATEGORIES,
-  STACK_MERGING_CATEGORIES
+  NON_TURN_BASED_CATEGORIES
 } from './interfaces/IStatusEffect'
 export type { StatusEffectCategory } from './interfaces/IStatusEffect'
 export {
@@ -733,9 +732,36 @@ export class StatusEffects {
     defenseContribution: () => ({ bodyMultiplier: 0.30 })
   }
 
+  static readonly OPEN_WOUND: IStatusEffect = {
+    type: 'open_wound', name: 'Herida abierta',
+    description: 'Recibe un 35% menos de curación durante 2 turnos. Las vendas cierran la herida.',
+    turns: 2, icon: swordWoundIcon, isBuff: false, healingMultiplier: 0.65
+  }
+
+  static readonly ANCESTRAL_GUARD: IStatusEffect = {
+    type: 'ancestral_guard', name: 'Guardia ancestral',
+    description: 'Absorbe hasta 20 de daño durante 2 turnos.',
+    turns: 2, icon: defenseIcon, isBuff: true, absorbRemaining: 20, maxAbsorb: 20
+  }
+
+  static readonly STONE_SHELL: IStatusEffect = {
+    type: 'stone_shell', name: 'Coraza pétrea',
+    description: 'Recibe un 35% menos de daño mientras prepara un golpe pesado. Después queda vulnerable.',
+    turns: 2, icon: defenseIcon, isBuff: true,
+    defenseContribution: () => ({ damageTakenMultiplier: -0.35 })
+  }
+
+  static readonly ATTACK_ORDER: IStatusEffect = {
+    type: 'attack_order', name: 'Orden de ataque',
+    description: 'Inflige un 20% más de daño durante 2 turnos.',
+    turns: 2, icon: strengthIcon, isBuff: true,
+    defenseContribution: () => ({ attackDamageMultiplier: 0.2 })
+  }
+
   // Método para obtener un efecto por tipo (case-insensitive)
   static getByType(type: string): IStatusEffect | null {
     const effects = [
+      this.OPEN_WOUND, this.ANCESTRAL_GUARD, this.STONE_SHELL, this.ATTACK_ORDER,
       this.STUN,
       this.BURN,
       this.POISON,
@@ -774,6 +800,7 @@ export class StatusEffects {
 
   static getRegisteredTypes(): string[] {
     return [
+      this.OPEN_WOUND.type, this.ANCESTRAL_GUARD.type, this.STONE_SHELL.type, this.ATTACK_ORDER.type,
       this.STUN.type,
       this.BURN.type,
       this.POISON.type,

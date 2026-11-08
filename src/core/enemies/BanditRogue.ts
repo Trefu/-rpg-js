@@ -1,11 +1,11 @@
 import { Enemy } from './Enemy'
 import banditRogueSprite from '@/assets/sprites/enemies/bandit-rogue.png'
 import type { DefensePatternConfig } from '../defense/types'
-import { QUICK_STRIKE, DOUBLE_COMBO } from '../abilities/EnemyAttacks'
+import { QUICK_STRIKE, DOUBLE_COMBO, DIRTY_STAB, BACKSTAB } from '../abilities/EnemyAttacks'
 
 export class BanditRogue extends Enemy {
   public readonly sprite = banditRogueSprite
-  public attackPatterns: DefensePatternConfig[] = [QUICK_STRIKE, DOUBLE_COMBO]
+  public attackPatterns: DefensePatternConfig[] = [QUICK_STRIKE, DOUBLE_COMBO, DIRTY_STAB, BACKSTAB]
 
   constructor(level: number = 1) {
     super({

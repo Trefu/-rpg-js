@@ -60,7 +60,7 @@ describe('Pícaro jugable', () => {
     const before = ctx.target!.health
     await execute(ctx)
     expect(ctx.target!.health).toBeLessThan(before)
-    expect(ctx.target!.statusEffects.find(e => e.type === 'poison')?.stacks).toBe(2)
+    expect(ctx.target!.statusEffects.find(e => e.type === 'poison')?.stacks).toBe(8)
     expect(caster.energy).toBe(10)
     expect(ctx.playEnemyVfx).toHaveBeenCalledTimes(getAbilityHitCount(RogueBasicAttack, 4)!)
   })
@@ -70,7 +70,7 @@ describe('Pícaro jugable', () => {
     ctx.target!.addStatusEffect({ ...StatusEffects.POISON, stacks: 2, turns: 2 })
     await execute(ctx)
     const poison = ctx.target!.statusEffects.find(e => e.type === 'poison')!
-    expect(poison.stacks).toBe(7)
+    expect(poison.stacks).toBe(10)
     expect(poison.turns).toBe(2)
   })
 

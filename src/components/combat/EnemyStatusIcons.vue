@@ -213,10 +213,9 @@ function formatTurnsLabel(turns: number): string {
 
 <template>
   <div
-    v-if="effects && effects.length"
     ref="containerEl"
     class="enemy-status-icons"
-    :class="rootClass"
+    :class="[rootClass, { 'is-empty': !effects?.length }]"
   >
     <div
       v-for="effect in effects"
@@ -283,25 +282,37 @@ function formatTurnsLabel(turns: number): string {
 
 <style scoped>
 .enemy-status-icons {
-  position: absolute;
-  top: 28px;
-  left: 50%;
-  transform: translateX(-50%);
+  position: relative;
+  width: max-content;
+  max-width: 100%;
+  height: 28px;
+  min-height: 28px;
+  margin: 4px auto;
   display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
   gap: 0.2rem;
-  background: rgba(30, 32, 60, 0.85);
+  background: rgba(30, 32, 60, 0.72);
   border-radius: 6px;
-  padding: 0.1rem 0.3rem;
-  z-index: 4;
+  padding: 2px 4px;
+  z-index: 6;
   pointer-events: auto;
+}
+
+.enemy-status-icons.is-empty {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .enemy-status-icon {
   position: relative;
   display: flex;
   align-items: center;
+  justify-content: center;
   cursor: pointer;
-  padding: 2px;
+  width: 20px;
+  height: 20px;
+  padding: 1px;
   border-radius: 4px;
   transition: background 0.15s;
 }
@@ -326,8 +337,9 @@ function formatTurnsLabel(turns: number): string {
 
 .enemy-status-turns {
   position: absolute;
-  top: -5px;
-  right: -5px;
+  top: -10px;
+  right: -10px;
+  z-index: 2;
   background: #ff3333;
   color: white;
   font-size: 0.6rem;
@@ -344,8 +356,9 @@ function formatTurnsLabel(turns: number): string {
 
 .enemy-status-stacks {
   position: absolute;
-  bottom: -5px;
-  left: -5px;
+  bottom: -10px;
+  left: -10px;
+  z-index: 2;
   min-width: 14px;
   height: 14px;
   padding: 0 3px;

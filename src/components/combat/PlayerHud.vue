@@ -4,6 +4,8 @@ import type { Hero } from '@/core/Hero'
 import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
 import { getEffectDescription } from '@/core/interfaces/IStatusEffect'
 import hamburgerIcon from '@/assets/icons/hamburger-menu.png'
+import ShieldOverlay from './ShieldOverlay.vue'
+import { healthWithShield } from '@/core/combat/shields'
 
 interface Props {
   player: Hero | null
@@ -41,7 +43,7 @@ const heroismPercent = computed(() => {
 
 const hpDisplay = computed(() => {
   if (!props.player) return '0/0'
-  return `${props.player.health}/${props.player.maxHealth}`
+  return healthWithShield(props.player)
 })
 
 const energyDisplay = computed(() => {
@@ -169,6 +171,7 @@ onBeforeUnmount(() => {
         <div class="resource-line hp-line">
           <span class="resource-bar-track">
             <span class="resource-bar-fill bar-hp" :style="{ width: `${hpPercent}%` }"></span>
+            <ShieldOverlay :character="player" />
           </span>
           <span class="resource-value">{{ hpDisplay }}</span>
         </div>
@@ -325,6 +328,7 @@ onBeforeUnmount(() => {
 }
 
 .resource-bar-track {
+  position: relative;
   flex: 1;
   height: 8px;
   background: rgba(0, 0, 0, 0.6);

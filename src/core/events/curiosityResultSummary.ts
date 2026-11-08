@@ -40,7 +40,7 @@ export function summarizeCuriosityResult(
   const lines: string[] = []
   const gold = sumGold(result.effects)
   if (gold !== 0) {
-    lines.push(gold > 0 ? `+${gold} oro` : `${gold} oro`)
+    lines.push(gold > 0 ? `+${gold}` : `${gold}`)
   }
 
   const xp = sumXp(result.effects)

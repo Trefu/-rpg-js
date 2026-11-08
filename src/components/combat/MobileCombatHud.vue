@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import ShieldOverlay from './ShieldOverlay.vue'
+import { healthWithShield } from '@/core/combat/shields'
 import { computed, ref, watch, onBeforeUnmount } from 'vue'
 import type { Hero } from '@/core/Hero'
 import type { IEnemy } from '@/core/interfaces/ICharacter'
@@ -113,7 +115,7 @@ const energyPercent = computed(() => {
 })
 
 const hpDisplay = computed(() =>
-    displayedHero.value ? `${displayedHero.value.health}/${displayedHero.value.maxHealth}` : ''
+    healthWithShield(displayedHero.value)
 )
 const energyDisplay = computed(() =>
     displayedHero.value ? `${displayedHero.value.energy}/${displayedHero.value.maxEnergy}` : ''
@@ -333,6 +335,7 @@ function onAllyRowClick(hero: Hero | null) {
                 </div>
                 <div class="mobile-hud-bar">
                     <div class="mobile-hud-bar-fill hp" :style="{ width: `${hpPercent}%` }"></div>
+                    <ShieldOverlay :character="displayedHero" />
                     <span class="mobile-hud-bar-value">
                         {{ hpDisplay }}
                     </span>
@@ -419,8 +422,9 @@ function onAllyRowClick(hero: Hero | null) {
                                 <div class="mobile-hud-ally-bar">
                                     <div class="mobile-hud-ally-bar-fill hp" :style="{ width: `${heroHpPercent(hero)}%` }">
                                     </div>
+                                    <ShieldOverlay :character="hero" />
                                     <span class="mobile-hud-ally-bar-value">
-                                        {{ hero.health }}/{{ hero.maxHealth }}
+                                        {{ healthWithShield(hero) }}
                                     </span>
                                 </div>
                                 <div v-if="hero.maxEnergy" class="mobile-hud-ally-bar">

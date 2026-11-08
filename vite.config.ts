@@ -3,7 +3,7 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { fileURLToPath, URL } from 'node:url'
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [vue()],
   resolve: {
     alias: {
@@ -13,7 +13,7 @@ export default defineConfig({
   esbuild: {
     // NO dropear console/debugger en modo test — los tests los necesitan
     // para debugging y asserts. El drop solo se aplica en build de prod.
-    drop: ['console', 'debugger']
+    drop: mode === 'production' ? ['console', 'debugger'] : []
   },
   build: {
     target: 'es2019',
@@ -64,4 +64,4 @@ export default defineConfig({
       }
     }
   }
-})
+}))

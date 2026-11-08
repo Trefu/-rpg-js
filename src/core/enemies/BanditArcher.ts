@@ -6,7 +6,7 @@ import { ENTANGLE, FLASH, GUST_OF_FOG, POISON_ARROW, TRIPLE_ARROW } from '../abi
 
 export class BanditArcher extends Enemy {
   public readonly sprite = banditArcherSprite
-  public attackPatterns: DefensePatternConfig[] = [POISON_ARROW, ENTANGLE, GUST_OF_FOG, TRIPLE_ARROW]
+  public attackPatterns: DefensePatternConfig[] = [POISON_ARROW, ENTANGLE, GUST_OF_FOG, TRIPLE_ARROW, FLASH]
 
   constructor(level: number = 1) {
     super({

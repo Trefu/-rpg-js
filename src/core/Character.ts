@@ -148,10 +148,12 @@ export abstract class Character implements ICharacter {
 
   public heal(amount: number): void {
     if (!this.isAlive) return
-    this.health = Math.min(this.maxHealth, this.health + amount)
+    const multiplier = this.statusEffects.filter(e => e.turns > 0)
+      .reduce((value, e) => value * (e.healingMultiplier ?? 1), 1)
+    this.health = Math.min(this.maxHealth, this.health + Math.max(0, Math.floor(amount * multiplier)))
   }
 
   public getHealthPercentage(): number {
     return this.maxHealth > 0 ? (this.health / this.maxHealth) * 100 : 0
   }
-} 
+}

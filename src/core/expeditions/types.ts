@@ -86,6 +86,8 @@ export interface ForcedNode {
  */
 export interface ExpeditionGeneratorConfig {
   minNodesBeforeBoss: number
+  /** Máximo de caminos paralelos en filas no forzadas (por defecto, 4). */
+  maxPathsPerRow?: number
   shopChance: number
   curiosityChance: number
   maxRetries: number
@@ -102,6 +104,8 @@ export interface ExpeditionGeneratorConfig {
   minShopNodes: number
   maxShopNodes: number
   maxConsecutiveShop: number
+  /** Optional campaign gate for a curated milestone node. */
+  progressionGate?: { nodeId: string; minimumAttempts: number }
 }
 
 /**
@@ -135,6 +139,8 @@ export interface IExpeditionConfig {
 
   /** Pools por tier (lo que antes era `ZoneEnemyConfig.pools`). */
   enemyPools: EnemyPool
+  /** Curated compositions; when present these replace independent enemy rolls. */
+  encounterPools?: Record<EnemyTier, string[]>
   /** Cantidad de enemigos por tier (lo que antes era `ZoneEnemyConfig.enemyCountPerTier`). */
   enemyCountPerTier: Record<EnemyTier, EnemyCountRange>
 
@@ -146,6 +152,9 @@ export interface IExpeditionConfig {
    * hereda `SHARED_CURIOSITY_EVENTS` desde `sharedCuriosityEvents.ts`.
    */
   curiosityEvents?: CuriosityEvent[]
+
+  /** Clases que pueden reclutarse aquí; no incluye compañeros de otras expediciones. */
+  recruitableHeroIds?: string[]
 
   /** Reglas del generador de mapa. */
   generator: ExpeditionGeneratorConfig

@@ -48,7 +48,6 @@ function buildRows(config: IExpeditionConfig): INode[][] {
   const startNode = createNode('start', 'combat', { x: 50, y: 5 }, startEnemies)
   rows.push([startNode])
 
-  let prevPathsCount = 1
   for (let row = 0; row < gen.minNodesBeforeBoss; row++) {
     const y = 15 + (row * 80) / gen.minNodesBeforeBoss
     const userRow = row + 1
@@ -71,11 +70,8 @@ function buildRows(config: IExpeditionConfig): INode[][] {
       console.warn(`[useExpeditionGenerator] forcedCombatRows contains out-of-range index ${userRow}; ignoring`)
     }
 
-    let pathsCount = isForcedSingle ? 1 : Math.floor(Math.random() * 3) + 1
-
-    if (!isForcedSingle && prevPathsCount === 1 && pathsCount === 1) {
-      pathsCount = Math.floor(Math.random() * 2) + 2
-    }
+    const maxPaths = Math.max(1, gen.maxPathsPerRow ?? 4)
+    const pathsCount = isForcedSingle ? 1 : Math.floor(Math.random() * maxPaths) + 1
 
     const rowNodes: INode[] = []
 
@@ -92,7 +88,6 @@ function buildRows(config: IExpeditionConfig): INode[][] {
     }
 
     rows.push(rowNodes)
-    prevPathsCount = pathsCount
   }
 
   const bossEnemies = buildEnemiesForRow(config, gen.minNodesBeforeBoss + 1, totalNodes)
@@ -108,44 +103,29 @@ function closestNode(target: INode, candidates: INode[]): INode {
   )
 }
 
-function connectByReverseBFS(rows: INode[][], proximityThreshold: number, maxParentsPerNode: number): Map<string, Set<string>> {
+function connectRows(rows: INode[][], proximityThreshold: number, maxParentsPerNode: number): Map<string, Set<string>> {
   const childrenOf = new Map<string, Set<string>>()
   for (const row of rows) {
     for (const n of row) childrenOf.set(n.id, new Set())
   }
 
-  let layer: INode[] = [rows[rows.length - 1][0]]
-
-  for (let rowIdx = rows.length - 2; rowIdx >= 0; rowIdx--) {
-    const candidates = rows[rowIdx]
-    const nextLayer: INode[] = []
-    const seen = new Set<string>()
-
-    for (const child of layer) {
-      const within = candidates.filter(p => Math.abs(p.position.x - child.position.x) < proximityThreshold)
-      const pool = within.length > 0 ? within : [closestNode(child, candidates)]
-      const pickCount = Math.min(maxParentsPerNode, pool.length)
-      const picks: INode[] = []
-      const used = new Set<string>()
-
-      while (picks.length < pickCount && used.size < pool.length) {
-        const idx = Math.floor(Math.random() * pool.length)
-        const candidate = pool[idx]
-        if (used.has(candidate.id)) continue
-        used.add(candidate.id)
-        picks.push(candidate)
-      }
-
-      for (const parent of picks) {
+  for (let rowIdx = 0; rowIdx < rows.length - 1; rowIdx++) {
+    const parents = rows[rowIdx]
+    const children = rows[rowIdx + 1]
+    // Every parent has an exit and every child an entrance. This avoids
+    // discarding branching layouts in favour of the old linear fallback.
+    for (const parent of parents) {
+      childrenOf.get(parent.id)!.add(closestNode(parent, children).id)
+    }
+    for (const child of children) {
+      const nearby = parents
+        .filter(parent => Math.abs(parent.position.x - child.position.x) < proximityThreshold)
+        .sort((a, b) => Math.abs(a.position.x - child.position.x) - Math.abs(b.position.x - child.position.x))
+      const candidates = nearby.length ? nearby : [closestNode(child, parents)]
+      for (const parent of candidates.slice(0, Math.max(1, maxParentsPerNode))) {
         childrenOf.get(parent.id)!.add(child.id)
-        if (!seen.has(parent.id)) {
-          nextLayer.push(parent)
-          seen.add(parent.id)
-        }
       }
     }
-
-    layer = nextLayer
   }
 
   return childrenOf
@@ -173,7 +153,7 @@ function getNodesReachingBoss(rows: INode[][], bossId: string): Set<string> {
   for (const row of rows) {
     for (const n of row) parentsOf.set(n.id, new Set())
   }
-  for (let i = 0; i < rows.length - 1; i++) {
+  for (let i = 0; i < rows.length; i++) {
     for (const n of rows[i]) {
       for (const child of n.connections) {
         parentsOf.get(child)?.add(n.id)
@@ -234,6 +214,19 @@ function attachConnections(rows: INode[][], childrenOf: Map<string, Set<string>>
 function enforceSpecialNodeRules(rows: INode[][], config: IExpeditionConfig): void {
   const gen = config.generator
   if (rows.length < 3) return
+  // Forced support nodes must survive count/chain repair, including the fallback map.
+  const protectedIds = new Set<string>()
+  for (const forced of gen.forcedNodes) {
+    for (const node of rows[forced.row] ?? []) {
+      node.type = forced.type
+      node.enemies = forced.type === 'combat' || forced.type === 'boss'
+        ? buildEnemiesForRow(config, forced.row, forced.row + 1) : []
+      protectedIds.add(node.id)
+    }
+  }
+  if (gen.recruitHeroRow !== undefined) {
+    for (const node of rows[gen.recruitHeroRow] ?? []) { node.type = 'recruit-hero'; node.enemies = []; protectedIds.add(node.id) }
+  }
 
   const byId = new Map<string, INode>()
   const rowOf = new Map<string, number>()
@@ -291,7 +284,7 @@ function enforceSpecialNodeRules(rows: INode[][], config: IExpeditionConfig): vo
     const out: INode[] = []
     for (let i = 1; i < rows.length - 1; i++) {
       if (excludeRows.has(i)) continue
-      for (const node of rows[i]) if (node.type === 'combat') out.push(node)
+      for (const node of rows[i]) if (node.type === 'combat' && !protectedIds.has(node.id)) out.push(node)
     }
     return out
   }
@@ -324,7 +317,9 @@ function enforceSpecialNodeRules(rows: INode[][], config: IExpeditionConfig): vo
     safety = 200
     nodes = getNodesOfType(type, excludeRows)
     while (nodes.length > max && safety-- > 0) {
-      setAs(nodes[Math.floor(Math.random() * nodes.length)], 'combat')
+      const removable = nodes.filter(n => !protectedIds.has(n.id))
+      if (!removable.length) break
+      setAs(removable[Math.floor(Math.random() * removable.length)], 'combat')
       changed = true
       nodes = getNodesOfType(type, excludeRows)
     }
@@ -353,6 +348,7 @@ function enforceSpecialNodeRules(rows: INode[][], config: IExpeditionConfig): vo
       localChanged = false
       const nodes = getNodesOfType(type, excludeRows)
       for (const node of nodes) {
+        if (protectedIds.has(node.id)) continue
         const { parent, child } = hasTypeNeighbor(node, type)
         const violation = maxConsecutive <= 1 ? (parent || child) : (parent && child)
         if (violation) {
@@ -407,21 +403,91 @@ function generateLinearFallback(config: IExpeditionConfig): INode[] {
   return rows.flat()
 }
 
+export interface ExpeditionGenerationOptions {
+  recruitedHeroClassIds?: readonly string[]
+}
+
+/** Double combat encounters on every route, preserving support nodes and bosses. */
+function extendCombatRoutes(nodes: INode[], config: IExpeditionConfig, options: ExpeditionGenerationOptions): INode[] {
+  const recruited = new Set(options.recruitedHeroClassIds ?? [])
+  const recruitPool = config.recruitableHeroIds
+  const removeRecruitment = recruitPool !== undefined && recruitPool.every(id => recruited.has(id))
+  const removed = new Set(nodes.filter(n => removeRecruitment && n.type === 'recruit-hero').map(n => n.id))
+  const byId = new Map(nodes.map(node => [node.id, node]))
+  const bypass = (id: string): string[] => removed.has(id)
+    ? (byId.get(id)?.connections ?? []).flatMap(bypass) : [id]
+  const remaining = nodes.filter(node => !removed.has(node.id))
+  for (const node of remaining) node.connections = [...new Set(node.connections.flatMap(bypass))]
+
+  const rows: INode[][] = []
+  const originalRows = [...new Set(remaining.map(node => node.position.y))].sort((a, b) => a - b)
+  for (const y of originalRows) {
+    const row = remaining.filter(node => node.position.y === y)
+    rows.push(row)
+    const extraCombats: INode[] = []
+    for (const node of row) {
+      if (node.type !== 'combat') continue
+      const floor = node.id === 'start' ? 1 : Number(node.id.split('-')[1]) + 1
+      const extra = createNode(`extra-${node.id}`, 'combat', { ...node.position }, getEnemiesForConfig(config, Math.max(2, floor)))
+      extra.connections = node.connections
+      node.connections = [extra.id]
+      extraCombats.push(extra)
+    }
+    if (extraCombats.length) rows.push(extraCombats)
+  }
+  for (let index = 0; index < rows.length; index++) {
+    for (const node of rows[index]) {
+      node.depth = index + 1
+      node.position.y = 5 + index * 90 / (rows.length - 1)
+    }
+  }
+  return rows.flat()
+}
+
+/** Count the endpoints too: at most one isolated intermediate bottleneck. */
+function enforceBranching(nodes: INode[], config: IExpeditionConfig): INode[] {
+  const levels = [...new Set(nodes.map(node => node.depth))]
+  const gateId = config.generator.progressionGate?.nodeId
+  const duplicates = new Map<string, INode>()
+  for (let index = 1; index < levels.length - 1; index++) {
+    const row = nodes.filter(node => node.depth === levels[index])
+    if (row.length !== 1) continue
+    const node = row[0]
+    // A scripted milestone may remain unique, but never next to an endpoint.
+    if (node.id === gateId && index > 1 && index < levels.length - 2) continue
+    const originalRow = node.id.replace(/^extra-/, '')
+    const floor = originalRow === 'start' ? 1 : Number(originalRow.split('-')[1]) + 1
+    const enemies = node.type === 'combat'
+      ? (node.id.startsWith('extra-') ? getEnemiesForConfig(config, Math.max(2, floor)) : buildEnemiesForRow(config, floor - 1, floor))
+      : []
+    const duplicate = createNode(`branch-${node.id}`, node.type, { x: 75, y: node.position.y }, enemies)
+    duplicate.depth = node.depth
+    duplicate.connections = [...node.connections]
+    node.position.x = 25
+    duplicates.set(node.id, duplicate)
+  }
+  const result = [...nodes, ...duplicates.values()]
+  for (const node of result) {
+    node.connections = node.connections.flatMap(id => duplicates.has(id) ? [id, duplicates.get(id)!.id] : [id])
+  }
+  return result.sort((a, b) => a.depth! - b.depth! || a.position.x - b.position.x)
+}
+
 export function useExpeditionGenerator() {
-  function generateExpeditionNodes(config: IExpeditionConfig): INode[] {
+  function generateExpeditionNodes(config: IExpeditionConfig, options: ExpeditionGenerationOptions = {}): INode[] {
     for (let attempt = 0; attempt < config.generator.maxRetries; attempt++) {
       const rows = buildRows(config)
-      const childrenOf = connectByReverseBFS(rows, config.generator.proximityThreshold, config.generator.maxParentsPerNode)
+      const childrenOf = connectRows(rows, config.generator.proximityThreshold, config.generator.maxParentsPerNode)
       attachConnections(rows, childrenOf)
       enforceSpecialNodeRules(rows, config)
       const result = validateConnectivity(rows, childrenOf)
       if (result.ok) {
-        return rows.flat()
+        return enforceBranching(extendCombatRoutes(rows.flat(), config, options), config)
       }
     }
 
     console.warn('[useExpeditionGenerator] Exhausted retries, falling back to linear layout')
-    return generateLinearFallback(config)
+    return enforceBranching(extendCombatRoutes(generateLinearFallback(config), config, options), config)
   }
 
   return {

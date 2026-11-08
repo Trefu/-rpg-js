@@ -54,7 +54,7 @@ function handleModalOverlayClick(e: MouseEvent) {
       <div class="items-modal">
         <div class="items-modal-header">
           <img :src="backpackIcon" class="items-modal-main-icon" alt="Objetos" />
-          <h2>Objetos</h2>
+          <h2>Pociones y consumibles</h2>
           <button class="items-modal-close-btn" @click="closeModal" title="Cerrar">
             <img :src="closeIcon" alt="" class="close-icon" />
           </button>
@@ -236,6 +236,7 @@ function handleModalOverlayClick(e: MouseEvent) {
 }
 
 .item-icon {
+  image-rendering: pixelated;
   width: 52px;
   height: 52px;
   object-fit: contain;

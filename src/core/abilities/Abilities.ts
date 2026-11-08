@@ -216,6 +216,7 @@ export const WarriorBasicAttack: IAbility = {
   ...BasicAttack,
   type: 'warriorAttack',
   tags: ['warrior', 'physical', 'damage'],
+  pipeline: damageStep({ stat: 'body', coef: 0.7, levelCoef: 2, statLabel: 'CUE' }),
   previewDamage: previewFromPipeline(
     damageStep({ stat: 'body', coef: 0.7, levelCoef: 2, statLabel: 'CUE' }),
     'physical'
@@ -233,7 +234,7 @@ export const ClericBasicAttack: IAbility = {
   tags: ['cleric', 'holy', 'damage'],
   icon: sabersChoc,
   animationDurationMs: BASIC_ATTACK_DURATION_MS,
-  pipeline: damageStep({ stat: 'body', coef: 0., levelCoef: 2, statLabel: 'CUE' }),
+  pipeline: damageStep({ stat: 'body', coef: 0.7, levelCoef: 2, statLabel: 'CUE' }),
   previewDamage: previewFromPipeline(
     damageStep({ stat: 'body', coef: 0.7, levelCoef: 2, statLabel: 'CUE' }),
     'holy'
@@ -255,7 +256,7 @@ function applyRoguePoison(context: AbilityContext, stacks: number): void {
 export const RogueBasicAttack: IAbility = {
   ...BasicAttack,
   name: 'Daga Envenenada',
-  description: 'Un tajo físico que aplica 1 carga de veneno por impacto y recupera energía. Gana golpes con el nivel.',
+  description: 'Un tajo físico que aplica cargas de veneno iguales a tu nivel por impacto y recupera energía. Gana golpes con el nivel.',
   type: 'rogueAttack',
   tags: ['rogue', 'physical', 'poison', 'damage'],
   icon: thrownKnife,
@@ -267,7 +268,7 @@ export const RogueBasicAttack: IAbility = {
     const caster = context.caster as Hero
     if (!context.target?.isAlive) return
     await runHitStorm(context, caster, context.target, context.ability,
-      getBasicAttackHitCount(caster.level), () => applyRoguePoison(context, 1))
+      getBasicAttackHitCount(caster.level), () => applyRoguePoison(context, caster.level))
   }
 }
 registerAbility(RogueBasicAttack)
@@ -275,7 +276,7 @@ registerAbility(RogueBasicAttack)
 const roguePoisonPipeline = damageStep({ stat: 'body', coef: 1.2, levelCoef: 2, statLabel: 'CUE' })
 export const RoguePoisonStrike: IAbility = {
   name: 'Golpe Tóxico',
-  description: 'Inflige daño de veneno y aplica 4 cargas de veneno, más 1 por cada 3 niveles.',
+  description: 'Inflige daño de veneno y aplica 4 cargas de veneno, más cargas iguales a tu nivel y 1 extra por cada 3 niveles.',
   type: 'roguePoisonStrike',
   cooldown: 1,
   energyCost: 25,
@@ -294,7 +295,7 @@ export const RoguePoisonStrike: IAbility = {
     const { finalDamage } = dealDamage({ caster, target, ability: context.ability, rawDamage, effects: context })
     if (finalDamage > 0) {
       context.playEnemyVfx?.(target.id, poisonSlash)
-      applyRoguePoison(context, 4 + Math.floor(caster.level / 3))
+      applyRoguePoison(context, 4 + caster.level + Math.floor(caster.level / 3))
     }
     await sleep(context.animationDelay)
   }

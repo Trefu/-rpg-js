@@ -2,11 +2,11 @@ import { Enemy } from './Enemy'
 import goblinArcherSprite from '@/assets/sprites/enemies/goblin-archer.png'
 import type { ICharacter } from '../interfaces/ICharacter'
 import type { DefensePatternConfig } from '../defense/types'
-import { ENTANGLE, POISON_ARROW } from '../abilities/EnemyAttacks'
+import { ENTANGLE, POISON_ARROW, TRIPLE_ARROW, FLASH } from '../abilities/EnemyAttacks'
 
 export class GoblinArcher extends Enemy {
   public readonly sprite = goblinArcherSprite
-  public attackPatterns: DefensePatternConfig[] = [POISON_ARROW, ENTANGLE]
+  public attackPatterns: DefensePatternConfig[] = [POISON_ARROW, ENTANGLE, TRIPLE_ARROW, FLASH]
 
   constructor(level: number = 1) {
     super({
@@ -27,6 +27,7 @@ export class GoblinArcher extends Enemy {
    * `ENTANGLE`, ya que ambos dependen de un bloqueo exitoso.
    */
   public override selectAttackPattern(player: ICharacter | null): DefensePatternConfig {
+    if (player && !player.hasStatusEffect('blinded') && Math.random() < 0.35) return FLASH
     return this.attackPatterns[Math.floor(Math.random() * this.attackPatterns.length)]
   }
 }

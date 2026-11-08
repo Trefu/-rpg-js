@@ -7,6 +7,8 @@ import { getEffectDescription } from '@/core/interfaces/IStatusEffect'
 import { useExclusiveToggle } from '@/composables/useExclusiveToggle'
 import HeroStatChips from './HeroStatChips.vue'
 import { VFX_SOURCES } from './vfxSources'
+import ShieldOverlay from './ShieldOverlay.vue'
+import { healthWithShield } from '@/core/combat/shields'
 import hamburgerIcon from '@/assets/icons/hamburger-menu.png'
 import burnDotIcon from '@/assets/icons/fire.png'
 import poisonDotIcon from '@/assets/icons/poison-gas.png'
@@ -68,7 +70,7 @@ const heroismPercent = computed(() => {
 
 const hpDisplay = computed(() => {
   if (!props.hero) return ''
-  return `${props.hero.health}/${props.hero.maxHealth}`
+  return healthWithShield(props.hero)
 })
 
 const energyDisplay = computed(() => {
@@ -328,6 +330,7 @@ defineExpose({
           <div class="bar-line">
             <div class="bar-track">
               <div class="bar-fill bar-hp" :style="{ width: `${hpPercent}%` }"></div>
+              <ShieldOverlay :character="hero" />
             </div>
             <span class="bar-value">{{ hpDisplay }}</span>
           </div>
@@ -896,6 +899,7 @@ defineExpose({
 }
 
 .bar-track {
+  position: relative;
   flex: 1;
   height: 11px;
   background: rgba(0, 0, 0, 0.6);

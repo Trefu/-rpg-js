@@ -8,9 +8,9 @@ const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
  * Frasco de curacion: restaura el 40% de la vida maxima
  * del heroe objetivo (aliado o a si mismo).
  */
-export const createHealingFlask = (): IItem => ({
+export const createHealingFlask = (name = 'Frasco de curacion'): IItem => ({
   id: 'healing-flask',
-  name: 'Frasco de curacion',
+  name,
   description: 'Restaura el 40% de la vida maxima de un heroe aliado seleccionado. Se repone al maximo de usos tras cada combate.',
   icon: getItemIcon('healing-flask'),
   requiresTarget: true,
@@ -28,7 +28,7 @@ export const createHealingFlask = (): IItem => ({
     const restored = target.health - before
     if (restored > 0) context.showPlayerHit(restored, { heroId: target.id, variant: 'heal' })
     context.addToLog(
-      `${context.caster.name} usa Frasco de curacion sobre ${target.name}: +${restored} HP (${target.health}/${target.maxHealth}).`
+      `${context.caster.name} usa ${name} sobre ${target.name}: +${restored} HP (${target.health}/${target.maxHealth}).`
     )
     context.showAnnouncement(`+${restored} HP`, 'info', 1200)
     await sleep(context.animationDelay)
@@ -39,9 +39,9 @@ export const createHealingFlask = (): IItem => ({
  * Pocion de energia: recarga TODA la energia del heroe objetivo.
  * Util para resetear cooldowns / repostar skills en mitad del combate.
  */
-export const createEnergyPotion = (): IItem => ({
+export const createEnergyPotion = (name = 'Pocion de energia'): IItem => ({
   id: 'energy-potion',
-  name: 'Pocion de energia',
+  name,
   description: 'Recupera toda la energia de un heroe aliado seleccionado. Se repone al maximo de usos tras cada combate.',
   icon: getItemIcon('energy-potion'),
   requiresTarget: true,
@@ -57,7 +57,7 @@ export const createEnergyPotion = (): IItem => ({
     target.restoreEnergy(target.maxEnergy)
     const restored = target.energy - before
     context.addToLog(
-      `${context.caster.name} usa Pocion de energia sobre ${target.name}: +${restored} EN (${target.energy}/${target.maxEnergy}).`
+      `${context.caster.name} usa ${name} sobre ${target.name}: +${restored} EN (${target.energy}/${target.maxEnergy}).`
     )
     context.showAnnouncement(`+${restored} EN`, 'info', 1200)
     await sleep(context.animationDelay)
@@ -66,7 +66,42 @@ export const createEnergyPotion = (): IItem => ({
 
 const ITEMS: Record<string, IItem> = {
   'healing-flask': createHealingFlask(),
-  'energy-potion': createEnergyPotion()
+  'energy-potion': createEnergyPotion(),
+  'healing-potion': {
+    ...createHealingFlask('Poción de curación'), id: 'healing-potion', icon: getItemIcon('healing-potion'),
+    description: 'Recupera el 40% de la vida de un aliado. Un solo uso; no se recarga.'
+  },
+  'energy-tonic': {
+    ...createEnergyPotion('Tónico de energía'), id: 'energy-tonic', icon: getItemIcon('energy-tonic'),
+    description: 'Recupera toda la energía de un aliado. Un solo uso; no se recarga.'
+  },
+  'antidote': {
+    id: 'antidote', name: 'Antídoto', icon: getItemIcon('antidote'),
+    description: 'Elimina todas las cargas de veneno de un aliado. Un solo uso.',
+    targetType: 'allies-only', requiresTarget: true,
+    execute: async ctx => {
+      if (!ctx.target?.isAlive) return
+      ctx.target.removeStatusEffect('poison')
+      ctx.addToLog(`${ctx.target.name} bebe un antídoto y elimina el veneno.`)
+      await sleep(ctx.animationDelay)
+    }
+  },
+  'bandages': {
+    id: 'bandages', name: 'Vendas', icon: getItemIcon('bandages'),
+    description: 'Eliminan Hemorragia y Herida abierta; recuperan 15% de vida. Un solo uso.',
+    targetType: 'allies-only', requiresTarget: true,
+    execute: async ctx => {
+      const target = ctx.target as Hero
+      if (!target?.isAlive) return
+      target.removeStatusEffect('bleed')
+      target.removeStatusEffect('open_wound')
+      const before = target.health
+      target.heal(Math.floor(target.maxHealth * 0.15))
+      ctx.showPlayerHit(target.health - before, { heroId: target.id, variant: 'heal' })
+      ctx.addToLog(`${target.name} venda sus heridas.`)
+      await sleep(ctx.animationDelay)
+    }
+  }
 }
 
 export const ALL_ITEMS: IItem[] = Object.values(ITEMS)

@@ -6,6 +6,7 @@ import { BasicAttack } from './abilities/Abilities'
 import { DOT_STATUS_TYPES, STACKABLE_NON_DOT_STATUS_TYPES, getEffectCategory, STACK_MERGING_CATEGORIES, NON_TURN_BASED_CATEGORIES } from './StatusEffects'
 import { computeDefense, computeMagicDefense } from './defense/computeDefense'
 import { computeAgilityCritBonus, rollCritFromChance, type CritResult } from './crit'
+import type { PartyBonuses } from './items/equipment'
 
 /** Multiplicador lineal del bonus de Constitución sobre la vida máxima. */
 const CONSTITUTION_HP_SCALE = 4
@@ -135,6 +136,7 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
    * al construirse el personaje).
    */
   private baseMaxHealth: number
+  private partyBonuses: PartyBonuses = {}
 
   constructor(opts: HeroOptions) {
     super(opts.id, opts.name, opts.level ?? 1, opts.maxHealth)
@@ -160,6 +162,15 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
       body: { ...opts.body, description: STAT_DESCRIPTIONS.body }
     }
     this.baseMaxHealth = opts.maxHealth
+    // Constructors at level N must match N-1 calls to levelUp().
+    for (const stat of Object.values(this.baseStats)) {
+      stat.value += (this.level - 1) * (STAT_BASE_GROWTH + stat.growthPerLevel)
+    }
+    for (let level = 1; level < this.level; level++) {
+      this.experienceToNextLevel = Math.floor(this.experienceToNextLevel * 1.5)
+    }
+    this.maxEnergy += (this.level - 1) * 10
+    this.energy = Math.min(this.maxEnergy, opts.startingEnergy ?? this.maxEnergy)
     this.recomputeMaxHealth()
     // `super()` ya asigno `this.health = opts.maxHealth` (la vida base de
     // la clase), pero `recomputeMaxHealth` acaba de actualizar
@@ -178,7 +189,26 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
   private recomputeMaxHealth(): void {
     const conBonus = computeConstitutionHpBonus(this.baseStats.constitution)
     const levelBonus = (this.level - 1) * HP_PER_LEVEL
-    this.maxHealth = this.baseMaxHealth + conBonus + levelBonus
+    this.maxHealth = this.baseMaxHealth + conBonus + levelBonus + (this.partyBonuses.maxHealth ?? 0)
+  }
+
+  /** Replace the complete equipment contribution; repeated calls never stack it. */
+  public setPartyBonuses(bonuses: PartyBonuses): void {
+    for (const key of Object.keys(this.baseStats) as (keyof IPlayerStats)[]) {
+      this.baseStats[key].value += (bonuses[key] ?? 0) - (this.partyBonuses[key] ?? 0)
+    }
+    this.partyBonuses = { ...bonuses }
+    this.recomputeMaxHealth()
+    this.health = Math.min(this.health, this.maxHealth)
+  }
+
+  public prepareForRun(): void {
+    for (const effect of [...this.statusEffects]) this.removeStatusEffect(effect.type)
+    this.recomputeMaxHealth()
+    this.health = this.maxHealth
+    this.energy = this.maxEnergy
+    this.heroism = 0
+    this.isAlive = true
   }
 
   public learnAbility(ability: IAbility): void {

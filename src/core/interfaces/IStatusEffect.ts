@@ -194,6 +194,7 @@ export interface IStatusEffect {
   maxStacks?: number
   maxDuration?: number
   defenseBonus?: number
+  healingMultiplier?: number
   speedBonus?: number
   speedPenalty?: number
   /**

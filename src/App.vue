@@ -1,14 +1,16 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, onUnmounted, ref, watch } from 'vue'
-import PreGameView from './components/pregame/PreGameView.vue'
 import RecruitHeroModal from './components/expedition/RecruitHeroModal.vue'
 import CuriosityEventModal from './components/expedition/CuriosityEventModal.vue'
 import CuriosityEventToast from './components/expedition/CuriosityEventToast.vue'
 import GameUI from './components/ui/GameUI.vue'
+import CampView from './components/expedition/CampView.vue'
+import ShopView from './components/expedition/ShopView.vue'
+import '@/styles/campaign.css'
 import { useGameStore } from './stores/game'
 import { useExpeditionStore } from './stores/expedition'
 import { AudioManager } from './core/AudioManager'
-import type { ExpeditionId } from './core/expeditions/types'
+import { RECRUITABLE_HEROES } from './core/heroes/recruitment'
 import type { INode } from './core/interfaces/IExpedition'
 import type { Hero } from './core/Hero'
 import { restoreItemsToMax } from './core/items/items'
@@ -23,6 +25,7 @@ const ExpeditionMap = defineAsyncComponent(() => import('./components/expedition
 const TrainingView = defineAsyncComponent(() => import('./components/combat/TrainingView.vue'))
 
 const gameStore = useGameStore()
+if (!gameStore.loadProgress()) gameStore.initializeCompany()
 const expeditionStore = useExpeditionStore()
 const currentView = computed(() => gameStore.currentLocation)
 const audioManager = AudioManager.getInstance()
@@ -106,10 +109,6 @@ const handleResetGame = () => {
   dismissCuriosityToast()
 }
 
-const handleStartRun = (payload: { expeditionId: ExpeditionId, heroes: Hero[] }) => {
-  gameStore.beginRun({ expeditionId: payload.expeditionId, heroes: payload.heroes })
-}
-
 const handleNodeSelected = (node: INode) => {
   expeditionStore.selectNode(node)
   if (node.id === 'start') {
@@ -117,6 +116,19 @@ const handleNodeSelected = (node: INode) => {
   } else if (node.type === 'combat' || node.type === 'boss') {
     gameStore.navigateTo('combat')
   } else if (node.type === 'recruit-hero') {
+    const allowedIds = expeditionStore.currentConfig?.recruitableHeroIds
+    const hasRecruits = RECRUITABLE_HEROES.some(choice =>
+      !gameStore.companyHeroes.some(hero => hero.heroClassId === choice.id)
+      && (!allowedIds || allowedIds.includes(choice.id)))
+    if (!hasRecruits) {
+      for (const hero of gameStore.activeHeroes) {
+        hero.heal(Math.floor(hero.maxHealth * 0.15))
+        hero.restoreEnergy(15)
+      }
+      expeditionStore.completeNode(node.id)
+      gameStore.saveProgress()
+      return
+    }
     // Abrimos el modal y dejamos el nodo pendiente; al cerrar
     // (reclutar o saltar) lo marcaremos como completado.
     pendingRecruitNodeId.value = node.id
@@ -127,8 +139,7 @@ const handleNodeSelected = (node: INode) => {
     isCuriosityModalOpen.value = true
     gameStore.navigateTo('expedition-map')
   } else if (node.type === 'shop') {
-    expeditionStore.completeNode(node.id)
-    gameStore.navigateTo('expedition-map')
+    gameStore.openShop(node.id)
   }
 }
 
@@ -149,6 +160,14 @@ const handleCuriosityClose = () => {
   if (nodeId) expeditionStore.completeNode(nodeId)
   isCuriosityModalOpen.value = false
   pendingCuriosityNodeId.value = null
+  if (gameStore.activeHeroes.every(h => !h.isAlive)) gameStore.finishRun(false)
+  else gameStore.saveProgress()
+}
+
+const handleShopClose = () => {
+  expeditionStore.completeNode(expeditionStore.selectedNode?.id ?? '')
+  gameStore.navigateTo('expedition-map')
+  gameStore.saveProgress()
 }
 
 /**
@@ -197,11 +216,9 @@ const handleCombatEnded = (victory: boolean) => {
         totalXp += r.experience
         totalGold += r.gold
       }
-      for (const hero of gameStore.heroes) {
-        if (!hero) continue
-        hero.gainExperience(totalXp)
-        hero.addGold(totalGold)
-      }
+      const floor = node.depth ?? (node.id === 'boss' ? (expeditionStore.currentConfig?.totalFloors ?? 10)
+        : node.id === 'start' ? 1 : Number(node.id.split('-')[1]) + 1)
+      gameStore.awardCombat(node.id, totalXp, totalGold, floor)
       restoreItemsToMax(gameStore.teamItems)
       for (const hero of gameStore.heroes) {
         if (!hero) continue
@@ -217,7 +234,7 @@ const handleCombatEnded = (victory: boolean) => {
       if (node.type === 'curiosity' && (totalXp > 0 || totalGold > 0)) {
         const lines: string[] = []
         if (totalXp > 0) lines.push(`+${totalXp} XP por combate`)
-        if (totalGold > 0) lines.push(`+${totalGold} oro por combate`)
+        if (totalGold > 0) lines.push(`+${totalGold} por combate`)
         const existing = curiosityToast.value
         const title = existing?.title ?? 'Emboscada'
         const flavor = existing?.flavor ?? 'Sales victorioso del combate.'
@@ -232,14 +249,17 @@ const handleCombatEnded = (victory: boolean) => {
     expeditionStore.completeNode(expeditionStore.selectedNode?.id || '')
     if (expeditionStore.selectedNode?.type === 'boss') {
       expeditionStore.completeExpedition()
+      gameStore.finishRun(true)
+      return
     }
+    gameStore.saveProgress()
     gameStore.navigateTo('expedition-map')
   } else {
-    // [GAME OVER] All heroes have fallen - show thanks and return to start
+    // A defeat ends the attempt while preserving the company.
     const allDead = gameStore.heroes.every(h => !h || !h.isAlive)
     if (allDead) {
-      window.alert('F')
-      handleResetGame()
+      dismissCuriosityToast()
+      gameStore.finishRun(false)
       return
     }
     // Si pierdes la emboscada pero sigues vivo, limpiamos el toast
@@ -260,18 +280,14 @@ const handleTrainingEnded = () => {
   <div class="app">
     <GameUI @reset-game="handleResetGame" />
 
-    <PreGameView v-if="currentView === 'pre-game'" @start="handleStartRun" />
-
     <ExpeditionMap v-if="currentView === 'expedition-map'" @node-selected="handleNodeSelected" />
 
     <CombatView v-if="currentView === 'combat'" @combat-ended="handleCombatEnded" />
 
     <TrainingView v-if="currentView === 'training'" @training-ended="handleTrainingEnded" />
 
-    <div v-if="currentView === 'shop'">
-      <h2>Tienda (En construccion)</h2>
-      <button @click="gameStore.navigateTo('expedition-map')">Volver</button>
-    </div>
+    <CampView v-if="currentView === 'city' || currentView === 'pre-game'" />
+    <ShopView v-if="currentView === 'shop'" @close="handleShopClose" />
 
     <RecruitHeroModal
       v-if="isRecruitModalOpen"
@@ -303,7 +319,7 @@ body,
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  background-color: #1a1a1a;
+  background-color: #101a2b;
   color: white;
 }
 

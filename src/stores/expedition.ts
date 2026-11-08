@@ -15,13 +15,15 @@ interface ExpeditionState {
   selectedNode: INode | null
   /** Set de expedition ids ya completadas en esta sesion (no persistido). */
   completedExpeditions: Set<ExpeditionId>
+  currentRunAttempt: number
 }
 
 export const useExpeditionStore = defineStore('expedition', {
   state: (): ExpeditionState => ({
     currentExpedition: null,
     selectedNode: null,
-    completedExpeditions: new Set<ExpeditionId>()
+    completedExpeditions: new Set<ExpeditionId>(),
+    currentRunAttempt: 0
   }),
 
   getters: {
@@ -32,7 +34,10 @@ export const useExpeditionStore = defineStore('expedition', {
       if (!state.currentExpedition || !state.selectedNode) return ['start']
       const start = state.currentExpedition.nodes.find(n => n.id === 'start')
       if (start && !start.completed) return ['start']
-      return state.selectedNode.connections
+      const connected = state.selectedNode.connections
+      const gate = state.currentExpedition.config.generator.progressionGate
+      if (!gate) return connected
+      return connected.filter(id => id !== gate.nodeId || state.currentRunAttempt >= gate.minimumAttempts)
     },
     isExpeditionActive: (state): boolean => {
       return state.currentExpedition !== null
@@ -49,7 +54,8 @@ export const useExpeditionStore = defineStore('expedition', {
   },
 
   actions: {
-    startExpedition(expeditionId: ExpeditionId = DEFAULT_EXPEDITION) {
+    startExpedition(expeditionId: ExpeditionId = DEFAULT_EXPEDITION, recruitedHeroClassIds: string[] = [], runAttempt = 0) {
+      this.currentRunAttempt = runAttempt
       if (!EXPEDITIONS[expeditionId]) {
         console.warn(
           `[expedition] expedition "${expeditionId}" no existe. Falling back to ${DEFAULT_EXPEDITION}.`
@@ -63,21 +69,21 @@ export const useExpeditionStore = defineStore('expedition', {
           `[expedition] expedition "${expeditionId}" is locked. Falling back to ${DEFAULT_EXPEDITION}.`
         )
         const fallback = getExpedition(DEFAULT_EXPEDITION)
-        this.beginExpeditionWith(fallback)
+        this.beginExpeditionWith(fallback, recruitedHeroClassIds)
         return
       }
 
       try {
-        this.beginExpeditionWith(config)
+        this.beginExpeditionWith(config, recruitedHeroClassIds)
       } catch (err) {
         console.error('[expedition] failed to start expedition', err)
         this.resetExpedition()
       }
     },
 
-    beginExpeditionWith(config: IExpeditionConfig) {
+    beginExpeditionWith(config: IExpeditionConfig, recruitedHeroClassIds: string[] = []) {
       const { generateExpeditionNodes } = useExpeditionGenerator()
-      const nodes = generateExpeditionNodes(config)
+      const nodes = generateExpeditionNodes(config, { recruitedHeroClassIds })
       const startNode = nodes.find(node => node.id === 'start') || null
 
       this.currentExpedition = {
@@ -100,6 +106,8 @@ export const useExpeditionStore = defineStore('expedition', {
 
     selectNode(node: INode) {
       if (this.currentExpedition) {
+        const gate = this.currentExpedition.config.generator.progressionGate
+        if (gate && node.id === gate.nodeId && this.currentRunAttempt < gate.minimumAttempts) return
         this.selectedNode = node
         this.currentExpedition.currentNode = node
       }

@@ -9,6 +9,8 @@ export interface INode {
   }
   connections: string[]
   completed: boolean
+  /** Profundidad real del mapa, incluyendo los combates adicionales. */
+  depth?: number
   enemies?: any[]
 }
 

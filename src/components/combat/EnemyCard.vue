@@ -6,6 +6,8 @@ import type { VfxAssetId } from '@/core/interfaces/IAbility'
 import EnemyStatusIcons from './EnemyStatusIcons.vue'
 import goblinSprite from '@/assets/sprites/enemies/goblin.png'
 import { VFX_SOURCES } from './vfxSources'
+import ShieldOverlay from './ShieldOverlay.vue'
+import { healthWithShield } from '@/core/combat/shields'
 import { useMediaQuery } from '@/composables/useMediaQuery'
 
 interface Props {
@@ -31,9 +33,15 @@ const hpPercent = computed(() => {
   return Math.max(0, Math.min(100, (props.enemy.health / props.enemy.maxHealth) * 100))
 })
 
-const hpLabel = computed(() => `${props.enemy.health}/${props.enemy.maxHealth}`)
+const hpLabel = computed(() => healthWithShield(props.enemy))
 
 const sprite = computed(() => props.enemy.sprite ?? goblinSprite)
+
+/** Full attack roster behind the "Próximo:" hint so variety is discoverable. */
+const repertoireTitle = computed(() => {
+  const names = [...new Set((props.enemy.attackPatterns ?? []).map(action => action.name).filter(Boolean))]
+  return names.length > 0 ? `Ataques: ${names.join(' · ')}` : props.enemy.intention ?? ''
+})
 
 const statusEffects = computed<IStatusEffect[]>(() => {
   if (!props.enemy.statusEffects) return []
@@ -76,7 +84,7 @@ function onClick() {
     'mobile-layout': isMobileLayout
   }" ref="rootEl" @click="onClick">
     <div v-if="!isDead" class="enemy-name-top">{{ enemy.name }}</div>
-    <EnemyStatusIcons v-if="statusEffects.length > 0" :effects="statusEffects" />
+    <small v-if="!isDead && enemy.intention" class="enemy-intention" :title="repertoireTitle">Próximo: {{ enemy.intention }}</small>
     <img :src="sprite" :alt="enemy.name" class="enemy-sprite-img" loading="lazy" decoding="async" />
     <img
       v-for="effect in vfxEffects ?? []"
@@ -87,9 +95,11 @@ function onClick() {
       alt=""
       aria-hidden="true"
     />
+    <EnemyStatusIcons :effects="statusEffects" />
     <div class="enemy-health">
       <div class="health-bar">
         <div class="health-fill" :style="{ width: `${hpPercent}%` }"></div>
+        <ShieldOverlay :character="enemy" />
         <span class="health-text">{{ hpLabel }}</span>
       </div>
     </div>
@@ -113,6 +123,7 @@ function onClick() {
 </template>
 
 <style scoped>
+.enemy-intention{display:block;color:#f0d39a;font-size:.7rem;text-align:center;max-width:100%;padding:.2rem .4rem;background:#25231ed9;border-radius:5px;z-index:3}
 .enemy-card {
   position: relative;
   cursor: pointer;

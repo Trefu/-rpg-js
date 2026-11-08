@@ -144,6 +144,7 @@ export function useCombat(config: CombatConfig = {}) {
   const selectedAbility = ref<IAbility | null>(null)
   const audioManager = AudioManager.getInstance()
   const currentAction = ref<{ ability: IAbility, target: any } | null>(null)
+  const targetPressure = new Map<string, number>()
   const attackingEnemyId = ref<string | null>(null)
   /**
    * IDs de heroes que estan recibiendo el ataque actual (incluye al target
@@ -833,7 +834,8 @@ const defenseClouded = ref(false)
     if (!caster) return
     isExecutingAction.value = true
     try {
-      consumeItem(gameStore.teamItems, item.id)
+      if (!consumeItem(gameStore.teamItems, item.id)) return
+      if (!config.isTraining) gameStore.saveProgress()
       await item.execute({
         caster,
         target,
@@ -1216,6 +1218,15 @@ const defenseClouded = ref(false)
   }
 
   async function skipCCTurn(actor: TurnActor, effectType: string) {
+    const enemy = actor.kind === 'enemy' ? enemies.value.find(e => e.id === actor.id) : undefined
+    if (enemy) {
+      await showEnemyStatusSequence(enemy, false)
+      if (!enemy.isAlive) {
+        turnState.value = advanceAfterTurn(turnState.value, turnActors.value, actor.id)
+        await runNextTurn()
+        return
+      }
+    }
     const combatant = (enemies.value.find(e => e.id === actor.id)
       ?? heroes.value.find(h => h.id === actor.id)) as
       | { reduceStatusEffects?: () => void } | undefined
@@ -1292,6 +1303,14 @@ const defenseClouded = ref(false)
       await runNextTurn()
       return
     }
+    // Damage-over-time resolves before selecting an action, even if it kills
+    // the last enemy. Duration is still consumed once at the end of its turn.
+    await showEnemyStatusSequence(enemy)
+    if (!enemy.isAlive) {
+      turnState.value = advanceAfterTurn(turnState.value, turnActors.value, actor.id)
+      await runNextTurn()
+      return
+    }
     // Asegura que `player.value` apunte a un heroe vivo durante el turno
     // enemigo (por si el heroe activo murio en turnos previos).
     if (!player.value || !player.value.isAlive) {
@@ -1303,7 +1322,8 @@ const defenseClouded = ref(false)
       }
     }
 
-    const target = enemy.selectTarget(gameStore.activeHeroes)
+    const decision = enemy.selectAction?.(gameStore.activeHeroes, targetPressure)
+    const target = decision?.target ?? enemy.selectTarget(gameStore.activeHeroes)
     if (!target) {
       addToLog(`${enemy.name} no encuentra un objetivo válido y pierde su turno.`)
       await delay(config.isTraining ? 600 : 1200)
@@ -1315,13 +1335,18 @@ const defenseClouded = ref(false)
       return
     }
 
-    const selectedPattern = enemy.selectAttackPattern(target)
+    const selectedPattern = decision?.action ?? enemy.selectAttackPattern(target)
+    const isSupport = 'execute' in selectedPattern && selectedPattern.targetType === 'allies-only'
+    if (!isSupport) {
+      for (const [id, value] of targetPressure) targetPressure.set(id, Math.max(0, value - 0.35))
+      targetPressure.set(target.id, (targetPressure.get(target.id) ?? 0) + 1)
+    }
     const attackName = selectedPattern.name ?? 'atacar'
     const aliveEnemiesCount = enemies.value.filter(e => e.isAlive).length
     const enemyIndex = enemies.value.filter(e => e.name === enemy.name && e.isAlive).indexOf(enemy) + 1
     const enemyLabel = aliveEnemiesCount > 1 ? `${enemy.name} ${enemyIndex}` : enemy.name
 
-    const crit = typeof enemy.rollCrit === 'function'
+    const crit = !isSupport && typeof enemy.rollCrit === 'function'
       ? enemy.rollCrit()
       : { multiplier: 1 as const, isCrit: false, isOvercrit: false }
     const isCrit = crit.isCrit
@@ -1329,7 +1354,7 @@ const defenseClouded = ref(false)
 
     // Marca al heroe target como atacado antes del anuncio/defensa para que
     // la UI pueda resaltarlo durante todo el tiempo que dura el ataque.
-    attackedHeroIds.value = [target.id]
+    attackedHeroIds.value = isSupport ? [] : [target.id]
     // Mueve el indicador "ACTIVO" al heroe que va a defender. Asi, durante
     // todo el desafio de defensa y hasta que tome el turno de otro heroe, el
     // border amarillo sigue al defensor en vez de saltar al primer slot por
@@ -1340,7 +1365,7 @@ const defenseClouded = ref(false)
       gameStore.setActiveHero(targetSlotIdx)
     }
     attackingEnemyId.value = enemy.id
-    const announceText = isCrit
+    const announceText = isSupport ? `${enemyLabel} va a usar ${attackName} sobre sus aliados.` : isCrit
       ? `Crítico ${enemyLabel} va a usar ${attackName} contra ${target.name}!`
       : `${enemyLabel} va a usar ${attackName} contra ${target.name}!`
     const baseAnnouncement = config.enemyAttackAnnouncementMs ?? 3000
@@ -1348,13 +1373,11 @@ const defenseClouded = ref(false)
     const announceDuration = (config.isTraining ? 800 : baseAnnouncement) + (isCrit ? critBonus : 0)
     const announceVariant: 'attack' | 'crit-attack' = isCrit ? 'crit-attack' : 'attack'
     showAnnouncement(announceText, announceVariant, announceDuration)
-    addToLog(isCrit
+    addToLog(isSupport ? announceText : isCrit
       ? `Crítico ${enemyLabel} va a usar ${attackName} contra ${target.name} (daño ${multiplierLabel})`
       : `${enemyLabel} va a usar ${attackName} contra ${target.name}`)
     await delay(announceDuration)
     attackingEnemyId.value = null
-
-    await showEnemyStatusSequence(enemy)
 
     // Branch: si la accion seleccionada es una IAbility (ej: DragonRoar),
     // se ejecuta directamente sin defense challenge. Si es un
@@ -1375,6 +1398,7 @@ const defenseClouded = ref(false)
       }
     }
 
+    enemy.afterAction?.()
     attackedHeroIds.value = []
 
     if (!target.isAlive) {
@@ -1600,10 +1624,30 @@ const defenseClouded = ref(false)
     else if (type === StatusEffects.BLEED.type) audioManager.playDotBleedSound()
   }
 
-  async function showEnemyStatusSequence(enemy: IEnemy) {
+  async function showEnemyStatusSequence(enemy: IEnemy, announceOtherEffects = true) {
     if (enemy.isAlive && enemy.statusEffects.length > 0) {
       for (const effect of enemy.statusEffects) {
-        if (effect.turns > 0 && effect.turnLabel && effect.announceOnTurn) {
+        if (!enemy.isAlive) break
+        if (effect.turns <= 0) continue
+        if (DO_STATUS_TYPES.has(effect.type)) {
+          const damage = (effect.stacks ?? 1) + Math.max(0, effect.damagePerTurn ?? 0)
+          const before = enemy.health
+          enemy.takeDamage(damage, { damageType: DOT_DAMAGE_TYPE[effect.type] })
+          const dealt = before - enemy.health
+          showEnemyHit(enemy.id, dealt)
+          playDotSfx(effect.type)
+          audioManager.playHitSound()
+          addToLog(`${enemy.name}: ${effect.name} x${effect.stacks ?? 1} causa ${dealt} de daño.`)
+          showAnnouncement(`${enemy.name} recibe ${dealt} de daño por ${DOT_KIND_LABEL[effect.type] ?? effect.name}.`, 'status', 1800)
+          await delay(1800)
+          continue
+        }
+        if (HOT_STATUS_TYPES.has(effect.type)) {
+          const before = enemy.health
+          enemy.heal(Math.max(0, -(effect.damagePerTurn ?? 0)))
+          addToLog(`${enemy.name}: ${effect.name} recupera ${enemy.health - before} HP.`)
+        }
+        if (announceOtherEffects && effect.turns > 0 && effect.turnLabel && effect.announceOnTurn) {
           showAnnouncement(`${enemy.name}: ${effect.turnLabel}`, 'status', 2000)
           await delay(2000)
           await delay(200)
@@ -1857,6 +1901,7 @@ const defenseClouded = ref(false)
     const animationDelay = ability.animationDurationMs ?? 1500
     const ctx: AbilityContext = {
       caster: enemy,
+      allies: enemies.value.filter(e => e.isAlive),
       target,
       ability,
       log: addToLog,

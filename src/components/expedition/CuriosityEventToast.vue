@@ -87,29 +87,26 @@ function dismiss() {
   transform: translateX(-50%);
   width: calc(100% - 1.5rem);
   max-width: 480px;
-  background: linear-gradient(180deg, #1f2230 0%, #15171f 100%);
-  color: #e8e8ea;
+  background: linear-gradient(135deg, #28392d 0%, #17251c 100%);
+  color: #e3e5d1;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid #b6c3a035;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
   display: flex;
   align-items: stretch;
   gap: 0.6rem;
-  padding: 0.65rem 0.75rem;
+  padding: 1rem;
   z-index: 1200;
 }
 
 .curiosity-toast.reward {
-  border-color: rgba(76, 175, 80, 0.6);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(76, 175, 80, 0.35);
+  border-color: #a5bb7e66;
 }
 .curiosity-toast.punishment {
-  border-color: rgba(244, 67, 54, 0.6);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(244, 67, 54, 0.35);
+  border-color: #bd8b6666;
 }
 .curiosity-toast.ambush {
-  border-color: rgba(255, 152, 0, 0.65);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 152, 0, 0.35);
+  border-color: #d5a46f66;
 }
 .curiosity-toast.noop {
   border-color: rgba(255, 255, 255, 0.18);
@@ -176,6 +173,7 @@ function dismiss() {
   color: #ffe0b2;
 }
 .curiosity-toast-title {
+  font-family: Georgia, serif;
   font-size: 0.95rem;
   font-weight: 600;
 }

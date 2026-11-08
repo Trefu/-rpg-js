@@ -4,6 +4,8 @@ import { useGameStore } from '@/stores/game'
 import { AudioManager } from '@/core/AudioManager'
 import AudioControls from './AudioControls.vue'
 import cogIcon from '@/assets/icons/cog.png'
+import PartyEquipment from '@/components/expedition/PartyEquipment.vue'
+import GoldAmount from './GoldAmount.vue'
 
 const emit = defineEmits<{
   (e: 'resetGame'): void
@@ -12,6 +14,7 @@ const emit = defineEmits<{
 const gameStore = useGameStore()
 
 const menuOpen = ref(false)
+const equipmentOpen = ref(false)
 const menuRef = ref<HTMLElement | null>(null)
 const isDev = import.meta.env.DEV
 
@@ -77,6 +80,8 @@ function handleClickOutside(event: MouseEvent) {
         <button v-if="isDev" class="menu-item" @click="goToTraining">
           Sala de Pruebas
         </button>
+        <button v-if="gameStore.isGameStarted" class="menu-item" @click="equipmentOpen = !equipmentOpen">Equipo del grupo · <GoldAmount :amount="gameStore.gold" /></button>
+        <PartyEquipment v-if="equipmentOpen" />
 
         <button class="menu-item" @click="resetGame">
           Reiniciar Juego

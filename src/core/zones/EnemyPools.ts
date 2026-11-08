@@ -1,4 +1,5 @@
 import type { IEnemy } from '../interfaces/ICharacter'
+import { resolveEncounterById } from '../expeditions/encounters'
 import type {
   EnemyCountRange,
   EnemyFactory,
@@ -79,6 +80,8 @@ export function getEnemiesForConfig(
 ): IEnemy[] {
   const totalFloors = config.totalFloors
   const tier = determineEnemyTier(floor, totalFloors)
+  const compositions = config.encounterPools?.[tier]
+  if (compositions?.length) return resolveEncounterById(config, compositions[randomInt(0, compositions.length - 1)])
   const pool = config.enemyPools[tier]
   const [min, max] = config.enemyCountPerTier[tier]
   const count = randomInt(min, max)

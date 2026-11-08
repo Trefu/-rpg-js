@@ -296,10 +296,27 @@ export abstract class Enemy extends Character implements ICombatant {
     return best ?? alive.reduce((a, b) => (a.health > b.health ? a : b))
   }
 
+  /** Resolve the action once, then score targets using its actual damage type. */
+  public selectAction(heroes: Hero[], pressure: ReadonlyMap<string, number> = new Map()): { target: Hero; action: EnemyAction } | null {
+    const alive = heroes.filter(h => h.isAlive)
+    if (!alive.length) return null
+    const action = this.selectAttackPattern(alive[Math.floor(Math.random() * alive.length)])
+    const magical = action.damageType && action.damageType !== 'physical'
+    const ranked = alive.map(hero => {
+      const defense = magical ? hero.magicDefense() : hero.defense()
+      const score = this.scoreTarget(hero, this.scoreWeights)
+        + (1 - Math.min(1, defense / 30)) * 0.25
+        - Math.min(3, pressure.get(hero.id) ?? 0) * 0.45
+        + Math.random() * 0.35
+      return { hero, score }
+    }).sort((a, b) => b.score - a.score)
+    return { target: ranked[0].hero, action }
+  }
+
   protected scoreTarget(hero: Hero, w: TargetScoreWeights): number {
     const hpRatio = hero.health / hero.maxHealth
     const hpScore = (1 - hpRatio) * w.hpLow
-    const debuffScore = this.countFriendlyDebuffs(hero) * w.friendlyDebuffs
+    const debuffScore = Math.min(2, this.countFriendlyDebuffs(hero)) * w.friendlyDebuffs
     const defScore = (1 - this.normalizeDefense(hero)) * w.lowDefense
     const threatScore = this.sumThreatModifiers(hero) * w.threatModifier
     return hpScore + debuffScore + defScore + threatScore

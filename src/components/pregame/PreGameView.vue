@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import GoldAmount from '@/components/ui/GoldAmount.vue'
 import { computed, ref } from 'vue'
 import type { ExpeditionId, IExpeditionConfig } from '@/core/expeditions/types'
 import { Warrior } from '@/core/heroes/Warrior'
@@ -405,7 +406,7 @@ function damageTypeClass(id?: string): string {
             <p>{{ exp.description }}</p>
             <div class="zone-card__meta">
               <span class="badge" :class="`badge--${exp.presentation.difficulty}`">{{ exp.presentation.difficulty }}</span>
-              <small>Recompensas: +{{ exp.presentation.rewards.experience }} XP / +{{ exp.presentation.rewards.gold }} oro</small>
+              <small>Recompensas: +{{ exp.presentation.rewards.experience }} XP / <GoldAmount :amount="`+${exp.presentation.rewards.gold}`" /></small>
             </div>
             <span v-if="exp.presentation.inDevelopment === true" class="dev-badge">En desarrollo</span>
             <span v-else-if="!isExpeditionUnlocked(exp.id)" class="locked-badge">Bloqueado</span>
@@ -437,7 +438,7 @@ function damageTypeClass(id?: string): string {
               {{ pendingConfirmExpedition.presentation.difficulty }}
             </span>
             <span>+{{ pendingConfirmExpedition.presentation.rewards.experience }} XP</span>
-            <span>+{{ pendingConfirmExpedition.presentation.rewards.gold }} oro</span>
+            <GoldAmount :amount="`+${pendingConfirmExpedition.presentation.rewards.gold}`" />
           </div>
 
           <div class="confirm-modal__actions">
