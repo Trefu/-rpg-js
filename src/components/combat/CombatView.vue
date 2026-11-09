@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import '@/styles/combat.css'
-import { onMounted, onUnmounted, computed, ref, watch } from 'vue'
+import { onMounted, onUnmounted, computed, ref } from 'vue'
 import { useCombat } from '@/composables/useCombat'
 import { useExpeditionStore } from '@/stores/expedition'
 import { useGameStore } from '@/stores/game'
@@ -114,6 +114,9 @@ const actorsById = computed<Record<string, import('@/core/turn-engine/TurnEngine
 })
 
 const isMobile = useMediaQuery('(max-width: 720px)')
+const isCompactField = useMediaQuery('(max-width: 900px)')
+const enemyColumns = computed(() => Math.min(enemies.value.length || 1, isCompactField.value ? 2 : 3))
+const enemyRows = computed(() => Math.max(1, Math.ceil(enemies.value.length / enemyColumns.value)))
 
 const isDev = import.meta.env.DEV
 const showEnemyDebug = computed(() => isDev && !isMobile.value && enemies.value.length > 0)
@@ -195,51 +198,6 @@ const aliveIndexByEnemyId = computed<Record<string, number>>(() => {
   })
   return map
 })
-
-// Distribuye offsets aleatorios para que los enemigos no queden en linea perfectamente.
-// Cada enemigo recibe un offset Y (entre -180 y 180 distribuidos) y X (entre -30 y 30).
-// Tambien se le asigna una celda aleatoria de la grilla 3x2 para evitar que queden en grilla perfecta.
-// Se reasigna cuando cambia la lista de enemigos.
-const enemyPositions = ref<Record<string, { x: number, y: number, col: number, row: number }>>({})
-
-function generateEnemyPositions(enemyList: IEnemy[]) {
-  const positions: Record<string, { x: number, y: number, col: number, row: number }> = {}
-  if (enemyList.length === 0) {
-    enemyPositions.value = positions
-    return
-  }
-
-  // Orden de colocacion: primero los enemigos vivos (respetando el orden de la
-  // lista, que es el mismo que usa aliveIndexByEnemyId para asignar hotkeys),
-  // luego los muertos. Asi el enemigo con hotkey 1 cae arriba-izquierda,
-  // el 2 arriba-centro, etc.
-  const orderedEnemies: IEnemy[] = []
-  enemyList.forEach((e) => { if (e.isAlive) orderedEnemies.push(e) })
-  enemyList.forEach((e) => { if (!e.isAlive) orderedEnemies.push(e) })
-
-  // Recorrer la grilla 3x2 en orden de lectura: fila superior izq->der, luego fila inferior.
-  const cellOrder: Array<{ col: number, row: number }> = []
-  for (let row = 1; row <= 2; row++) {
-    for (let col = 1; col <= 3; col++) {
-      cellOrder.push({ col, row })
-    }
-  }
-
-  orderedEnemies.forEach((enemy, idx) => {
-    const cell = cellOrder[idx] ?? cellOrder[cellOrder.length - 1]
-    positions[enemy.id] = {
-      x: Math.round((Math.random() - 0.5) * 24),
-      y: Math.round((Math.random() - 0.5) * 24),
-      col: cell.col,
-      row: cell.row
-    }
-  })
-  enemyPositions.value = positions
-}
-
-watch(() => enemies.value, (newEnemies) => {
-  generateEnemyPositions(newEnemies)
-}, { immediate: true })
 
 const showLogModal = ref(false)
 
@@ -334,16 +292,11 @@ onUnmounted(() => {
     />
 
     <div class="enemies-column">
-      <div class="enemies-container">
+      <div class="enemies-container" :style="{ '--enemy-columns': enemyColumns, '--enemy-rows': enemyRows }">
         <div
           v-for="enemy in enemies"
           :key="enemy.id"
           class="enemy-position-wrapper"
-          :style="{
-            '--col': enemyPositions[enemy.id]?.col ?? 0,
-            '--row': enemyPositions[enemy.id]?.row ?? 0,
-            transform: `translate(${enemyPositions[enemy.id]?.x ?? 0}px, ${enemyPositions[enemy.id]?.y ?? 0}px)`
-          }"
         >
           <EnemyCard
             :enemy="enemy"

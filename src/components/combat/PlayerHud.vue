@@ -172,8 +172,8 @@ onBeforeUnmount(() => {
           <span class="resource-bar-track">
             <span class="resource-bar-fill bar-hp" :style="{ width: `${hpPercent}%` }"></span>
             <ShieldOverlay :character="player" />
+            <span class="resource-value">{{ hpDisplay }}</span>
           </span>
-          <span class="resource-value">{{ hpDisplay }}</span>
         </div>
         <div class="resource-line energy-line">
           <span class="resource-bar-track">
@@ -346,6 +346,20 @@ onBeforeUnmount(() => {
 
 .resource-bar-fill.bar-hp {
   background: linear-gradient(90deg, #66bb6a, #2e7d32);
+}
+
+.hp-line .resource-bar-track { height: 18px; min-width: 0; }
+.hp-line .resource-value {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  font-size: 0.7rem;
+  white-space: nowrap;
+  text-shadow: 1px 1px #000, -1px -1px #000;
 }
 
 .resource-bar-fill.bar-energy {

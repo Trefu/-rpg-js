@@ -21,6 +21,7 @@ export { applyDamageVariance, DAMAGE_VARIANCE_MIN, DAMAGE_VARIANCE_MAX } from '.
 
 import sabersChoc from '@/assets/icons/sabers-choc.png'
 import swordSlice from '@/assets/icons/sword-slice.png'
+import divineShieldIcon from '@/assets/icons/checked-shield.png'
 import thunderBlade from '@/assets/icons/thunder-blade.png'
 import heartDrop from '@/assets/icons/heart-drop.png'
 import stunGrenade from '@/assets/icons/stun-grenade.png'
@@ -273,34 +274,49 @@ export const RogueBasicAttack: IAbility = {
 }
 registerAbility(RogueBasicAttack)
 
-const roguePoisonPipeline = damageStep({ stat: 'body', coef: 1.2, levelCoef: 2, statLabel: 'CUE' })
-export const RoguePoisonStrike: IAbility = {
-  name: 'Golpe Tóxico',
-  description: 'Inflige daño de veneno y aplica 4 cargas de veneno, más cargas iguales a tu nivel y 1 extra por cada 3 niveles.',
-  type: 'roguePoisonStrike',
+function getRoguePoisonStacks(hero: Hero): number {
+  const agilityPercentBonus = hero.statusEffects
+    .filter(effect => effect.type === 'haste' && effect.turns > 0)
+    .reduce((total, effect) => total + (effect.agilityPercentBonus ?? 0), 0)
+  const agility = hero.baseStats.agility.value * (1 + agilityPercentBonus / 100)
+  return hero.level * 3 + Math.floor(Math.log1p(agility) * 2)
+}
+
+export const RoguePoisonBomb: IAbility = {
+  name: 'Bomba Venenosa',
+  description: 'Aplica cargas de veneno.',
+  type: 'roguePoisonBomb',
   cooldown: 1,
   energyCost: 25,
-  damageType: 'poison',
   targetType: 'enemies-only',
-  tags: ['rogue', 'poison', 'damage'],
+  tags: ['rogue', 'poison'],
   icon: poisonIcon,
   animationDurationMs: 900,
-  pipeline: roguePoisonPipeline,
-  previewDamage: previewFromPipeline(roguePoisonPipeline, 'poison'),
+  previewEffect: (hero: Hero) => {
+    const stacks = getRoguePoisonStacks(hero)
+    const agilityPercentBonus = hero.statusEffects
+      .filter(effect => effect.type === 'haste' && effect.turns > 0)
+      .reduce((total, effect) => total + (effect.agilityPercentBonus ?? 0), 0)
+    const agility = Math.round(hero.baseStats.agility.value * (1 + agilityPercentBonus / 100))
+    return {
+      label: 'Cargas',
+      value: `+${stacks}`,
+      formula: `${F.base('3 × ')}${F.lvl('Nivel')} ${F.base('+ ⌊2 × ln(1 + ')}${F.agi(`AGI ${agility}`)}${F.base(')⌋ = ')}${F.base(stacks)}`,
+      kind: 'poison'
+    }
+  },
   execute: async (context: AbilityContext) => {
     const caster = context.caster as Hero
     const target = context.target
     if (!target?.isAlive) return
-    const rawDamage = computeRawDamage(context.ability.pipeline as DamageStep, caster)
-    const { finalDamage } = dealDamage({ caster, target, ability: context.ability, rawDamage, effects: context })
-    if (finalDamage > 0) {
-      context.playEnemyVfx?.(target.id, poisonSlash)
-      applyRoguePoison(context, 4 + caster.level + Math.floor(caster.level / 3))
-    }
+    const stacks = getRoguePoisonStacks(caster)
+    context.playEnemyVfx?.(target.id, { asset: 'poison-bomb', durationMs: 900 })
+    context.audioManager.playDotPoisonSound()
+    applyRoguePoison(context, stacks)
     await sleep(context.animationDelay)
   }
 }
-registerAbility(RoguePoisonStrike)
+registerAbility(RoguePoisonBomb)
 
 const rogueBackstabPipeline = damageStep({ stat: 'body', coef: 2.2, levelCoef: 2, statLabel: 'CUE' })
 export const RogueBackstab: IAbility = {
@@ -330,10 +346,10 @@ registerAbility(RogueBackstab)
 
 export const RogueHaste: IAbility = {
   name: 'Paso Ligero',
-  description: 'Gana Prisa durante 3 turnos: +3 de agilidad para actuar más frecuentemente.',
+  description: 'Aumenta un 25% su agilidad durante 2 turnos.',
   type: 'rogueHaste',
   cooldown: 4,
-  energyCost: 15,
+  energyCost: 40,
   targetType: 'allies-only',
   requiresTarget: false,
   tags: ['rogue', 'buff'],
@@ -343,7 +359,8 @@ export const RogueHaste: IAbility = {
     const caster = context.caster as Hero
     if (!caster.isAlive) return
     caster.addStatusEffect({ ...StatusEffects.HASTE })
-    context.log(`${caster.name} gana Prisa durante 3 turnos.`)
+    context.playHeroVfx?.(caster.id, { asset: 'haste-aura', durationMs: 900 })
+    context.log(`${caster.name} gana Prisa: +25% de agilidad durante 2 turnos.`)
     context.showAnnouncement('¡Paso Ligero!', 'status', 1200)
     await sleep(context.animationDelay)
   }
@@ -353,7 +370,7 @@ registerAbility(RogueHaste)
 export const RogueUltimate: IAbility = {
   ...RogueBasicAttack,
   name: 'Danza de Víboras',
-  description: 'Desata cuatro veces los golpes del ataque básico. Cada impacto aplica 2 cargas de veneno.',
+  description: 'Desata cuatro veces los golpes del ataque básico. Cada impacto aplica 2 cargas; al final, detona todo el veneno y causa daño igual a las cargas explotadas × 5.',
   type: 'rogueUltimate',
   tags: ['rogue', 'physical', 'poison', 'damage', 'ultimate'],
   icon: wingedSword,
@@ -365,6 +382,17 @@ export const RogueUltimate: IAbility = {
     context.log(`¡${caster.name} desata Danza de Víboras! ${hits} golpes.`)
     await runHitStorm(context, caster, context.target, context.ability, hits,
       () => applyRoguePoison(context, 2))
+    const target = context.target
+    if (!target.isAlive) return
+    const poison = target.statusEffects.find(effect => effect.type === StatusEffects.POISON.type)
+    const stacksExploded = poison?.stacks ?? 0
+    if (stacksExploded <= 0) return
+    target.removeStatusEffect(StatusEffects.POISON.type)
+    const poisonDamage = stacksExploded * 5
+    target.takeDamage(poisonDamage, { damageType: 'poison' })
+    context.showEnemyHit(target.id, poisonDamage)
+    context.audioManager.playDotPoisonSound()
+    context.log(`El veneno detona: ${stacksExploded} cargas causan ${poisonDamage} de daño.`)
   }
 }
 registerAbility(RogueUltimate)
@@ -457,6 +485,7 @@ export const WarriorInjuringStrike: IAbility = {
   targetType: 'enemies-only',
   tags: ['warrior', 'physical', 'damage'],
   icon: swordSlice,
+  hitVfx: { asset: 'physical-slash-2', durationMs: 680 },
   animationDurationMs: 800,
   pipeline: damageStep({ stat: 'body', coef: 1.2, levelCoef: 0.5, statLabel: 'CUE' }),
   previewDamage: previewFromPipeline(
@@ -468,7 +497,10 @@ export const WarriorInjuringStrike: IAbility = {
     const target = context.target as any
 
     const rawDamage = computeRawDamage(context.ability.pipeline as DamageStep, caster)
-    dealDamage({ caster, target, ability: context.ability, rawDamage, effects: context })
+    const { finalDamage } = dealDamage({ caster, target, ability: context.ability, rawDamage, effects: context })
+    if (finalDamage > 0) {
+      context.playEnemyVfx?.(target.id, { asset: 'physical-slash-2', durationMs: 680 })
+    }
 
     if (target && typeof target.addStatusEffect === 'function' && target.isAlive) {
       const template = StatusEffects.INJURED
@@ -614,32 +646,56 @@ export const ClericRadiantStrike: IAbility = {
 }
 registerAbility(ClericRadiantStrike)
 
-export const ClericDivineSmite: IAbility = {
-  name: 'Castigo Divino',
-  description: 'Un ataque radiante imbuido de fe pura.',
-  type: 'clericDivineSmite',
+export function getDivineBlessingAmount(caster: Hero): number {
+  return Math.max(0, Math.floor(caster.baseStats.mind.value * 2 + caster.level * 8))
+}
+
+export const ClericDivineBlessing: IAbility = {
+  name: 'Bendición Divina',
+  description: 'Otorga a un aliado vida temporal igual a ⌊2 × Mente + 8 × nivel de Elara⌋ y +20% de daño durante 3 turnos. El escudo absorbe daño antes que su vida. Si bendice a otro aliado, Elara se cura la misma cantidad (sin superar su vida máxima). Reaplicar renueva el escudo y la duración, no los acumula.',
+  type: 'clericDivineBlessing',
   cooldown: 0,
   energyCost: 40,
-  damageType: 'holy',
-  targetType: 'enemies-only',
-  tags: ['cleric', 'holy', 'damage'],
-  icon: thunderBlade,
-  pipeline: damageStep({ stat: 'mind', coef: 3.0, levelCoef: 2.5, statLabel: 'MEN' }),
-  previewDamage: previewFromPipeline(
-    damageStep({ stat: 'mind', coef: 3.0, levelCoef: 2.5, statLabel: 'MEN' }),
-    'holy'
-  ),
+  targetType: 'allies-only',
+  requiresTarget: true,
+  tags: ['cleric', 'holy', 'buff', 'heal'],
+  icon: divineShieldIcon,
+  animationDurationMs: 1200,
+  previewEffect: hero => {
+    const amount = getDivineBlessingAmount(hero)
+    return {
+      label: 'Vida temporal', value: `${amount} HP · +20% daño`, kind: 'buff',
+      formula: `${F.mind('MEN')} ${F.mind(hero.baseStats.mind.value)} × 2 + ${F.lvl('nivel')} ${F.lvl(hero.level)} × 8 = ${amount} HP de escudo. Elara recupera hasta ${amount} HP al bendecir a otro aliado. +20% daño durante 3 turnos.`
+    }
+  },
   execute: async (context: AbilityContext) => {
     const caster = context.caster as Hero
     const target = context.target
-    if (!target || !target.isAlive) return
-    context.playEnemyVfx?.(target.id, { asset: 'holy-smite', durationMs: 1200 })
-    const rawDamage = computeRawDamage(context.ability.pipeline as DamageStep, caster)
-    dealDamage({ caster, target, ability: context.ability, rawDamage, effects: context })
+    if (!caster.isAlive || !target?.isAlive || (context.allies && !context.allies.some(ally => ally.id === target.id))) return
+    const amount = getDivineBlessingAmount(caster)
+    target.removeStatusEffect(StatusEffects.DIVINE_PROTECTION.type)
+    target.addStatusEffect({
+      ...StatusEffects.DIVINE_PROTECTION, absorbRemaining: amount, maxAbsorb: amount,
+      description: `Absorbe hasta ${amount} de daño antes de perder vida. Dura 3 turnos.`
+    })
+    target.addStatusEffect({ ...StatusEffects.DIVINE_EMPOWERMENT })
+    context.playHeroVfx?.(target.id, { asset: 'holy-light', durationMs: 1200 })
+    context.log(`${target.name} recibe Bendición Divina: ${amount} de vida temporal y +20% de daño durante 3 turnos.`)
+    if (target.id !== caster.id) {
+      const before = caster.health
+      caster.heal(amount)
+      const restored = caster.health - before
+      if (restored > 0) {
+        context.showPlayerHit(restored, { heroId: caster.id, variant: 'heal' })
+        context.playHeroVfx?.(caster.id, { asset: 'holy-heal', durationMs: 1200 })
+      }
+      context.log(`${caster.name} recupera ${restored} HP al bendecir a ${target.name}.`)
+    }
+    context.showAnnouncement('Bendición Divina', 'info', 1500)
     await sleep(context.animationDelay)
   }
 }
-registerAbility(ClericDivineSmite)
+registerAbility(ClericDivineBlessing)
 
 export const ClericHeal: IAbility = {
   name: 'Curar Heridas',

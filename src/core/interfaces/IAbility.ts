@@ -176,6 +176,8 @@ export type VfxAssetId =
   | 'physical-slash-2'
   | 'physical-slash-3'
   | 'poison-slash'
+  | 'poison-bomb'
+  | 'haste-aura'
   | 'enemy-slash-1'
   | 'enemy-slash-2'
   | 'enemy-slash-3'
@@ -243,6 +245,13 @@ export interface AbilityDamagePreview {
   label?: string
 }
 
+export interface AbilityEffectPreview {
+  label: string
+  value: string | number
+  formula: string
+  kind?: 'poison' | 'buff' | 'other'
+}
+
 export interface IAbility {
   name: string
   description: string
@@ -295,6 +304,8 @@ export interface IAbility {
    * mecánica no estándar. Las curas/buffs lo omiten.
    */
   previewDamage?: (hero: import('../Hero').Hero) => AbilityDamagePreview
+  /** Preview de un efecto cuantificable que no inflige daño directo. */
+  previewEffect?: (hero: import('../Hero').Hero) => AbilityEffectPreview
   /**
    * Costo fijo de energia que se cobra antes de ejecutar.
    * Si el caster no tiene suficiente energia, la accion se cancela antes de gastar el turno.

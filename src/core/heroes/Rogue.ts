@@ -1,5 +1,5 @@
 import { Hero } from '../Hero'
-import { RogueBasicAttack, RoguePoisonStrike, RogueBackstab, RogueHaste, RogueUltimate } from '../abilities/Abilities'
+import { RogueBasicAttack, RoguePoisonBomb, RogueBackstab, RogueHaste, RogueUltimate } from '../abilities/Abilities'
 import rogueSprite from '@/assets/sprites/heroes/rogue.png'
 
 export class Rogue extends Hero {
@@ -22,7 +22,7 @@ export class Rogue extends Hero {
 
   static createStarter(): Rogue {
     const rogue = new Rogue(1)
-    rogue.learnAbility(RoguePoisonStrike)
+    rogue.learnAbility(RoguePoisonBomb)
     rogue.learnAbility(RogueBackstab)
     rogue.learnAbility(RogueHaste)
     rogue.learnAbility(RogueUltimate)

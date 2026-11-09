@@ -48,6 +48,18 @@ try {
   await page.getByRole('button', { name: 'Comprar Poción de curación por 18 oro' }).click()
   assert.equal(await page.evaluate(() => window.__gameStore.gold), 282)
 
+  // Respect OS preferences by default, but let the player explicitly opt into GIFs.
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.getByRole('button', { name: 'Animar vendedor', exact: true }).waitFor()
+  assert.match(await page.locator('.npc-portrait img').evaluate(img => img.currentSrc), /forest-merchant\.png/)
+  await page.getByRole('button', { name: 'Animar vendedor', exact: true }).click()
+  await page.waitForFunction(() => document.querySelector('.npc-portrait img')?.currentSrc.includes('forest-merchant.gif'))
+  assert.equal(await page.getByRole('button', { name: 'Pausar animación' }).getAttribute('aria-pressed'), 'true')
+  assert.equal(await page.evaluate(() => localStorage.getItem('rpg-js-merchant-animation')), 'play')
+  await page.getByRole('button', { name: 'Pausar animación' }).click()
+  await page.waitForFunction(() => document.querySelector('.npc-portrait img')?.currentSrc.includes('forest-merchant.png'))
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
+
   await page.evaluate(async () => {
     const { MountainEnemy } = await import('/src/core/enemies/MountainEnemy.ts')
     window.__gameStore.finishRun(false)

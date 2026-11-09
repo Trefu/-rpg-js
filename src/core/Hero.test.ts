@@ -169,7 +169,7 @@ describe('Cleric class', () => {
     const types = c.abilities.map(a => a.type)
     expect(types).toContain('clericAttack') // basic attack
     expect(types).toContain('clericRadiantStrike')
-    expect(types).toContain('clericDivineSmite')
+    expect(types).toContain('clericDivineBlessing')
     expect(types).toContain('clericHeal')
   })
 

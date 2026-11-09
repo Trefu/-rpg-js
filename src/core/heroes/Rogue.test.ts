@@ -4,7 +4,7 @@ import { RECRUITABLE_HEROES } from './recruitment'
 import { Enemy } from '../enemies/Enemy'
 import { StatusEffects } from '../StatusEffects'
 import { getAbility } from '../abilities/registry'
-import { getAbilityHitCount, isBasicAttack, RogueBasicAttack, RoguePoisonStrike, RogueHaste, RogueUltimate } from '../abilities/Abilities'
+import { getAbilityHitCount, isBasicAttack, RogueBasicAttack, RoguePoisonBomb, RogueHaste, RogueUltimate } from '../abilities/Abilities'
 import type { AbilityContext, IAbility } from '../interfaces/IAbility'
 import type { AudioManager } from '../AudioManager'
 import { VFX_SOURCES } from '@/components/combat/vfxSources'
@@ -21,9 +21,9 @@ function context(ability: IAbility, level = 1): AbilityContext {
   return {
     caster: new Rogue(level), target: new Target(), ability,
     animationDelay: 0, energySpent: 0,
-    log: vi.fn(), showEnemyHit: vi.fn(), playEnemyVfx: vi.fn(),
+    log: vi.fn(), showEnemyHit: vi.fn(), playEnemyVfx: vi.fn(), playHeroVfx: vi.fn(),
     showPlayerHit: vi.fn(), showAnnouncement: vi.fn(),
-    audioManager: { playAttackSound: vi.fn(), playHitSound: vi.fn() } as unknown as AudioManager
+    audioManager: { playAttackSound: vi.fn(), playHitSound: vi.fn(), playDotPoisonSound: vi.fn() } as unknown as AudioManager
   }
 }
 
@@ -65,20 +65,30 @@ describe('Pícaro jugable', () => {
     expect(ctx.playEnemyVfx).toHaveBeenCalledTimes(getAbilityHitCount(RogueBasicAttack, 4)!)
   })
 
-  it('Golpe Tóxico suma cargas sobre el veneno existente sin alargar su duración', async () => {
-    const ctx = context(RoguePoisonStrike, 3)
+  it('Bomba Venenosa aplica triple de nivel más bonus logarítmico de agilidad y suma cargas', async () => {
+    const ctx = context(RoguePoisonBomb, 3)
     ctx.target!.addStatusEffect({ ...StatusEffects.POISON, stacks: 2, turns: 2 })
+    const healthBefore = ctx.target!.health
+    expect(RoguePoisonBomb.previewDamage).toBeUndefined()
+    expect(RoguePoisonBomb.previewEffect?.(ctx.caster as Rogue)).toMatchObject({ label: 'Cargas', kind: 'poison' })
     await execute(ctx)
+    expect(ctx.playEnemyVfx).toHaveBeenCalledWith(ctx.target!.id, { asset: 'poison-bomb', durationMs: 900 })
+    expect(ctx.audioManager.playDotPoisonSound).toHaveBeenCalledOnce()
     const poison = ctx.target!.statusEffects.find(e => e.type === 'poison')!
-    expect(poison.stacks).toBe(10)
+    expect(poison.stacks).toBe(2 + 3 * 3 + Math.floor(Math.log1p((ctx.caster as Rogue).baseStats.agility.value) * 2))
     expect(poison.turns).toBe(2)
+    expect(ctx.target!.health).toBe(healthBefore)
   })
 
-  it('la definitiva ejecuta los golpes anunciados y aplica veneno por impacto', async () => {
+  it('la definitiva ejecuta el combo y detona todas las cargas de veneno por 5 de daño cada una', async () => {
     const ctx = context(RogueUltimate, 4)
+    ctx.target!.addStatusEffect({ ...StatusEffects.POISON, stacks: 3 })
     await execute(ctx)
-    expect(ctx.showEnemyHit).toHaveBeenCalledTimes(getAbilityHitCount(RogueUltimate, 4)!)
-    expect(ctx.target!.statusEffects.find(e => e.type === 'poison')?.stacks).toBe(16)
+    const comboHits = getAbilityHitCount(RogueUltimate, 4)!
+    expect(ctx.showEnemyHit).toHaveBeenCalledTimes(comboHits + 1)
+    expect(ctx.target!.statusEffects.find(e => e.type === 'poison')).toBeUndefined()
+    expect(ctx.target!.health).toBeLessThan(10000 - 3 * 5)
+    expect(ctx.log).toHaveBeenCalledWith(expect.stringContaining('19 cargas causan 95 de daño'))
   })
 
   it('interrumpe la ráfaga al morir el objetivo y no envenena cadáveres', async () => {
@@ -94,6 +104,9 @@ describe('Pícaro jugable', () => {
     const ctx = context(RogueHaste)
     ctx.target = null
     await execute(ctx)
-    expect(ctx.caster.statusEffects.find(e => e.type === 'haste')).toMatchObject({ turns: 3, speedBonus: 3 })
+    expect(ctx.playHeroVfx).toHaveBeenCalledWith(ctx.caster.id, { asset: 'haste-aura', durationMs: 900 })
+    expect(ctx.caster.statusEffects.find(e => e.type === 'haste')).toMatchObject({ turns: 2, agilityPercentBonus: 25 })
+    expect(RogueHaste.cooldown).toBe(4)
+    expect(RogueHaste.energyCost).toBe(40)
   })
 })

@@ -86,7 +86,11 @@ const chipGroups = computed<ChipGroup[]>(() => {
   const magicDef = typeof p.magicDefense === 'function' ? p.magicDefense() : def
   const rpct = reductionPct(def)
   const mpct = reductionPct(magicDef)
-  const agi = p.baseStats.agility.value
+  const baseAgi = p.baseStats.agility.value
+  const agilityPercentBonus = p.statusEffects
+    .filter(effect => effect.turns > 0 && effect.type === 'haste')
+    .reduce((total, effect) => total + (effect.agilityPercentBonus ?? 0), 0)
+  const agi = baseAgi * (1 + agilityPercentBonus / 100)
   const bodyV = p.baseStats.body.value
   const conV = p.baseStats.constitution.value
   const mindV = p.baseStats.mind.value
@@ -148,7 +152,7 @@ const chipGroups = computed<ChipGroup[]>(() => {
       kind: 'agi',
       section: 'atributos',
       hint:
-        `${T.agi('Agilidad')}: ${T.agi(Math.round(agi))}\n` +
+        `${T.agi('Agilidad')}: ${T.agi(Math.round(agi))}${agilityPercentBonus ? ` (base ${Math.round(baseAgi)}, +${agilityPercentBonus}%)` : ''}\n` +
         `Alimenta ${T.agi('CRIT')} (bonus de crit ≈ ${T.agi(critBonus + '%')}) y el orden de turno.`
     }
   ]

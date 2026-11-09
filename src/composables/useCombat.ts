@@ -189,19 +189,16 @@ export function useCombat(config: CombatConfig = {}) {
   }
 
   /**
-   * Calcula la agilidad efectiva de un combatiente sumando los bonuses
-   * de efectos activos (ej. Haste +3). Se aplica ANTES de pasar al motor
+   * Calcula la agilidad efectiva considerando bonuses porcentuales
+   * de efectos activos. Se aplica ANTES de pasar al motor
    * de turnos para que la cola de turnos refleje la agilidad buffada.
    */
   function effectiveAgility(combatant: { baseStats: { agility: { value: number } }, statusEffects: IStatusEffect[] }): number {
     let agility = combatant.baseStats.agility.value
     for (const effect of combatant.statusEffects) {
       if (effect.turns <= 0) continue
-      // Haste (Bloque D Tier 3): suma `speedBonus` a la agilidad.
-      // Extensible: cualquier futuro efecto puede exportar un delta de
-      // agilidad añadiendo `agilityBonus?: number` a IStatusEffect.
-      if (effect.type === StatusEffects.HASTE.type && typeof effect.speedBonus === 'number') {
-        agility += effect.speedBonus
+      if (effect.type === StatusEffects.HASTE.type && typeof effect.agilityPercentBonus === 'number') {
+        agility *= 1 + effect.agilityPercentBonus / 100
       }
     }
     return Math.max(1, agility)
@@ -470,7 +467,9 @@ const defenseClouded = ref(false)
             target,
             enemy,
             pattern.damageType as DamageType | undefined,
-            { delayPerSplasheeMs: 0, splashKind: 'damage', vfxForSplashees: failureVfx }
+            { delayPerSplasheeMs: 0, splashKind: 'damage', vfxForSplashees: failureVfx,
+              failureEffect: pattern.mitigatedSplash.applyFailureEffect === false ? undefined : pattern.onFailureEffect,
+              isCrit: wasCrit }
           )
         }
 
@@ -481,26 +480,7 @@ const defenseClouded = ref(false)
         // efecto se elimina y el heroe recupera la capacidad de bloquear.
         consumeRootedStack(target)
 
-        if (pattern.onFailureEffect && target.isAlive) {
-          applyFailureEffect(target, pattern.onFailureEffect, { isCrit: wasCrit })
-          const fx = pattern.onFailureEffect
-          const template = StatusEffects.getByType(fx.statusType)
-          if (template) {
-            const applied = target.statusEffects.find((e: IStatusEffect) => e.type === fx.statusType)
-            const actualStacks = applied?.stacks ?? fx.stacks ?? 1
-            const stackLabel = actualStacks > 1 ? ` x${actualStacks}` : ''
-            const critLabel = wasCrit ? ' (crítico)' : ''
-            addToLog(`¡Sufres el efecto: ${template.name}${stackLabel}${critLabel}!`)
-            showAnnouncement(`¡${template.name}${stackLabel}${critLabel}!`, 'status', 1800)
-            // Marca el efecto como "aplicado este turno" si es un defense
-            // debuff (cleanAtTurnStart: false). Asi el decremento al cierre
-            // del turno enemigo actual NO lo borra: queremos que sobreviva
-            // hasta el siguiente desafio de defensa.
-            if (template.cleanAtTurnStart === false) {
-              defenseDebuffsAppliedThisTurn.add(fx.statusType)
-            }
-          }
-        }
+        applyEnemyFailureEffect(target, pattern.onFailureEffect, wasCrit)
       }
 
       // Refrescar el estado visual de ROOTED en la UI del DefenseChallenge:
@@ -1057,8 +1037,8 @@ const defenseClouded = ref(false)
 
   /**
    * Inserta un VFX sobre el heroe indicado y lo elimina al cabo de
-   * `effect.durationMs`. Util cuando el heroe recibe daño sin bloquear
-   * (fase fallida del desafio de defensa o splash multi-hero).
+   * `effect.durationMs`. Se usa para feedback visual de habilidades y
+   * efectos recibidos por el heroe.
    */
   function showHeroVfx(heroId: string, effect: VfxEffect) {
     const key = heroVfxKey++
@@ -1824,6 +1804,25 @@ const defenseClouded = ref(false)
    * con callers legacy; los nuevos deben pasar el resultado del phase
    * para que el feedback sea coherente.
    */
+  function applyEnemyFailureEffect(
+    target: Hero,
+    fx: DefensePatternConfig['onFailureEffect'],
+    isCrit = false
+  ) {
+    if (!fx || !target.isAlive) return
+    applyFailureEffect(target, fx, { isCrit })
+    const template = StatusEffects.getByType(fx.statusType)
+    if (!template) return
+    const applied = target.statusEffects.find(e => e.type === fx.statusType)
+    const actualStacks = applied?.stacks ?? fx.stacks ?? 1
+    const stackLabel = actualStacks > 1 ? ` x${actualStacks}` : ''
+    const critLabel = isCrit ? ' (crítico)' : ''
+    addToLog(`¡${target.name} sufre el efecto: ${template.name}${stackLabel}${critLabel}!`)
+    showAnnouncement(`¡${template.name}${stackLabel}${critLabel}!`, 'status', 1800)
+    // Preserve newly applied defense debuffs through the end of this enemy turn.
+    if (template.cleanAtTurnStart === false) defenseDebuffsAppliedThisTurn.add(fx.statusType)
+  }
+
   async function applyEnemyMitigatedSplash(
     mitigatedDamage: number,
     damageMultiplier: number,
@@ -1833,6 +1832,8 @@ const defenseClouded = ref(false)
     opts: {
       delayPerSplasheeMs?: number
       splashKind?: 'blocked' | 'damage'
+      failureEffect?: DefensePatternConfig['onFailureEffect']
+      isCrit?: boolean
       /**
        * VFX a mostrar sobre los splashees cuando `splashKind === 'damage'`.
        * Si se omite, se usa `DEFAULT_IMPACT_VFX` (spray de impacto
@@ -1876,6 +1877,7 @@ const defenseClouded = ref(false)
       } else {
         showPlayerHit(splashDamage, { heroId: hero.id })
         showHeroVfx(hero.id, opts.vfxForSplashees ?? DEFAULT_IMPACT_VFX)
+        applyEnemyFailureEffect(hero, opts.failureEffect, opts.isCrit)
       }
       addToLog(`¡La onda de ${enemy.name} alcanza a ${hero.name}! ${splashDamage} de daño.`)
       if (delayMs > 0) await delay(delayMs)

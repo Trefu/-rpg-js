@@ -14,6 +14,8 @@
     "test:company": "node scripts/check-company.mjs",
     "test:campaign-ui": "node scripts/check-campaign-ui.mjs",
     "test:menus": "node scripts/check-menu-theme.mjs",
+    "test:combat-layout": "node scripts/check-combat-layout.mjs",
+    "test:divine-blessing": "node scripts/check-divine-blessing.mjs",
     "prepare": "husky"
   },
   "dependencies": {

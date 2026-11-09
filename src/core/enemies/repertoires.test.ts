@@ -71,4 +71,21 @@ describe('Variedad mínima de repertorios enemigos', () => {
     const names = new GoblinArcher(1).attackPatterns.map(pattern => pattern.name)
     expect(names).toContain(ENTANGLE.name)
   })
+
+  it('el antiguo guardia es el Rey Goblin, con estadísticas de líder y cuatro ataques propios', () => {
+    const king = new MountainEnemy('goblinGuard')
+    expect(king.name).toBe('Rey Goblin')
+    expect(king.enemyGroup).toBe('goblins')
+    expect(king.combatRole).toBe('tank')
+    expect(king.maxHealth).toBe(405)
+    expect(king.baseStats.body.value).toBe(32)
+    expect(king.baseStats.mind.value).toBe(20)
+    expect(king.baseStats.agility.value).toBe(11)
+    expect(new MountainEnemy('goblinGuard', 2).maxHealth).toBe(489)
+    expect(king.selectAttackPattern(null).name).toBe('Orden de ataque')
+    expect(offensiveNames(king.attackPatterns)).toEqual([
+      'Tajo del Rey Goblin', 'Golpe de cetro', 'Barrido real', 'Furia del Rey Goblin'
+    ])
+    expect(king.attackPatterns.some(action => action.name === 'Guardia ancestral')).toBe(true)
+  })
 })

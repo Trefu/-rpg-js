@@ -83,9 +83,11 @@ function onClick() {
     'target-all': isTargetAll,
     'mobile-layout': isMobileLayout
   }" ref="rootEl" @click="onClick">
-    <div v-if="!isDead" class="enemy-name-top">{{ enemy.name }}</div>
+    <div v-if="!isDead" class="enemy-name-top" :title="enemy.name">{{ enemy.name }}</div>
     <small v-if="!isDead && enemy.intention" class="enemy-intention" :title="repertoireTitle">Próximo: {{ enemy.intention }}</small>
-    <img :src="sprite" :alt="enemy.name" class="enemy-sprite-img" loading="lazy" decoding="async" />
+    <div class="enemy-sprite-stage">
+      <img :src="sprite" :alt="enemy.name" class="enemy-sprite-img" loading="lazy" decoding="async" />
+    </div>
     <img
       v-for="effect in vfxEffects ?? []"
       :key="effect.key"
@@ -123,17 +125,26 @@ function onClick() {
 </template>
 
 <style scoped>
-.enemy-intention{display:block;color:#f0d39a;font-size:.7rem;text-align:center;max-width:100%;padding:.2rem .4rem;background:#25231ed9;border-radius:5px;z-index:3}
+.enemy-intention { grid-row: 2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: #f0d39a; font-size: .7rem; line-height: 1.3; text-align: center; padding: 2px 4px; background: #25231ed9; border-radius: 2px; z-index: 3; }
 .enemy-card {
   position: relative;
+  display: grid;
+  grid-template-rows: 20px 32px minmax(40px, 1fr) 28px 24px;
+  gap: 2px;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
+  border: 2px solid transparent;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background-color .2s, border-color .2s;
   border-radius: 8px;
   padding: 0.25rem;
 }
 
 .enemy-card:hover {
-  transform: scale(1.05);
+  background-color: rgba(255, 152, 0, 0.08);
 }
 
 .enemy-card.selected {
@@ -160,33 +171,27 @@ function onClick() {
   z-index: 2;
 }
 
+.enemy-sprite-stage {
+  grid-row: 3;
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  min-width: 0;
+  overflow: visible;
+}
+
 .enemy-sprite-img {
-  width: 240px;
-  height: 240px;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  transform: scale(1.35);
   object-fit: contain;
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
   display: block;
 }
 
-@media (max-height: 820px) {
-  .enemy-sprite-img {
-    width: clamp(110px, calc((100vh - 290px) / 2.8), 240px);
-    height: clamp(110px, calc((100vh - 290px) / 2.8), 240px);
-  }
-  .enemy-name-top {
-    font-size: 0.78rem;
-    padding: 0.02rem 0.3rem;
-    margin-bottom: 0.02rem;
-    max-width: clamp(140px, calc((100vh - 290px) / 2.8), 240px);
-  }
-  .enemy-health {
-    margin-top: 0.08rem;
-    padding: 0.08rem;
-  }
-  .health-bar {
-    height: 10px;
-  }
-}
+.enemy-card :deep(.enemy-status-icons) { grid-row: 4; margin: 0 auto; box-sizing: border-box; align-self: center; }
 
 .enemy-vfx-effect {
   position: absolute;
@@ -216,6 +221,7 @@ function onClick() {
 }
 
 .enemy-name-top {
+  grid-row: 1;
   display: block;
   font-family: 'Georgia', serif;
   font-size: 0.85rem;
@@ -226,14 +232,19 @@ function onClick() {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 240px;
+  max-width: 100%;
   padding: 0.05rem 0.4rem;
   margin-bottom: 0.05rem;
 }
 
 .enemy-health {
+  grid-row: 5;
   position: relative;
-  margin-top: 0.15rem;
+  inset: auto;
+  transform: none;
+  margin: 0;
+  align-self: end;
+  box-sizing: border-box;
   width: 100%;
   background-color: rgba(0, 0, 0, 0.8);
   border-radius: 4px;
@@ -243,7 +254,7 @@ function onClick() {
 .health-bar {
   position: relative;
   width: 100%;
-  height: 12px;
+  height: 18px;
   background-color: #1a1a1a;
   border-radius: 3px;
   overflow: hidden;
@@ -353,9 +364,10 @@ function onClick() {
 
 .enemy-shortcut-badge {
   position: absolute;
-  bottom: -38px;
-  left: 50%;
-  transform: translateX(-50%);
+  top: 54px;
+  right: 4px;
+  left: auto;
+  bottom: auto;
   background: rgba(0, 0, 0, 0.85);
   color: #fff;
   font-weight: bold;

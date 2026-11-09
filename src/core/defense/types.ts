@@ -174,6 +174,11 @@ export interface DefensePatternConfig {
   mitigatedSplash?: {
     /** Multiplicador aplicado al `totalDamage` del desafio de defensa. Default: 0.2 */
     damageMultiplier: number
+    /** Inherit onFailureEffect on every surviving splashee after a failed phase.
+     * Set false only when the effect is exclusive to the primary hit.
+     * Successful blocks never propagate failure effects. Default: true.
+     */
+    applyFailureEffect?: boolean
   }
   /**
    * Path a un SFX custom (ej. `/assets/sounds/Battle_SFX/swing.wav`) que

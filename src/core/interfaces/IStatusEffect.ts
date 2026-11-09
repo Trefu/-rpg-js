@@ -196,6 +196,7 @@ export interface IStatusEffect {
   defenseBonus?: number
   healingMultiplier?: number
   speedBonus?: number
+  agilityPercentBonus?: number
   speedPenalty?: number
   /**
    * Impacto sobre la velocidad de la onda en la barra de defensa del portador.

@@ -3,7 +3,7 @@ import {
   ClericBasicAttack,
   ClericRadiantStrike,
   ClericHeal,
-  ClericDivineSmite,
+  ClericDivineBlessing,
   ClericUltimate
 } from '../abilities/Abilities'
 import clericSprite from '@/assets/sprites/heroes/cleric.png'
@@ -29,7 +29,7 @@ export class Cleric extends Hero {
   static createStarter(): Cleric {
     const cleric = new Cleric(1)
     cleric.learnAbility(ClericRadiantStrike)
-    cleric.learnAbility(ClericDivineSmite)
+    cleric.learnAbility(ClericDivineBlessing)
     cleric.learnAbility(ClericHeal)
     cleric.learnAbility(ClericUltimate)
     return cleric

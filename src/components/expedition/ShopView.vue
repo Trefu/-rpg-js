@@ -9,12 +9,27 @@ import { NPCS } from '@/core/npcs'
 import GoldAmount from '@/components/ui/GoldAmount.vue'
 import NpcPortrait from './NpcPortrait.vue'
 import PartyEquipment from './PartyEquipment.vue'
+import { useMediaQuery } from '@/composables/useMediaQuery'
 
 const game = useGameStore()
 defineEmits<{ (e: 'close'): void }>()
 const category = ref<'all' | 'consumables' | 'equipment'>('all')
 const receipt = ref('')
 const merchant = NPCS['forest-merchant']
+const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
+const motionPreferenceKey = 'rpg-js-merchant-animation'
+function readMotionPreference(): boolean | undefined {
+  try {
+    const saved = localStorage.getItem(motionPreferenceKey)
+    return saved === 'play' ? true : saved === 'pause' ? false : undefined
+  } catch { return undefined }
+}
+const merchantAnimation = ref<boolean | undefined>(readMotionPreference())
+const merchantIsAnimated = computed(() => merchantAnimation.value ?? !reducedMotion.value)
+function toggleMerchantAnimation() {
+  merchantAnimation.value = !merchantIsAnimated.value
+  try { localStorage.setItem(motionPreferenceKey, merchantAnimation.value ? 'play' : 'pause') } catch { /* Storage may be disabled. */ }
+}
 const inventory = computed(() => getInventoryEntries(game.teamItems))
 const categories = [
   { id: 'all', label: 'Todo el puesto', count: SHOP_CONSUMABLES.length + PARTY_EQUIPMENT.length },
@@ -46,7 +61,8 @@ function potionLabel(id: string, price: number) {
         <section class="merchant-card campaign-panel">
           <div class="merchant-scene">
             <span class="merchant-sign">ABIERTO</span>
-            <NpcPortrait npc-id="forest-merchant" />
+            <NpcPortrait npc-id="forest-merchant" :animated="merchantAnimation" />
+            <button type="button" class="merchant-motion" :aria-pressed="merchantIsAnimated" @click="toggleMerchantAnimation">{{ merchantIsAnimated ? 'Pausar animación' : 'Animar vendedor' }}</button>
             <span class="merchant-ground" aria-hidden="true"></span>
           </div>
           <div class="merchant-intro">

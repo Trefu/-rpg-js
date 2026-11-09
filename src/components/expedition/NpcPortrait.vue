@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { NPCS, type NpcId } from '@/core/npcs'
-const props = defineProps<{ npcId: NpcId }>()
+// An explicit user choice overrides the OS motion preference for this portrait only.
+const props = withDefaults(defineProps<{ npcId: NpcId; animated?: boolean }>(), { animated: undefined })
 const npc = computed(() => NPCS[props.npcId])
 </script>
 
 <template>
   <picture class="npc-portrait">
-    <source :srcset="npc.still" media="(prefers-reduced-motion: reduce)" />
-    <img :src="npc.animation" :alt="`${npc.name}, ${npc.title}`" decoding="async" />
+    <source v-if="animated === undefined" :srcset="npc.still" media="(prefers-reduced-motion: reduce)" />
+    <img :src="animated === false ? npc.still : npc.animation" :alt="`${npc.name}, ${npc.title}`" decoding="async" />
   </picture>
 </template>
 

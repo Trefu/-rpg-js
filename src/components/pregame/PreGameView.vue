@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import GoldAmount from '@/components/ui/GoldAmount.vue'
+import FormulaChip from '@/components/ui/FormulaChip.vue'
 import { computed, ref } from 'vue'
 import type { ExpeditionId, IExpeditionConfig } from '@/core/expeditions/types'
 import { Warrior } from '@/core/heroes/Warrior'
@@ -367,11 +368,11 @@ function damageTypeClass(id?: string): string {
                     {{ focusedAbilityPreviews[idx]!.damageTypeLabel }}
                   </span>
                   </p>
-                  <div
+                  <FormulaChip
                     v-if="focusedAbilityPreviews[idx]?.formula"
-                    class="ability-row__formula pregame-ability-formula"
-                    v-html="focusedAbilityPreviews[idx]!.formula"
-                  ></div>
+                    class="pregame-ability-formula"
+                    :formula="focusedAbilityPreviews[idx]!.formula"
+                  />
                 </div>
               </li>
             </ul>

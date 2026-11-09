@@ -10,7 +10,8 @@ import {
   MOUNTAIN_BITE, MOUNTAIN_POUNCE, MOUNTAIN_REND, MOUNTAIN_CLEAVE, MOUNTAIN_OVERHEAD, MOUNTAIN_WHIRL,
   MOUNTAIN_RIPOSTE, MOUNTAIN_EMBER, MOUNTAIN_FROST, MOUNTAIN_SLAM, MOUNTAIN_QUAKE,
   DRAGON_CLAWS, DRAGON_BREATH, DRAGON_TAIL, BOMB_SHRAPNEL, BOMB_FIRE, BOMB_SMOKE, BOMB_CHAIN,
-  EARTH_SPIKES, EARTH_BOULDER, BEAR_MAUL, BEAR_CRUSH, MINING_PICK, GRAVEL_SHOWER, SPIKE_TRAP
+  EARTH_SPIKES, EARTH_BOULDER, BEAR_MAUL, BEAR_CRUSH, MINING_PICK, GRAVEL_SHOWER, SPIKE_TRAP,
+  GOBLIN_ROYAL_STRIKE, GOBLIN_SCEPTER, GOBLIN_ROYAL_SWEEP, GOBLIN_ROYAL_COMBO
 } from '../abilities/MountainActions'
 import {
   DragonRoar, ENTANGLE, TRIPLE_ARROW, HEAVY_ARROW, QUICK_CLAWS, GUST_OF_FOG, WarlockHex,
@@ -39,7 +40,7 @@ import koboldWarlockSprite from '@/assets/sprites/enemies/kobold-warlock.png'
 import orcSprite from '@/assets/sprites/enemies/orc.png'
 import orcArcherSprite from '@/assets/sprites/enemies/orc-archer.png'
 import orcKingSprite from '@/assets/sprites/enemies/orc-king.png'
-import goblinGuardSprite from '@/assets/sprites/enemies/goblin-king.png'
+import goblinKingSprite from '@/assets/sprites/enemies/goblin-king.png'
 import banditSprite from '@/assets/sprites/enemies/bandit.png'
 import banditArcherSprite from '@/assets/sprites/enemies/bandit-archer.png'
 import banditMedicSprite from '@/assets/sprites/enemies/bandit-rogue.png'
@@ -72,7 +73,8 @@ interface RoleSpec {
   scripted?: boolean
 }
 const ROLES: Record<MountainRole, RoleSpec> = {
-  goblinGuard: { name: 'Guardia goblin', sprite: goblinGuardSprite, hp: 105, growth: 22, body: 29, mind: 12, agility: 8, xp: 35, gold: 18, actions: [AncestralGuard, SLASH, CRUSHING_BLOW, MOUNTAIN_STAB, MOUNTAIN_OVERHEAD], scripted: true },
+  // Keep the role ID stable for existing expedition formations and saves.
+  goblinGuard: { name: 'Rey Goblin', sprite: goblinKingSprite, hp: 135, growth: 28, body: 32, mind: 20, agility: 11, xp: 50, gold: 28, actions: [AttackOrder, GOBLIN_ROYAL_STRIKE, GOBLIN_SCEPTER, GOBLIN_ROYAL_SWEEP, GOBLIN_ROYAL_COMBO, AncestralGuard], scripted: true },
   banditRaider: { name: 'Saqueador del paso', sprite: banditSprite, hp: 52, growth: 14, body: 25, mind: 12, agility: 12, xp: 26, gold: 16, actions: [SLASH, DEEP_SLASH, QUICK_STRIKE, DOUBLE_COMBO] },
   banditArcher: { name: 'Arquero bandido', sprite: banditArcherSprite, hp: 46, growth: 12, body: 24, mind: 12, agility: 12, xp: 25, gold: 14, actions: [POISON_ARROW, TRIPLE_ARROW, HEAVY_ARROW, ENTANGLE] },
   banditGuard: { name: 'Escudero bandido', sprite: captainSprite, hp: 110, growth: 23, body: 30, mind: 12, agility: 8, xp: 36, gold: 20, actions: [AncestralGuard, SLASH, CRUSHING_BLOW, MOUNTAIN_OVERHEAD, DEEP_SLASH], scripted: true },

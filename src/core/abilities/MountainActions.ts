@@ -75,6 +75,14 @@ export const BOMB_SMOKE = attack('Carga de humo', 0.7, [10], 30, {
   onFailureEffect: { statusType: 'blinded', maxDuration: 1 }
 })
 export const BOMB_CHAIN = attack('Mechas encadenadas', 0.65, [8, 9, 8], 36)
+export const GOBLIN_ROYAL_STRIKE = attack('Tajo del Rey Goblin', 1.35, [9, 8], 32)
+export const GOBLIN_SCEPTER = attack('Golpe de cetro', 1.5, [10], 28, {
+  onFailureEffect: { statusType: 'injured', maxDuration: 1 }
+})
+export const GOBLIN_ROYAL_SWEEP = attack('Barrido real', 0.95, [9, 9], 30, {
+  mitigatedSplash: { damageMultiplier: 0.2 }
+})
+export const GOBLIN_ROYAL_COMBO = attack('Furia del Rey Goblin', 0.75, [9, 8, 8], 36)
 export const EARTH_SPIKES = attack('Estacas de tierra', 1.1, [8, 9], 28, {
   onFailureEffect: { statusType: 'rooted', maxDuration: 1 }
 })
@@ -123,7 +131,7 @@ export const AttackOrder: IAbility = {
   cooldown: 3, tags: ['buff'], icon: swordIcon, targetType: 'allies-only', requiresTarget: false,
   execute: async ctx => {
     for (const ally of ctx.allies ?? [ctx.caster]) if (ally.isAlive) ally.addStatusEffect({ ...StatusEffects.ATTACK_ORDER })
-    ctx.log('¡El capitán ordena avanzar! +20% de daño durante 2 turnos.')
+    ctx.log(`¡${ctx.caster.name} ordena avanzar! +20% de daño durante 2 turnos.`)
     await pause(ctx.animationDelay)
   }
 }

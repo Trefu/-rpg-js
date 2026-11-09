@@ -179,18 +179,21 @@ describe('Montañas Rocosas', () => {
     vi.restoreAllMocks()
   })
 
-  it('desde el segundo combate, todos los encuentros combinan DPS, tanque y apoyo', () => {
+  it('las formaciones ofrecen parejas, tríos y grupos mayores con facciones coherentes', () => {
     const encounterIds = Object.keys(MOUNTAIN_PEAK.encounters).filter(id => MOUNTAIN_PEAK.encounters[id].group !== 'dragons' && id !== 'trail-scouts')
+    const sizes = new Set<number>()
     for (const id of encounterIds) {
       const enemies = resolveEncounterById(MOUNTAIN_PEAK, id) as MountainEnemy[]
-      expect(enemies.some(enemy => enemy.combatRole === 'dps'), id).toBe(true)
-      expect(enemies.some(enemy => enemy.combatRole === 'tank'), id).toBe(true)
-      expect(enemies.some(enemy => enemy.combatRole === 'buffer'), id).toBe(true)
+      sizes.add(enemies.length)
+      expect(enemies.length, id).toBeGreaterThanOrEqual(2)
+      expect(new Set(enemies.map(enemy => enemy.enemyGroup)), id).toEqual(new Set([MOUNTAIN_PEAK.encounters[id].group]))
       for (const enemy of enemies) {
         const attacks = enemy.attackPatterns.map(action => action.name)
         expect(new Set(attacks).size, `${id}: ${enemy.name}`).toBeGreaterThanOrEqual(4)
       }
     }
+    expect(sizes.has(2)).toBe(true)
+    expect(sizes.has(3)).toBe(true)
   })
 
   it('todos los roles de montaña aparecen en encuentros accesibles del mapa', () => {
@@ -203,16 +206,20 @@ describe('Montañas Rocosas', () => {
     expect(MOUNTAIN_ROLES.every(role => new MountainEnemy(role).sprite)).toBe(true)
   })
 
-  it('el mapa generado mantiene patrullas mixtas también en los combates adicionales', () => {
+  it('el mapa generado varía la cantidad de enemigos sin mezclar facciones', () => {
+    const sizes = new Set<number>()
     for (let seed = 1; seed <= 12; seed++) {
       vi.spyOn(Math, 'random').mockImplementation(seeded(seed))
       const nodes = useExpeditionGenerator().generateExpeditionNodes(MOUNTAIN_PEAK, { recruitedHeroClassIds: ['warrior', 'cleric', 'rogue'] })
       for (const node of nodes.filter(node => node.type === 'combat' && node.id !== 'start')) {
-        const roles = new Set((node.enemies as MountainEnemy[]).map(enemy => enemy.combatRole))
-        expect(roles, node.id).toEqual(new Set(['dps', 'tank', 'buffer']))
-        expect(new Set((node.enemies as MountainEnemy[]).map(enemy => enemy.enemyGroup)).size, node.id).toBe(1)
+        const enemies = node.enemies as MountainEnemy[]
+        sizes.add(enemies.length)
+        expect(enemies.length, node.id).toBeGreaterThanOrEqual(2)
+        expect(new Set(enemies.map(enemy => enemy.enemyGroup)).size, node.id).toBe(1)
       }
     }
+    expect(sizes.has(2)).toBe(true)
+    expect(sizes.has(3)).toBe(true)
   })
 
   it('bloquea el nodo del capitán durante la primera run, incluso si se intenta seleccionar directamente', () => {

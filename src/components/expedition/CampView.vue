@@ -8,6 +8,7 @@ import { ITEM_MAX_USES } from '@/core/items/items'
 import { getExpedition, DEFAULT_EXPEDITION, listExpeditions } from '@/core/expeditions/registry'
 import type { ExpeditionId } from '@/core/expeditions/types'
 import GoldAmount from '@/components/ui/GoldAmount.vue'
+import FormulaChip from '@/components/ui/FormulaChip.vue'
 import swordIcon from '@/assets/icons/crossed-swords.png'
 import HeroStatChips from '@/components/combat/HeroStatChips.vue'
 import { getAbilityIcon } from '@/core/abilities/getAbilityIcon'
@@ -78,7 +79,21 @@ const readyToDepart = computed(() => game.activeHeroes.length > 0 && game.active
             <article v-for="hero in game.companyHeroes" :key="hero.heroClassId" class="company-hero campaign-panel" :class="{ 'in-party': selectedClasses.has(hero.heroClassId) }">
                 <div class="hero-portrait"><span class="hero-class">{{ classes[hero.heroClassId] ?? hero.heroClassId }}</span><img :src="hero.sprite" :alt="hero.name" /><span class="hero-level">{{ hero.level }}<small>NIVEL</small></span></div>
                 <div class="hero-dossier"><h3>{{ hero.name }}</h3><div class="hero-vitals"><span><i class="vital-dot hp"></i>{{ hero.maxHealth }} HP</span><span><i class="vital-dot energy"></i>{{ hero.maxEnergy }} EN</span></div><div class="hero-xp-label"><span>Al siguiente nivel</span><strong>{{ hero.experience }} / {{ hero.experienceToNextLevel }} XP</strong></div><progress :value="hero.experience" :max="hero.experienceToNextLevel" :aria-label="`Experiencia de ${hero.name}`" /><div class="camp-hero-chips"><HeroStatChips :hero="hero" :show-all="true" tooltip-position="above" /></div></div>
-                <details class="camp-hero-abilities"><summary>Habilidades · {{ hero.abilities.length }}</summary><ul><li v-for="ability in hero.abilities" :key="ability.type"><div><img :src="getAbilityIcon(ability.type)" alt="" /><strong>{{ ability.name }}</strong></div><p>{{ ability.description }}</p><p v-if="ability.previewDamage" class="camp-ability-preview">{{ ability.previewDamage(hero).kind === 'heal' ? 'Curación' : 'Daño' }}: {{ formatPreviewRange(ability.previewDamage(hero)) }}</p><div v-if="ability.previewDamage" class="camp-ability-formula" v-html="ability.previewDamage(hero).formula"></div></li></ul></details>
+                <details class="camp-hero-abilities">
+                  <summary>Habilidades · {{ hero.abilities.length }}</summary>
+                  <ul><li v-for="ability in hero.abilities" :key="ability.type">
+                    <div><img :src="getAbilityIcon(ability.type)" alt="" /><strong>{{ ability.name }}</strong></div>
+                    <p>{{ ability.description }}</p>
+                    <template v-if="ability.previewEffect">
+                      <p class="camp-ability-preview">{{ ability.previewEffect(hero).label }}: {{ ability.previewEffect(hero).value }}</p>
+                      <FormulaChip class="camp-ability-formula" :formula="ability.previewEffect(hero).formula" />
+                    </template>
+                    <template v-else-if="ability.previewDamage">
+                      <p class="camp-ability-preview">{{ ability.previewDamage(hero).kind === 'heal' ? 'Curación' : 'Daño' }}: {{ formatPreviewRange(ability.previewDamage(hero)) }}</p>
+                      <FormulaChip class="camp-ability-formula" :formula="ability.previewDamage(hero).formula" />
+                    </template>
+                  </li></ul>
+                </details>
                 <button type="button" class="campaign-button hero-party-toggle" :class="{ primary: selectedClasses.has(hero.heroClassId) }" :aria-pressed="selectedClasses.has(hero.heroClassId)" :aria-label="`${selectedClasses.has(hero.heroClassId) ? 'Quitar' : 'Añadir'} a ${hero.name} ${selectedClasses.has(hero.heroClassId) ? 'del' : 'al'} grupo`" :disabled="!selectedClasses.has(hero.heroClassId) && game.activeHeroes.length >= MAX_HEROES" @click="game.togglePartyHero(hero.heroClassId)">{{ selectedClasses.has(hero.heroClassId) ? '✓ En el grupo' : game.activeHeroes.length >= MAX_HEROES ? 'Grupo completo' : '+ Añadir al grupo' }}</button>
             </article>
           </div>

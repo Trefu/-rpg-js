@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import type { IAbility, AbilityDamagePreview } from '@/core/interfaces/IAbility'
+import type { IAbility, AbilityDamagePreview, AbilityEffectPreview } from '@/core/interfaces/IAbility'
 import type { Hero } from '@/core/Hero'
 import { getAbilityIcon } from '@/core/abilities/getAbilityIcon'
 import { getBasicAttackHitCount, getAbilityHitCount, isBasicAttack } from '@/core/abilities/Abilities'
 import { formatPreviewRange } from '@/core/abilities/damagePipeline'
+import '@/styles/hint-colors.css'
 import backpackIcon from '@/assets/icons/backpack.png'
 import boltIcon from '@/assets/icons/bolt-shield.png'
 import hourglassIcon from '@/assets/icons/hourglass.png'
@@ -181,6 +182,16 @@ const infoPreview = computed<AbilityDamagePreview | null>(() => {
   if (!a || !props.caster || typeof a.previewDamage !== 'function') return null
   try {
     return a.previewDamage(props.caster)
+  } catch {
+    return null
+  }
+})
+
+const infoEffectPreview = computed<AbilityEffectPreview | null>(() => {
+  const a = infoAbility.value
+  if (!a || !props.caster || typeof a.previewEffect !== 'function') return null
+  try {
+    return a.previewEffect(props.caster)
   } catch {
     return null
   }
@@ -398,28 +409,30 @@ function shortcutFor(index: number): string | null {
           </p>
 
           <button
-            v-if="infoPreview"
+            v-if="infoPreview || infoEffectPreview"
             type="button"
             class="aab-info-damage"
             :class="{
               'is-open': infoFormulaOpen,
-              'is-heal': infoPreview.kind === 'heal'
+              'is-heal': infoPreview?.kind === 'heal',
+              'is-poison': infoEffectPreview?.kind === 'poison'
             }"
             :aria-expanded="infoFormulaOpen"
-            :aria-label="`Toca para ver la fórmula de ${infoPreview.label ?? 'daño'} de ${infoAbility.name}`"
+            :aria-label="`Toca para ver la fórmula de ${infoEffectPreview?.label ?? infoPreview?.label ?? 'daño'} de ${infoAbility.name}`"
             @click="toggleInfoFormula"
           >
-            <span class="aab-info-damage-label">{{ infoPreview.label ?? 'Daño' }}</span>
-            <span class="aab-info-damage-values">{{ formatPreviewRange(infoPreview) }}</span>
+            <span class="aab-info-damage-label">{{ infoEffectPreview?.label ?? infoPreview?.label ?? 'Daño' }}</span>
+            <span class="aab-info-damage-values">{{ infoEffectPreview?.value ?? (infoPreview ? formatPreviewRange(infoPreview) : '') }}</span>
             <span
-              v-if="infoPreview.kind !== 'heal' && hitCountFor(infoAbility)"
+              v-if="infoPreview && infoPreview.kind !== 'heal' && hitCountFor(infoAbility)"
               class="aab-info-damage-hits"
               :title="`${hitCountFor(infoAbility)} ataques`"
             >× {{ hitCountFor(infoAbility) }}</span>
-            <span v-if="infoPreview.damageTypeLabel" class="aab-info-damage-type">{{ infoPreview.damageTypeLabel }}</span>
+            <span v-if="infoPreview?.damageTypeLabel" class="aab-info-damage-type">{{ infoPreview.damageTypeLabel }}</span>
           </button>
-          <div v-if="infoPreview && infoFormulaOpen" class="aab-info-formula" @click.stop>
-            <div class="aab-info-formula-line" v-html="infoPreview.formula"></div>
+          <div v-if="(infoPreview || infoEffectPreview) && infoFormulaOpen" class="aab-info-formula" @click.stop>
+            <div v-if="infoPreview" class="aab-info-formula-line" v-html="infoPreview.formula"></div>
+            <div v-else-if="infoEffectPreview" class="aab-info-formula-line" v-html="infoEffectPreview.formula"></div>
           </div>
 
           <footer class="aab-info-footer">
@@ -1017,6 +1030,13 @@ function shortcutFor(index: number): string | null {
   border-color: rgba(130, 255, 170, 0.55);
 }
 
+.aab-info-damage.is-poison {
+  background: rgba(92, 255, 138, 0.12);
+  border-color: rgba(92, 255, 138, 0.4);
+}
+.aab-info-damage.is-poison:hover { background: rgba(92, 255, 138, 0.22); border-color: rgba(92, 255, 138, 0.65); }
+.aab-info-damage.is-poison.is-open { background: rgba(92, 255, 138, 0.18); border-color: rgba(92, 255, 138, 0.55); }
+
 .aab-info-damage-label {
   color: #ffb3b3;
   text-transform: uppercase;
@@ -1037,6 +1057,8 @@ function shortcutFor(index: number): string | null {
 .aab-info-damage.is-heal .aab-info-damage-values {
   color: #5cff8a;
 }
+.aab-info-damage.is-poison .aab-info-damage-label,
+.aab-info-damage.is-poison .aab-info-damage-values { color: #8cff9d; }
 
 .aab-info-damage-hits {
   color: #ffe066;

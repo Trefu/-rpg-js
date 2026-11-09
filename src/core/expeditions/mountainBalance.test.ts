@@ -22,7 +22,7 @@ async function battle(heroes: Hero[], enemies: IEnemy[], blockChance: number) {
   const game = useGameStore()
   const effects = { log: () => {}, showEnemyHit: () => {}, playEnemyVfx: () => {},
     showPlayerHit: () => {}, showAnnouncement: () => {},
-    audioManager: { playAttackSound() {}, playHitSound() {}, playCustomSound() {} } as unknown as AudioManager }
+    audioManager: { playAttackSound() {}, playHitSound() {}, playCustomSound() {}, playDotPoisonSound() {} } as unknown as AudioManager }
   const cooldowns = new Map<string, Record<string, number>>()
   const pressure = new Map<string, number>()
   const actors = (): TurnActor[] => [...heroes, ...enemies].map(c => ({
@@ -63,9 +63,12 @@ async function battle(heroes: Hero[], enemies: IEnemy[], blockChance: number) {
       const canUse = (a: IAbility) => !(cds[a.type] > 0) && actor.energy >= (a.energyCost ?? 0) && actor.heroism >= (a.heroismCost ?? 0)
       const heal = actor.abilities.find(a => a.type === 'clericHeal' && canUse(a) && wounded.health < wounded.maxHealth * 0.55)
       const ultimate = actor.abilities.find(a => a.heroismCost && canUse(a))
-      const special = actor.abilities.find(a => ['warriorDevastatingStrike', 'clericRadiantStrike', 'roguePoisonStrike'].includes(a.type) && canUse(a))
-      const ability = heal ?? ultimate ?? special ?? actor.abilities[0]
-      const target = heal ? wounded : [...enemies].filter(e => e.isAlive).sort((a, b) => a.health - b.health)[0]
+      const blessingTarget = [...living].filter(hero => hero.id !== actor.id && !hero.hasStatusEffect('divine_empowerment'))
+        .sort((a, b) => a.health / a.maxHealth - b.health / b.maxHealth)[0]
+      const blessing = actor.abilities.find(a => a.type === 'clericDivineBlessing' && canUse(a) && blessingTarget)
+      const special = actor.abilities.find(a => ['warriorDevastatingStrike', 'clericRadiantStrike', 'roguePoisonBomb'].includes(a.type) && canUse(a))
+      const ability = heal ?? ultimate ?? blessing ?? special ?? actor.abilities[0]
+      const target = heal ? wounded : ability === blessing ? blessingTarget : [...enemies].filter(e => e.isAlive).sort((a, b) => a.health - b.health)[0]
       actor.spendEnergy(ability.energyCost ?? 0)
       actor.heroism -= ability.heroismCost ?? 0
       await execute(actor, ability.requiresTarget === false ? null : target, ability, living)
@@ -88,7 +91,13 @@ async function battle(heroes: Hero[], enemies: IEnemy[], blockChance: number) {
           target.takeDamage(damage, { damageType: action.damageType })
           if (blocked) target.restoreEnergy(5)
           else if (action.onFailureEffect && target.isAlive) applyFailureEffect(target, action.onFailureEffect)
-          if (action.mitigatedSplash) for (const other of heroes.filter(h => h.isAlive && h.id !== target.id)) other.takeDamage(Math.floor(damage * action.mitigatedSplash.damageMultiplier), { damageType: action.damageType })
+          if (action.mitigatedSplash) for (const other of heroes.filter(h => h.isAlive && h.id !== target.id)) {
+            const splash = Math.floor(damage * action.mitigatedSplash.damageMultiplier)
+            other.takeDamage(splash, { damageType: action.damageType })
+            if (splash > 0 && !blocked && other.isAlive && action.onFailureEffect && action.mitigatedSplash.applyFailureEffect !== false) {
+              applyFailureEffect(other, action.onFailureEffect)
+            }
+          }
         }
       }
       actor.afterAction?.()

@@ -126,13 +126,12 @@ export abstract class Character implements ICharacter {
       finalAmount = Math.max(1, Math.floor(amount * mult))
     }
 
-    // Absorcion por escudos activos. Solo se consume el PRIMER escudo que
-    // tenga absorbRemaining > 0 (los escudos no se stackean entre si; si
-    // en el futuro se quiere stacking, iterar y consumir en orden).
-    const shield = this.statusEffects.find(
+    // Consume distinct shields in application order before touching real HP.
+    const shields = this.statusEffects.filter(
       e => e.turns > 0 && typeof e.absorbRemaining === 'number' && e.absorbRemaining > 0
     )
-    if (shield) {
+    for (const shield of shields) {
+      if (finalAmount <= 0) break
       const absorbed = Math.min(shield.absorbRemaining!, finalAmount)
       shield.absorbRemaining! -= absorbed
       finalAmount -= absorbed

@@ -631,20 +631,17 @@ export class StatusEffects {
   }
 
   /**
-   * "Haste": buff que reduce el costo de turno del portador (mas agil
-   * = turnos mas frecuentes). Implementado en `useCombat.turnActors`
-   * sumando el delta de agilidad del efecto antes de pasar al motor
-   * de turnos. Ver `HASTE_AGILITY_BONUS`.
+   * Prisa aumenta porcentualmente la agilidad para adelantar turnos.
    */
   static readonly HASTE: IStatusEffect = {
     type: 'haste',
     name: 'Prisa',
-    description: 'Tu agilidad aumenta en 3 puntos (turnos más rápidos).',
-    turns: 3,
+    description: 'Tu agilidad aumenta un 25% (turnos más rápidos).',
+    turns: 2,
     icon: hasteIcon,
     isBuff: true,
     turnLabel: '¡Se mueve más rápido!',
-    speedBonus: 3
+    agilityPercentBonus: 25
   }
 
   /**
@@ -738,6 +735,19 @@ export class StatusEffects {
     turns: 2, icon: swordWoundIcon, isBuff: false, healingMultiplier: 0.65
   }
 
+  static readonly DIVINE_PROTECTION: IStatusEffect = {
+    type: 'divine_protection', name: 'Bendición Divina · Vida temporal',
+    description: 'Vida temporal que absorbe daño antes de perder HP. Escala con Mente y nivel de Elara. Dura 3 turnos.',
+    turns: 3, icon: defenseIcon, isBuff: true, absorbRemaining: 0, maxAbsorb: 0
+  }
+
+  static readonly DIVINE_EMPOWERMENT: IStatusEffect = {
+    type: 'divine_empowerment', name: 'Fervor divino',
+    description: 'Bendición Divina: inflige un 20% más de daño durante 3 turnos, incluso si se agota el escudo.',
+    turns: 3, icon: strengthIcon, isBuff: true,
+    defenseContribution: () => ({ attackDamageMultiplier: 0.2 })
+  }
+
   static readonly ANCESTRAL_GUARD: IStatusEffect = {
     type: 'ancestral_guard', name: 'Guardia ancestral',
     description: 'Absorbe hasta 20 de daño durante 2 turnos.',
@@ -761,7 +771,7 @@ export class StatusEffects {
   // Método para obtener un efecto por tipo (case-insensitive)
   static getByType(type: string): IStatusEffect | null {
     const effects = [
-      this.OPEN_WOUND, this.ANCESTRAL_GUARD, this.STONE_SHELL, this.ATTACK_ORDER,
+      this.OPEN_WOUND, this.DIVINE_PROTECTION, this.DIVINE_EMPOWERMENT, this.ANCESTRAL_GUARD, this.STONE_SHELL, this.ATTACK_ORDER,
       this.STUN,
       this.BURN,
       this.POISON,

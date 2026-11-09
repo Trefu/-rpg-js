@@ -89,9 +89,11 @@
 .shop-back { position: static; margin: 0; flex-shrink: 0; }
 .shop-layout { grid-template-columns: 230px minmax(0, 1fr); gap: 22px; }
 .merchant-column { gap: 20px; }
-.merchant-scene { height: 176px; background: var(--jrpg-inset); border-bottom: 1px solid var(--jrpg-line); }
+.merchant-scene { height: 220px; padding-bottom: 48px; background: var(--jrpg-inset); border-bottom: 1px solid var(--jrpg-line); }
 .merchant-scene::before, .merchant-scene::after, .merchant-ground { display: none; }
 .merchant-scene .npc-portrait { margin-bottom: 10px; height: 140px; }
+.merchant-motion { position: absolute; z-index: 3; right: 8px; bottom: 8px; min-height: 44px; padding: 8px 10px; border: 1px solid var(--jrpg-line); border-radius: 0; background: var(--jrpg-inset); color: var(--jrpg-text); font: .65rem var(--jrpg-font); cursor: pointer; }
+.merchant-motion:hover { border-color: var(--jrpg-orange); color: var(--jrpg-highlight); }
 .merchant-sign { top: 10px; left: 10px; border: 0; background: none; color: var(--jrpg-orange); box-shadow: none; font-size: .65rem; }
 .merchant-intro { padding: 16px; }
 .merchant-intro h2 { font-size: 1.1rem; }
@@ -238,8 +240,9 @@
   .shop-back { position: static; margin-top: 16px; }
   .merchant-column { position: static; }
   .merchant-card { grid-template-columns: 100px minmax(0, 1fr); }
-  .merchant-scene { min-height: 160px; height: 100%; }
+  .merchant-scene { min-height: 210px; height: 100%; }
   .merchant-scene .npc-portrait { width: 100px; height: 110px; }
+  .merchant-motion { left: 4px; right: 4px; bottom: 4px; padding: 5px 3px; font-size: .6rem; }
   .merchant-intro { padding: 14px; }
   .merchant-intro blockquote { font-size: .75rem; }
   .shop-tabs button { font-size: .7rem; padding: 8px 4px; gap: 4px; flex-wrap: wrap; }

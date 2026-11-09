@@ -327,12 +327,12 @@ defineExpose({
         <div class="hero-name">{{ hero.name }}</div>
         <div class="hero-level">Nivel {{ hero.level }}</div>
         <div class="hero-bars">
-          <div class="bar-line">
+          <div class="bar-line bar-line--hp">
             <div class="bar-track">
               <div class="bar-fill bar-hp" :style="{ width: `${hpPercent}%` }"></div>
               <ShieldOverlay :character="hero" />
+              <span class="bar-value">{{ hpDisplay }}</span>
             </div>
-            <span class="bar-value">{{ hpDisplay }}</span>
           </div>
           <div class="bar-line">
             <div class="bar-track">
@@ -916,6 +916,20 @@ defineExpose({
 
 .bar-fill.bar-hp {
   background: linear-gradient(90deg, #66bb6a, #2e7d32);
+}
+
+.bar-line--hp .bar-track { height: 18px; min-width: 0; }
+.bar-line--hp .bar-value {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  font-size: 0.7rem;
+  white-space: nowrap;
+  text-shadow: 1px 1px #000, -1px -1px #000;
 }
 
 .bar-fill.bar-energy {
