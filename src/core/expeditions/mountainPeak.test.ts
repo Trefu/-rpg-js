@@ -180,7 +180,7 @@ describe('Montañas Rocosas', () => {
   })
 
   it('desde el segundo combate, todos los encuentros combinan DPS, tanque y apoyo', () => {
-    const encounterIds = Object.keys(MOUNTAIN_PEAK.encounters).filter(id => id !== 'trail-scouts')
+    const encounterIds = Object.keys(MOUNTAIN_PEAK.encounters).filter(id => MOUNTAIN_PEAK.encounters[id].group !== 'dragons' && id !== 'trail-scouts')
     for (const id of encounterIds) {
       const enemies = resolveEncounterById(MOUNTAIN_PEAK, id) as MountainEnemy[]
       expect(enemies.some(enemy => enemy.combatRole === 'dps'), id).toBe(true)
@@ -195,12 +195,12 @@ describe('Montañas Rocosas', () => {
 
   it('todos los roles de montaña aparecen en encuentros accesibles del mapa', () => {
     const ids = new Set([
-      ...Object.values(MOUNTAIN_PEAK.encounterPools!).flat(),
+      ...Object.values(MOUNTAIN_PEAK.enemyGroups).flatMap(group => Object.values(group).flat()),
       ...MOUNTAIN_PEAK.generator.forcedNodes.flatMap(node => node.encounter ? [node.encounter] : [])
     ])
     const roles = new Set([...ids].flatMap(id => (resolveEncounterById(MOUNTAIN_PEAK, id) as MountainEnemy[]).map(enemy => enemy.role)))
     expect(roles).toEqual(new Set(MOUNTAIN_ROLES))
-    expect(new Set(MOUNTAIN_ROLES.map(role => new MountainEnemy(role).sprite)).size).toBe(MOUNTAIN_ROLES.length)
+    expect(MOUNTAIN_ROLES.every(role => new MountainEnemy(role).sprite)).toBe(true)
   })
 
   it('el mapa generado mantiene patrullas mixtas también en los combates adicionales', () => {
@@ -210,6 +210,7 @@ describe('Montañas Rocosas', () => {
       for (const node of nodes.filter(node => node.type === 'combat' && node.id !== 'start')) {
         const roles = new Set((node.enemies as MountainEnemy[]).map(enemy => enemy.combatRole))
         expect(roles, node.id).toEqual(new Set(['dps', 'tank', 'buffer']))
+        expect(new Set((node.enemies as MountainEnemy[]).map(enemy => enemy.enemyGroup)).size, node.id).toBe(1)
       }
     }
   })

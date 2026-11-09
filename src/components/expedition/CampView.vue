@@ -72,7 +72,7 @@ const readyToDepart = computed(() => game.activeHeroes.length > 0 && game.active
           </ol>
           <p id="party-selection-hint" class="party-selection-hint">Selecciona entre 1 y {{ MAX_HEROES }} héroes de la compañía.</p>
         </section>
-        <section class="company-section">
+        <section id="camp-company" class="company-section">
           <div class="campaign-section-head"><h2>Héroes disponibles</h2><span class="campaign-count">{{ game.companyHeroes.length }}</span></div>
           <div class="company">
             <article v-for="hero in game.companyHeroes" :key="hero.heroClassId" class="company-hero campaign-panel" :class="{ 'in-party': selectedClasses.has(hero.heroClassId) }">
@@ -83,8 +83,8 @@ const readyToDepart = computed(() => game.activeHeroes.length > 0 && game.active
             </article>
           </div>
         </section>
-        <PartyEquipment />
-        <section class="camp-supplies campaign-panel">
+        <div id="camp-equipment"><PartyEquipment /></div>
+        <section id="camp-items" class="camp-supplies campaign-panel">
           <div class="campaign-section-head"><h2>Inventario</h2><span class="campaign-count">{{ inventory.reduce((sum, e) => sum + e.count, 0) }} objetos</span></div>
           <div class="supply-list"><div v-for="entry in inventory" :key="entry.id" class="supply-item"><div class="supply-icon"><img :src="getItem(entry.id)?.icon" :alt="getItem(entry.id)?.name" /></div><div><strong>{{ getItem(entry.id)?.name }}</strong><small>{{ ITEM_MAX_USES[entry.id] ? 'Recargable' : 'Un solo uso' }}</small></div><span class="supply-count">×{{ entry.count }}</span></div><p v-if="!inventory.length" class="campaign-note">Sin objetos.</p></div>
         </section>
@@ -92,7 +92,7 @@ const readyToDepart = computed(() => game.activeHeroes.length > 0 && game.active
 
       <aside class="camp-journey-column">
         <section class="destination-picker campaign-panel" aria-labelledby="destination-picker-title">
-          <div class="campaign-section-head"><div><span class="campaign-eyebrow">Elige tu próximo viaje</span><h2 id="destination-picker-title">Expediciones</h2></div><span class="campaign-count">{{ destinations.length }}</span></div>
+          <div class="campaign-section-head"><h2 id="destination-picker-title">Destino</h2></div>
           <div class="destination-options">
             <button v-for="destination in destinations" :key="destination.id" type="button" class="destination-option" :class="{ selected: selectedExpeditionId === destination.id, unavailable: destination.inDevelopment }" :disabled="destination.inDevelopment" :aria-pressed="selectedExpeditionId === destination.id" @click="selectedExpeditionId = destination.id">
               <span class="destination-option-mark" aria-hidden="true">{{ selectedExpeditionId === destination.id ? '◆' : '◇' }}</span>
@@ -106,13 +106,13 @@ const readyToDepart = computed(() => game.activeHeroes.length > 0 && game.active
           <div class="destination-title"><img :src="swordIcon" alt="" /><div><span>{{ game.completedExpeditions.includes(expedition.id) ? 'COMPLETADA' : 'EXPEDICIÓN' }}</span><h2>{{ expedition.displayName }}</h2></div></div>
           <div class="destination-body"><p>Dificultad {{ difficultyLabels[expedition.presentation.difficulty] }}</p><div class="journey-progress"><div><span>Mejor avance</span><strong>{{ game.completedExpeditions.includes(expedition.id) ? 'Completada' : `Paso ${game.bestDepth}` }}</strong></div></div><button class="campaign-button primary camp-start" :disabled="!readyToDepart || !selectedDestinationAvailable" aria-describedby="party-selection-hint" @click="game.beginRun({ expeditionId: expedition.id })"><img :src="swordIcon" alt="" />Iniciar intento {{ game.attempts + 1 }}<span aria-hidden="true">→</span></button><p v-if="!readyToDepart" class="departure-hint">Selecciona al menos un héroe.</p></div>
         </section>
-        <div class="camp-record"><div><strong>{{ game.attempts }}</strong><span>intentos iniciados</span></div><div><strong>{{ game.equipment.length }}</strong><span>mejoras permanentes</span></div></div>
       </aside>
     </div>
   </main>
 </template>
 
 <style scoped>
+@layer menu-legacy {
 .camp-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 22px; }
 .destination-picker { padding: 14px; margin-bottom: 14px; }
 .destination-picker .campaign-section-head { margin-bottom: 10px; }
@@ -217,4 +217,5 @@ progress::-moz-progress-bar { background: #78bfe7; }
 @media(max-width:1050px){.party-slots{grid-template-columns:1fr}.party-slots li{min-height:48px}}
 @media(max-width:720px){.party-slots{grid-template-columns:1fr}.party-selection{padding:10px}.mountain-preview{aspect-ratio:16/9;object-position:center 18%}.camp-layout{display:flex;flex-direction:column}.camp-journey-column{order:0}.hero-party-toggle{font-size:.55rem;padding:8px 5px}.camp-hero-abilities summary{font-size:.55rem}}
 @media (max-width: 360px) { .company { grid-template-columns: 1fr; }.camp-hero-chips :deep(.hero-stat-chips) { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+}
 </style>

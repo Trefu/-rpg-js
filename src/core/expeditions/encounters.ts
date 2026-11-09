@@ -118,6 +118,9 @@ export function resolveEncounter(enc: Encounter): IEnemy[] {
         continue
       }
       const enemy = m.factory()
+      if (enc.group && enemy.enemyGroup !== enc.group) {
+        throw new Error(`[encounters] "${enc.id}" belongs to ${enc.group}, but "${enemy.name}" belongs to ${enemy.enemyGroup ?? 'no group'}`)
+      }
       if (m.factory.unique && m.factory.uniqueKey) {
         spawnedUniques.add(m.factory.uniqueKey)
       }
@@ -141,5 +144,6 @@ export function resolveEncounterById(
       `[encounters] expedition "${config.id}" has no encounter "${encounterId}"`
     )
   }
+  if (!enc.group) throw new Error(`[encounters] "${encounterId}" requires an enemy group`)
   return resolveEncounter(enc)
 }

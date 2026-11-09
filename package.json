@@ -13,6 +13,7 @@
     "test:coverage": "vitest run --coverage",
     "test:company": "node scripts/check-company.mjs",
     "test:campaign-ui": "node scripts/check-campaign-ui.mjs",
+    "test:menus": "node scripts/check-menu-theme.mjs",
     "prepare": "husky"
   },
   "dependencies": {

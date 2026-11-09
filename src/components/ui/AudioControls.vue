@@ -56,7 +56,7 @@ function handleClickOutside(event: MouseEvent) {
 
 <template>
   <div class="audio-controls">
-    <button class="audio-btn" @click="toggleControls" :class="{ muted: isMuted }">
+    <button class="audio-btn" @click="toggleControls" :class="{ muted: isMuted }" aria-label="Ajustar sonido" :aria-expanded="showControls">
       <img :src="isMuted ? speakerOffIcon : speakerOnIcon" alt="" class="audio-icon" />
     </button>
     
@@ -105,6 +105,7 @@ function handleClickOutside(event: MouseEvent) {
 </template>
 
 <style scoped>
+@layer menu-legacy {
 .audio-controls {
   position: relative;
   display: inline-block;
@@ -263,4 +264,5 @@ function handleClickOutside(event: MouseEvent) {
 .mute-btn.muted:hover {
   background-color: #da190b;
 }
-</style> 
+}
+</style>

@@ -67,6 +67,7 @@ function dismiss() {
 </template>
 
 <style scoped>
+@layer menu-legacy {
 .toast-slide-enter-active,
 .toast-slide-leave-active {
   transition: transform 0.35s ease, opacity 0.35s ease;
@@ -225,5 +226,6 @@ function dismiss() {
   width: 14px;
   height: 14px;
   filter: brightness(0) invert(1);
+}
 }
 </style>

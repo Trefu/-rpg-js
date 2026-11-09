@@ -2,6 +2,7 @@ import { Enemy } from './Enemy'
 import type { EnemyAction, ICharacter } from '../interfaces/ICharacter'
 import type { Hero } from '../Hero'
 import type { DefensePatternConfig } from '../defense/types'
+import type { EnemyGroupId } from './groups'
 import { StatusEffects } from '../StatusEffects'
 import {
   AncestralGuard, AttackOrder, MountainMend, StonePreparation, STONE_SMASH,
@@ -38,10 +39,17 @@ import koboldWarlockSprite from '@/assets/sprites/enemies/kobold-warlock.png'
 import orcSprite from '@/assets/sprites/enemies/orc.png'
 import orcArcherSprite from '@/assets/sprites/enemies/orc-archer.png'
 import orcKingSprite from '@/assets/sprites/enemies/orc-king.png'
+import goblinGuardSprite from '@/assets/sprites/enemies/goblin-king.png'
+import banditSprite from '@/assets/sprites/enemies/bandit.png'
+import banditArcherSprite from '@/assets/sprites/enemies/bandit-archer.png'
+import banditMedicSprite from '@/assets/sprites/enemies/bandit-rogue.png'
+import packLeaderSprite from '@/assets/sprites/enemies/alpha-wolf.png'
 
 export type MountainRole = 'scout' | 'archer' | 'wolf' | 'shaman' | 'guardian' | 'captain' | 'dragon'
   | 'skeleton' | 'skeletonArcher' | 'deathKnight' | 'skeletonKing' | 'elemental' | 'bear'
   | 'bomber' | 'warlock' | 'koboldMiner' | 'koboldTrapper' | 'koboldWarlock' | 'orc' | 'orcArcher' | 'orcKing'
+  | 'goblinGuard' | 'banditRaider' | 'banditArcher' | 'banditGuard' | 'banditMedic'
+  | 'koboldGuard' | 'orcGuard' | 'packLeader' | 'stoneCaller' | 'stoneShard'
 export type MountainCombatRole = 'dps' | 'tank' | 'buffer'
 interface RoleSpec {
   name: string
@@ -64,6 +72,16 @@ interface RoleSpec {
   scripted?: boolean
 }
 const ROLES: Record<MountainRole, RoleSpec> = {
+  goblinGuard: { name: 'Guardia goblin', sprite: goblinGuardSprite, hp: 105, growth: 22, body: 29, mind: 12, agility: 8, xp: 35, gold: 18, actions: [AncestralGuard, SLASH, CRUSHING_BLOW, MOUNTAIN_STAB, MOUNTAIN_OVERHEAD], scripted: true },
+  banditRaider: { name: 'Saqueador del paso', sprite: banditSprite, hp: 52, growth: 14, body: 25, mind: 12, agility: 12, xp: 26, gold: 16, actions: [SLASH, DEEP_SLASH, QUICK_STRIKE, DOUBLE_COMBO] },
+  banditArcher: { name: 'Arquero bandido', sprite: banditArcherSprite, hp: 46, growth: 12, body: 24, mind: 12, agility: 12, xp: 25, gold: 14, actions: [POISON_ARROW, TRIPLE_ARROW, HEAVY_ARROW, ENTANGLE] },
+  banditGuard: { name: 'Escudero bandido', sprite: captainSprite, hp: 110, growth: 23, body: 30, mind: 12, agility: 8, xp: 36, gold: 20, actions: [AncestralGuard, SLASH, CRUSHING_BLOW, MOUNTAIN_OVERHEAD, DEEP_SLASH], scripted: true },
+  banditMedic: { name: 'Alquimista bandido', sprite: banditMedicSprite, hp: 55, growth: 15, body: 20, mind: 25, agility: 11, xp: 30, gold: 16, actions: [AttackOrder, BOMB_FIRE, BOMB_SMOKE, POISON_ARROW, BOMB_SHRAPNEL, MountainMend], scripted: true },
+  koboldGuard: { name: 'Capataz kobold', sprite: minerSprite, hp: 105, growth: 23, body: 29, mind: 14, agility: 8, xp: 36, gold: 21, actions: [AncestralGuard, MINING_PICK, GRAVEL_SHOWER, CRUSHING_BLOW, MOUNTAIN_STAB], scripted: true },
+  orcGuard: { name: 'Guardia orco', sprite: orcSprite, hp: 120, growth: 25, body: 32, mind: 12, agility: 8, xp: 40, gold: 21, actions: [AncestralGuard, AXE_CLEAVE, AXE_HOOK, CRUSHING_BLOW, MULTIPLE_AXE_STRIKES], scripted: true },
+  packLeader: { name: 'Lobo alfa', sprite: packLeaderSprite, hp: 75, growth: 19, body: 27, mind: 12, agility: 14, xp: 34, gold: 12, actions: [AttackOrder, MOUNTAIN_BITE, MOUNTAIN_POUNCE, MOUNTAIN_REND, QUICK_CLAWS], scripted: true },
+  stoneCaller: { name: 'Núcleo de la montaña', sprite: elementalSprite, hp: 80, growth: 20, body: 23, mind: 28, agility: 9, xp: 35, gold: 18, actions: [AncestralGuard, EARTH_SPIKES, EARTH_BOULDER, MOUNTAIN_QUAKE, GRAVEL_SHOWER, MountainMend], scripted: true },
+  stoneShard: { name: 'Esquirla viviente', sprite: elementalSprite, hp: 55, growth: 15, body: 25, mind: 20, agility: 12, xp: 27, gold: 13, actions: [EARTH_SPIKES, EARTH_BOULDER, GRAVEL_SHOWER, MOUNTAIN_SLAM] },
   skeleton: { name: 'Esqueleto del risco', sprite: skeletonSprite, hp: 48, growth: 12, body: 23, mind: 10, agility: 11, xp: 23, gold: 12, actions: [SLASH, DEEP_SLASH, QUICK_STRIKE, DOUBLE_COMBO] },
   skeletonArcher: { name: 'Arquero de hueso', sprite: skeletonArcherSprite, hp: 42, growth: 12, body: 24, mind: 12, agility: 12, xp: 25, gold: 13, actions: [MOUNTAIN_ARROW, POISON_ARROW, TRIPLE_ARROW, HEAVY_ARROW] },
   deathKnight: { name: 'Caballero de la muerte', sprite: deathKnightSprite, hp: 115, growth: 24, body: 32, mind: 17, agility: 8, xp: 40, gold: 22, actions: [AncestralGuard, SLASH, DEEP_SLASH, CRUSHING_BLOW, MOUNTAIN_OVERHEAD], scripted: true },
@@ -88,14 +106,27 @@ const ROLES: Record<MountainRole, RoleSpec> = {
 } satisfies Record<MountainRole, { name: string; sprite: string; hp: number; growth: number; body: number; mind: number; agility: number; xp: number; gold: number; actions: EnemyAction[]; scripted?: boolean }>
 
 export const MOUNTAIN_ROLES = Object.keys(ROLES) as MountainRole[]
+const GROUP_ROLES: Record<EnemyGroupId, readonly MountainRole[]> = {
+  goblins: ['scout', 'archer', 'bomber', 'warlock', 'goblinGuard'],
+  bandits: ['captain', 'banditRaider', 'banditArcher', 'banditGuard', 'banditMedic'],
+  orcs: ['orc', 'orcArcher', 'shaman', 'orcKing', 'orcGuard'],
+  skeletons: ['skeleton', 'skeletonArcher', 'deathKnight', 'skeletonKing'],
+  kobolds: ['koboldMiner', 'koboldTrapper', 'koboldWarlock', 'koboldGuard'],
+  beasts: ['wolf', 'bear', 'packLeader'],
+  stone: ['guardian', 'elemental', 'stoneCaller', 'stoneShard'],
+  dragons: ['dragon']
+}
 
 /** Expedition-specific stats keep training and other enemy variants independent. */
 export class MountainEnemy extends Enemy {
   readonly sprite: string
   get isBoss(): boolean { return this.role === 'captain' || this.role === 'dragon' }
+  get enemyGroup(): EnemyGroupId {
+    return (Object.keys(GROUP_ROLES) as EnemyGroupId[]).find(group => GROUP_ROLES[group].includes(this.role))!
+  }
   get combatRole(): MountainCombatRole {
-    if (['guardian', 'elemental', 'deathKnight', 'bear'].includes(this.role)) return 'tank'
-    if (['shaman', 'warlock', 'koboldWarlock', 'skeletonKing', 'orcKing'].includes(this.role)) return 'buffer'
+    if (['guardian', 'elemental', 'deathKnight', 'bear', 'goblinGuard', 'banditGuard', 'koboldGuard', 'orcGuard'].includes(this.role)) return 'tank'
+    if (['shaman', 'warlock', 'koboldWarlock', 'skeletonKing', 'orcKing', 'banditMedic', 'packLeader', 'stoneCaller'].includes(this.role)) return 'buffer'
     return 'dps'
   }
   private actionIndex = 0

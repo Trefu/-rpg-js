@@ -1,6 +1,7 @@
 import type { IEnemy } from '@/core/interfaces/ICharacter'
 import type { INode } from '@/core/interfaces/IExpedition'
 import type { CuriosityEvent } from '@/core/events/curiosityEvents'
+import type { EnemyGroupId } from '../enemies/groups'
 
 /**
  * Identificador de una expedicion. Es un `string` (no un union literal)
@@ -57,7 +58,12 @@ export interface Encounter {
   /** Texto narrativo opcional para flavor (ej: "La madre dragon baja del cielo"). */
   flavor?: string
   mobs: Mob[]
+  /** Required for expedition encounters; optional only for low-level DSL helpers. */
+  group?: EnemyGroupId
 }
+
+/** Whole curated formations, partitioned by faction and difficulty. */
+export type EnemyGroupEncounters = Partial<Record<EnemyTier, readonly string[]>>
 
 /**
  * Criterio de desbloqueo de una expedicion. Hoy solo dos variantes:
@@ -137,15 +143,12 @@ export interface IExpeditionConfig {
   unlockCriteria: ExpeditionUnlockCriteria
   presentation: ExpeditionPresentation
 
-  /** Pools por tier (lo que antes era `ZoneEnemyConfig.pools`). */
-  enemyPools: EnemyPool
-  /** Curated compositions; when present these replace independent enemy rolls. */
-  encounterPools?: Record<EnemyTier, string[]>
-  /** Cantidad de enemigos por tier (lo que antes era `ZoneEnemyConfig.enemyCountPerTier`). */
-  enemyCountPerTier: Record<EnemyTier, EnemyCountRange>
+  /** Select a faction first, then one of its complete formations. No individual rolls. */
+  groupPools: Record<EnemyTier, readonly EnemyGroupId[]>
+  enemyGroups: Partial<Record<EnemyGroupId, EnemyGroupEncounters>>
 
   /** Encounters fijos (id -> Encounter). Referenciables desde events y nodos. */
-  encounters: Record<string, Encounter>
+  encounters: Record<string, Encounter & { group: EnemyGroupId }>
 
   /**
    * Catalogo de curiosity events de esta expedicion. Si se omite, se

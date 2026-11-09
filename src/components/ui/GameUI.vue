@@ -68,11 +68,12 @@ function handleClickOutside(event: MouseEvent) {
 <template>
   <div class="game-ui" :class="{ 'in-combat': isInCombat }">
     <div class="settings" ref="menuRef">
-      <button class="gear-btn" @click="toggleMenu" :class="{ open: menuOpen }" title="Ajustes">
+      <button class="gear-btn" @click="toggleMenu" :class="{ open: menuOpen }" title="Ajustes" :aria-expanded="menuOpen" aria-controls="settings-menu" @keydown.esc="menuOpen = false">
         <img :src="cogIcon" alt="Ajustes" class="gear-icon" />
+        <span>Menú</span>
       </button>
 
-      <div v-if="menuOpen" class="settings-menu">
+      <div v-if="menuOpen" id="settings-menu" class="settings-menu" @keydown.esc="menuOpen = false">
         <div class="menu-section">
           <AudioControls />
         </div>
@@ -92,6 +93,7 @@ function handleClickOutside(event: MouseEvent) {
 </template>
 
 <style scoped>
+@layer menu-legacy {
 .game-ui {
   position: fixed;
   top: 0;
@@ -210,5 +212,6 @@ function handleClickOutside(event: MouseEvent) {
   width: 1.05em;
   height: 1.05em;
   filter: brightness(0) invert(1);
+}
 }
 </style>

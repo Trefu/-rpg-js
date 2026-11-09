@@ -6,10 +6,10 @@ import type { CuriosityEvent } from '@/core/events/curiosityEvents'
  * heredarlo: las expediciones son las nuevas entidades dueñas del contenido
  * del dungeon.
  *
- * Las opciones marcadas con `kind: 'ambush'` declaran opcionalmente un
+ * Las opciones marcadas con `kind: 'ambush'` declaran un grupo contextual o un
  * `encounter` (id dentro de `IExpeditionConfig.encounters`) para que el
- * combate resultante NO sea un re-roll aleatorio del pool, sino una
- * composicion fija y consistente con la narrativa del evento.
+ * combate resultante sea una formación de esa facción y del tramo actual,
+ * o una composición fija para una escena única; nunca una mezcla de enemigos.
  */
 export const SHARED_CURIOSITY_EVENTS: CuriosityEvent[] = [
   {
@@ -92,7 +92,7 @@ export const SHARED_CURIOSITY_EVENTS: CuriosityEvent[] = [
           kind: 'ambush',
           flavor:
             'El anciano no era quien parecia. Tres bandidos salen de entre los arbustos con los cuchillos desenvainados.',
-          encounter: 'bandit-ambush-3'
+          group: 'bandits'
         }
       }
     ]
@@ -136,7 +136,7 @@ export const SHARED_CURIOSITY_EVENTS: CuriosityEvent[] = [
           kind: 'ambush',
           flavor:
             'El estruendo despierta a los guardianes de la camara. Dos golems de piedra avanzan hacia ti.',
-          encounter: 'stone-guardians-2'
+          group: 'stone'
         }
       }
     ]
@@ -382,7 +382,7 @@ export const SHARED_CURIOSITY_EVENTS: CuriosityEvent[] = [
           kind: 'ambush',
           flavor:
             'El goblin da un silbido. Sus primos salen de debajo del carrito y de los arbustos.',
-          encounter: 'goblin-cousins'
+          group: 'goblins'
         }
       },
       {
@@ -431,7 +431,7 @@ export const SHARED_CURIOSITY_EVENTS: CuriosityEvent[] = [
           kind: 'ambush',
           flavor:
             'El bardo no opuso resistencia... pero los bandidos que le debian dinero si.',
-          encounter: 'bandits-debt'
+          group: 'bandits'
         }
       }
     ]

@@ -2,8 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useGameStore } from '@/stores/game'
 import { useExpeditionStore } from '@/stores/expedition'
-import { getEnemiesForConfig } from '@/core/zones/EnemyPools'
-import { resolveEncounterById } from '@/core/expeditions/encounters'
+import { resolveAmbushEnemies } from '@/core/expeditions/ambushes'
 import { AudioManager } from '@/core/AudioManager'
 import { resolveCuriosityChoice, type CuriosityChoice, type Effect, type ResolveResult } from '@/core/events/curiosityEvents'
 import { summarizeCuriosityResult } from '@/core/events/curiosityResultSummary'
@@ -97,7 +96,7 @@ function floorForSelectedNode(): number {
   const config = expeditionStore.currentConfig
   if (!node || !config || node.id === 'start') return 1
   if (node.id === 'boss') return config.totalFloors
-  const row = Number(node.id.split('-')[1])
+  const row = Number(node.id.replace(/^branch-/, '').replace(/^extra-/, '').split('-')[1])
   return Math.max(2, Math.min(config.totalFloors - 1, (Number.isFinite(row) ? row : 1) + 1))
 }
 
@@ -110,8 +109,8 @@ function continueAfterResolution() {
     const config = expeditionStore.currentConfig
     if (nodeId && config) {
       const outcome = chosenChoice.value?.outcome
-      const enemies = outcome?.kind === 'ambush' && outcome.encounter
-        ? resolveEncounterById(config, outcome.encounter) : getEnemiesForConfig(config, floorForSelectedNode())
+      if (outcome?.kind !== 'ambush') throw new Error('Missing contextual ambush group')
+      const enemies = resolveAmbushEnemies(config, outcome, floorForSelectedNode())
       emit('ambush', { nodeId, enemies })
       return
     }
@@ -167,6 +166,7 @@ function onKeydown(e: KeyboardEvent) {
 </template>
 
 <style scoped>
+@layer menu-legacy {
 .curiosity-fade-enter-active, .curiosity-fade-leave-active { transition: opacity .2s ease; }.curiosity-fade-enter-from, .curiosity-fade-leave-to { opacity: 0; }
 .curiosity-overlay { position: fixed; inset: 0; z-index: 1100; background: #080d09d9; display: flex; align-items: center; justify-content: center; padding: 18px; }
 .curiosity-modal { width: 100%; max-width: 890px; max-height: calc(100dvh - 36px); overflow-y: auto; color: #e8e1c8; background: #26382c; border: 3px solid #a29453; border-radius: 3px; box-shadow: inset 2px 2px #c5c08b55, inset -3px -3px #132117, 0 12px 0 #0b120d, 0 22px 50px #000b; outline: none; font-family: 'Courier New', monospace; }
@@ -232,4 +232,5 @@ function onKeydown(e: KeyboardEvent) {
 .curiosity-continue.danger { background:linear-gradient(#627b9d,#415b7d);border-color:#b5cde6;color:#f0f6fc; }
 .event-wallet { color:#c2e7f8; }
 .is-ambush .event-illustration { background:repeating-linear-gradient(0deg,#293955 0 8px,#344564 8px 16px); }
+}
 </style>

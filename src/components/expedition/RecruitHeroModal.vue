@@ -120,6 +120,7 @@ function recruit(choice: RecruitableHero) {
 </template>
 
 <style scoped>
+@layer menu-legacy {
 .recruit-fade-enter-active,
 .recruit-fade-leave-active {
   transition: opacity 0.2s ease;
@@ -392,5 +393,6 @@ function recruit(choice: RecruitableHero) {
   .recruit-card {
     padding: 0.75rem;
   }
+}
 }
 </style>

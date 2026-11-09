@@ -78,6 +78,14 @@ src/
 - Las estadísticas de equipo se reemplazan de forma idempotente con `Hero.setPartyBonuses()`, sin multiplicarse al cargar o subir de nivel. Todas las fórmulas y previews siguen leyendo las mismas estadísticas efectivas de `baseStats`.
 - La expedición usa composiciones curadas, un capitán a mitad del recorrido y un dragón final. El chamán protege/cura enemigos; el guardián anuncia su golpe y después queda vulnerable. No hay un requisito artificial de número de intentos ni escalado adaptativo.
 - Todos los enemigos tienen **al menos 4 ataques ofensivos distintos** (curas y buffs de apoyo no cuentan para el mínimo). `src/core/enemies/repertoires.test.ts` lo verifica para cada clase y para cada rol de `MountainEnemy`, incluyendo la regresión de Enredar en el goblin arquero.
+
+### Grupos de enemigos
+
+- Las expediciones eligen una **facción y una formación completa**, nunca enemigos individuales al azar. Las familias están en `src/core/enemies/groups.ts` y cada enemigo de montaña declara `enemyGroup`.
+- `groupPools` indica las facciones disponibles por tramo; `enemyGroups` enumera sus formaciones por dificultad. Cada encuentro declara `group`. El resolver rechaza cualquier miembro de otra facción y cualquier configuración vacía, sin recurrir a una pool mezclada.
+- Montaña incluye goblins, bandidos, orcos, esqueletos, kobolds, bestias de las cumbres, guardianes pétreos y dragones. Las patrullas tienen DPS, tanque y apoyo de su propia familia; el dragón final es un encuentro de jefe independiente.
+- Un evento `?` puede usar `{ kind: 'ambush', group: 'bandits', flavor: 'Los bandidos cortan el paso.' }`: `resolveAmbushEnemies` escoge una formación de bandidos del tramo actual. Para escenas únicas puede indicarse `encounter` en lugar de `group`. No se permite una emboscada sin ninguno de los dos.
+- Para añadir una variante, darle su familia y al menos cuatro ataques ofensivos, definir su formación y registrarla en el tramo apropiado. `enemyGroups.test.ts` comprueba coherencia, variedad, eventos y ausencia del fallback aleatorio.
 - `npm test -- src/core/expeditions/mountainBalance.test.ts` ejecuta campañas reproducibles con las tres clases y bloqueos probabilísticos. Es una aproximación para detectar regresiones de progresión y calibrar una victoria alrededor del tercer intento, no una medición de la dificultad del minijuego para jugadores reales.
 
 ### Arte e interfaz de campaña

@@ -1,4 +1,5 @@
 import type { Hero } from '../Hero'
+import type { EnemyGroupId } from '../enemies/groups'
 
 // ============================================================================
 // Tipos del sistema de eventos "??" (estilo Slay the Spire).
@@ -30,7 +31,7 @@ export type Effect =
 export type ChoiceOutcome =
   | { kind: 'reward'; effects: Effect[]; flavor: string }
   | { kind: 'punishment'; effects: Effect[]; flavor: string }
-  | { kind: 'ambush'; flavor: string; encounter?: string }
+  | ({ kind: 'ambush'; flavor: string } & ({ group: EnemyGroupId; encounter?: never } | { encounter: string; group?: never }))
   | { kind: 'noop'; flavor: string }
 
 export interface CuriosityChoice {

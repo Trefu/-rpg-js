@@ -121,6 +121,7 @@ const emit = defineEmits<{
 </template>
 
 <style scoped>
+@layer menu-legacy {
 .map-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 24px; }.map-heading h1 { margin-bottom: 0; }
 .company-progress { display: flex; gap: 12px; flex-wrap: wrap; }.company-progress > div { display: flex; align-items: center; gap: 10px; padding: 10px 15px 10px 8px; border: 1px solid #b6c3a028; background: #21312670; border-radius: 9px; }.company-progress img { width: 35px; height: 40px; object-fit: contain; }.company-progress strong { display: block; font: 500 .85rem Georgia, serif; color: #ded9ba; }.company-progress small { display: block; font-size: .62rem; color: #96a68c; margin-top: 5px; }.company-progress strong small { display: inline; padding-left: 6px; font-family: system-ui, sans-serif; font-size: .58rem; }
 .map-legend { display: flex; flex-wrap: wrap; gap: 17px; margin: 24px 0 0; font-size: .6rem; color: #8f9f84; }.map-legend span { display: flex; align-items: center; gap: 6px; }.map-legend img { width: 14px; height: 14px; opacity: .6; }
@@ -268,4 +269,5 @@ const emit = defineEmits<{
 .connection-line.available { stroke:#72c9ec;filter:drop-shadow(0 0 3px #72c9ec); }
 .connection-line.completed { stroke:#9bbde1; }
 @keyframes pulse { 0%,100%{box-shadow:0 0 8px #53bce288} 50%{box-shadow:0 0 17px #53bce2cc} }
+}
 </style>

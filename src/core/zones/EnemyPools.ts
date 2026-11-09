@@ -1,30 +1,11 @@
 import type { IEnemy } from '../interfaces/ICharacter'
+import type { EnemyGroupId } from '../enemies/groups'
 import { resolveEncounterById } from '../expeditions/encounters'
-import type {
-  EnemyCountRange,
-  EnemyFactory,
-  EnemyPool,
-  EnemyTier,
-  IExpeditionConfig
-} from '../expeditions/types'
+import type { EnemyCountRange, EnemyFactory, EnemyPool, EnemyTier, IExpeditionConfig } from '../expeditions/types'
 
-/**
- * Helpers re-exportados para mantener backwards-compat en callers
- * existentes. La fuente de verdad ahora vive en `core/expeditions/`.
- */
-export type {
-  EnemyCountRange,
-  EnemyFactory,
-  EnemyPool,
-  EnemyTier,
-  IExpeditionConfig
-}
+// Compatibility exports for the encounter DSL, not a random individual-enemy pool.
+export type { EnemyCountRange, EnemyFactory, EnemyPool, EnemyTier, IExpeditionConfig }
 
-/**
- * Marca una factory como "elite unica": durante el muestreo de enemigos,
- * si ya hay un enemigo con el mismo `uniqueKey`, esa factory no se
- * vuelve a elegir. Usado para minibosses (max 1 por combate/encounter).
- */
 export function elite(key: string, factory: () => IEnemy): EnemyFactory {
   const f = factory as EnemyFactory
   f.unique = true
@@ -32,10 +13,6 @@ export function elite(key: string, factory: () => IEnemy): EnemyFactory {
   return f
 }
 
-/**
- * Mapea un piso (1..totalFloors) a un tier de dificultad. La logica
- * exacta se conserva del sistema previo para no alterar balance.
- */
 export function determineEnemyTier(floor: number, totalFloors: number): EnemyTier {
   if (floor <= 1) return 'intro'
   if (floor >= totalFloors) return 'boss'
@@ -44,58 +21,25 @@ export function determineEnemyTier(floor: number, totalFloors: number): EnemyTie
   return 'mid'
 }
 
-function randomInt(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min
+function pick<T>(items: readonly T[], context: string): T {
+  if (!items.length) throw new Error(`[enemyGroups] ${context} has no formations`)
+  return items[Math.floor(Math.random() * items.length)]
 }
 
-/**
- * Elige una factory del pool respetando la restriccion de "elite unica":
- * si una factory tiene `unique === true` y su `uniqueKey` ya aparece en
- * `spawnedUniques`, se re-elige otra (hasta un limite de intentos).
- */
-function pickFactory(pool: EnemyFactory[], spawnedUniques: Set<string>): EnemyFactory {
-  const maxAttempts = pool.length * 4
-  let attempts = 0
-  let factory = pool[Math.floor(Math.random() * pool.length)]
-  while (
-    attempts < maxAttempts &&
-    factory.unique &&
-    factory.uniqueKey &&
-    spawnedUniques.has(factory.uniqueKey)
-  ) {
-    factory = pool[Math.floor(Math.random() * pool.length)]
-    attempts++
+/** Used by both map nodes and contextual '?' ambushes. Never changes factions. */
+export function resolveEnemyGroup(config: IExpeditionConfig, group: EnemyGroupId, floor: number): IEnemy[] {
+  const tier = determineEnemyTier(floor, config.totalFloors)
+  const candidates = config.enemyGroups[group]?.[tier] ?? []
+  const encounterId = pick(candidates, `${config.id}/${group}/${tier}`)
+  if (config.encounters[encounterId]?.group !== group) {
+    throw new Error(`[enemyGroups] formation "${encounterId}" does not belong to ${group}`)
   }
-  return factory
+  return resolveEncounterById(config, encounterId)
 }
 
-/**
- * Resuelve un pool aleatorio segun el tier correspondiente al piso.
- * Devuelve una lista fresca de `IEnemy`. Usado por el generador de mapa
- * para nodos `combat`/`boss`/`start` que NO declaran un encounter fijo.
- */
-export function getEnemiesForConfig(
-  config: IExpeditionConfig,
-  floor: number
-): IEnemy[] {
-  const totalFloors = config.totalFloors
-  const tier = determineEnemyTier(floor, totalFloors)
-  const compositions = config.encounterPools?.[tier]
-  if (compositions?.length) return resolveEncounterById(config, compositions[randomInt(0, compositions.length - 1)])
-  const pool = config.enemyPools[tier]
-  const [min, max] = config.enemyCountPerTier[tier]
-  const count = randomInt(min, max)
-
-  const selected: IEnemy[] = []
-  const spawnedUniques = new Set<string>()
-
-  for (let i = 0; i < count; i++) {
-    const factory = pickFactory(pool, spawnedUniques)
-    const enemy = factory()
-    if (factory.unique && factory.uniqueKey) {
-      spawnedUniques.add(factory.uniqueKey)
-    }
-    selected.push(enemy)
-  }
-  return selected
+/** The only randomness is faction + complete formation, never individual enemies. */
+export function getEnemiesForConfig(config: IExpeditionConfig, floor: number): IEnemy[] {
+  const tier = determineEnemyTier(floor, config.totalFloors)
+  const group = pick(config.groupPools[tier], `${config.id}/${tier}`)
+  return resolveEnemyGroup(config, group, floor)
 }

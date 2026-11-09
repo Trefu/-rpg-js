@@ -1,35 +1,61 @@
 import { MountainEnemy, type MountainRole } from '../enemies/MountainEnemy'
-import { mob, roster } from './encounters'
+import { mob } from './encounters'
 import type { Encounter, IExpeditionConfig } from './types'
+import type { EnemyGroupId } from '../enemies/groups'
 
 const foe = (role: MountainRole, level: number) => () => new MountainEnemy(role, level)
-const encounter = (id: string, ...members: [MountainRole, number, number?][]): Encounter => ({
-  id, mobs: members.map(([role, level, count]) => mob(foe(role, level), count ?? 1))
+const encounter = (id: string, group: EnemyGroupId, ...members: [MountainRole, number, number?][]): Encounter & { group: EnemyGroupId } => ({
+  id, group, mobs: members.map(([role, level, count]) => mob(foe(role, level), count ?? 1))
 })
 
 const encounters = {
-  'trail-scouts': encounter('trail-scouts', ['scout', 1, 2]),
-  'light-patrol': encounter('light-patrol', ['bomber', 2], ['archer', 2], ['guardian', 2], ['warlock', 1]),
-  'kobold-workers': encounter('kobold-workers', ['koboldMiner', 2], ['koboldTrapper', 2], ['bear', 2], ['koboldWarlock', 1]),
-  'bone-patrol': encounter('bone-patrol', ['skeleton', 2], ['skeletonArcher', 2], ['deathKnight', 1], ['warlock', 1]),
-  'orc-outriders': encounter('orc-outriders', ['orc', 2], ['orcArcher', 2], ['guardian', 2], ['shaman', 1]),
-  'wolf-pack': encounter('wolf-pack', ['wolf', 3, 2], ['guardian', 3], ['shaman', 2]),
-  'shaman-patrol': encounter('shaman-patrol', ['orc', 3], ['bomber', 3], ['elemental', 2], ['shaman', 2]),
-  'bone-legion': encounter('bone-legion', ['skeleton', 3], ['skeletonArcher', 3], ['deathKnight', 3], ['skeletonKing', 2]),
-  'kobold-mine': encounter('kobold-mine', ['koboldMiner', 3], ['koboldTrapper', 3], ['elemental', 2], ['koboldWarlock', 2]),
-  'bear-den': encounter('bear-den', ['wolf', 3], ['bomber', 2], ['bear', 3], ['warlock', 2]),
-  'pass-captain': encounter('pass-captain', ['captain', 4], ['scout', 3], ['archer', 3], ['guardian', 3], ['shaman', 3]),
-  'stone-watch': encounter('stone-watch', ['elemental', 4], ['koboldMiner', 3], ['koboldWarlock', 3], ['koboldTrapper', 3]),
-  'orc-king-guard': encounter('orc-king-guard', ['orcKing', 3], ['orc', 4], ['orcArcher', 3], ['deathKnight', 3]),
-  'frozen-crypt': encounter('frozen-crypt', ['skeletonKing', 3], ['deathKnight', 4], ['skeletonArcher', 4], ['skeleton', 4]),
-  'demolition-crew': encounter('demolition-crew', ['bomber', 4, 2], ['elemental', 4], ['warlock', 3]),
-  'high-pack': encounter('high-pack', ['wolf', 4, 2], ['guardian', 4], ['shaman', 3], ['archer', 4]),
-  'summit-guard': encounter('summit-guard', ['elemental', 5], ['orcKing', 4], ['orcArcher', 4], ['koboldTrapper', 4]),
-  'summit-dragon': encounter('summit-dragon', ['dragon', 5], ['guardian', 5], ['shaman', 4], ['archer', 4]),
-  'bandit-ambush-3': encounter('bandit-ambush-3', ['scout', 2, 2], ['archer', 2], ['guardian', 2], ['shaman', 2]),
-  'stone-guardians-2': encounter('stone-guardians-2', ['guardian', 3, 2], ['shaman', 2], ['archer', 2]),
-  'goblin-cousins': encounter('goblin-cousins', ['scout', 2, 2], ['guardian', 2], ['shaman', 1]),
-  'bandits-debt': encounter('bandits-debt', ['scout', 2], ['archer', 2], ['guardian', 2], ['shaman', 2])
+  'trail-scouts': encounter('trail-scouts', 'goblins', ['scout', 1, 2]),
+  'light-patrol': encounter('light-patrol', 'goblins', ['bomber', 2], ['archer', 2], ['goblinGuard', 2], ['warlock', 1]),
+  'goblin-skirmish': encounter('goblin-skirmish', 'goblins', ['scout', 2, 2], ['goblinGuard', 2], ['warlock', 1]),
+  'goblin-cousins': encounter('goblin-cousins', 'goblins', ['scout', 3, 2], ['goblinGuard', 3], ['warlock', 2]),
+  'goblin-bombs': encounter('goblin-bombs', 'goblins', ['bomber', 3, 2], ['goblinGuard', 3], ['warlock', 2]),
+  'demolition-crew': encounter('demolition-crew', 'goblins', ['bomber', 4, 2], ['goblinGuard', 4], ['warlock', 3]),
+  'goblin-warband': encounter('goblin-warband', 'goblins', ['archer', 4, 2], ['scout', 4], ['goblinGuard', 4], ['warlock', 3]),
+  'bandit-ambush-3': encounter('bandit-ambush-3', 'bandits', ['banditRaider', 2, 2], ['banditGuard', 2], ['banditMedic', 1]),
+  'bandits-debt': encounter('bandits-debt', 'bandits', ['banditArcher', 2], ['banditRaider', 2], ['banditGuard', 2], ['banditMedic', 1]),
+  'bandit-patrol': encounter('bandit-patrol', 'bandits', ['banditRaider', 3, 2], ['banditGuard', 3], ['banditMedic', 2]),
+  'bandit-firing-line': encounter('bandit-firing-line', 'bandits', ['banditArcher', 3, 2], ['banditGuard', 3], ['banditMedic', 2]),
+  'bandit-veterans': encounter('bandit-veterans', 'bandits', ['banditRaider', 4], ['banditArcher', 4], ['banditGuard', 4], ['banditMedic', 3]),
+  'bandit-vanguard': encounter('bandit-vanguard', 'bandits', ['banditRaider', 4], ['banditGuard', 4, 2], ['banditMedic', 3]),
+  'pass-captain': encounter('pass-captain', 'bandits', ['captain', 4], ['banditRaider', 3], ['banditArcher', 3], ['banditGuard', 3], ['banditMedic', 3]),
+  'orc-outriders': encounter('orc-outriders', 'orcs', ['orc', 2], ['orcArcher', 2], ['orcGuard', 2], ['shaman', 1]),
+  'orc-spears': encounter('orc-spears', 'orcs', ['orcArcher', 2, 2], ['orcGuard', 2], ['shaman', 1]),
+  'shaman-patrol': encounter('shaman-patrol', 'orcs', ['orc', 3], ['orcArcher', 3], ['orcGuard', 2], ['shaman', 2]),
+  'orc-raiders': encounter('orc-raiders', 'orcs', ['orc', 3, 2], ['orcGuard', 3], ['shaman', 2]),
+  'orc-king-guard': encounter('orc-king-guard', 'orcs', ['orcKing', 3], ['orc', 4], ['orcArcher', 3], ['orcGuard', 3]),
+  'orc-assault': encounter('orc-assault', 'orcs', ['orc', 4, 2], ['orcGuard', 4], ['shaman', 3]),
+  'summit-guard': encounter('summit-guard', 'orcs', ['orcGuard', 5], ['orcKing', 4], ['orcArcher', 4], ['orc', 4]),
+  'bone-patrol': encounter('bone-patrol', 'skeletons', ['skeleton', 2], ['skeletonArcher', 2], ['deathKnight', 1], ['skeletonKing', 1]),
+  'bone-line': encounter('bone-line', 'skeletons', ['skeleton', 2, 2], ['deathKnight', 1], ['skeletonKing', 1]),
+  'bone-legion': encounter('bone-legion', 'skeletons', ['skeleton', 3], ['skeletonArcher', 3], ['deathKnight', 3], ['skeletonKing', 2]),
+  'bone-bows': encounter('bone-bows', 'skeletons', ['skeletonArcher', 3, 2], ['deathKnight', 3], ['skeletonKing', 2]),
+  'frozen-crypt': encounter('frozen-crypt', 'skeletons', ['skeletonKing', 3], ['deathKnight', 4], ['skeletonArcher', 4], ['skeleton', 4]),
+  'bone-knights': encounter('bone-knights', 'skeletons', ['skeleton', 4], ['deathKnight', 4, 2], ['skeletonKing', 3]),
+  'kobold-workers': encounter('kobold-workers', 'kobolds', ['koboldMiner', 2], ['koboldTrapper', 2], ['koboldGuard', 2], ['koboldWarlock', 1]),
+  'kobold-traps': encounter('kobold-traps', 'kobolds', ['koboldTrapper', 2, 2], ['koboldGuard', 2], ['koboldWarlock', 1]),
+  'kobold-mine': encounter('kobold-mine', 'kobolds', ['koboldMiner', 3], ['koboldTrapper', 3], ['koboldGuard', 2], ['koboldWarlock', 2]),
+  'kobold-excavation': encounter('kobold-excavation', 'kobolds', ['koboldMiner', 3, 2], ['koboldGuard', 3], ['koboldWarlock', 2]),
+  'stone-watch': encounter('stone-watch', 'kobolds', ['koboldGuard', 4], ['koboldMiner', 3], ['koboldWarlock', 3], ['koboldTrapper', 3]),
+  'kobold-sappers': encounter('kobold-sappers', 'kobolds', ['koboldTrapper', 4, 2], ['koboldGuard', 4], ['koboldWarlock', 3]),
+  'hill-pack': encounter('hill-pack', 'beasts', ['wolf', 2, 2], ['bear', 2], ['packLeader', 1]),
+  'valley-hunt': encounter('valley-hunt', 'beasts', ['wolf', 2], ['bear', 2, 2], ['packLeader', 1]),
+  'wolf-pack': encounter('wolf-pack', 'beasts', ['wolf', 3, 2], ['bear', 3], ['packLeader', 2]),
+  'bear-den': encounter('bear-den', 'beasts', ['wolf', 3], ['bear', 3, 2], ['packLeader', 2]),
+  'high-pack': encounter('high-pack', 'beasts', ['wolf', 4, 3], ['bear', 4], ['packLeader', 3]),
+  'bear-hunters': encounter('bear-hunters', 'beasts', ['wolf', 4], ['bear', 4, 2], ['packLeader', 3]),
+  'stone-guardians-2': encounter('stone-guardians-2', 'stone', ['guardian', 2], ['stoneShard', 2], ['stoneCaller', 1]),
+  'stone-circle': encounter('stone-circle', 'stone', ['elemental', 2], ['stoneShard', 2, 2], ['stoneCaller', 1]),
+  'stone-patrol': encounter('stone-patrol', 'stone', ['guardian', 3], ['stoneShard', 3, 2], ['stoneCaller', 2]),
+  'stone-rubble': encounter('stone-rubble', 'stone', ['elemental', 3], ['stoneShard', 3], ['stoneCaller', 2]),
+  'stone-choir': encounter('stone-choir', 'stone', ['guardian', 4], ['stoneShard', 4, 2], ['stoneCaller', 3]),
+  'stone-siege': encounter('stone-siege', 'stone', ['elemental', 4, 2], ['stoneShard', 4], ['stoneCaller', 3]),
+  'summit-dragon': encounter('summit-dragon', 'dragons', ['dragon', 5]),
+  'dragon-mother-arrives': encounter('dragon-mother-arrives', 'dragons', ['dragon', 5])
 }
 
 export const MOUNTAIN_PEAK: IExpeditionConfig = {
@@ -37,16 +63,21 @@ export const MOUNTAIN_PEAK: IExpeditionConfig = {
   description: 'El paso está defendido por patrullas coordinadas. Reúne experiencia, equipo y aliados antes de desafiar al capitán; la compañía conserva su progreso al caer.',
   totalFloors: 10, unlockCriteria: { kind: 'always' },
   presentation: { difficulty: 'medium', background: '', rewards: { experience: 172, gold: 100 } },
-  enemyPools: roster({
-    intro: [mob(foe('scout', 1))], early: [mob(foe('scout', 2))],
-    mid: [mob(foe('wolf', 3))], late: [mob(foe('guardian', 4))], boss: [mob(foe('dragon', 5))]
-  }),
-  encounterPools: {
-    intro: ['trail-scouts'], early: ['light-patrol', 'kobold-workers', 'bone-patrol', 'orc-outriders'],
-    mid: ['wolf-pack', 'shaman-patrol', 'bone-legion', 'kobold-mine', 'bear-den'],
-    late: ['stone-watch', 'high-pack', 'orc-king-guard', 'frozen-crypt', 'demolition-crew'], boss: ['summit-dragon']
+  groupPools: {
+    intro: ['goblins'], early: ['goblins', 'bandits', 'orcs', 'skeletons', 'kobolds', 'beasts', 'stone'],
+    mid: ['goblins', 'bandits', 'orcs', 'skeletons', 'kobolds', 'beasts', 'stone'],
+    late: ['goblins', 'bandits', 'orcs', 'skeletons', 'kobolds', 'beasts', 'stone'], boss: ['dragons']
   },
-  enemyCountPerTier: { intro: [2, 2], early: [2, 2], mid: [2, 2], late: [2, 3], boss: [1, 1] },
+  enemyGroups: {
+    goblins: { intro: ['trail-scouts'], early: ['light-patrol', 'goblin-skirmish'], mid: ['goblin-cousins', 'goblin-bombs'], late: ['demolition-crew', 'goblin-warband'] },
+    bandits: { early: ['bandit-ambush-3', 'bandits-debt'], mid: ['bandit-patrol', 'bandit-firing-line'], late: ['bandit-veterans', 'bandit-vanguard'] },
+    orcs: { early: ['orc-outriders', 'orc-spears'], mid: ['shaman-patrol', 'orc-raiders'], late: ['orc-king-guard', 'orc-assault'] },
+    skeletons: { early: ['bone-patrol', 'bone-line'], mid: ['bone-legion', 'bone-bows'], late: ['frozen-crypt', 'bone-knights'] },
+    kobolds: { early: ['kobold-workers', 'kobold-traps'], mid: ['kobold-mine', 'kobold-excavation'], late: ['stone-watch', 'kobold-sappers'] },
+    beasts: { early: ['hill-pack', 'valley-hunt'], mid: ['wolf-pack', 'bear-den'], late: ['high-pack', 'bear-hunters'] },
+    stone: { early: ['stone-guardians-2', 'stone-circle'], mid: ['stone-patrol', 'stone-rubble'], late: ['stone-choir', 'stone-siege'] },
+    dragons: { boss: ['summit-dragon'] }
+  },
   encounters,
   recruitableHeroIds: ['warrior', 'cleric', 'rogue'],
   curiosityEvents: [
@@ -59,8 +90,32 @@ export const MOUNTAIN_PEAK: IExpeditionConfig = {
       { id: 'learn', label: 'Estudiar las runas: ganar 25 XP por héroe', outcome: { kind: 'reward', effects: [{ kind: 'xp', amount: 25 }], flavor: 'Las marcas enseñan cómo combatir a los guardianes.' } }
     ] },
     { id: 'patrol-bounty', title: 'Recompensa por la patrulla', flavor: 'Un viajero os ofrece un encargo peligroso.', choices: [
-      { id: 'fight', label: 'Arriesgarse: combatir una patrulla con tanque y chamán', outcome: { kind: 'ambush', encounter: 'bandit-ambush-3', flavor: 'La patrulla os encuentra. Ganad para cobrar su botín.' } },
+      { id: 'fight', label: 'Arriesgarse: combatir una patrulla de bandidos', outcome: { kind: 'ambush', group: 'bandits', flavor: 'Los bandidos os cortan el paso. Ganad para cobrar su botín.' } },
       { id: 'leave', label: 'Continuar sin combatir', outcome: { kind: 'noop', flavor: 'Elegís guardar fuerzas para la cima.' } }
+    ] },
+    { id: 'occupied-mine', title: 'La mina ocupada', flavor: 'Unos kobolds vigilan la entrada de una mina. Dentro resuenan picos y órdenes de un capataz.', choices: [
+      { id: 'fight', label: 'Desalojar a los kobolds', outcome: { kind: 'ambush', group: 'kobolds', flavor: 'La cuadrilla abandona las herramientas y defiende su mina.' } },
+      { id: 'leave', label: 'Rodear la mina', outcome: { kind: 'noop', flavor: 'Dejáis atrás el ruido de los picos.' } }
+    ] },
+    { id: 'restless-crypt', title: 'La cripta abierta', flavor: 'Tras una losa rota veis huesos armados. Una corona se mueve entre las sombras.', choices: [
+      { id: 'fight', label: 'Entrar en la cripta', outcome: { kind: 'ambush', group: 'skeletons', flavor: 'Los esqueletos se forman ante su rey.' } },
+      { id: 'leave', label: 'No despertar a los muertos', outcome: { kind: 'noop', flavor: 'La losa vuelve a cerrar el paso.' } }
+    ] },
+    { id: 'orc-checkpoint', title: 'El puesto orco', flavor: 'Un estandarte orco bloquea el sendero. Sus arqueros apuntan desde las rocas.', choices: [
+      { id: 'fight', label: 'Romper el bloqueo orco', outcome: { kind: 'ambush', group: 'orcs', flavor: 'El chamán ordena a los orcos defender el puesto.' } },
+      { id: 'leave', label: 'Buscar otro sendero', outcome: { kind: 'noop', flavor: 'La patrulla os pierde de vista entre los riscos.' } }
+    ] },
+    { id: 'stone-sanctuary', title: 'El santuario pétreo', flavor: 'Las estatuas se inclinan hacia un núcleo de roca que late bajo el altar.', choices: [
+      { id: 'fight', label: 'Acercarse al núcleo', outcome: { kind: 'ambush', group: 'stone', flavor: 'Los guardianes de piedra despiertan alrededor del altar.' } },
+      { id: 'leave', label: 'Dejar intacto el santuario', outcome: { kind: 'noop', flavor: 'Os alejáis antes de despertar a las estatuas.' } }
+    ] },
+    { id: 'mountain-den', title: 'Huellas en la nieve', flavor: 'Un lobo alfa vigila una hondonada. Cerca hay huellas de oso y restos de una presa.', choices: [
+      { id: 'fight', label: 'Atravesar el territorio de las bestias', outcome: { kind: 'ambush', group: 'beasts', flavor: 'Los animales defienden su territorio al oír el aullido del alfa.' } },
+      { id: 'leave', label: 'Alejarse de las huellas', outcome: { kind: 'noop', flavor: 'La manada se queda junto a su presa.' } }
+    ] },
+    { id: 'goblin-camp', title: 'Mechas junto al fuego', flavor: 'Unos goblins preparan bombas alrededor de una hoguera. Su guardia vigila un montón de sacos.', choices: [
+      { id: 'fight', label: 'Asaltar el campamento goblin', outcome: { kind: 'ambush', group: 'goblins', flavor: 'La guardia y los bombarderos acuden al grito del hechicero.' } },
+      { id: 'leave', label: 'Pasar sin ser vistos', outcome: { kind: 'noop', flavor: 'Dejáis la hoguera atrás.' } }
     ] }
   ],
   generator: {

@@ -10,8 +10,8 @@ import {
 } from './encounters'
 import type { Encounter, EnemyFactory, IExpeditionConfig } from './types'
 
-function fakeEnemyFactory(name: string): EnemyFactory {
-  const f = (() => ({ name })) as EnemyFactory
+function fakeEnemyFactory(name: string, enemyGroup?: 'bandits'): EnemyFactory {
+  const f = (() => enemyGroup ? ({ name, enemyGroup }) : ({ name })) as EnemyFactory
   return f
 }
 
@@ -178,11 +178,11 @@ describe('resolveEncounterById()', () => {
     totalFloors: 5,
     unlockCriteria: { kind: 'always' },
     presentation: { difficulty: 'easy', background: '', rewards: { experience: 0, gold: 0 } },
-    enemyPools: { intro: [], early: [], mid: [], late: [], boss: [] },
-    enemyCountPerTier: { intro: [0, 0], early: [0, 0], mid: [0, 0], late: [0, 0], boss: [0, 0] },
+    groupPools: { intro: ['bandits'], early: ['bandits'], mid: ['bandits'], late: ['bandits'], boss: ['bandits'] },
+    enemyGroups: { bandits: { intro: ['a', 'b'] } },
     encounters: {
-      a: { id: 'a', mobs: [mob(fakeEnemyFactory('alpha'))] },
-      b: { id: 'b', mobs: [mob(fakeEnemyFactory('beta'), 2)] }
+      a: { id: 'a', group: 'bandits', mobs: [mob(fakeEnemyFactory('alpha', 'bandits'))] },
+      b: { id: 'b', group: 'bandits', mobs: [mob(fakeEnemyFactory('beta', 'bandits'), 2)] }
     },
     generator: {
       minNodesBeforeBoss: 3,
@@ -204,8 +204,8 @@ describe('resolveEncounterById()', () => {
   }
 
   it('resuelve por id dentro de la config', () => {
-    expect(resolveEncounterById(config, 'a')).toEqual([{ name: 'alpha' }])
-    expect(resolveEncounterById(config, 'b')).toEqual([{ name: 'beta' }, { name: 'beta' }])
+    expect(resolveEncounterById(config, 'a')).toEqual([{ name: 'alpha', enemyGroup: 'bandits' }])
+    expect(resolveEncounterById(config, 'b')).toEqual([{ name: 'beta', enemyGroup: 'bandits' }, { name: 'beta', enemyGroup: 'bandits' }])
   })
 
   it('lanza si el id no existe', () => {

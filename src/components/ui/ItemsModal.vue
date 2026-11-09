@@ -106,6 +106,7 @@ function handleModalOverlayClick(e: MouseEvent) {
 </template>
 
 <style scoped>
+@layer menu-legacy {
 .items-fade-enter-active,
 .items-fade-leave-active {
   transition: opacity 0.25s;
@@ -338,5 +339,6 @@ function handleModalOverlayClick(e: MouseEvent) {
     width: 44px;
     height: 44px;
   }
+}
 }
 </style>

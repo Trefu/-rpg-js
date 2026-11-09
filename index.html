@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#1a1a1a" />
+    <meta name="theme-color" content="#160e0b" />
     <meta name="description" content="RPG JS: tactical turn-based combat expeditions." />
 
     <link rel="preload" as="audio" type="audio/mpeg" crossorigin="anonymous" href="/assets/music/menu_ost.mp3" />
@@ -18,15 +18,15 @@
       #splash {
         position: fixed; inset: 0; display: flex; flex-direction: column;
         align-items: center; justify-content: center; gap: 1.25rem;
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        background: #160e0b; color: #fff1d5; font-family: 'Courier New', monospace;
         z-index: 9999; padding: 1.5rem; box-sizing: border-box;
       }
       #splash.is-hidden { display: none; }
-      .splash__title { font-size: clamp(1.75rem, 5vw, 2.5rem); font-weight: 800; letter-spacing: 0.04em; margin: 0; text-align: center; }
+      .splash__title { font-size: clamp(1.75rem, 5vw, 2.5rem); font-weight: 800; letter-spacing: 0; margin: 0; text-align: center; }
       .splash__subtitle { margin: 0; color: rgba(255,255,255,0.65); font-size: 0.95rem; text-align: center; max-width: 32ch; }
       .splash__progress-wrap { width: min(420px, 90vw); display: flex; flex-direction: column; gap: 0.5rem; }
-      .splash__progress { width: 100%; height: 8px; background: rgba(255,255,255,0.08); border-radius: 999px; overflow: hidden; }
-      .splash__bar { height: 100%; width: 0%; background: linear-gradient(90deg, #4CAF50, #66bb6a); transition: width 0.25s ease; }
+      .splash__progress { width: 100%; height: 8px; background: #302018; border: 1px solid #bd8751; overflow: hidden; }
+      .splash__bar { height: 100%; width: 0%; background: #ed943f; transition: width 0.25s ease; }
       .splash__status { font-size: 0.85rem; color: rgba(255,255,255,0.6); min-height: 1.2em; text-align: center; font-variant-numeric: tabular-nums; }
       .splash__btn {
         margin-top: 0.5rem; padding: 0.85rem 2rem; border: none; border-radius: 6px;

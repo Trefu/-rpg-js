@@ -46,7 +46,6 @@ function potionLabel(id: string, price: number) {
         <section class="merchant-card campaign-panel">
           <div class="merchant-scene">
             <span class="merchant-sign">ABIERTO</span>
-            <div class="merchant-aura" aria-hidden="true"></div>
             <NpcPortrait npc-id="forest-merchant" />
             <span class="merchant-ground" aria-hidden="true"></span>
           </div>
@@ -54,7 +53,6 @@ function potionLabel(id: string, price: number) {
             <span class="merchant-role">{{ merchant.title }}</span>
             <h2>{{ merchant.name }}</h2>
             <blockquote>«No puedo caminar por vosotros, pero sí asegurarme de que llevéis algo más que buenas intenciones.»</blockquote>
-            <div class="merchant-facts"><span>Reliquias para la compañía</span><span>Consumibles del camino</span></div>
           </div>
         </section>
         <section class="shop-bag campaign-panel">
@@ -107,6 +105,7 @@ function potionLabel(id: string, price: number) {
 </template>
 
 <style scoped>
+@layer menu-legacy {
 .shop-heading { margin-bottom: 32px; position: relative; padding-right: 190px; }
 .shop-back { position: absolute; right: 0; bottom: 0; }
 .shop-heading > p { margin: 0; }
@@ -212,4 +211,5 @@ function potionLabel(id: string, price: number) {
 .acquired { border-color:#82b9dd; background:#2d4562; }
 .acquired .product-kind { color:#bde8ff; }
 .shop-footer { border-top-color:#6e87a6; }
+}
 </style>

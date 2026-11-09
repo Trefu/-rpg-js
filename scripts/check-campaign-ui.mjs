@@ -171,6 +171,7 @@ try {
   await page.getByRole('button', { name: 'Enfrentar el combate' }).click()
   await page.getByRole('dialog').waitFor({ state: 'hidden' })
   await page.locator('.enemy-card').first().waitFor()
+  assert.equal(await page.evaluate(() => window.__expeditionStore.selectedNode.enemies.every(enemy => enemy.enemyGroup === 'bandits')), true)
   assert.deepEqual(errors, [])
   console.log('OK: campaña y tienda adaptables, compras y filtros, NPC animado y movimiento reducido, eventos con consecuencias, teclado y emboscadas.')
 } finally {

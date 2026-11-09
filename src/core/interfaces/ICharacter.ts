@@ -77,6 +77,7 @@ export interface IInventory {
 }
 
 export interface IEnemy extends ICombatant {
+  readonly enemyGroup?: import('../enemies/groups').EnemyGroupId
   getRewards: () => { experience: number; gold: number }
   experienceReward: number
   goldReward: { min: number; max: number }

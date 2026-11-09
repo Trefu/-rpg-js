@@ -7,6 +7,7 @@ import GameUI from './components/ui/GameUI.vue'
 import CampView from './components/expedition/CampView.vue'
 import ShopView from './components/expedition/ShopView.vue'
 import '@/styles/campaign.css'
+import '@/styles/menus.css'
 import { useGameStore } from './stores/game'
 import { useExpeditionStore } from './stores/expedition'
 import { AudioManager } from './core/AudioManager'
@@ -319,8 +320,8 @@ body,
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  background-color: #101a2b;
-  color: white;
+  background-color: var(--jrpg-void);
+  color: var(--jrpg-text);
 }
 
 .app {

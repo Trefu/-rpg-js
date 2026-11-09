@@ -70,6 +70,8 @@ try {
       targetType: 'enemies-only', execute: async () => {
         for (const hero of window.__gameStore.activeHeroes) hero.takeDamage(99999)
       } }]
+    // Replacing the roster must not retain MountainEnemy's random opening index.
+    enemy.selectAttackPattern = () => enemy.attackPatterns[0]
     node.enemies = [enemy]
   })
   await page.locator('.map-node.available').first().click()
