@@ -15,6 +15,14 @@
   --jrpg-danger: #ef9681;
   --jrpg-hp: #8eb875;
   --jrpg-energy: #8ebacf;
+  --jrpg-stat-body: #ff8a3a;
+  --jrpg-stat-mind: #82b1ff;
+  --jrpg-stat-agility: #ffe066;
+  --jrpg-stat-vitality: #5cff8a;
+  --jrpg-stat-base: #b0bec5;
+  --jrpg-stat-level: #ffd54f;
+  --jrpg-stat-defense: #81c784;
+  --jrpg-stat-magic-defense: #4dd0e1;
   --jrpg-shadow: #0d0806;
   --jrpg-font: 'Courier New', Courier, monospace;
   --jrpg-frame-shadow: inset 0 0 0 1px var(--jrpg-highlight), inset 0 0 0 3px var(--jrpg-inset), 3px 3px 0 var(--jrpg-shadow);

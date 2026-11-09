@@ -1,141 +1,25 @@
-/*
- * Coloreo de los números en los tooltips de stats.
- *
- * Importante: estos estilos son GLOBALES (no scoped) porque el contenido
- * se inyecta con v-html y/o vive dentro de <Teleport to="body"> y los
- * spans resultantes NO reciben el atributo data-v del scope de Vue.
- *
- * Familias de color por mecánica (coherente con los badges):
- *   - Cuerpo (orange)   → hint-atk, hint-cue, hint-phys
- *   - Mente  (azul)     → hint-mag, hint-mind
- *   - Agi    (amarillo) → hint-agi (CRIT también lo usa indirectamente)
- *   - Verde (vida)      → hint-con
- *   - Otros             → hint-base (gris), hint-lvl (gold), hint-def/hint-mdef (verdes distintos)
- */
+/* Global semantic colors: v-html formulas and teleported hints have no Vue scope.
+ * Chips and formula terms use the same tokens, defined in campaign.css. */
+.hint-base { color: var(--jrpg-stat-base); }
+.hint-lvl { color: var(--jrpg-stat-level); }
+.hint-atk, .hint-cue, .hint-phys,
+.hero-stat-chips .stat-chip.stat-chip-atk, .hero-stat-chips .stat-chip.stat-chip-body, .hero-stat-chips .stat-chip.stat-chip-phys { color: var(--jrpg-stat-body); }
+.hint-mag, .hint-mind,
+.hero-stat-chips .stat-chip.stat-chip-mag, .hero-stat-chips .stat-chip.stat-chip-mind, .hero-stat-chips .stat-chip.stat-chip-atk-mag { color: var(--jrpg-stat-mind); }
+.hint-agi, .hero-stat-chips .stat-chip.stat-chip-agi, .hero-stat-chips .stat-chip.stat-chip-crit { color: var(--jrpg-stat-agility); }
+.hint-con, .hint-heal, .hero-stat-chips .stat-chip.stat-chip-con { color: var(--jrpg-stat-vitality); }
+.hint-def, .hero-stat-chips .stat-chip.stat-chip-def { color: var(--jrpg-stat-defense); }
+.hint-mdef { color: var(--jrpg-stat-magic-defense); }
+.hint-hp, .hero-stat-chips .stat-chip.stat-chip-hp { color: var(--jrpg-hp); }
+.hint-energy, .hero-stat-chips .stat-chip.stat-chip-energy { color: var(--jrpg-energy); }
+.hint-hp, .hint-energy { font-weight: 700; }
+:is(.hint-base, .hint-lvl, .hint-atk, .hint-cue, .hint-phys, .hint-mag, .hint-mind, .hint-agi, .hint-con, .hint-heal, .hint-def, .hint-mdef) { font-weight: 700; }
 
-/* Tooltip de HeroStatChips (desktop) — v-html dentro de <Teleport> */
-.stat-chip-tooltip .hint-base { color: #b0bec5; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.stat-chip-tooltip .hint-lvl  { color: #ffd54f; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.stat-chip-tooltip .hint-atk  { color: #ff8a3a; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.stat-chip-tooltip .hint-def  { color: #81c784; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.stat-chip-tooltip .hint-mdef { color: #4dd0e1; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.stat-chip-tooltip .hint-phys { color: #ff8a3a; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.stat-chip-tooltip .hint-mag  { color: #82b1ff; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.stat-chip-tooltip .hint-cue  { color: #ff8a3a; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.stat-chip-tooltip .hint-con { color: #5cff8a; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.stat-chip-tooltip .hint-heal { color: #5cff8a; font-weight: 800; text-shadow: 0 1px 2px #000; }
-.stat-chip-tooltip .hint-mind { color: #82b1ff; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.stat-chip-tooltip .hint-agi  { color: #ffe066; font-weight: 700; text-shadow: 0 1px 2px #000; }
-
-/* Tooltip de MobileHeroStats — v-html dentro de <Teleport> */
-.mobile-hero-stats-tooltip .hint-base { color: #b0bec5; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.mobile-hero-stats-tooltip .hint-lvl  { color: #ffd54f; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.mobile-hero-stats-tooltip .hint-atk  { color: #ff8a3a; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.mobile-hero-stats-tooltip .hint-def  { color: #81c784; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.mobile-hero-stats-tooltip .hint-mdef { color: #4dd0e1; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.mobile-hero-stats-tooltip .hint-phys { color: #ff8a3a; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.mobile-hero-stats-tooltip .hint-mag  { color: #82b1ff; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.mobile-hero-stats-tooltip .hint-cue  { color: #ff8a3a; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.mobile-hero-stats-tooltip .hint-con { color: #5cff8a; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.mobile-hero-stats-tooltip .hint-heal { color: #5cff8a; font-weight: 800; text-shadow: 0 1px 2px #000; }
-.mobile-hero-stats-tooltip .hint-mind { color: #82b1ff; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.mobile-hero-stats-tooltip .hint-agi  { color: #ffe066; font-weight: 700; text-shadow: 0 1px 2px #000; }
-
-/* Modal PlayerStatsPanel — v-html dentro del modal (no teleport, pero igual
-   tree-shakeado porque Vue no rastrea el contenido v-html). */
-.stat-hint .hint-base { color: #b0bec5; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.stat-hint .hint-lvl  { color: #ffd54f; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.stat-hint .hint-atk  { color: #ff8a3a; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.stat-hint .hint-def  { color: #81c784; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.stat-hint .hint-mdef { color: #4dd0e1; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.stat-hint .hint-cue  { color: #ff8a3a; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.stat-hint .hint-con { color: #5cff8a; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.stat-hint .hint-heal { color: #5cff8a; font-weight: 800; text-shadow: 0 1px 2px #000; }
-.stat-hint .hint-mind { color: #82b1ff; font-weight: 700; text-shadow: 0 1px 2px #000; }
-
-/* AbilitiesModal — `formula-line` dentro de `.ability-formula-popover`
-   (modal normal, no teleport). Misma paleta que los chips para que el
-   ojo identifique al instante qué número viene de qué stat. */
-.ability-formula-popover .hint-base { color: #b0bec5; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.ability-formula-popover .hint-lvl  { color: #ffd54f; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.ability-formula-popover .hint-cue  { color: #ff8a3a; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.ability-formula-popover .hint-mind { color: #82b1ff; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.ability-formula-popover .hint-agi  { color: #ffe066; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.ability-formula-popover .hint-con  { color: #5cff8a; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.ability-formula-popover .hint-atk  { color: #ff8a3a; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.ability-formula-popover .hint-mag  { color: #82b1ff; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.ability-formula-popover .hint-heal { color: #5cff8a; font-weight: 800; text-shadow: 0 1px 2px #000; }
-
-/* AbilitiesActionBar — `aab-info-formula-line` dentro de `.aab-info-formula`.
-   Popup flotante de la action bar (mismo contenido que el modal). Misma
-   paleta que `.ability-formula-popover` para que el coloreo sea coherente
-   al cruzar vistas. Antes estos spans se renderizaban en blanco porque no
-   existian reglas CSS — los estilos eran globales (no scoped) porque el
-   contenido va por v-html. */
-.aab-info-formula .hint-base { color: #b0bec5; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.aab-info-formula .hint-lvl  { color: #ffd54f; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.aab-info-formula .hint-cue  { color: #ff8a3a; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.aab-info-formula .hint-mind { color: #82b1ff; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.aab-info-formula .hint-agi  { color: #ffe066; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.aab-info-formula .hint-con  { color: #5cff8a; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.aab-info-formula .hint-atk  { color: #ff8a3a; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.aab-info-formula .hint-mag  { color: #82b1ff; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.aab-info-formula .hint-heal { color: #5cff8a; font-weight: 800; text-shadow: 0 1px 2px #000; }
-
-/* MobileActionBar — `mab-info-formula-line` dentro de `.mab-info-formula`.
-   Misma paleta que el modal desktop. */
-.mab-info-formula .hint-base { color: #b0bec5; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.mab-info-formula .hint-lvl  { color: #ffd54f; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.mab-info-formula .hint-cue  { color: #ff8a3a; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.mab-info-formula .hint-mind { color: #82b1ff; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.mab-info-formula .hint-agi  { color: #ffe066; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.mab-info-formula .hint-con  { color: #5cff8a; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.mab-info-formula .hint-atk  { color: #ff8a3a; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.mab-info-formula .hint-mag  { color: #82b1ff; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.mab-info-formula .hint-heal { color: #5cff8a; font-weight: 800; text-shadow: 0 1px 2px #000; }
-
-/* PreGameView — formula inline en el detalle del heroe. Misma paleta
-   que el modal de habilidades para que sea coherente al cruzar vistas. */
-.pregame-ability-formula .hint-base { color: #b0bec5; font-weight: 700; }
-.pregame-ability-formula .hint-lvl  { color: #ffd54f; font-weight: 700; }
-.pregame-ability-formula .hint-cue  { color: #ff8a3a; font-weight: 700; }
-.pregame-ability-formula .hint-mind { color: #82b1ff; font-weight: 700; }
-.pregame-ability-formula .hint-agi  { color: #ffe066; font-weight: 700; }
-.pregame-ability-formula .hint-con  { color: #5cff8a; font-weight: 700; }
-.pregame-ability-formula .hint-atk  { color: #ff8a3a; font-weight: 700; }
-.pregame-ability-formula .hint-mag  { color: #82b1ff; font-weight: 700; }
-.pregame-ability-formula .hint-heal { color: #5cff8a; font-weight: 800; }
-
-/* ============================================================
-   Damage-type colors — usados por v-html en formulas de abilities
-   (`.ability-formula-popover`, `.mab-info-formula`,
-   `.pregame-ability-formula`) y por el sufijo `→ <Tipo>` que
-   centraliza `F.dmgType()` en `Abilities.ts`.
-
-   Paleta sincronizada con `DAMAGE_TYPES` en
-   `core/combat/damageTypes.ts`. Si añades un tipo nuevo, añade su
-   entrada aqui para mantener una sola fuente de verdad visual.
-   ============================================================ */
-.ability-formula-popover .dmg-physical { color: #d7ccc8; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.ability-formula-popover .dmg-fire    { color: #ff8a3a; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.ability-formula-popover .dmg-holy    { color: #ffe066; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.ability-formula-popover .dmg-poison  { color: #9ccc65; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.ability-formula-popover .dmg-arcane  { color: #b388ff; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.ability-formula-popover .dmg-electric{ color: #ffeb3b; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.ability-formula-popover .dmg-water   { color: #64b5f6; font-weight: 700; text-shadow: 0 1px 2px #000; }
-
-.mab-info-formula .dmg-physical { color: #d7ccc8; font-weight: 700; }
-.mab-info-formula .dmg-fire    { color: #ff8a3a; font-weight: 700; }
-.mab-info-formula .dmg-holy    { color: #ffe066; font-weight: 700; }
-.mab-info-formula .dmg-poison  { color: #9ccc65; font-weight: 700; }
-.mab-info-formula .dmg-arcane  { color: #b388ff; font-weight: 700; }
-.mab-info-formula .dmg-electric{ color: #ffeb3b; font-weight: 700; }
-.mab-info-formula .dmg-water   { color: #64b5f6; font-weight: 700; }
-
-.pregame-ability-formula .dmg-physical { color: #d7ccc8; font-weight: 700; }
-.pregame-ability-formula .dmg-fire    { color: #ff8a3a; font-weight: 700; }
-.pregame-ability-formula .dmg-holy    { color: #ffe066; font-weight: 700; }
-.pregame-ability-formula .dmg-poison  { color: #9ccc65; font-weight: 700; }
-.pregame-ability-formula .dmg-arcane  { color: #b388ff; font-weight: 700; }
-.pregame-ability-formula .dmg-electric{ color: #ffeb3b; font-weight: 700; }
-.pregame-ability-formula .dmg-water   { color: #64b5f6; font-weight: 700; }
+/* Damage types retain their own combat meaning (core/combat/damageTypes.ts). */
+.dmg-physical { color: #d7ccc8; font-weight: 700; }
+.dmg-fire { color: #ff8a3a; font-weight: 700; }
+.dmg-holy { color: #ffe066; font-weight: 700; }
+.dmg-poison { color: #9ccc65; font-weight: 700; }
+.dmg-arcane { color: #b388ff; font-weight: 700; }
+.dmg-electric { color: #ffeb3b; font-weight: 700; }
+.dmg-water { color: #64b5f6; font-weight: 700; }

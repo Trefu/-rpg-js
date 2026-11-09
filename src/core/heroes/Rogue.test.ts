@@ -4,7 +4,9 @@ import { RECRUITABLE_HEROES } from './recruitment'
 import { Enemy } from '../enemies/Enemy'
 import { StatusEffects } from '../StatusEffects'
 import { getAbility } from '../abilities/registry'
-import { getAbilityHitCount, isBasicAttack, RogueBasicAttack, RoguePoisonBomb, RogueHaste, RogueUltimate } from '../abilities/Abilities'
+import { getAbilityHitCount, isBasicAttack, RogueBasicAttack, RogueBackstab, RoguePoisonBomb, RogueHaste, RogueUltimate } from '../abilities/Abilities'
+import { computeRawDamage } from '../abilities/damagePipeline'
+import type { DamageStep } from '../abilities/damagePipeline'
 import type { AbilityContext, IAbility } from '../interfaces/IAbility'
 import type { AudioManager } from '../AudioManager'
 import { VFX_SOURCES } from '@/components/combat/vfxSources'
@@ -65,7 +67,7 @@ describe('Pícaro jugable', () => {
     expect(ctx.playEnemyVfx).toHaveBeenCalledTimes(getAbilityHitCount(RogueBasicAttack, 4)!)
   })
 
-  it('Bomba Venenosa aplica triple de nivel más bonus logarítmico de agilidad y suma cargas', async () => {
+  it('Bomba Venenosa aplica triple de nivel más la mitad de agilidad y suma cargas', async () => {
     const ctx = context(RoguePoisonBomb, 3)
     ctx.target!.addStatusEffect({ ...StatusEffects.POISON, stacks: 2, turns: 2 })
     const healthBefore = ctx.target!.health
@@ -75,9 +77,38 @@ describe('Pícaro jugable', () => {
     expect(ctx.playEnemyVfx).toHaveBeenCalledWith(ctx.target!.id, { asset: 'poison-bomb', durationMs: 900 })
     expect(ctx.audioManager.playDotPoisonSound).toHaveBeenCalledOnce()
     const poison = ctx.target!.statusEffects.find(e => e.type === 'poison')!
-    expect(poison.stacks).toBe(2 + 3 * 3 + Math.floor(Math.log1p((ctx.caster as Rogue).baseStats.agility.value) * 2))
+    expect(poison.stacks).toBe(2 + 3 * 3 + Math.floor((ctx.caster as Rogue).baseStats.agility.value / 2))
     expect(poison.turns).toBe(2)
     expect(ctx.target!.health).toBe(healthBefore)
+  })
+
+  it.each([1, 3, 5, 10])('Paso Ligero aumenta las cargas reales y previstas a nivel %i', async level => {
+    const ctx = context(RoguePoisonBomb, level)
+    const hero = ctx.caster as Rogue
+    const base = level * 3 + Math.floor(hero.baseStats.agility.value / 2)
+    expect(RoguePoisonBomb.previewEffect!(hero).value).toBe(`+${base}`)
+    await execute({ ...ctx, ability: RogueHaste, target: null })
+    const boosted = level * 3 + Math.floor(hero.baseStats.agility.value * 1.25 / 2)
+    expect(boosted).toBeGreaterThan(base)
+    expect(RoguePoisonBomb.previewEffect!(hero).value).toBe(`+${boosted}`)
+    await execute(ctx)
+    expect(ctx.target!.statusEffects.find(e => e.type === 'poison')?.stacks).toBe(boosted)
+    hero.reduceStatusEffects()
+    hero.reduceStatusEffects()
+    expect(RoguePoisonBomb.previewEffect!(hero).value).toBe(`+${base}`)
+    // Expiration does not retroactively change poison already applied.
+    expect(ctx.target!.statusEffects.find(e => e.type === 'poison')?.stacks).toBe(boosted)
+  })
+
+  it.each([0, 1, 5])('Puñalada aplica el bonus del 30%% solo con veneno (%i cargas)', async stacks => {
+    const ctx = context(RogueBackstab)
+    vi.spyOn(ctx.caster as Rogue, 'rollCrit').mockReturnValue({ isCrit: false, isOvercrit: false, multiplier: 1 })
+    if (stacks > 0) ctx.target!.addStatusEffect({ ...StatusEffects.POISON, stacks })
+    const raw = computeRawDamage(RogueBackstab.pipeline as DamageStep, ctx.caster as Rogue)
+    const takeDamage = vi.spyOn(ctx.target!, 'takeDamage')
+    await execute(ctx)
+    expect(takeDamage).toHaveBeenCalledWith(Math.floor(raw * (stacks > 0 ? 1.3 : 1)), expect.anything())
+    expect(ctx.target!.statusEffects.find(effect => effect.type === 'poison')?.stacks ?? 0).toBe(stacks)
   })
 
   it('la definitiva ejecuta el combo y detona todas las cargas de veneno por 5 de daño cada una', async () => {

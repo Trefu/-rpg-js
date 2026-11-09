@@ -32,11 +32,15 @@ function addFutureHero() {
 }
 
 describe('Selección de grupo desde el campamento', () => {
-  it('la partida nueva empieza en campamento con héroes disponibles y exige elegir un grupo', () => {
+  it('la partida nueva selecciona los tres héroes y respeta posteriores selecciones vacías', () => {
     const game = useGameStore()
     game.initializeCompany()
     expect(game.currentLocation).toBe('city')
     expect(game.companyHeroes).toHaveLength(3)
+    expect(game.activeHeroes).toHaveLength(3)
+    expect(game.activeHeroes).toEqual(game.companyHeroes)
+    expect(game.setPartyHeroes([])).toBe(true)
+    game.initializeCompany()
     expect(game.activeHeroes).toHaveLength(0)
     expect(game.beginRun()).toBe(false)
     expect(game.attempts).toBe(0)

@@ -35,7 +35,7 @@ interface StatChip {
   label: string
   value: string
   hint: string
-  kind: 'agi' | 'phys' | 'mag' | 'atk' | 'atk-mag' | 'body' | 'con' | 'mind' | 'crit'
+  kind: 'agi' | 'phys' | 'mag' | 'atk' | 'atk-mag' | 'body' | 'con' | 'mind' | 'crit' | 'hp' | 'energy'
   section: 'atributos' | 'stats'
 }
 
@@ -66,6 +66,8 @@ function round1(n: number): number {
  * strings estáticos, así que no hay riesgo de inyección.
  */
 const T = {
+  hp: (n: string | number) => `<span class="hint-hp">${n}</span>`,
+  energy: (n: string | number) => `<span class="hint-energy">${n}</span>`,
   base: (n: string | number) => `<span class="hint-base">${n}</span>`,
   lvl:  (n: string | number) => `<span class="hint-lvl">${n}</span>`,
   atk:  (n: string | number) => `<span class="hint-atk">${n}</span>`,
@@ -132,7 +134,8 @@ const chipGroups = computed<ChipGroup[]>(() => {
       section: 'atributos',
       hint:
         `${T.mind('Mente')}: ${T.mind(Math.round(mindV))}\n` +
-        `Alimenta ${T.mag('ATQ MAG')} (${T.mag(matkFromMind + ' de daño mágico')}) y ${T.mdef('DEF MÁG')} (${T.mdef(mindBonus + ' de defensa')}).`
+        `Alimenta ${T.mag('ATQ MAG')} (${T.mag(matkFromMind + ' de daño mágico')}) y ${T.mdef('DEF MÁG')} (${T.mdef(mindBonus + ' de defensa')}).\n` +
+        `Energía máxima: +${T.energy(p.energyCapacity.mind + ' EN')} (1 por cada 2 MEN sobre 10).`
     },
     {
       key: 'con',
@@ -162,6 +165,18 @@ const chipGroups = computed<ChipGroup[]>(() => {
    * como valor principal; el número crudo de defensa aparece en el tooltip.
    */
   const statsChips: StatChip[] = [
+    {
+      key: 'hp', label: 'HP', value: String(p.maxHealth), kind: 'hp', section: 'stats',
+      hint: `${T.hp('Vida máxima')}: ${T.hp(p.maxHealth)}\n` +
+        `${T.base(p.healthCapacity.base + ' base')} + ${T.con(p.healthCapacity.constitution + ' de CON')} + ${T.lvl(p.healthCapacity.level + ' por nivel')} + ${T.hp(p.healthCapacity.equipment + ' de equipo')}.\n` +
+        `CON: máx(0, ${T.con(conV)} − 10) × 4. +20 HP por nivel después del primero.`
+    },
+    {
+      key: 'energy', label: 'EN', value: String(p.maxEnergy), kind: 'energy', section: 'stats',
+      hint: `${T.energy('Energía máxima')}: ${T.energy(p.maxEnergy)}\n` +
+        `${T.base(p.energyCapacity.base + ' base')} + ${T.mind(p.energyCapacity.mind + ' de MEN')} + ${T.lvl(p.energyCapacity.level + ' por nivel')}.\n` +
+        `MEN: ⌊máx(0, ${T.mind(mindV)} − 10) / 2⌋. +10 EN por nivel después del primero.`
+    },
     {
       key: 'atk',
       label: 'ATQ',
@@ -370,6 +385,9 @@ onBeforeUnmount(() => {
         :ref="setChipRef(chip.key)"
         @mouseenter="openTooltip(chip.key)"
         @mouseleave="closeTooltip(chip.key)"
+        @focus="openTooltip(chip.key)"
+        @blur="closeTooltip(chip.key)"
+        @keydown.esc="hovered = null; touched = null"
         @click.stop="toggle(chip.key)"
       >
         <span class="stat-chip-label">{{ chip.label }}</span>

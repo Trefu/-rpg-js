@@ -274,17 +274,20 @@ export const RogueBasicAttack: IAbility = {
 }
 registerAbility(RogueBasicAttack)
 
-function getRoguePoisonStacks(hero: Hero): number {
+function getRoguePoisonAgility(hero: Hero): number {
   const agilityPercentBonus = hero.statusEffects
     .filter(effect => effect.type === 'haste' && effect.turns > 0)
     .reduce((total, effect) => total + (effect.agilityPercentBonus ?? 0), 0)
-  const agility = hero.baseStats.agility.value * (1 + agilityPercentBonus / 100)
-  return hero.level * 3 + Math.floor(Math.log1p(agility) * 2)
+  return Math.max(0, hero.baseStats.agility.value * (1 + agilityPercentBonus / 100))
+}
+
+function getRoguePoisonStacks(hero: Hero): number {
+  return hero.level * 3 + Math.floor(getRoguePoisonAgility(hero) / 2)
 }
 
 export const RoguePoisonBomb: IAbility = {
   name: 'Bomba Venenosa',
-  description: 'Aplica cargas de veneno.',
+  description: 'Aplica cargas de veneno iguales a 3 × nivel + ⌊agilidad efectiva / 2⌋. Incluye la agilidad adicional de Paso Ligero al lanzar la bomba.',
   type: 'roguePoisonBomb',
   cooldown: 1,
   energyCost: 25,
@@ -294,14 +297,11 @@ export const RoguePoisonBomb: IAbility = {
   animationDurationMs: 900,
   previewEffect: (hero: Hero) => {
     const stacks = getRoguePoisonStacks(hero)
-    const agilityPercentBonus = hero.statusEffects
-      .filter(effect => effect.type === 'haste' && effect.turns > 0)
-      .reduce((total, effect) => total + (effect.agilityPercentBonus ?? 0), 0)
-    const agility = Math.round(hero.baseStats.agility.value * (1 + agilityPercentBonus / 100))
+    const agility = getRoguePoisonAgility(hero)
     return {
       label: 'Cargas',
       value: `+${stacks}`,
-      formula: `${F.base('3 × ')}${F.lvl('Nivel')} ${F.base('+ ⌊2 × ln(1 + ')}${F.agi(`AGI ${agility}`)}${F.base(')⌋ = ')}${F.base(stacks)}`,
+      formula: `${F.base('3 × ')}${F.lvl(`Nivel ${hero.level}`)} ${F.base('+ ⌊')}${F.agi(`AGI ${agility}`)}${F.base(' / 2⌋ = ')}${F.base(stacks)}`,
       kind: 'poison'
     }
   },
@@ -321,7 +321,7 @@ registerAbility(RoguePoisonBomb)
 const rogueBackstabPipeline = damageStep({ stat: 'body', coef: 2.2, levelCoef: 2, statLabel: 'CUE' })
 export const RogueBackstab: IAbility = {
   name: 'Puñalada',
-  description: 'Una estocada precisa que inflige un gran daño físico a un enemigo.',
+  description: 'Una estocada precisa que inflige un gran daño físico a un enemigo. Inflige un 30% más de daño si el objetivo está envenenado.',
   type: 'rogueBackstab',
   cooldown: 1,
   energyCost: 30,
@@ -336,7 +336,8 @@ export const RogueBackstab: IAbility = {
     const caster = context.caster as Hero
     const target = context.target
     if (!target?.isAlive) return
-    const rawDamage = computeRawDamage(rogueBackstabPipeline, caster)
+    const poisonMultiplier = target.hasStatusEffect(StatusEffects.POISON.type) ? 1.3 : 1
+    const rawDamage = computeRawDamage(rogueBackstabPipeline, caster) * poisonMultiplier
     const { finalDamage } = dealDamage({ caster, target, ability: context.ability, rawDamage, effects: context })
     if (finalDamage > 0) context.playEnemyVfx?.(target.id, poisonSlash)
     await sleep(context.animationDelay)

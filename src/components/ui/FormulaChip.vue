@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import '@/styles/hint-colors.css'
 defineProps<{ formula: string }>()
 </script>
 

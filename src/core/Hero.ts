@@ -13,6 +13,12 @@ const CONSTITUTION_HP_SCALE = 4
 
 /** Ganancia base de vida por nivel (independiente de stats). */
 const HP_PER_LEVEL = 20
+const ENERGY_PER_LEVEL = 10
+
+/** Modest permanent capacity bonus; fractions never grant a full energy point. */
+export function computeMindEnergyBonus(mind: number): number {
+  return Math.floor(Math.max(0, mind - 10) / 2)
+}
 
 /**
  * Bonus lineal de Constitución sobre la vida máxima. Misma forma que
@@ -32,7 +38,7 @@ function computeConstitutionHpBonus(con: IStat): number {
 const STAT_DESCRIPTIONS: Record<keyof IPlayerStats, string> = {
   agility: 'Determina cuándo actúa el héroe en combate.',
   constitution: 'Resistencia física y vitalidad.',
-  mind: 'Poder mágico y hechizos.',
+  mind: 'Poder mágico, defensa mágica y energía máxima (+1 por cada 2 MEN sobre 10).',
   body: 'Fuerza bruta y capacidad física.'
 }
 
@@ -136,6 +142,7 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
    * al construirse el personaje).
    */
   private baseMaxHealth: number
+  private baseMaxEnergy: number
   private partyBonuses: PartyBonuses = {}
 
   constructor(opts: HeroOptions) {
@@ -144,7 +151,8 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
     this.experienceToNextLevel = 100
     this.gold = 0
     this.abilities = []
-    this.maxEnergy = opts.maxEnergy ?? 50
+    this.baseMaxEnergy = opts.maxEnergy ?? 50
+    this.maxEnergy = this.baseMaxEnergy
     this.energy = opts.startingEnergy ?? this.maxEnergy
     this.maxHeroism = 100
     this.heroism = 0
@@ -169,7 +177,7 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
     for (let level = 1; level < this.level; level++) {
       this.experienceToNextLevel = Math.floor(this.experienceToNextLevel * 1.5)
     }
-    this.maxEnergy += (this.level - 1) * 10
+    this.recomputeMaxEnergy()
     this.energy = Math.min(this.maxEnergy, opts.startingEnergy ?? this.maxEnergy)
     this.recomputeMaxHealth()
     // `super()` ya asigno `this.health = opts.maxHealth` (la vida base de
@@ -192,6 +200,19 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
     this.maxHealth = this.baseMaxHealth + conBonus + levelBonus + (this.partyBonuses.maxHealth ?? 0)
   }
 
+  public get energyCapacity() {
+    return { base: this.baseMaxEnergy, mind: computeMindEnergyBonus(this.baseStats.mind.value), level: (this.level - 1) * ENERGY_PER_LEVEL }
+  }
+
+  public get healthCapacity() {
+    return { base: this.baseMaxHealth, constitution: computeConstitutionHpBonus(this.baseStats.constitution), level: (this.level - 1) * HP_PER_LEVEL, equipment: this.partyBonuses.maxHealth ?? 0 }
+  }
+
+  private recomputeMaxEnergy(): void {
+    const { base, mind, level } = this.energyCapacity
+    this.maxEnergy = base + mind + level
+  }
+
   /** Replace the complete equipment contribution; repeated calls never stack it. */
   public setPartyBonuses(bonuses: PartyBonuses): void {
     for (const key of Object.keys(this.baseStats) as (keyof IPlayerStats)[]) {
@@ -199,13 +220,16 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
     }
     this.partyBonuses = { ...bonuses }
     this.recomputeMaxHealth()
+    this.recomputeMaxEnergy()
     this.health = Math.min(this.health, this.maxHealth)
+    this.energy = Math.min(this.energy, this.maxEnergy)
   }
 
   public prepareForRun(): void {
     for (const effect of [...this.statusEffects]) this.removeStatusEffect(effect.type)
     this.recomputeMaxHealth()
     this.health = this.maxHealth
+    this.recomputeMaxEnergy()
     this.energy = this.maxEnergy
     this.heroism = 0
     this.isAlive = true
@@ -300,7 +324,7 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
     this.baseStats.body.value += STAT_BASE_GROWTH + this.baseStats.body.growthPerLevel
     this.recomputeMaxHealth()
     this.health = this.maxHealth
-    this.maxEnergy += 10
+    this.recomputeMaxEnergy()
     this.energy = this.maxEnergy
   }
 

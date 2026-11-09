@@ -2,8 +2,40 @@ import { describe, it, expect } from 'vitest'
 import { Warrior } from '@/core/heroes/Warrior'
 import { Cleric } from '@/core/heroes/Cleric'
 import { Fireball } from '@/core/abilities/Abilities'
+import { computeMindEnergyBonus } from '@/core/Hero'
 
 describe('Hero base class', () => {
+  it('la Mente aporta energía suavemente, sin penalizar valores bajos', () => {
+    expect([8, 10, 11, 12, 17, 20].map(computeMindEnergyBonus)).toEqual([0, 0, 0, 1, 3, 5])
+    const cleric = new Cleric(1)
+    expect(cleric.maxEnergy).toBe(cleric.energyCapacity.base + computeMindEnergyBonus(cleric.baseStats.mind.value))
+    expect(cleric.energy).toBe(cleric.maxEnergy)
+  })
+
+  it('recalcula energía por equipo sin acumular ni regalar energía al equipar', () => {
+    const cleric = new Cleric(1)
+    const originalMax = cleric.maxEnergy
+    cleric.energy = 5
+    cleric.setPartyBonuses({ mind: 2 })
+    expect(cleric.maxEnergy).toBe(originalMax + 1)
+    expect(cleric.energy).toBe(5)
+    cleric.setPartyBonuses({ mind: 2 })
+    expect(cleric.maxEnergy).toBe(originalMax + 1)
+    cleric.prepareForRun()
+    expect(cleric.energy).toBe(originalMax + 1)
+    cleric.setPartyBonuses({})
+    expect(cleric.maxEnergy).toBe(originalMax)
+    expect(cleric.energy).toBe(originalMax)
+  })
+
+  it('construir a nivel alto y subir niveles producen la misma energía', () => {
+    const leveled = new Cleric(1)
+    for (let level = 1; level < 5; level++) leveled.levelUp()
+    const restored = new Cleric(5)
+    expect(restored.maxEnergy).toBe(leveled.maxEnergy)
+    expect(restored.energy).toBe(leveled.energy)
+    expect(leveled.maxEnergy).toBe(leveled.energyCapacity.base + 40 + computeMindEnergyBonus(leveled.baseStats.mind.value))
+  })
   it('un Hero nuevo arranca con vida y energia al maximo', () => {
     const w = new Warrior(1)
     expect(w.health).toBe(w.maxHealth)

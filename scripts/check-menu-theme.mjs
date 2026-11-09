@@ -23,14 +23,31 @@ try {
   const capture = async name => {
     if (process.env.CAMPAIGN_SCREENSHOTS) await page.screenshot({ path: `${process.env.CAMPAIGN_SCREENSHOTS}/${name}.png`, fullPage: true })
   }
+  for (const details of await page.locator('.camp-hero-abilities').all()) {
+    await details.locator('summary').click()
+  }
+  const semanticColors = await page.evaluate(() => {
+    const pairs = [['cue', 'body'], ['mind', 'mind'], ['agi', 'agi'], ['con', 'con']]
+    return pairs.map(([hint, chip]) => {
+      const terms = [...document.querySelectorAll(`.camp-ability-formula .hint-${hint}`)]
+      const color = getComputedStyle(document.querySelector(`.camp-hero-chips .stat-chip-${chip}`)).color
+      return { hint, color, colors: terms.map(term => getComputedStyle(term).color) }
+    })
+  })
+  for (const { hint, color, colors } of semanticColors) {
+    assert.notEqual(color, 'rgb(255, 255, 255)', hint)
+    for (const termColor of colors) assert.equal(termColor, color, hint)
+  }
+  await capture('jrpg-camp-formulas')
+  for (const summary of await page.locator('.camp-hero-abilities summary').all()) await summary.click()
   for (const width of [1366, 768, 360]) {
     await page.setViewportSize({ width, height: 900 })
     await checkViewport()
-    const panel = await page.locator('.party-selection').evaluate(el => ({ background: getComputedStyle(el).backgroundColor, radius: getComputedStyle(el).borderRadius }))
+    const panel = await page.locator('#party-selection .company-hero').first().evaluate(el => ({ background: getComputedStyle(el).backgroundColor, radius: getComputedStyle(el).borderRadius }))
     assert.equal(panel.background, 'rgb(48, 32, 24)')
     assert.equal(panel.radius, '2px')
     assert.equal(await page.locator('.camp-commands').count(), 0)
-    assert.equal(await page.locator('.camp-hero-chips .stat-chip').count(), 27)
+    assert.equal(await page.locator('.camp-hero-chips .stat-chip').count(), 33)
     await capture(`jrpg-camp-${width}`)
   }
   await page.locator('.gear-btn').click()

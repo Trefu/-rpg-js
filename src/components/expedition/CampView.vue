@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { MAX_HEROES, useGameStore } from '@/stores/game'
 import PartyEquipment from './PartyEquipment.vue'
 import { getInventoryEntries } from '@/core/items/inventory'
@@ -40,9 +40,17 @@ const selectedDestination = computed(() => destinations.value.find(destination =
 const selectedDestinationAvailable = computed(() => !!selectedDestination.value && !selectedDestination.value.inDevelopment)
 const inventory = computed(() => getInventoryEntries(game.teamItems))
 const classes: Record<string, string> = { warrior: 'Guerrero', cleric: 'Clériga', rogue: 'Pícaro' }
-const slots = computed(() => Array.from({ length: MAX_HEROES }, (_, index) => game.activeHeroes[index] ?? null))
 const selectedClasses = computed(() => new Set(game.activeHeroes.map(hero => hero.heroClassId)))
+const heroSections = computed(() => [
+  { id: 'party-selection', title: 'Grupo de expedición', heroes: game.activeHeroes, party: true },
+  { id: 'camp-company', title: 'Héroes disponibles', heroes: game.companyHeroes.filter(hero => !selectedClasses.value.has(hero.heroClassId)), party: false }
+].filter(section => section.party || section.heroes.length))
 const readyToDepart = computed(() => game.activeHeroes.length > 0 && game.activeHeroes.length <= MAX_HEROES)
+async function toggleHero(classId: string) {
+  game.togglePartyHero(classId)
+  await nextTick()
+  document.getElementById(`party-toggle-${classId}`)?.focus({ preventScroll: true })
+}
 </script>
 
 <template>
@@ -62,23 +70,13 @@ const readyToDepart = computed(() => game.activeHeroes.length > 0 && game.active
 
     <div class="camp-layout">
       <div class="camp-company-column">
-        <section class="party-selection campaign-panel" aria-labelledby="party-selection-title">
-          <div class="campaign-section-head"><h2 id="party-selection-title">Grupo de expedición</h2><span class="campaign-count">{{ game.activeHeroes.length }} / {{ MAX_HEROES }}</span></div>
-          <ol class="party-slots">
-            <li v-for="(hero, index) in slots" :key="index" :class="{ vacant: !hero }">
-              <span class="party-slot-number">{{ index + 1 }}</span>
-              <template v-if="hero"><img :src="hero.sprite" alt="" /><div><strong>{{ hero.name }}</strong><small>Nv. {{ hero.level }} · {{ classes[hero.heroClassId] ?? hero.heroClassId }}</small></div><button type="button" :aria-label="`Quitar a ${hero.name} del grupo`" @click="game.togglePartyHero(hero.heroClassId)">×</button></template>
-              <span v-else class="party-empty">Sin seleccionar</span>
-            </li>
-          </ol>
-          <p id="party-selection-hint" class="party-selection-hint">Selecciona entre 1 y {{ MAX_HEROES }} héroes de la compañía.</p>
-        </section>
-        <section id="camp-company" class="company-section">
-          <div class="campaign-section-head"><h2>Héroes disponibles</h2><span class="campaign-count">{{ game.companyHeroes.length }}</span></div>
+        <section v-for="section in heroSections" :id="section.id" :key="section.id" class="company-section" tabindex="-1" :aria-labelledby="`${section.id}-title`">
+          <div class="campaign-section-head"><h2 :id="`${section.id}-title`">{{ section.title }}</h2><span class="campaign-count">{{ section.heroes.length }}<template v-if="section.party"> / {{ MAX_HEROES }}</template></span></div>
           <div class="company">
-            <article v-for="hero in game.companyHeroes" :key="hero.heroClassId" class="company-hero campaign-panel" :class="{ 'in-party': selectedClasses.has(hero.heroClassId) }">
+            <article v-for="hero in section.heroes" :key="hero.heroClassId" class="company-hero campaign-panel" :class="{ 'in-party': selectedClasses.has(hero.heroClassId) }">
                 <div class="hero-portrait"><span class="hero-class">{{ classes[hero.heroClassId] ?? hero.heroClassId }}</span><img :src="hero.sprite" :alt="hero.name" /><span class="hero-level">{{ hero.level }}<small>NIVEL</small></span></div>
-                <div class="hero-dossier"><h3>{{ hero.name }}</h3><div class="hero-vitals"><span><i class="vital-dot hp"></i>{{ hero.maxHealth }} HP</span><span><i class="vital-dot energy"></i>{{ hero.maxEnergy }} EN</span></div><div class="hero-xp-label"><span>Al siguiente nivel</span><strong>{{ hero.experience }} / {{ hero.experienceToNextLevel }} XP</strong></div><progress :value="hero.experience" :max="hero.experienceToNextLevel" :aria-label="`Experiencia de ${hero.name}`" /><div class="camp-hero-chips"><HeroStatChips :hero="hero" :show-all="true" tooltip-position="above" /></div></div>
+                <div class="hero-dossier"><h3>{{ hero.name }}</h3><div class="hero-vitals"><span><i class="vital-dot hp"></i>{{ hero.maxHealth }} HP</span><span><i class="vital-dot energy"></i>{{ hero.maxEnergy }} EN</span></div><div class="hero-xp-label"><strong>{{ hero.experience }} / {{ hero.experienceToNextLevel }} XP</strong></div><progress :value="hero.experience" :max="hero.experienceToNextLevel" :aria-label="`Experiencia de ${hero.name}`" /></div>
+                <div class="camp-hero-chips"><HeroStatChips :hero="hero" :show-all="true" tooltip-position="above" /></div>
                 <details class="camp-hero-abilities">
                   <summary>Habilidades · {{ hero.abilities.length }}</summary>
                   <ul><li v-for="ability in hero.abilities" :key="ability.type">
@@ -94,9 +92,13 @@ const readyToDepart = computed(() => game.activeHeroes.length > 0 && game.active
                     </template>
                   </li></ul>
                 </details>
-                <button type="button" class="campaign-button hero-party-toggle" :class="{ primary: selectedClasses.has(hero.heroClassId) }" :aria-pressed="selectedClasses.has(hero.heroClassId)" :aria-label="`${selectedClasses.has(hero.heroClassId) ? 'Quitar' : 'Añadir'} a ${hero.name} ${selectedClasses.has(hero.heroClassId) ? 'del' : 'al'} grupo`" :disabled="!selectedClasses.has(hero.heroClassId) && game.activeHeroes.length >= MAX_HEROES" @click="game.togglePartyHero(hero.heroClassId)">{{ selectedClasses.has(hero.heroClassId) ? '✓ En el grupo' : game.activeHeroes.length >= MAX_HEROES ? 'Grupo completo' : '+ Añadir al grupo' }}</button>
+                <button :id="`party-toggle-${hero.heroClassId}`" type="button" class="campaign-button hero-party-toggle" :class="{ primary: selectedClasses.has(hero.heroClassId) }" :aria-pressed="selectedClasses.has(hero.heroClassId)" :aria-label="`${selectedClasses.has(hero.heroClassId) ? 'Quitar' : 'Añadir'} a ${hero.name} ${selectedClasses.has(hero.heroClassId) ? 'del' : 'al'} grupo`" :disabled="!selectedClasses.has(hero.heroClassId) && game.activeHeroes.length >= MAX_HEROES" @click="toggleHero(hero.heroClassId)">{{ selectedClasses.has(hero.heroClassId) ? '✓ En el grupo' : game.activeHeroes.length >= MAX_HEROES ? 'Grupo completo' : '+ Añadir al grupo' }}</button>
             </article>
+            <template v-if="section.party">
+              <a v-for="slot in MAX_HEROES - section.heroes.length" :key="`empty-${slot}`" class="camp-empty-slot campaign-panel" href="#camp-company"><span>Hueco {{ section.heroes.length + slot }}</span><strong>+ Añadir héroe</strong></a>
+            </template>
           </div>
+          <p v-if="section.party" id="party-selection-hint" class="party-selection-hint">Selecciona entre 1 y {{ MAX_HEROES }} héroes de la compañía.</p>
         </section>
         <div id="camp-equipment"><PartyEquipment /></div>
         <section id="camp-items" class="camp-supplies campaign-panel">

@@ -1,7 +1,8 @@
 /* Screen composition. Component legacy styles are in a lower cascade layer. */
 .camp-heading, .shop-heading, .map-heading { margin: 0 0 22px; padding: 0 0 14px; border-bottom: 2px solid var(--jrpg-line); }
-.camp-layout { display: grid; grid-template-columns: minmax(0, 1fr) 278px; gap: 18px; }
-.camp-company-column { display: grid; gap: 20px; min-width: 0; }
+.camp-heading { margin-bottom: 12px; padding-bottom: 8px; }
+.camp-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 14px; }
+.camp-company-column { display: grid; gap: 12px; min-width: 0; }
 .camp-journey-column { position: sticky; top: 20px; min-width: 0; }
 .party-selection, .camp-supplies { padding: 18px; }
 .party-slots { display: grid; grid-template-columns: 1fr; gap: 0; margin: 0; padding: 0; }
@@ -13,38 +14,47 @@
 .party-empty { font-size: .8rem; }
 .party-slots button { width: 44px; height: 44px; align-self: center; background: none; border: 1px solid var(--jrpg-line); color: var(--jrpg-muted); font-size: 1.2rem; }
 .party-slots button:hover { border-color: var(--jrpg-orange); color: var(--jrpg-text); }
-.company { display: grid; grid-template-columns: 1fr; gap: 12px; }
-.company-hero { display: grid; grid-template-columns: 100px minmax(0, 1fr); overflow: visible; padding: 14px; gap: 12px; }
+.company { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; align-items: start; }
+.company-hero { display: grid; grid-template-columns: 64px minmax(0, 1fr); overflow: visible; padding: 10px; gap: 8px; }
+.camp-empty-slot { display: grid; align-content: center; gap: 10px; min-height: 150px; padding: 12px; color: var(--jrpg-muted); text-decoration: none; font-size: .8rem; }
+.camp-empty-slot strong { color: var(--jrpg-highlight); }
 .company-hero.in-party { border-color: var(--jrpg-orange); box-shadow: var(--jrpg-frame-shadow); }
-.hero-portrait { grid-column: 1; grid-row: 1 / 3; height: 148px; border: 0; background: var(--jrpg-inset); overflow: hidden; }
+.hero-portrait { grid-column: 1; grid-row: 1; height: 100px; border: 0; background: var(--jrpg-inset); overflow: hidden; }
 .hero-portrait::after { display: none; }
-.hero-portrait img { height: 120px; max-width: 100%; filter: none; }
+.hero-portrait img { height: 76px; max-width: 100%; filter: none; }
 .hero-class { top: 6px; left: 5px; padding: 0; border: 0; background: none; color: var(--jrpg-muted); font: .62rem var(--jrpg-font); text-transform: none; }
 .hero-level { bottom: 5px; right: 5px; width: auto; height: auto; padding: 3px 5px; background: var(--jrpg-inset); border: 1px solid var(--jrpg-line); color: var(--jrpg-highlight); font: bold .85rem var(--jrpg-font); box-shadow: none; }
 .hero-level small { display: none; }
 .hero-level::before { content: 'Nv.'; font-size: .65rem; margin-right: 4px; }
-.hero-dossier { grid-column: 2; padding: 0; }
+.hero-dossier { grid-column: 2; padding: 0; min-width: 0; align-self: center; }
 .hero-dossier h3 { color: var(--jrpg-text); font: bold 1rem var(--jrpg-font); margin: 0 0 9px; }
-.hero-vitals { color: var(--jrpg-text); font: bold .78rem var(--jrpg-font); gap: 14px; }
+.hero-vitals { color: var(--jrpg-text); font: bold .75rem var(--jrpg-font); gap: 6px; }
 .vital-dot.hp { background: var(--jrpg-hp); border-color: var(--jrpg-hp); }
 .vital-dot.energy { background: var(--jrpg-energy); border-color: var(--jrpg-energy); }
+.hero-vitals span:has(.hp) { color: var(--jrpg-hp); }
+.hero-vitals span:has(.energy) { color: var(--jrpg-energy); }
 .hero-xp-label { margin-top: 12px; font: .65rem var(--jrpg-font); color: var(--jrpg-muted); }
 .hero-xp-label strong { color: var(--jrpg-highlight); }
 .camp-view progress { background: var(--jrpg-inset); border-color: var(--jrpg-void); accent-color: var(--jrpg-orange); }
 .camp-view progress::-webkit-progress-bar { background: var(--jrpg-inset); }
 .camp-view progress::-webkit-progress-value { background: var(--jrpg-orange); }
 .camp-view progress::-moz-progress-bar { background: var(--jrpg-orange); }
-.camp-hero-chips { border-top: 1px solid var(--jrpg-line); margin-top: 12px; }
+.camp-hero-chips { grid-column: 1 / -1; border-top: 1px solid var(--jrpg-line); margin-top: 0; padding-top: 6px; }
 .camp-hero-chips .stat-chip-section-label { color: var(--jrpg-highlight); font-size: .65rem; }
 .camp-hero-chips .hero-stat-chips { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.camp-hero-chips .stat-chip { border-radius: 0; }
-.hero-party-toggle { grid-column: 2; margin: 0; width: 100%; font-size: .75rem; }
-.camp-hero-abilities { grid-column: 1 / -1; grid-row: 3; border-top: 1px solid var(--jrpg-line); color: var(--jrpg-muted); padding: 4px 0 0; }
+.camp-hero-chips .hero-stat-chips-stack { gap: 4px; }
+.camp-hero-chips .hero-stat-chips { gap: 3px; }
+.camp-hero-chips .stat-chip { border-radius: 0; min-height: 44px; padding: 3px 5px; font-size: .7rem; justify-content: space-between; background: var(--jrpg-inset); border-color: currentColor; box-shadow: none; }
+.hero-party-toggle { grid-column: 1 / -1; margin: 0; width: 100%; font-size: .75rem; }
+.camp-hero-abilities { grid-column: 1 / -1; grid-row: auto; border-top: 1px solid var(--jrpg-line); color: var(--jrpg-muted); padding: 0; min-width: 0; }
 .camp-hero-abilities summary { min-height: 44px; display: list-item; align-content: center; padding: 10px 0; color: var(--jrpg-highlight); font-size: .8rem; }
-.camp-hero-abilities li { background: var(--jrpg-inset); border: 0; border-left: 2px solid var(--jrpg-line); padding: 12px; font-size: .8rem; }
+.camp-hero-abilities li { background: var(--jrpg-inset); border: 0; border-left: 2px solid var(--jrpg-line); padding: 6px; font-size: .8rem; }
+.camp-view .formula-chip { border: 1px solid var(--jrpg-line); border-radius: 0; background: var(--jrpg-inset); padding: 4px; }
+.camp-view .formula-chip-label { color: var(--jrpg-muted); }
+.camp-view .formula-chip-expression { font: .75rem/1.5 var(--jrpg-font); color: var(--jrpg-text); }
 .camp-hero-abilities p, .camp-ability-formula { color: var(--jrpg-muted); font-size: .75rem; }
 .camp-ability-preview { color: var(--jrpg-highlight) !important; }
-.destination-picker { padding: 16px; margin-bottom: 18px; }
+.destination-picker { padding: 10px; margin-bottom: 10px; }
 .destination-options { gap: 0; }
 .destination-option { min-height: 64px; padding: 10px 0; border: 0; border-bottom: 1px solid var(--jrpg-line); color: var(--jrpg-text); background: none; }
 .destination-option:hover:not(:disabled), .destination-option.selected { border-color: var(--jrpg-orange); background: var(--jrpg-selection); }
@@ -53,7 +63,7 @@
 .destination-option-copy small { color: var(--jrpg-muted); font: .7rem var(--jrpg-font); }
 .destination-soon { display: none; }
 .destination-option:disabled { opacity: .6; }
-.mountain-preview { aspect-ratio: 4 / 3; border-bottom: 1px solid var(--jrpg-frame); image-rendering: auto; }
+.mountain-preview { height: 360px; aspect-ratio: auto; object-fit: cover; object-position: center 30%; border-bottom: 1px solid var(--jrpg-frame); image-rendering: auto; }
 .destination-title { padding: 16px; background: none; border-bottom: 1px solid var(--jrpg-line); }
 .destination-title > div > span { display: none; }
 .destination-title h2 { font: bold .95rem/1.5 var(--jrpg-font); color: var(--jrpg-text); }
@@ -219,22 +229,20 @@
 .mute-btn { min-height: 44px; border-color: var(--jrpg-frame); background: var(--jrpg-selection); border-radius: 0; color: var(--jrpg-text); }
 
 @media (max-width: 1050px) {
-  .camp-layout { grid-template-columns: minmax(0, 1fr) 240px; gap: 12px; }
-  .company-hero { grid-template-columns: 78px minmax(0, 1fr); gap: 10px; padding: 12px; }
-  .hero-portrait { height: 134px; }
-  .hero-portrait img { height: 108px; }
+  .camp-layout { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .camp-journey-column { position: static; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; align-items: start; }
 }
 @media (max-width: 720px) {
   .camp-layout { display: flex; flex-direction: column; gap: 20px; }
   .camp-company-column, .camp-journey-column { width: 100%; }
-  .camp-journey-column { position: static; order: 0; }
+  .camp-journey-column { position: static; order: 0; display: block; }
   .camp-heading, .shop-heading { margin-bottom: 16px; }
   .company { grid-template-columns: 1fr; }
-  .company-hero { grid-template-columns: 86px minmax(0, 1fr); padding: 14px; }
+  .company-hero { grid-template-columns: 72px minmax(0, 1fr); padding: 10px; }
   .camp-hero-chips .hero-stat-chips { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .party-selection, .camp-supplies, .party-equipment { padding: 16px; }
   .hero-xp-label { flex-wrap: wrap; }
-  .mountain-preview { aspect-ratio: 16/9; }
+  .mountain-preview { height: 260px; aspect-ratio: auto; }
   .shop-layout { grid-template-columns: 1fr; gap: 18px; }
   .shop-heading { padding-right: 0; display: block; }
   .shop-back { position: static; margin-top: 16px; }

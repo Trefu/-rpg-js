@@ -50,7 +50,7 @@ export const useGameStore = defineStore('game', {
     initializeCompany() {
       if (this.companyHeroes.length) return
       this.companyHeroes = RECRUITABLE_HEROES.filter(choice => choice.availableAtStart !== false).map(choice => choice.factory())
-      this.heroes = Array.from({ length: MAX_HEROES }, () => null)
+      this.heroes = Array.from({ length: MAX_HEROES }, (_, index) => this.companyHeroes[index] ?? null)
       this.isGameStarted = true
       this.currentLocation = 'city'
       restoreItemsToMax(this.teamItems)
