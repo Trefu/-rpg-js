@@ -167,7 +167,7 @@ function isAllySelectable(hero: Hero | null): boolean {
     return hero.isAlive && itemCanTargetAllies(selectedItem.value)
   }
   if (selectedAbility.value && canTargetAllies(selectedAbility.value)) {
-    return hero.isAlive
+    return hero.isAlive && (selectedAbility.value.isValidTarget?.(hero) ?? true)
   }
   return false
 }
@@ -282,6 +282,7 @@ onUnmounted(() => {
       :alive-index-by-enemy-id="aliveIndexByEnemyId"
       :is-selecting-target="isSelectingTarget"
       :can-target-allies="(!!selectedItem && itemCanTargetAllies(selectedItem)) || (!!selectedAbility && canTargetAllies(selectedAbility))"
+      :is-ally-selectable="isAllySelectable"
       :active-hero-index="gameStore.activeHeroIndex"
       :attacked-hero-ids="attackedHeroIds"
       :hit-popups="playerHitPopups"

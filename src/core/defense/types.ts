@@ -117,6 +117,8 @@ export interface DefensePatternConfig {
   baseSuccessZoneSize?: number
   baseMaxBlockReduction: number
   damageMultiplier: number
+  /** Daño adicional contra el objetivo si tiene el estado indicado. */
+  bonusDamageAgainstStatus?: { statusType: string; multiplier: number }
   seed?: number
   /**
    * Specs de zona por fase. La cantidad de fases del patrón se

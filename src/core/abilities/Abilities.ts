@@ -650,9 +650,14 @@ export function getDivineBlessingAmount(caster: Hero): number {
   return Math.max(0, Math.floor(caster.baseStats.mind.value * 2 + caster.level * 8))
 }
 
+export function canReceiveDivineBlessing(target: import('../interfaces/ICharacter').ICharacter): boolean {
+  return target.isAlive && !target.statusEffects.some(effect => effect.type === StatusEffects.DIVINE_PROTECTION.type
+    && effect.turns > 0 && (effect.absorbRemaining ?? 0) > 0)
+}
+
 export const ClericDivineBlessing: IAbility = {
   name: 'Bendición Divina',
-  description: 'Otorga a un aliado vida temporal igual a ⌊2 × Mente + 8 × nivel de Elara⌋ y +20% de daño durante 3 turnos. El escudo absorbe daño antes que su vida. Si bendice a otro aliado, Elara se cura la misma cantidad (sin superar su vida máxima). Reaplicar renueva el escudo y la duración, no los acumula.',
+  description: 'Otorga a un aliado vida temporal igual a ⌊2 × Mente + 8 × nivel de Elara⌋ y +20% de daño durante 3 turnos. El escudo absorbe daño antes que su vida. Si bendice a otro aliado, Elara se cura la misma cantidad (sin superar su vida máxima). No puede seleccionar a quien conserve vida temporal de esta bendición.',
   type: 'clericDivineBlessing',
   cooldown: 0,
   energyCost: 40,
@@ -660,6 +665,7 @@ export const ClericDivineBlessing: IAbility = {
   requiresTarget: true,
   tags: ['cleric', 'holy', 'buff', 'heal'],
   icon: divineShieldIcon,
+  isValidTarget: canReceiveDivineBlessing,
   animationDurationMs: 1200,
   previewEffect: hero => {
     const amount = getDivineBlessingAmount(hero)
@@ -671,7 +677,7 @@ export const ClericDivineBlessing: IAbility = {
   execute: async (context: AbilityContext) => {
     const caster = context.caster as Hero
     const target = context.target
-    if (!caster.isAlive || !target?.isAlive || (context.allies && !context.allies.some(ally => ally.id === target.id))) return
+    if (!caster.isAlive || !target || !canReceiveDivineBlessing(target) || (context.allies && !context.allies.some(ally => ally.id === target.id))) return
     const amount = getDivineBlessingAmount(caster)
     target.removeStatusEffect(StatusEffects.DIVINE_PROTECTION.type)
     target.addStatusEffect({

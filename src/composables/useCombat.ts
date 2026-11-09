@@ -413,7 +413,14 @@ const defenseClouded = ref(false)
     const multiplier = crit.multiplier
 
     if (enemy && target && pattern) {
-      const phaseDamage = enemy.calculatePhaseDamage(pattern, multiplier)
+      const statusBonus = pattern.bonusDamageAgainstStatus
+      const targetHasBonusStatus = statusBonus
+        && typeof target.hasStatusEffect === 'function'
+        && target.hasStatusEffect(statusBonus.statusType)
+      const phaseDamage = enemy.calculatePhaseDamage(
+        pattern,
+        multiplier * (targetHasBonusStatus ? statusBonus.multiplier : 1)
+      )
 
       if (result.outcome === 'success') {
         const blockedDmg = Math.floor(phaseDamage / 2)
@@ -578,8 +585,15 @@ const defenseClouded = ref(false)
 
     if (!pattern || !enemy || !target || !resolve) return
 
+    const statusBonus = pattern.bonusDamageAgainstStatus
+    const targetHasBonusStatus = statusBonus
+      && typeof target.hasStatusEffect === 'function'
+      && target.hasStatusEffect(statusBonus.statusType)
     const totalDamage = results.reduce((sum, r) => {
-      const phaseDamage = enemy.calculatePhaseDamage(pattern, pendingDefenseCrit.multiplier)
+      const phaseDamage = enemy.calculatePhaseDamage(
+        pattern,
+        pendingDefenseCrit.multiplier * (targetHasBonusStatus ? statusBonus.multiplier : 1)
+      )
       return sum + (r.outcome === 'success' ? Math.floor(phaseDamage / 2) : phaseDamage)
     }, 0)
 
@@ -915,6 +929,8 @@ const defenseClouded = ref(false)
       return
     }
 
+    if (_target && ability.isValidTarget && !ability.isValidTarget(_target)) return
+
     if (ability.energyCost && ability.energyCost > 0) {
       caster.spendEnergy(ability.energyCost)
     }
@@ -951,6 +967,7 @@ const defenseClouded = ref(false)
       addToLog(`Solo puedes lanzar ${selectedAbility.value.name} sobre enemigos.`)
       return
     }
+    if (selectedAbility.value.isValidTarget && !selectedAbility.value.isValidTarget(hero)) return
     currentAction.value = { ability: selectedAbility.value, target: hero }
     triggerExecution(hero)
   }

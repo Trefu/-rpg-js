@@ -306,6 +306,8 @@ export interface IAbility {
   previewDamage?: (hero: import('../Hero').Hero) => AbilityDamagePreview
   /** Preview de un efecto cuantificable que no inflige daño directo. */
   previewEffect?: (hero: import('../Hero').Hero) => AbilityEffectPreview
+  /** Additional target eligibility, checked before spending resources. */
+  isValidTarget?: (target: ICharacter) => boolean
   /**
    * Costo fijo de energia que se cobra antes de ejecutar.
    * Si el caster no tiene suficiente energia, la accion se cancela antes de gastar el turno.

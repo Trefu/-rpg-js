@@ -89,6 +89,7 @@ describe('Bendición Divina de Elara', () => {
     expect(ctx.caster.health).toBe(ctx.caster.maxHealth)
     ctx.caster.health = 1
     ctx.caster.addStatusEffect({ ...StatusEffects.OPEN_WOUND })
+    ctx.target!.removeStatusEffect('divine_protection')
     await cast(ctx)
     expect(ctx.caster.health).toBe(1 + Math.floor(getDivineBlessingAmount(ctx.caster as Cleric) * 0.65))
   })
@@ -111,12 +112,27 @@ describe('Bendición Divina de Elara', () => {
     expect(getOutgoingDamageMultiplier(target.statusEffects)).toBeCloseTo(1.2)
   })
 
-  it('reaplicar repone el escudo, renueva tres turnos y no acumula el +20%', async () => {
+  it('rechaza al aliado mientras conserve escudo divino sin refrescarlo ni curar a Elara', async () => {
     const ctx = context()
     await cast(ctx)
     const target = ctx.target as Warrior
     target.takeDamage(10)
     target.reduceStatusEffects()
+    ctx.caster.health = 1
+    expect(ClericDivineBlessing.isValidTarget!(target)).toBe(false)
+    await cast(ctx)
+    expect(getShieldAmount(target)).toBe(getDivineBlessingAmount(ctx.caster as Cleric) - 10)
+    expect(target.statusEffects.find(effect => effect.type === 'divine_protection')?.turns).toBe(2)
+    expect(ctx.caster.health).toBe(1)
+  })
+
+  it('permite bendecir de nuevo al agotarse el escudo aunque siga el +20%', async () => {
+    const ctx = context()
+    await cast(ctx)
+    const target = ctx.target as Warrior
+    target.takeDamage(getShieldAmount(target))
+    target.reduceStatusEffects()
+    expect(ClericDivineBlessing.isValidTarget!(target)).toBe(true)
     await cast(ctx)
     expect(getShieldAmount(target)).toBe(getDivineBlessingAmount(ctx.caster as Cleric))
     expect(target.statusEffects.filter(effect => effect.type === 'divine_protection')).toHaveLength(1)
@@ -125,6 +141,16 @@ describe('Bendición Divina de Elara', () => {
     for (let turn = 0; turn < 3; turn++) target.reduceStatusEffects()
     expect(getShieldAmount(target)).toBe(0)
     expect(getOutgoingDamageMultiplier(target.statusEffects)).toBe(1)
+  })
+
+  it('permite seleccionar al aliado cuando caduca el escudo', async () => {
+    const ctx = context()
+    await cast(ctx)
+    const target = ctx.target as Warrior
+    for (let turn = 0; turn < 3; turn++) target.reduceStatusEffects()
+    expect(ClericDivineBlessing.isValidTarget!(target)).toBe(true)
+    await cast(ctx)
+    expect(getShieldAmount(target)).toBe(getDivineBlessingAmount(ctx.caster as Cleric))
   })
 
   it('coexiste con Escudo Arcano sin mostrar escudo que no pueda absorber daño', async () => {

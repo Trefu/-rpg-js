@@ -5,7 +5,7 @@ import { useGameStore } from '@/stores/game'
 import { Rogue } from '@/core/heroes/Rogue'
 import { MountainEnemy } from '@/core/enemies/MountainEnemy'
 import { StatusEffects } from '@/core/StatusEffects'
-import { RogueBasicAttack } from '@/core/abilities/Abilities'
+import { RogueBasicAttack, ClericDivineBlessing } from '@/core/abilities/Abilities'
 import { AudioManager } from '@/core/AudioManager'
 import { Warrior } from '@/core/heroes/Warrior'
 import { Cleric } from '@/core/heroes/Cleric'
@@ -24,6 +24,29 @@ beforeEach(() => {
 })
 
 describe('Efectos de ataques enemigos de área', () => {
+  it('rechaza seleccionar un aliado con escudo divino sin gastar energía ni turno', async () => {
+    const game = useGameStore()
+    game.startGame([Cleric.createStarter(), Warrior.createStarter()])
+    const [cleric, ally] = game.activeHeroes
+    cleric.baseStats.agility.value = 1000
+    ally.addStatusEffect({ ...StatusEffects.DIVINE_PROTECTION, absorbRemaining: 42 })
+    const enemy = new MountainEnemy('scout')
+    enemy.baseStats.agility.value = 1
+    const combat = useCombat()
+    try {
+      combat.initializeCombat([enemy])
+      await vi.advanceTimersByTimeAsync(1800)
+      combat.selectAbility(ClericDivineBlessing, 2)
+      expect(combat.isSelectingTarget.value).toBe(true)
+      const energy = cleric.energy
+      combat.selectAlly(ally)
+      expect(cleric.energy).toBe(energy)
+      expect(combat.isSelectingTarget.value).toBe(true)
+      expect(combat.isPlayerTurn.value).toBe(true)
+      expect(ally.statusEffects.find(e => e.type === 'divine_protection')?.absorbRemaining).toBe(42)
+    } finally { combat.cleanup() }
+  })
+
   async function setup(pattern: DefensePatternConfig) {
     const game = useGameStore()
     game.startGame([Warrior.createStarter(), Cleric.createStarter(), Rogue.createStarter()])

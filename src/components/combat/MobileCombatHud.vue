@@ -19,6 +19,7 @@ const props = defineProps<{
     aliveIndexByEnemyId: Record<string, number>
     isSelectingTarget?: boolean
     canTargetAllies?: boolean
+    isAllySelectable?: (hero: Hero | null) => boolean
     activeHeroIndex?: number
     attackedHeroIds?: string[]
     hitPopups?: { heroId: string | null, value: number, key: number, isCrit?: boolean, variant?: 'damage' | 'crit' | 'blocked' | 'heal' | 'energy', suffix?: string, offsetX: number, offsetY: number, duration: number }[]
@@ -263,7 +264,7 @@ const isAllyTargeting = computed(
 )
 
 function canPickAlly(hero: Hero | null): boolean {
-    return !!hero && hero.isAlive && isAllyTargeting.value
+    return !!hero && hero.isAlive && isAllyTargeting.value && (props.isAllySelectable?.(hero) ?? true)
 }
 
 function onHeroPortraitClick() {
@@ -407,7 +408,7 @@ function onAllyRowClick(hero: Hero | null) {
                             empty: !hero,
                             'being-attacked': !!hero && (props.attackedHeroIds ?? []).includes(hero.id),
                             'stats-open': hero && allyStatsOpen[hero.id]
-                        }" :disabled="!hero || (!hero.isAlive && !isAllyTargeting)" @click="onAllyRowClick(hero)">
+                        }" :disabled="!hero || !hero.isAlive || (isAllyTargeting && !canPickAlly(hero))" @click="onAllyRowClick(hero)">
                         <img v-if="hero?.sprite" :src="hero.sprite" :alt="hero?.name ?? ''"
                             class="mobile-hud-ally-sprite" loading="lazy" decoding="async" />
                         <span v-else class="mobile-hud-ally-sprite mobile-hud-ally-sprite-empty">—</span>

@@ -160,6 +160,7 @@ export const DIRTY_STAB: DefensePatternConfig = {
     waveSpeed: 38,
     baseMaxBlockReduction: 0.55,
     damageMultiplier: 0.9,
+    bonusDamageAgainstStatus: { statusType: 'poison', multiplier: 1.25 },
     phases: [phase(8), phase(9)],
     onFailureEffect: { statusType: 'poison', stacks: 2 }
 }

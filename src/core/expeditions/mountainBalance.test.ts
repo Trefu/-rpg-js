@@ -63,7 +63,8 @@ async function battle(heroes: Hero[], enemies: IEnemy[], blockChance: number) {
       const canUse = (a: IAbility) => !(cds[a.type] > 0) && actor.energy >= (a.energyCost ?? 0) && actor.heroism >= (a.heroismCost ?? 0)
       const heal = actor.abilities.find(a => a.type === 'clericHeal' && canUse(a) && wounded.health < wounded.maxHealth * 0.55)
       const ultimate = actor.abilities.find(a => a.heroismCost && canUse(a))
-      const blessingTarget = [...living].filter(hero => hero.id !== actor.id && !hero.hasStatusEffect('divine_empowerment'))
+      const blessingTarget = [...living].filter(hero => hero.id !== actor.id
+        && (actor.abilities.find(a => a.type === 'clericDivineBlessing')?.isValidTarget?.(hero) ?? true))
         .sort((a, b) => a.health / a.maxHealth - b.health / b.maxHealth)[0]
       const blessing = actor.abilities.find(a => a.type === 'clericDivineBlessing' && canUse(a) && blessingTarget)
       const special = actor.abilities.find(a => ['warriorDevastatingStrike', 'clericRadiantStrike', 'roguePoisonBomb'].includes(a.type) && canUse(a))
