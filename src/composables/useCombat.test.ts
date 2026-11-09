@@ -119,6 +119,19 @@ describe('Efectos de ataques enemigos de área', () => {
     } finally { combat.cleanup() }
   })
 
+  it('muestra el GIF de bloqueo una sola vez por fase acertada', async () => {
+    const { combat } = await setup(MOUNTAIN_STAB)
+    try {
+      await combat.handleDefensePhaseComplete({ outcome: 'success', waveColumn: 0, zone: { successColumns: [1], waveSpeed: 30 } })
+      expect(combat.heroVfxEffects.value).toHaveLength(1)
+      expect(combat.heroVfxEffects.value[0]).toMatchObject({ asset: 'hero-block', durationMs: 520 })
+      await vi.advanceTimersByTimeAsync(519)
+      expect(combat.heroVfxEffects.value).toHaveLength(1)
+      await vi.advanceTimersByTimeAsync(1)
+      expect(combat.heroVfxEffects.value).toHaveLength(0)
+    } finally { combat.cleanup() }
+  })
+
   it('propaga también debuffs no periódicos sin perder su duración', async () => {
     const { combat, heroes } = await setup({ ...BOMB_SHRAPNEL, onFailureEffect: { statusType: 'injured', maxDuration: 2 } })
     try {

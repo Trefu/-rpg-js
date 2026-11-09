@@ -427,7 +427,8 @@ const defenseClouded = ref(false)
         target.takeDamage(blockedDmg, { damageType: pattern.damageType })
         pendingDefensePrimaryDamageDealt += blockedDmg
         showPlayerHit(blockedDmg, { heroId: target.id, variant: 'blocked' })
-        showHeroVfx(target.id, { asset: 'hero-block', durationMs: 1000 })
+        // block.gif tiene un ciclo de 520 ms; mantenerlo más tiempo repite el bloqueo.
+        showHeroVfx(target.id, { asset: 'hero-block', durationMs: 520 })
         audioManager.playBlockSound()
         if (typeof target.restoreEnergy === 'function') {
           const restored = target.restoreEnergy(5)
