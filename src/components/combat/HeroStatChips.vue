@@ -451,6 +451,21 @@ onBeforeUnmount(() => {
   z-index: 8;
 }
 
+.stat-chip-hp {
+  --resource-color: var(--jrpg-hp);
+}
+.stat-chip-energy, .stat-chip-mind, .stat-chip-atk-mag, .stat-chip-mag {
+  --resource-color: var(--jrpg-energy);
+}
+.hero-stat-chips :is(.stat-chip-hp, .stat-chip-energy, .stat-chip-mind, .stat-chip-atk-mag, .stat-chip-mag) {
+  border-color: color-mix(in srgb, var(--resource-color) 65%, transparent);
+  background: color-mix(in srgb, var(--resource-color) 18%, transparent);
+}
+.hero-stat-chips :is(.stat-chip-hp, .stat-chip-energy, .stat-chip-mind, .stat-chip-atk-mag, .stat-chip-mag):is(:hover, .tooltip-open) {
+  border-color: var(--resource-color);
+  box-shadow: inset 0 0 0 1px var(--resource-color);
+}
+
 .stat-chip-agi {
   border-color: rgba(255, 230, 102, 0.55);
   background: linear-gradient(135deg, rgba(255, 230, 102, 0.18), rgba(180, 140, 0, 0.25));

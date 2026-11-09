@@ -421,6 +421,7 @@ export const WarlockHex: IAbility = {
 
     const appliedStacks = (target.statusEffects as Array<{ type: string; stacks?: number }>)
       .find(e => e.type === 'curse')?.stacks ?? 1
+    context.playHeroVfx?.(target.id, { asset: 'poison-bomb', durationMs: 900 })
     context.log(`¡${target.name} ha sido maldecido (${appliedStacks}/5)!`)
     context.showAnnouncement(`¡Maldición ${appliedStacks}/5!`, 'status', 1500)
 

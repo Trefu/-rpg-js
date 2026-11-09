@@ -14,7 +14,7 @@
   --jrpg-dim: #987c65;
   --jrpg-danger: #ef9681;
   --jrpg-hp: #8eb875;
-  --jrpg-energy: #8ebacf;
+  --jrpg-energy: var(--jrpg-stat-mind);
   --jrpg-stat-body: #ff8a3a;
   --jrpg-stat-mind: #82b1ff;
   --jrpg-stat-agility: #ffe066;

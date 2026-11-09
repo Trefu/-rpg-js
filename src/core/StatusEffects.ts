@@ -750,8 +750,8 @@ export class StatusEffects {
 
   static readonly ANCESTRAL_GUARD: IStatusEffect = {
     type: 'ancestral_guard', name: 'Guardia ancestral',
-    description: 'Absorbe hasta 20 de daño durante 2 turnos.',
-    turns: 2, icon: defenseIcon, isBuff: true, absorbRemaining: 20, maxAbsorb: 20
+    description: 'Absorbe daño durante 2 turnos. Capacidad: MEN del lanzador × 0.8, redondeada hacia abajo.',
+    turns: 2, icon: defenseIcon, isBuff: true, absorbRemaining: 0, maxAbsorb: 0
   }
 
   static readonly STONE_SHELL: IStatusEffect = {

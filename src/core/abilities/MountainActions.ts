@@ -1,5 +1,7 @@
 import type { DefensePatternConfig } from '../defense/types'
 import type { IAbility } from '../interfaces/IAbility'
+import type { ICharacter, IEnemy } from '../interfaces/ICharacter'
+import { computeRawDamage, F, type DamageStep } from './damagePipeline'
 import { phase } from '../defense/attackPatterns'
 import { StatusEffects } from '../StatusEffects'
 import { registerAbility, registerEnemyAttack } from './registry'
@@ -102,25 +104,53 @@ export const SPIKE_TRAP = attack('Trampa de estacas', 0.8, [9, 8], 28, {
 })
 
 const pause = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
+// Support uses the caster's MEN, including its level growth. No damage
+// variance, criticals or outgoing-damage buffs apply to healing/shields.
+const GUARD_SCALING: DamageStep = { stat: 'mind', coef: 0.8, levelCoef: 0 }
+const MEND_SCALING: DamageStep = { stat: 'mind', coef: 0.65, levelCoef: 0 }
+function supportPreview(caster: ICharacter, scaling: DamageStep, label: string) {
+  const source = caster as IEnemy
+  const value = Math.max(0, Math.floor(computeRawDamage(scaling, source)))
+  return { label, value, formula: `máx(0, ⌊${F.mind(`MEN ${source.baseStats.mind.value}`)} × ${scaling.coef}⌋) = ${F.heal(value)}` }
+}
+
+function mostWoundedAlly(caster: ICharacter, allies?: ICharacter[]) {
+  return (allies ?? [caster]).filter(ally => ally.isAlive)
+    .sort((a, b) => a.health / a.maxHealth - b.health / b.maxHealth)[0]
+}
+
 export const AncestralGuard: IAbility = {
-  name: 'Guardia ancestral', type: 'mountainAncestralGuard', description: 'Protege al aliado enemigo más herido con un escudo de 20 puntos.',
+  name: 'Guardia ancestral', type: 'mountainAncestralGuard', description: 'Protege al aliado enemigo más herido durante 2 turnos. Escudo: MEN del lanzador × 0.8, redondeado hacia abajo.',
   cooldown: 2, tags: ['buff'], icon: shieldIcon, targetType: 'allies-only', requiresTarget: false,
+  previewEffect: caster => supportPreview(caster, GUARD_SCALING, 'Escudo'),
   execute: async ctx => {
-    const ally = (ctx.allies ?? [ctx.caster]).filter(e => e.isAlive)
-      .sort((a, b) => a.health / a.maxHealth - b.health / b.maxHealth)[0]
-    if (ally) { ally.addStatusEffect({ ...StatusEffects.ANCESTRAL_GUARD }); ctx.log(`${ally.name} recibe Guardia ancestral.`) }
+    const ally = mostWoundedAlly(ctx.caster, ctx.allies)
+    const { value } = supportPreview(ctx.caster, GUARD_SCALING, 'Escudo')
+    if (ally && value > 0) {
+      ally.addStatusEffect({ ...StatusEffects.ANCESTRAL_GUARD, absorbRemaining: value, maxAbsorb: value,
+        description: `Absorbe hasta ${value} de daño durante 2 turnos (MEN del lanzador × 0.8).` })
+      ctx.playEnemyVfx?.(ally.id, { asset: 'holy-light', durationMs: 1200 })
+      ctx.log(`${ally.name} recibe Guardia ancestral: ${value} de escudo.`)
+    }
     await pause(ctx.animationDelay)
   }
 }
 registerAbility(AncestralGuard)
 
 export const MountainMend: IAbility = {
-  name: 'Cántico reparador', type: 'mountainMend', description: 'Cura 18 de vida al aliado enemigo más herido.',
+  name: 'Cántico reparador', type: 'mountainMend', description: 'Cura al aliado enemigo más herido. Curación: MEN del lanzador × 0.65, redondeada hacia abajo.',
   cooldown: 2, tags: ['heal'], icon: heartIcon, targetType: 'allies-only', requiresTarget: false,
+  previewEffect: caster => supportPreview(caster, MEND_SCALING, 'Curación'),
   execute: async ctx => {
-    const ally = (ctx.allies ?? [ctx.caster]).filter(e => e.isAlive)
-      .sort((a, b) => a.health / a.maxHealth - b.health / b.maxHealth)[0]
-    if (ally) { const before = ally.health; ally.heal(18); ctx.log(`${ally.name} recupera ${ally.health - before} HP.`) }
+    const ally = mostWoundedAlly(ctx.caster, ctx.allies)
+    const { value } = supportPreview(ctx.caster, MEND_SCALING, 'Curación')
+    if (ally) {
+      const before = ally.health
+      ally.heal(value)
+      ctx.playEnemyVfx?.(ally.id, { asset: 'holy-heal', durationMs: 1200 })
+      ctx.log(`${ally.name} recupera ${ally.health - before} HP.`)
+    }
     await pause(ctx.animationDelay)
   }
 }
@@ -130,7 +160,10 @@ export const AttackOrder: IAbility = {
   name: 'Orden de ataque', type: 'mountainAttackOrder', description: 'Los enemigos aliados hacen +20% de daño durante 2 turnos.',
   cooldown: 3, tags: ['buff'], icon: swordIcon, targetType: 'allies-only', requiresTarget: false,
   execute: async ctx => {
-    for (const ally of ctx.allies ?? [ctx.caster]) if (ally.isAlive) ally.addStatusEffect({ ...StatusEffects.ATTACK_ORDER })
+    for (const ally of ctx.allies ?? [ctx.caster]) if (ally.isAlive) {
+      ally.addStatusEffect({ ...StatusEffects.ATTACK_ORDER })
+      ctx.playEnemyVfx?.(ally.id, { asset: 'haste-aura', durationMs: 900 })
+    }
     ctx.log(`¡${ctx.caster.name} ordena avanzar! +20% de daño durante 2 turnos.`)
     await pause(ctx.animationDelay)
   }
@@ -143,6 +176,7 @@ export const StonePreparation: IAbility = {
   cooldown: 2, tags: ['buff'], icon: shieldIcon, targetType: 'allies-only', requiresTarget: false,
   execute: async ctx => {
     ctx.caster.addStatusEffect({ ...StatusEffects.STONE_SHELL })
+    ctx.playEnemyVfx?.(ctx.caster.id, { asset: 'holy-light', durationMs: 1200 })
     ctx.log('El guardián prepara Impacto de la roca. ¡Aprovecha la vulnerabilidad después de su golpe!')
     await pause(ctx.animationDelay)
   }
