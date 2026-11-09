@@ -41,10 +41,12 @@ describe('Encuentro único del Espectro', () => {
     for (const choice of event.choices) expect(choice.outcome).toMatchObject({ kind: 'ambush', encounter: 'spectral-pass' })
   })
 
-  it('marca a todo el grupo y la muerte ocurre exactamente al tercer turno propio, incluso con escudo', async () => {
+  it('marca a un solo héroe y solo cambia de víctima tras su muerte al tercer turno propio', async () => {
     const ctx = context(SpectralSentence)
-    await SpectralSentence.execute(ctx)
     for (const hero of ctx.opponents) {
+      ctx.target = hero
+      await SpectralSentence.execute(ctx)
+      expect(ctx.opponents.filter(hero => hero.isAlive && hero.hasStatusEffect('death_sentence'))).toEqual([hero])
       expect(hero.statusEffects.find(effect => effect.type === 'death_sentence')?.turns).toBe(3)
       hero.addStatusEffect({ ...StatusEffects.DIVINE_PROTECTION, absorbRemaining: 9999 })
       hero.reduceStatusEffects()
@@ -59,15 +61,36 @@ describe('Encuentro único del Espectro', () => {
     expect(ctx.playHeroVfx).toHaveBeenCalledTimes(3)
   })
 
-  it('disipar la marca no mata y reaplicarla no retrasa la cuenta atrás', async () => {
+  it('ni reaplicar ni cambiar el objetivo reinicia la cuenta o marca a otro héroe vivo', async () => {
     const ctx = context(SpectralSentence)
     await SpectralSentence.execute(ctx)
     ctx.opponents[0].reduceStatusEffects()
+    ctx.target = ctx.opponents[1]
     await SpectralSentence.execute(ctx)
     expect(ctx.opponents[0].statusEffects.find(effect => effect.type === 'death_sentence')?.turns).toBe(2)
+    expect(ctx.opponents[1].hasStatusEffect('death_sentence')).toBe(false)
     ctx.opponents[0].removeStatusEffect('death_sentence')
+    await SpectralSentence.execute(ctx)
+    expect(ctx.opponents.every(hero => !hero.hasStatusEffect('death_sentence'))).toBe(true)
     for (let turn = 0; turn < 4; turn++) ctx.opponents[0].reduceStatusEffects()
     expect(ctx.opponents[0].isAlive).toBe(true)
+    ctx.opponents[0].isAlive = false
+    ctx.opponents[0].health = 0
+    await SpectralSentence.execute(ctx)
+    expect(ctx.opponents[1].hasStatusEffect('death_sentence')).toBe(true)
+  })
+
+  it('su rotación usa otros ataques mientras la víctima vive y vuelve a permitir la marca tras morir', async () => {
+    const ctx = context(SpectralSentence)
+    expect(ctx.caster.selectAttackPattern()).toBe(SpectralSentence)
+    await SpectralSentence.execute(ctx)
+    for (let action = 0; action < 8; action++) {
+      expect(ctx.caster.intention).not.toBe(SpectralSentence.name)
+      expect(ctx.caster.selectAttackPattern()).not.toBe(SpectralSentence)
+    }
+    ctx.opponents[0].isAlive = false
+    expect(Array.from({ length: 4 }, () => ctx.caster.selectAttackPattern())).toContain(SpectralSentence)
+    expect(new Spectre().sentencedHero).toBeNull()
   })
 
   it('Nublado afecta a todos los vivos sin aplicarse al lanzador ni a los muertos', async () => {

@@ -2151,7 +2151,9 @@ const defenseClouded = ref(false)
     combatLog.value = []
     resetAbilityCooldowns()
     if (!config.isTraining) {
-      if (isBoss) {
+      if (enemyList.some(enemy => enemy.combatMusic === 'spectre')) {
+        audioManager.playSpectreCombat()
+      } else if (isBoss) {
         audioManager.playMountainBoss()
       } else {
         audioManager.playMountainCombat()

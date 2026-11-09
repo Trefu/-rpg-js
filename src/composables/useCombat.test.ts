@@ -25,7 +25,20 @@ beforeEach(() => {
 })
 
 describe('Efectos de ataques enemigos de área', () => {
-  it.each([SpectralSentence, SpectralFog])('$name alcanza al grupo completo en el motor de combate', async ability => {
+  it.each(['spectre', 'combat', 'boss'] as const)('elige la música %s sin mezclar otras pistas', track => {
+    const music = { playSpectreCombat: vi.fn(), playMountainCombat: vi.fn(), playMountainBoss: vi.fn() }
+    const audio = new Proxy(music, { get: (target, key) => target[key as keyof typeof music] ?? vi.fn() })
+    vi.spyOn(AudioManager, 'getInstance').mockReturnValue(audio as unknown as AudioManager)
+    const enemy = track === 'spectre' ? new Spectre() : new MountainEnemy('scout')
+    const combat = useCombat()
+    try {
+      combat.initializeCombat([enemy], track === 'boss')
+      expect(music.playSpectreCombat).toHaveBeenCalledTimes(track === 'spectre' ? 1 : 0)
+      expect(music.playMountainCombat).toHaveBeenCalledTimes(track === 'combat' ? 1 : 0)
+      expect(music.playMountainBoss).toHaveBeenCalledTimes(track === 'boss' ? 1 : 0)
+    } finally { combat.cleanup() }
+  })
+  it.each([SpectralSentence, SpectralFog])('$name respeta su alcance en el motor de combate', async ability => {
     const game = useGameStore()
     game.startGame([Warrior.createStarter(), Cleric.createStarter(), Rogue.createStarter()])
     for (const hero of game.activeHeroes) hero.baseStats.agility.value = 1
@@ -37,7 +50,7 @@ describe('Efectos de ataques enemigos de área', () => {
       combat.initializeCombat([spectre])
       await vi.advanceTimersByTimeAsync(5000)
       const type = ability === SpectralSentence ? 'death_sentence' : 'clouded'
-      expect(game.activeHeroes.every(hero => hero.hasStatusEffect(type))).toBe(true)
+      expect(game.activeHeroes.filter(hero => hero.hasStatusEffect(type))).toHaveLength(ability === SpectralSentence ? 1 : 3)
       expect(spectre.hasStatusEffect(type)).toBe(false)
       expect(combat.isDefenseActive.value).toBe(false)
     } finally { combat.cleanup() }

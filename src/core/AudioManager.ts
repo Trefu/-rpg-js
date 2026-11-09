@@ -1,6 +1,6 @@
 import { Howl, Howler } from 'howler'
 
-type MusicTrack = 'menu' | 'combat' | 'boss'
+type MusicTrack = 'menu' | 'combat' | 'boss' | 'spectre'
 type SfxName = 'attack' | 'hit' | 'victory' | 'block' | 'dotFire' | 'dotPoison' | 'dotIce' | 'dotBleed'
 type CuriositySfx = 'curiosityOpen' | 'curiosityConfirm' | 'curiosityReward' | 'curiosityPunishment' | 'curiosityAmbush' | 'curiosityNoop'
 
@@ -10,6 +10,7 @@ const COMBAT_SOURCES = [
     '/assets/music/mountain_ost_2.mp3'
 ]
 const BOSS_SRC = '/assets/music/mountain_ost_boss.mp3'
+const SPECTRE_SRC = '/assets/music/spectre-ost.mp3'
 
 const SFX_SRC: Record<SfxName, string> = {
     attack: '/assets/sounds/Stab 4-1.wav',
@@ -71,6 +72,7 @@ export class AudioManager {
     private currentMusic: MusicTrack | null = null
     private menuHowl: Howl | null = null
     private bossHowl: Howl | null = null
+    private spectreHowl: Howl | null = null
     private combatPool: CombatPool = { howls: [], currentIndex: 0 }
     private soundEffects: Partial<Record<SfxName, Howl>> = {}
     private curiositySfx: Partial<Record<CuriositySfx, Howl>> = {}
@@ -148,6 +150,13 @@ export class AudioManager {
         return this.combatPool.howls
     }
 
+    private getSpectreHowl(): Howl {
+        if (!this.spectreHowl) {
+            this.spectreHowl = new Howl({ src: [SPECTRE_SRC], loop: true, volume: this.musicVolume })
+        }
+        return this.spectreHowl
+    }
+
     private getSfx(name: SfxName): Howl {
         if (!this.soundEffects[name]) {
             this.soundEffects[name] = new Howl({
@@ -199,11 +208,18 @@ export class AudioManager {
         this.tryPlay(this.getBossHowl())
     }
 
+    public playSpectreCombat(): void {
+        this.stopCurrentHowl()
+        this.currentMusic = 'spectre'
+        this.tryPlay(this.getSpectreHowl())
+    }
+
     private stopCurrentHowl(): void {
         if (!this.currentMusic) return
         let howl: Howl | undefined
         if (this.currentMusic === 'menu') howl = this.menuHowl ?? undefined
         else if (this.currentMusic === 'boss') howl = this.bossHowl ?? undefined
+        else if (this.currentMusic === 'spectre') howl = this.spectreHowl ?? undefined
         else if (this.currentMusic === 'combat') howl = this.combatPool.howls[this.combatPool.currentIndex]
         if (howl) howl.stop()
     }
@@ -221,6 +237,7 @@ export class AudioManager {
         if (!this.currentMusic) return
         if (this.currentMusic === 'menu') this.tryPlay(this.getMenuHowl())
         else if (this.currentMusic === 'boss') this.tryPlay(this.getBossHowl())
+        else if (this.currentMusic === 'spectre') this.tryPlay(this.getSpectreHowl())
         else if (this.currentMusic === 'combat') this.tryPlay(this.combatPool.howls[this.combatPool.currentIndex])
     }
 
@@ -313,6 +330,7 @@ export class AudioManager {
         this.musicVolume = Math.max(0, Math.min(1, volume))
         if (this.menuHowl) this.menuHowl.volume(this.musicVolume)
         if (this.bossHowl) this.bossHowl.volume(this.musicVolume)
+        if (this.spectreHowl) this.spectreHowl.volume(this.musicVolume)
         this.combatPool.howls.forEach(h => h.volume(this.musicVolume))
     }
 
@@ -345,6 +363,7 @@ export class AudioManager {
         this.stopCurrentMusic()
         this.menuHowl?.unload()
         this.bossHowl?.unload()
+        this.spectreHowl?.unload()
         this.combatPool.howls.forEach(h => h.unload())
         Object.values(this.soundEffects).forEach(sound => sound.unload())
         this.customSounds.forEach(howl => howl.unload())

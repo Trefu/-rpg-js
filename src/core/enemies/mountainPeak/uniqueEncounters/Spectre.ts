@@ -1,6 +1,6 @@
 import { Enemy } from '../../Enemy'
 import type { AbilityContext, IAbility } from '../../../interfaces/IAbility'
-import type { IEnemy } from '../../../interfaces/ICharacter'
+import type { ICharacter, IEnemy } from '../../../interfaces/ICharacter'
 import { StatusEffects } from '../../../StatusEffects'
 import { computeRawDamage, damageStep } from '../../../abilities/damagePipeline'
 import { registerAbility } from '../../../abilities/registry'
@@ -12,17 +12,26 @@ const livingTargets = (ctx: AbilityContext) => (ctx.opponents ?? (ctx.target ? [
 
 export const SpectralSentence: IAbility = {
   name: 'Sentencia espectral', type: 'spectralSentence',
-  description: 'Marca a todos los héroes vivos: morirán al comenzar su tercer turno marcado. Puede disiparse.',
-  cooldown: 3, targetType: 'enemies-only', requiresTarget: false, tags: ['debuff'], icon: curseIcon,
+  description: 'Marca a un héroe: morirá al comenzar su tercer turno marcado. Puede disiparse. No puede marcar a otro hasta que el elegido muera.',
+  cooldown: 3, targetType: 'enemies-only', requiresTarget: true, tags: ['debuff'], icon: curseIcon,
   execute: async ctx => {
-    for (const hero of livingTargets(ctx)) {
-      // Recasting cannot postpone an existing countdown.
-      if (!hero.hasStatusEffect('death_sentence')) hero.addStatusEffect({ ...StatusEffects.DEATH_SENTENCE })
+    const spectre = ctx.caster as Spectre
+    // Keep the lock even if the mark is dispelled: only death releases it.
+    if (spectre.sentencedHero?.isAlive) {
+      ctx.log(`${spectre.name} sigue acechando a ${spectre.sentencedHero.name}.`)
+      await wait(ctx)
+      return
+    }
+    const targets = livingTargets(ctx)
+    const hero = targets.find(hero => hero.id === ctx.target?.id) ?? targets[0]
+    if (hero) {
+      spectre.sentencedHero = hero
+      hero.addStatusEffect({ ...StatusEffects.DEATH_SENTENCE })
       ctx.playHeroVfx?.(hero.id, { asset: 'holy-light', durationMs: 1200 })
       const remaining = hero.statusEffects.find(effect => effect.type === 'death_sentence')!.turns
       ctx.log(`${hero.name}: Sentencia de muerte. Morirá en ${remaining} turnos si no se disipa.`)
+      ctx.showAnnouncement(`${hero.name} · Sentencia de muerte · 3 turnos`, 'status', 1500)
     }
-    ctx.showAnnouncement('Sentencia de muerte · 3 turnos', 'status', 1500)
     await wait(ctx)
   }
 }
@@ -75,8 +84,10 @@ for (const ability of [SpectralSentence, SpectralFog, SpectralTouch, SpectralRen
 
 /** Only instantiated by mountain-peak's map-assigned spectral event, never a random patrol. */
 export class Spectre extends Enemy {
+  readonly combatMusic = 'spectre' as const
   readonly sprite = sprite
   readonly enemyGroup = 'skeletons' as const
+  public sentencedHero: ICharacter | null = null
   private actionIndex = 0
   constructor(level = 3) {
     super({ id: `mountain-spectre-${Math.random().toString(36).slice(2, 10)}`, name: 'Espectro del paso', level,
@@ -84,8 +95,18 @@ export class Spectre extends Enemy {
       baseStats: { mind: { value: 30, growthPerLevel: 1.5 }, agility: { value: 9, growthPerLevel: 0.35 } } })
     this.attackPatterns = [SpectralSentence, SpectralFog, SpectralTouch, SpectralRend]
   }
-  get intention() { return this.attackPatterns[this.actionIndex].name }
+  private skipLockedSentence() {
+    if (this.sentencedHero?.isAlive && this.attackPatterns[this.actionIndex] === SpectralSentence) {
+      this.actionIndex = (this.actionIndex + 1) % this.attackPatterns.length
+    }
+  }
+  get intention() {
+    const index = this.sentencedHero?.isAlive && this.attackPatterns[this.actionIndex] === SpectralSentence
+      ? (this.actionIndex + 1) % this.attackPatterns.length : this.actionIndex
+    return this.attackPatterns[index].name
+  }
   override selectAttackPattern() {
+    this.skipLockedSentence()
     const action = this.attackPatterns[this.actionIndex]
     this.actionIndex = (this.actionIndex + 1) % this.attackPatterns.length
     return action

@@ -16,6 +16,11 @@ try {
     await page.evaluate(async () => {
       const { MOUNTAIN_PEAK } = await import('/src/core/expeditions/mountainPeak.ts')
       MOUNTAIN_PEAK.generator.haunting.chance = 1
+      // Headless browsers never unlock Web Audio; spy on the instance instead.
+      const { AudioManager } = await import('/src/core/AudioManager.ts')
+      const manager = AudioManager.getInstance()
+      window.__spectreMusicCalls = 0
+      manager.playSpectreCombat = () => { window.__spectreMusicCalls++ }
       window.__gameStore.beginRun()
     })
     await page.getByRole('dialog', { name: 'Algo acecha en la montaña.' }).waitFor()
@@ -50,6 +55,11 @@ try {
     if (process.env.CAMPAIGN_SCREENSHOTS) await page.screenshot({ path: `${process.env.CAMPAIGN_SCREENSHOTS}/spectre-event-${index}.png` })
     await dialog.getByRole('button', { name: 'CORRER', exact: true }).nth(index).click()
     await page.locator('.enemy-card').waitFor()
+    assert.equal(await page.evaluate(() => window.__spectreMusicCalls), 1)
+    if (index === 0) {
+      const asset = await page.request.get('http://localhost:5193/assets/music/spectre-ost.mp3')
+      assert.equal(asset.status(), 200)
+    }
     assert.equal(await page.evaluate(() => window.__gameStore.currentLocation), 'combat')
     assert.deepEqual(await page.evaluate(() => window.__expeditionStore.selectedNode.enemies.map(enemy => enemy.name)), ['Espectro del paso'])
     assert.equal(await dialog.count(), 0)
@@ -68,7 +78,7 @@ try {
   await page.locator('.expedition-map').waitFor()
   assert.equal(await page.locator('.mountain-omen').count(), 0)
   assert.equal(await page.evaluate(() => window.__expeditionStore.currentExpedition.nodes.some(node => node.curiosityEventId === 'spectral-pass')), false)
-  console.log('OK: presagio de 3,5s, movimiento reducido, evento obligatorio en tercera fila y los tres CORRER conducen al Espectro sin cierre ni Escape.')
+  console.log('OK: presagio de 3,5s, movimiento reducido, evento obligatorio en tercera fila, los tres CORRER conducen al Espectro y su OST suena en su combate.')
 } finally {
   await browser?.close()
   await server.close()
