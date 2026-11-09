@@ -60,6 +60,7 @@ async function toggleHero(classId: string) {
     </div>
     <header class="camp-heading">
       <h1>Campamento</h1>
+      <p v-if="expedition.generator.haunting?.chance === 1" class="campaign-note" role="status">Solo pruebas: Espectro al 100%.</p>
     </header>
 
     <section v-if="game.lastRun" class="run-summary campaign-panel" :class="{ victorious: game.lastRun.victory }">

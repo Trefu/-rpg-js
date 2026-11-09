@@ -43,7 +43,7 @@ describe('rutas ampliadas de expedición', () => {
       id: 'branching-test',
       totalFloors: 5,
       generator: {
-        ...MOUNTAIN_PEAK.generator, minNodesBeforeBoss: 3, maxPathsPerRow: 4,
+        ...MOUNTAIN_PEAK.generator, haunting: undefined, minNodesBeforeBoss: 3, maxPathsPerRow: 4,
         forcedSingleRows: [], forcedCombatRows: [], forcedNodes: [], recruitHeroRow: undefined,
         shopChance: 0, curiosityChance: 0, minCuriosityNodes: 0, maxCuriosityNodes: 0,
         minShopNodes: 0, maxShopNodes: 0
@@ -127,7 +127,9 @@ describe('rutas ampliadas de expedición', () => {
 
   it('un sorteo igual al límite de 10% no crea evento ni señal espectral', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.99).mockReturnValueOnce(0.1)
-    const nodes = generator.generateExpeditionNodes(MOUNTAIN_PEAK)
+    const config = { ...MOUNTAIN_PEAK, generator: { ...MOUNTAIN_PEAK.generator,
+      haunting: { ...MOUNTAIN_PEAK.generator.haunting!, chance: 0.1 } } }
+    const nodes = generator.generateExpeditionNodes(config)
     expect(nodes.some(node => node.curiosityEventId === 'spectral-pass')).toBe(false)
   })
 })
