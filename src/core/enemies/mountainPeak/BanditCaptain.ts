@@ -1,8 +1,8 @@
-import { Enemy } from './Enemy'
+import { Enemy } from '../Enemy'
 import banditCaptainSprite from '@/assets/sprites/enemies/bandit-captain.png'
-import type { ICharacter } from '../interfaces/ICharacter'
-import type { DefensePatternConfig } from '../defense/types'
-import { CRUSHING_BLOW, ENTANGLE, FLASH, GUST_OF_FOG, SLASH, TRIPLE_COMBO } from '../abilities/EnemyAttacks'
+import type { ICharacter } from '../../interfaces/ICharacter'
+import type { DefensePatternConfig } from '../../defense/types'
+import { CRUSHING_BLOW, ENTANGLE, FLASH, GUST_OF_FOG, SLASH, TRIPLE_COMBO } from '../../abilities/EnemyAttacks'
 
 export class BanditCaptain extends Enemy {
     public readonly sprite = banditCaptainSprite

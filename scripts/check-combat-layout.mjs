@@ -13,7 +13,7 @@ try {
   await page.goto('http://localhost:5192')
   await page.locator('.camp-view').waitFor()
   await page.evaluate(async () => {
-    const { MountainEnemy } = await import('/src/core/enemies/MountainEnemy.ts')
+    const { MountainEnemy } = await import('/src/core/enemies/mountainPeak/MountainEnemy.ts')
     const { StatusEffects } = await import('/src/core/StatusEffects.ts')
     const game = window.__gameStore
     game.setPartyHeroes(['warrior', 'cleric', 'rogue'])

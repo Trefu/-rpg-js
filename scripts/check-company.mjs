@@ -60,7 +60,7 @@ try {
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true)
   await page.getByRole('button', { name: 'Continuar la expedición' }).click()
   await page.evaluate(async () => {
-    const { MountainEnemy } = await import('/src/core/enemies/MountainEnemy.ts')
+    const { MountainEnemy } = await import('/src/core/enemies/mountainPeak/MountainEnemy.ts')
     const expedition = window.__expeditionStore
     const node = expedition.currentExpedition.nodes.find(n => expedition.availableNodes.includes(n.id))
     node.type = 'combat'

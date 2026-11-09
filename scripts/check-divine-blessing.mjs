@@ -15,7 +15,7 @@ try {
   await page.evaluate(async () => {
     const { Cleric } = await import('/src/core/heroes/Cleric.ts')
     const { Warrior } = await import('/src/core/heroes/Warrior.ts')
-    const { MountainEnemy } = await import('/src/core/enemies/MountainEnemy.ts')
+    const { MountainEnemy } = await import('/src/core/enemies/mountainPeak/MountainEnemy.ts')
     const game = window.__gameStore
     game.startGame([Cleric.createStarter(), Warrior.createStarter()])
     game.beginRun()

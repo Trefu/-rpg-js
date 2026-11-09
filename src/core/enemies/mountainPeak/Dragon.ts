@@ -1,7 +1,7 @@
-import { Enemy } from './Enemy'
+import { Enemy } from '../Enemy'
 import dragonSprite from '@/assets/sprites/enemies/dragon.png'
-import type { EnemyAction } from '../interfaces/ICharacter'
-import { FIRE_BREATH, DEEP_SLASH, TRIPLE_COMBO, DragonRoar } from '../abilities/EnemyAttacks'
+import type { EnemyAction } from '../../interfaces/ICharacter'
+import { FIRE_BREATH, DEEP_SLASH, TRIPLE_COMBO, DragonRoar } from '../../abilities/EnemyAttacks'
 
 export class Dragon extends Enemy {
   public readonly sprite = dragonSprite

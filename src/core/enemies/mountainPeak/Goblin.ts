@@ -1,8 +1,8 @@
-import { Enemy } from './Enemy'
+import { Enemy } from '../Enemy'
 import goblinSprite from '@/assets/sprites/enemies/goblin.png'
-import type { ICharacter } from '../interfaces/ICharacter'
-import type { DefensePatternConfig } from '../defense/types'
-import { FLASH, SLASH, DEEP_SLASH, TRIPLE_COMBO } from '../abilities/EnemyAttacks'
+import type { ICharacter } from '../../interfaces/ICharacter'
+import type { DefensePatternConfig } from '../../defense/types'
+import { FLASH, SLASH, DEEP_SLASH, TRIPLE_COMBO } from '../../abilities/EnemyAttacks'
 
 export class Goblin extends Enemy {
   public readonly sprite = goblinSprite

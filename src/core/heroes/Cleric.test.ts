@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Cleric } from './Cleric'
 import { Warrior } from './Warrior'
-import { MountainEnemy } from '../enemies/MountainEnemy'
+import { MountainEnemy } from '../enemies/mountainPeak/MountainEnemy'
 import { ClericDivineBlessing, getDivineBlessingAmount } from '../abilities/Abilities'
 import { getAbility } from '../abilities/registry'
 import { StatusEffects } from '../StatusEffects'

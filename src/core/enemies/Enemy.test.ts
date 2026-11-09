@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { Enemy } from '@/core/enemies/Enemy'
 import { Dummy } from '@/core/enemies/Dummy'
-import { Goblin } from '@/core/enemies/Goblin'
-import { Dragon } from '@/core/enemies/Dragon'
+import { Goblin } from '@/core/enemies/mountainPeak/Goblin'
+import { Dragon } from '@/core/enemies/mountainPeak/Dragon'
 import { SLASH, POISON_ARROW, FIRE_BREATH } from '@/core/abilities/EnemyAttacks'
 import { computeAgilityCritBonus } from '@/core/crit'
 

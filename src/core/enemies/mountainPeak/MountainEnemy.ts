@@ -1,9 +1,9 @@
-import { Enemy } from './Enemy'
-import type { EnemyAction, ICharacter } from '../interfaces/ICharacter'
-import type { Hero } from '../Hero'
-import type { DefensePatternConfig } from '../defense/types'
-import type { EnemyGroupId } from './groups'
-import { StatusEffects } from '../StatusEffects'
+import { Enemy } from '../Enemy'
+import type { EnemyAction, ICharacter } from '../../interfaces/ICharacter'
+import type { Hero } from '../../Hero'
+import type { DefensePatternConfig } from '../../defense/types'
+import type { EnemyGroupId } from '../groups'
+import { StatusEffects } from '../../StatusEffects'
 import {
   AncestralGuard, AttackOrder, MountainMend, StonePreparation, STONE_SMASH,
   MOUNTAIN_STAB, MOUNTAIN_SLASH, MOUNTAIN_JAB, MOUNTAIN_SNARE, MOUNTAIN_ARROW, MOUNTAIN_POISON_ARROW,
@@ -12,12 +12,12 @@ import {
   DRAGON_CLAWS, DRAGON_BREATH, DRAGON_TAIL, BOMB_SHRAPNEL, BOMB_FIRE, BOMB_SMOKE, BOMB_CHAIN,
   EARTH_SPIKES, EARTH_BOULDER, BEAR_MAUL, BEAR_CRUSH, MINING_PICK, GRAVEL_SHOWER, SPIKE_TRAP,
   GOBLIN_ROYAL_STRIKE, GOBLIN_SCEPTER, GOBLIN_ROYAL_SWEEP, GOBLIN_ROYAL_COMBO
-} from '../abilities/MountainActions'
+} from '../../abilities/MountainActions'
 import {
   DragonRoar, ENTANGLE, TRIPLE_ARROW, HEAVY_ARROW, QUICK_CLAWS, GUST_OF_FOG, WarlockHex,
   SLASH, DEEP_SLASH, QUICK_STRIKE, DOUBLE_COMBO, POISON_ARROW, FLASH,
   AXE_CLEAVE, AXE_HOOK, MULTIPLE_AXE_STRIKES, CRUSHING_BLOW
-} from '../abilities/EnemyAttacks'
+} from '../../abilities/EnemyAttacks'
 import { GOBLIN_WARLOCK_ATTACKS } from './GoblinWarlock'
 import goblinSprite from '@/assets/sprites/enemies/goblin.png'
 import archerSprite from '@/assets/sprites/enemies/goblin-archer.png'

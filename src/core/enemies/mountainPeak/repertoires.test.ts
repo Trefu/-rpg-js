@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { EnemyAction, IEnemy } from '../interfaces/ICharacter'
+import type { EnemyAction, IEnemy } from '../../interfaces/ICharacter'
 import { Goblin } from './Goblin'
 import { GoblinArcher } from './GoblinArcher'
 import { GoblinWarlock } from './GoblinWarlock'
@@ -12,8 +12,8 @@ import { Orc } from './Orc'
 import { OrcArcher } from './OrcArcher'
 import { Dragon } from './Dragon'
 import { MountainEnemy, MOUNTAIN_ROLES } from './MountainEnemy'
-import { ENTANGLE } from '../abilities/EnemyAttacks'
-import { getAbility, getEnemyAttack } from '../abilities/registry'
+import { ENTANGLE } from '../../abilities/EnemyAttacks'
+import { getAbility, getEnemyAttack } from '../../abilities/registry'
 
 /** Support actions (ally buffs/heals) never count towards the offensive minimum. */
 function offensiveNames(actions: EnemyAction[]): string[] {

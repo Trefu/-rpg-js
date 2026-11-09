@@ -1,4 +1,4 @@
-import { MountainEnemy, type MountainRole } from '../enemies/MountainEnemy'
+import { MountainEnemy, type MountainRole } from '../enemies/mountainPeak/MountainEnemy'
 import { mob } from './encounters'
 import type { Encounter, IExpeditionConfig } from './types'
 import type { EnemyGroupId } from '../enemies/groups'

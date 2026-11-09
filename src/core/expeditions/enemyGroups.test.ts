@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { MOUNTAIN_PEAK } from './mountainPeak'
 import { ENEMY_GROUPS, type EnemyGroupId } from '../enemies/groups'
-import { MountainEnemy, MOUNTAIN_ROLES } from '../enemies/MountainEnemy'
+import { MountainEnemy, MOUNTAIN_ROLES } from '../enemies/mountainPeak/MountainEnemy'
 import { getEnemiesForConfig, resolveEnemyGroup } from '../zones/EnemyPools'
 import { mob, resolveEncounter, resolveEncounterById } from './encounters'
 import { resolveAmbushEnemies } from './ambushes'

@@ -1,7 +1,7 @@
-import { Enemy } from './Enemy'
+import { Enemy } from '../Enemy'
 import goblinWarlockSprite from '@/assets/sprites/enemies/goblin-warlock.png'
-import type { ICharacter, EnemyAction } from '../interfaces/ICharacter'
-import { EMBER, WarlockHex, GLACIAL_BREATH, GUST_OF_FOG, FLASH } from '../abilities/EnemyAttacks'
+import type { ICharacter, EnemyAction } from '../../interfaces/ICharacter'
+import { EMBER, WarlockHex, GLACIAL_BREATH, GUST_OF_FOG, FLASH } from '../../abilities/EnemyAttacks'
 
 export const GOBLIN_WARLOCK_ATTACKS: EnemyAction[] = [EMBER, WarlockHex, GLACIAL_BREATH, GUST_OF_FOG, FLASH]
 

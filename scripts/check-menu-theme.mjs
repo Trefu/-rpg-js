@@ -61,7 +61,7 @@ try {
   await page.emulateMedia({ reducedMotion: 'no-preference' })
 
   await page.evaluate(async () => {
-    const { MountainEnemy } = await import('/src/core/enemies/MountainEnemy.ts')
+    const { MountainEnemy } = await import('/src/core/enemies/mountainPeak/MountainEnemy.ts')
     window.__gameStore.finishRun(false)
     window.__gameStore.beginRun()
     const start = window.__expeditionStore.currentExpedition.nodes.find(node => node.id === 'start')
