@@ -363,8 +363,8 @@ function formatTurnsLabel(turns: number): string {
   height: 14px;
   padding: 0 3px;
   border-radius: 999px;
-  background: linear-gradient(135deg, #b388ff, #6a40c4);
-  color: #fff;
+  background: var(--jrpg-dot-stacks-background);
+  color: var(--jrpg-dot-stacks-text);
   font-size: 0.55rem;
   font-weight: 800;
   display: inline-flex;

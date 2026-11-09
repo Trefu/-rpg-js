@@ -313,7 +313,7 @@ function onAllyRowClick(hero: Hero | null) {
                     v-for="effect in heroStatusIcons"
                     :key="effect.type"
                     class="mobile-hud-status-icon"
-                    :class="['kind-' + (effect.isBuff ? 'buff' : 'debuff')]"
+                    :class="['kind-' + (effect.isBuff ? 'buff' : 'debuff'), { 'is-dot': ['burn', 'poison', 'freeze', 'bleed'].includes(effect.type) }]"
                     :title="effect.name"
                 >
                     <img :src="effect.icon" :alt="effect.name" />
@@ -720,6 +720,11 @@ function onAllyRowClick(hero: Hero | null) {
 .mobile-hud-status-icon.kind-buff .mobile-hud-status-icon-stacks {
     background: #ffd60a;
     color: #1a1a1a;
+}
+
+.mobile-hud-status-icon.is-dot .mobile-hud-status-icon-stacks {
+    background: var(--jrpg-dot-stacks-background);
+    color: var(--jrpg-dot-stacks-text);
 }
 
 .mobile-hud-info {

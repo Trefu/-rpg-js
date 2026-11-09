@@ -372,7 +372,7 @@ defineExpose({
             v-for="effect in buffDebuffEffects"
             :key="effect.type"
             class="hero-status-icon"
-            :class="['kind-' + (effect.isBuff ? 'buff' : 'debuff')]"
+            :class="['kind-' + (effect.isBuff ? 'buff' : 'debuff'), { 'is-dot': effect.type === 'bleed' }]"
             :title="effect.name"
           >
             <img :src="effect.icon" :alt="effect.name" />
@@ -709,8 +709,8 @@ defineExpose({
   height: 18px;
   padding: 0 4px;
   border-radius: 9px;
-  background: linear-gradient(180deg, #ffe066 0%, #ff8a00 100%);
-  color: #1a1a2e;
+  background: var(--jrpg-dot-stacks-background);
+  color: var(--jrpg-dot-stacks-text);
   font-family: 'Courier New', monospace;
   font-size: 0.72rem;
   font-weight: 900;
@@ -890,6 +890,11 @@ defineExpose({
 .hero-status-icon.kind-buff .hero-status-icon-stacks {
   background: #ffd60a;
   color: #1a1a1a;
+}
+
+.hero-status-icon.is-dot .hero-status-icon-stacks {
+  background: var(--jrpg-dot-stacks-background);
+  color: var(--jrpg-dot-stacks-text);
 }
 
 .bar-line {

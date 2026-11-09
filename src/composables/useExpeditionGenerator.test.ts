@@ -107,7 +107,8 @@ describe('rutas ampliadas de expedición', () => {
   it.each([0, 1, 50])('el Espectro se sortea una vez y fuerza la tercera fila con maxRetries=%s', maxRetries => {
     for (const recruitedHeroClassIds of [[], ['warrior', 'cleric', 'rogue']]) {
       vi.spyOn(Math, 'random').mockReturnValue(0.99).mockReturnValueOnce(0.0999)
-      const config = { ...MOUNTAIN_PEAK, generator: { ...MOUNTAIN_PEAK.generator, maxRetries } }
+      const config = { ...MOUNTAIN_PEAK, generator: { ...MOUNTAIN_PEAK.generator, maxRetries,
+        haunting: { ...MOUNTAIN_PEAK.generator.haunting!, chance: 0.1 } } }
       const rules = JSON.stringify(config)
       const nodes = generator.generateExpeditionNodes(config, { recruitedHeroClassIds })
       const haunted = nodes.filter(node => node.curiosityEventId === 'spectral-pass')

@@ -176,6 +176,27 @@ afterEach(() => {
 })
 
 describe('Daño periódico de enemigos en el combate real', () => {
+  it.each([StatusEffects.POISON, StatusEffects.BURN, StatusEffects.BLEED, StatusEffects.FREEZE])(
+    '$name notifica el daño del héroe también con un solo stack', async effect => {
+      const hero = useGameStore().activeHero!
+      hero.baseStats.agility.value = 1000
+      const enemy = new MountainEnemy('scout')
+      enemy.baseStats.agility.value = 1
+      const combat = useCombat()
+      combat.announcer.clear()
+      const announce = vi.spyOn(combat.announcer, 'show')
+      try {
+        hero.addStatusEffect({ ...effect, stacks: 1, turns: 3 })
+        combat.initializeCombat([enemy])
+        await vi.advanceTimersByTimeAsync(6000)
+        expect(announce).toHaveBeenCalledWith(
+          expect.stringContaining(`${hero.name} recibe 1 de daño por `),
+          'status', 1800, expect.any(Object)
+        )
+      } finally { combat.cleanup() }
+    }
+  )
+
   it('el veneno aplicado por la daga de Dagel causa daño en el siguiente turno del enemigo', async () => {
     const hero = useGameStore().activeHero!
     const enemy = new MountainEnemy('guardian', 3)

@@ -13,6 +13,8 @@
   --jrpg-muted: #d3b798;
   --jrpg-dim: #987c65;
   --jrpg-danger: #ef9681;
+  --jrpg-dot-stacks-background: linear-gradient(135deg, #b388ff, #6a40c4);
+  --jrpg-dot-stacks-text: #fff;
   --jrpg-hp: #8eb875;
   --jrpg-energy: var(--jrpg-stat-mind);
   --jrpg-stat-body: #ff8a3a;

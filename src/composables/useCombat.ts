@@ -1563,10 +1563,9 @@ const defenseClouded = ref(false)
         if (DO_STATUS_TYPES.has(effect.type)) {
           const stacks = effect.stacks ?? 1
           const dmg = stacks
-          const stacksLabel = stacks > 1 ? ` ${stacks}` : ''
           const damageKindLabel = DOT_KIND_LABEL[effect.type] ?? 'daño'
           showAnnouncement(
-            `${p.name} recibe${stacksLabel} de daño por ${damageKindLabel}!`,
+            `${p.name} recibe ${dmg} de daño por ${damageKindLabel}!`,
             'status',
             BANNER_TOTAL
           )
