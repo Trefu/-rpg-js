@@ -130,6 +130,11 @@ const GROUP_ROLES: Record<EnemyGroupId, readonly MountainRole[]> = {
 
 /** Expedition-specific stats keep training and other enemy variants independent. */
 export class MountainEnemy extends Enemy {
+  // Buffed per-level scaling: a full run was reachable without losses.
+  static readonly STAT_GROWTH_PER_LEVEL = 2.0
+  static readonly AGILITY_GROWTH_PER_LEVEL = 0.5
+  static readonly CONSTITUTION_GROWTH_PER_LEVEL = 0.9
+  static readonly HP_GROWTH_PER_LEVEL = 1.3
   readonly sprite: string
   get isBoss(): boolean { return this.role === 'captain' || this.role === 'dragon' }
   get enemyGroup(): EnemyGroupId {
@@ -146,12 +151,14 @@ export class MountainEnemy extends Enemy {
     const spec = ROLES[role]
     super({
       id: `mountain-${role}-${Math.random().toString(36).slice(2, 10)}`, name: spec.name, level,
-      maxHealth: (spec.hp + (level - 1) * spec.growth) * (role === 'captain' || role === 'dragon' ? 1 : 3),
+      maxHealth: Math.round((spec.hp + (level - 1) * spec.growth * MountainEnemy.HP_GROWTH_PER_LEVEL) * (role === 'captain' || role === 'dragon' ? 1 : 3)),
       experienceReward: Math.floor((spec.xp + (level - 1) * 3) * (role === 'scout' || role === 'archer' || role === 'dragon' ? 1 : 0.65)),
       goldReward: { min: spec.gold, max: spec.gold + 4 }, critChance: role === 'dragon' ? 3 : 0,
       baseStats: {
-        body: { value: spec.body, growthPerLevel: 1.5 }, mind: { value: spec.mind, growthPerLevel: 1.5 },
-        agility: { value: spec.agility, growthPerLevel: 0.35 }, constitution: { value: 10, growthPerLevel: 0.5 }
+        body: { value: spec.body, growthPerLevel: MountainEnemy.STAT_GROWTH_PER_LEVEL },
+        mind: { value: spec.mind, growthPerLevel: MountainEnemy.STAT_GROWTH_PER_LEVEL },
+        agility: { value: spec.agility, growthPerLevel: MountainEnemy.AGILITY_GROWTH_PER_LEVEL },
+        constitution: { value: 10, growthPerLevel: MountainEnemy.CONSTITUTION_GROWTH_PER_LEVEL }
       }, enrageThreshold: role === 'dragon' ? 30 : null
     })
     this.sprite = spec.sprite

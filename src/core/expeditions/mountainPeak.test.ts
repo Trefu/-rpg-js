@@ -22,14 +22,24 @@ function seeded(seed: number) {
 
 describe('Montañas Rocosas', () => {
   it('triplica la vida común escalada por nivel sin cambiar la de los jefes', () => {
-    expect(new MountainEnemy('scout', 3).maxHealth).toBe((28 + 2 * 10) * 3)
-    expect(new MountainEnemy('guardian', 3).maxHealth).toBe((110 + 2 * 25) * 3)
-    expect(new MountainEnemy('captain', 3).maxHealth).toBe(300 + 2 * 60)
-    expect(new MountainEnemy('dragon', 5).maxHealth).toBe(1800 + 4 * 100)
+    expect(new MountainEnemy('scout', 3).maxHealth).toBe(Math.round((28 + 2 * 10 * MountainEnemy.HP_GROWTH_PER_LEVEL) * 3))
+    expect(new MountainEnemy('guardian', 3).maxHealth).toBe(Math.round((110 + 2 * 25 * MountainEnemy.HP_GROWTH_PER_LEVEL) * 3))
+    expect(new MountainEnemy('captain', 3).maxHealth).toBe(Math.round(300 + 2 * 60 * MountainEnemy.HP_GROWTH_PER_LEVEL))
+    expect(new MountainEnemy('dragon', 5).maxHealth).toBe(Math.round(1800 + 4 * 100 * MountainEnemy.HP_GROWTH_PER_LEVEL))
     for (const role of MOUNTAIN_ROLES) {
       const enemy = new MountainEnemy(role, 3)
       expect(enemy.health).toBe(enemy.maxHealth)
     }
+  })
+
+  it('el escalado por nivel buffeado hace que un enemigo tardío golpee y resista más', () => {
+    const scout = new MountainEnemy('scout', 5)
+    expect(scout.baseStats.body.value).toBe(20 + 4 * MountainEnemy.STAT_GROWTH_PER_LEVEL)
+    expect(scout.baseStats.mind.value).toBe(10 + 4 * MountainEnemy.STAT_GROWTH_PER_LEVEL)
+    expect(scout.baseStats.agility.value).toBe(9 + 4 * MountainEnemy.AGILITY_GROWTH_PER_LEVEL)
+    expect(scout.baseStats.constitution.value).toBe(10 + 4 * MountainEnemy.CONSTITUTION_GROWTH_PER_LEVEL)
+    expect(scout.maxHealth).toBe(Math.round((28 + 4 * 10 * MountainEnemy.HP_GROWTH_PER_LEVEL) * 3))
+    expect(new MountainEnemy('scout', 5).defense()).toBeGreaterThan(new MountainEnemy('scout', 1).defense())
   })
 
   it('duplica exactamente el daño físico y mágico común, incluidos críticos y buffs', () => {
@@ -137,13 +147,13 @@ describe('Montañas Rocosas', () => {
       await vi.runAllTimersAsync()
       await promise
     }
-    // Chamán Nv. 2: MEN 28.5 → 18 HP de cura y 22 de escudo.
+    // Chamán Nv. 2: MEN 29 → 18 HP de cura y 23 de escudo.
     expect(guardian.health).toBe(48)
     expect(hero.health).toBe(10)
     expect(guardian.hasStatusEffect('attack_order')).toBe(true)
     expect(hero.statusEffects).toHaveLength(0)
     guardian.takeDamage(25, { damageType: 'physical' })
-    expect(guardian.health).toBe(45)
+    expect(guardian.health).toBe(46)
     expect(guardian.hasStatusEffect('ancestral_guard')).toBe(false)
   })
 

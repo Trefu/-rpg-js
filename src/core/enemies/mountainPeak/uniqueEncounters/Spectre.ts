@@ -89,10 +89,11 @@ export class Spectre extends Enemy {
   readonly enemyGroup = 'skeletons' as const
   public sentencedHero: ICharacter | null = null
   private actionIndex = 0
-  constructor(level = 3) {
+  // Testing buff: doubled stats and level 6. Halve these values when restoring the 10% haunt chance.
+  constructor(level = 6) {
     super({ id: `mountain-spectre-${Math.random().toString(36).slice(2, 10)}`, name: 'Espectro del paso', level,
-      maxHealth: 120 + (level - 1) * 25, experienceReward: 100, goldReward: { min: 60, max: 80 }, critChance: 0,
-      baseStats: { mind: { value: 30, growthPerLevel: 1.5 }, agility: { value: 9, growthPerLevel: 0.35 } } })
+      maxHealth: 240 + (level - 1) * 64, experienceReward: 200, goldReward: { min: 120, max: 160 }, critChance: 0,
+      baseStats: { mind: { value: 60, growthPerLevel: 4 }, agility: { value: 18, growthPerLevel: 1 } } })
     this.attackPatterns = [SpectralSentence, SpectralFog, SpectralTouch, SpectralRend]
   }
   private skipLockedSentence() {

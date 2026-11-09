@@ -25,6 +25,11 @@ describe('Encuentro único del Espectro', () => {
     const enemies = resolveEncounterById(MOUNTAIN_PEAK, 'spectral-pass')
     expect(enemies).toHaveLength(1)
     expect(enemies[0]).toBeInstanceOf(Spectre)
+    // Doble de todo y nivel 6 mientras dura el ajuste de pruebas.
+    expect(enemies[0].level).toBe(6)
+    expect(enemies[0].maxHealth).toBe(240 + 5 * 64)
+    expect(enemies[0].baseStats.mind.value).toBe(60 + 5 * 4)
+    expect(enemies[0].baseStats.agility.value).toBe(18 + 5 * 1)
     for (const group of Object.values(MOUNTAIN_PEAK.enemyGroups)) {
       expect(Object.values(group).flat()).not.toContain('spectral-pass')
     }

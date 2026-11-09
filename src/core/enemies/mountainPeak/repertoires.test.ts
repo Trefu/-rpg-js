@@ -81,7 +81,7 @@ describe('Variedad mínima de repertorios enemigos', () => {
     expect(king.baseStats.body.value).toBe(32)
     expect(king.baseStats.mind.value).toBe(20)
     expect(king.baseStats.agility.value).toBe(11)
-    expect(new MountainEnemy('goblinGuard', 2).maxHealth).toBe(489)
+    expect(new MountainEnemy('goblinGuard', 2).maxHealth).toBe(514)
     expect(king.selectAttackPattern(null).name).toBe('Orden de ataque')
     expect(offensiveNames(king.attackPatterns)).toEqual([
       'Tajo del Rey Goblin', 'Golpe de cetro', 'Barrido real', 'Furia del Rey Goblin'

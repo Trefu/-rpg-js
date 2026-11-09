@@ -10,7 +10,7 @@ const encounter = (id: string, group: EnemyGroupId, ...members: [MountainRole, n
 })
 
 const encounters = {
-  'spectral-pass': { id: 'spectral-pass', group: 'skeletons' as const, mobs: [mob(() => new Spectre(3))] },
+  'spectral-pass': { id: 'spectral-pass', group: 'skeletons' as const, mobs: [mob(() => new Spectre())] },
   'goblin-riders': encounter('goblin-riders', 'goblins', ['goblinRider', 3, 2], ['warlock', 2]),
   'troglodyte-cave': encounter('troglodyte-cave', 'beasts', ['troglodyte', 3], ['lostTroglodyte', 2]),
   'mountain-scarabs': encounter('mountain-scarabs', 'beasts', ['scarab', 2, 3]),
