@@ -56,6 +56,10 @@ export interface AbilityEffects {
    * enemigos que no tienen un team aliado.
    */
   allies?: ICharacter[]
+  /** Opposing team, for enemy abilities that affect the whole hero party. */
+  opponents?: ICharacter[]
+  /** Notify the turn engine so freshly applied defense debuffs survive this action. */
+  onStatusApplied?: (effect: import('./IStatusEffect').IStatusEffect) => void
   /**
    * Output opcional: la ability puede setear esto para que `useCombat`
    * aplique el splash del `randomAttack` sobre objetivos extra.

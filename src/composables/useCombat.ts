@@ -1256,10 +1256,19 @@ const defenseClouded = ref(false)
     attackedHeroIds.value = []
 
     const hero = heroes.value.find(h => h.id === actor.id)
+    const sentence = hero?.statusEffects.find(effect => effect.type === 'death_sentence' && effect.turns > 0)
     if (hero && typeof hero.reduceStatusEffects === 'function') {
       // Decrement de estados del heroe entre turnos (consistente con la logica
       // original que lo hacia al final del turno enemigo).
       hero.reduceStatusEffects()
+    }
+    if (hero && sentence) {
+      if (!hero.isAlive) {
+        addToLog(`La Sentencia de muerte se cumple: ${hero.name} cae.`)
+        showHeroVfx(hero.id, { asset: 'holy-light', durationMs: 1200 })
+      } else {
+        addToLog(`${hero.name}: Sentencia de muerte · ${sentence.turns} turnos restantes.`)
+      }
     }
     isExecutingAction.value = false
     usedItemThisTurn.value = false
@@ -1274,7 +1283,7 @@ const defenseClouded = ref(false)
     if (!actor.isAlive) {
       const rotated = rotateToNextAliveHero()
       if (!rotated) {
-        addToLog('¡Los DoTs han consumido a tus heroes!')
+        addToLog('¡Los efectos de estado han acabado con tus héroes!')
         endCombat(false)
       } else if (player.value) {
         addToLog(`¡${player.value.name} entra en combate!`)
@@ -1921,6 +1930,10 @@ const defenseClouded = ref(false)
     const ctx: AbilityContext = {
       caster: enemy,
       allies: enemies.value.filter(e => e.isAlive),
+      opponents: heroes.value.filter(hero => hero.isAlive),
+      onStatusApplied: effect => {
+        if (effect.cleanAtTurnStart === false) defenseDebuffsAppliedThisTurn.add(effect.type)
+      },
       target,
       ability,
       log: addToLog,

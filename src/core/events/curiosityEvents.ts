@@ -42,6 +42,8 @@ export interface CuriosityChoice {
 
 export interface CuriosityEvent {
   id: string
+  /** Do not offer this event again during the same expedition attempt. */
+  uniquePerRun?: boolean
   title: string
   flavor: string
   choices: CuriosityChoice[]

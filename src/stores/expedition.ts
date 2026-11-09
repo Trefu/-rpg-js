@@ -16,6 +16,7 @@ interface ExpeditionState {
   /** Set de expedition ids ya completadas en esta sesion (no persistido). */
   completedExpeditions: Set<ExpeditionId>
   currentRunAttempt: number
+  resolvedEventIds: string[]
 }
 
 export const useExpeditionStore = defineStore('expedition', {
@@ -23,7 +24,8 @@ export const useExpeditionStore = defineStore('expedition', {
     currentExpedition: null,
     selectedNode: null,
     completedExpeditions: new Set<ExpeditionId>(),
-    currentRunAttempt: 0
+    currentRunAttempt: 0,
+    resolvedEventIds: []
   }),
 
   getters: {
@@ -48,8 +50,8 @@ export const useExpeditionStore = defineStore('expedition', {
      * catalogo compartido.
      */
     activeCuriosityEvents: (state): CuriosityEvent[] => {
-      return state.currentExpedition?.config.curiosityEvents
-        ?? SHARED_CURIOSITY_EVENTS
+      return (state.currentExpedition?.config.curiosityEvents
+        ?? SHARED_CURIOSITY_EVENTS).filter(event => !event.uniquePerRun || !state.resolvedEventIds.includes(event.id))
     }
   },
 
@@ -82,6 +84,7 @@ export const useExpeditionStore = defineStore('expedition', {
     },
 
     beginExpeditionWith(config: IExpeditionConfig, recruitedHeroClassIds: string[] = []) {
+      this.resolvedEventIds = []
       const { generateExpeditionNodes } = useExpeditionGenerator()
       const nodes = generateExpeditionNodes(config, { recruitedHeroClassIds })
       const startNode = nodes.find(node => node.id === 'start') || null

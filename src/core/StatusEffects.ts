@@ -754,6 +754,13 @@ export class StatusEffects {
     turns: 2, icon: defenseIcon, isBuff: true, absorbRemaining: 0, maxAbsorb: 0
   }
 
+  static readonly DEATH_SENTENCE: IStatusEffect = {
+    type: 'death_sentence', name: 'Sentencia de muerte',
+    description: 'Muere al comenzar su tercer turno marcado. Disipar el efecto o vencer antes de que expire evita la sentencia.',
+    turns: 3, maxDuration: 3, icon: curseIcon, isBuff: false,
+    onExpire: target => { target.health = 0; target.isAlive = false }
+  }
+
   static readonly STONE_SHELL: IStatusEffect = {
     type: 'stone_shell', name: 'Coraza pétrea',
     description: 'Recibe un 35% menos de daño mientras prepara un golpe pesado. Después queda vulnerable.',
@@ -771,7 +778,7 @@ export class StatusEffects {
   // Método para obtener un efecto por tipo (case-insensitive)
   static getByType(type: string): IStatusEffect | null {
     const effects = [
-      this.OPEN_WOUND, this.DIVINE_PROTECTION, this.DIVINE_EMPOWERMENT, this.ANCESTRAL_GUARD, this.STONE_SHELL, this.ATTACK_ORDER,
+      this.DEATH_SENTENCE, this.OPEN_WOUND, this.DIVINE_PROTECTION, this.DIVINE_EMPOWERMENT, this.ANCESTRAL_GUARD, this.STONE_SHELL, this.ATTACK_ORDER,
       this.STUN,
       this.BURN,
       this.POISON,

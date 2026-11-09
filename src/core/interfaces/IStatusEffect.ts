@@ -189,6 +189,8 @@ export interface IStatusEffect {
   announceOnTurn?: boolean
   onApply?: (target: ICharacter) => void
   onRemove?: (target: ICharacter) => void
+  /** Natural timeout only; dispelling or combat cleanup must not trigger it. */
+  onExpire?: (target: ICharacter) => void
   damagePerTurn?: number
   stacks?: number
   maxStacks?: number

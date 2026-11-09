@@ -263,6 +263,7 @@ export abstract class Enemy extends Character implements ICombatant {
       if (NON_TURN_BASED_CATEGORIES.has(category)) return
       if (e.cleanAtTurnStart === false) return
       e.turns--
+      if (e.turns <= 0) e.onExpire?.(this)
     })
     this.removeExpiredStatusEffects()
   }

@@ -76,6 +76,7 @@ function previews(choice: CuriosityChoice): string[] {
 function choose(choice: CuriosityChoice) {
   if (result.value || departed.value) return
   chosenChoice.value = choice
+  if (!expeditionStore.resolvedEventIds.includes(event.id)) expeditionStore.resolvedEventIds.push(event.id)
   audioManager.playCuriosityConfirmSound()
   const resolved = resolveCuriosityChoice(choice, { heroes: gameStore.activeHeroes, teamItems: gameStore.teamItems, wallet: gameStore })
   result.value = resolved

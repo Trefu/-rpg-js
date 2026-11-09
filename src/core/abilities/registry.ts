@@ -12,7 +12,7 @@ import type { DefensePatternConfig } from '../defense/types'
 export type AbilityTag =
    | 'warrior' | 'cleric' | 'rogue'
    | 'physical' | 'fire' | 'holy' | 'poison'
-  | 'damage' | 'heal' | 'buff' | 'aoe'
+  | 'damage' | 'heal' | 'buff' | 'debuff' | 'aoe'
   | 'ultimate'
 
 const abilityRegistry = new Map<string, IAbility>()

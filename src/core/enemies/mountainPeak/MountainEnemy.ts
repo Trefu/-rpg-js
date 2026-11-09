@@ -45,12 +45,17 @@ import banditSprite from '@/assets/sprites/enemies/bandit.png'
 import banditArcherSprite from '@/assets/sprites/enemies/bandit-archer.png'
 import banditMedicSprite from '@/assets/sprites/enemies/bandit-rogue.png'
 import packLeaderSprite from '@/assets/sprites/enemies/alpha-wolf.png'
+import goblinRiderSprite from '@/assets/sprites/enemies/goblin-with-wolf.png'
+import troglodyteSprite from '@/assets/sprites/enemies/troglodyte.png'
+import lostTroglodyteSprite from '@/assets/sprites/enemies/lost-troglodyte.png'
+import scarabSprite from '@/assets/sprites/enemies/mountain-scarab.png'
 
 export type MountainRole = 'scout' | 'archer' | 'wolf' | 'shaman' | 'guardian' | 'captain' | 'dragon'
   | 'skeleton' | 'skeletonArcher' | 'deathKnight' | 'skeletonKing' | 'elemental' | 'bear'
   | 'bomber' | 'warlock' | 'koboldMiner' | 'koboldTrapper' | 'koboldWarlock' | 'orc' | 'orcArcher' | 'orcKing'
   | 'goblinGuard' | 'banditRaider' | 'banditArcher' | 'banditGuard' | 'banditMedic'
   | 'koboldGuard' | 'orcGuard' | 'packLeader' | 'stoneCaller' | 'stoneShard'
+  | 'goblinRider' | 'troglodyte' | 'lostTroglodyte' | 'scarab'
 export type MountainCombatRole = 'dps' | 'tank' | 'buffer'
 interface RoleSpec {
   name: string
@@ -73,6 +78,10 @@ interface RoleSpec {
   scripted?: boolean
 }
 const ROLES: Record<MountainRole, RoleSpec> = {
+  goblinRider: { name: 'Jinete goblin', sprite: goblinRiderSprite, hp: 65, growth: 16, body: 26, mind: 12, agility: 15, xp: 30, gold: 18, actions: [MOUNTAIN_JAB, MOUNTAIN_POUNCE, MOUNTAIN_BITE, MOUNTAIN_SNARE] },
+  troglodyte: { name: 'Troglodita del paso', sprite: troglodyteSprite, hp: 80, growth: 20, body: 29, mind: 10, agility: 9, xp: 32, gold: 16, actions: [MOUNTAIN_SLAM, BEAR_MAUL, MOUNTAIN_REND, EARTH_BOULDER] },
+  lostTroglodyte: { name: 'Troglodita perdido', sprite: lostTroglodyteSprite, hp: 60, growth: 16, body: 25, mind: 14, agility: 12, xp: 28, gold: 14, actions: [MOUNTAIN_STAB, MOUNTAIN_SLASH, MOUNTAIN_SNARE, MOUNTAIN_REND] },
+  scarab: { name: 'Escarabajo de montaña', sprite: scarabSprite, hp: 50, growth: 14, body: 24, mind: 12, agility: 13, xp: 25, gold: 12, actions: [MOUNTAIN_BITE, MOUNTAIN_POUNCE, MOUNTAIN_REND, QUICK_CLAWS] },
   // Keep the role ID stable for existing expedition formations and saves.
   goblinGuard: { name: 'Rey Goblin', sprite: goblinKingSprite, hp: 135, growth: 28, body: 32, mind: 20, agility: 11, xp: 50, gold: 28, actions: [AttackOrder, GOBLIN_ROYAL_STRIKE, GOBLIN_SCEPTER, GOBLIN_ROYAL_SWEEP, GOBLIN_ROYAL_COMBO, AncestralGuard], scripted: true },
   banditRaider: { name: 'Saqueador del paso', sprite: banditSprite, hp: 52, growth: 14, body: 25, mind: 12, agility: 12, xp: 26, gold: 16, actions: [SLASH, DEEP_SLASH, QUICK_STRIKE, DOUBLE_COMBO] },
@@ -109,12 +118,12 @@ const ROLES: Record<MountainRole, RoleSpec> = {
 
 export const MOUNTAIN_ROLES = Object.keys(ROLES) as MountainRole[]
 const GROUP_ROLES: Record<EnemyGroupId, readonly MountainRole[]> = {
-  goblins: ['scout', 'archer', 'bomber', 'warlock', 'goblinGuard'],
+  goblins: ['scout', 'archer', 'bomber', 'warlock', 'goblinGuard', 'goblinRider'],
   bandits: ['captain', 'banditRaider', 'banditArcher', 'banditGuard', 'banditMedic'],
   orcs: ['orc', 'orcArcher', 'shaman', 'orcKing', 'orcGuard'],
   skeletons: ['skeleton', 'skeletonArcher', 'deathKnight', 'skeletonKing'],
   kobolds: ['koboldMiner', 'koboldTrapper', 'koboldWarlock', 'koboldGuard'],
-  beasts: ['wolf', 'bear', 'packLeader'],
+  beasts: ['wolf', 'bear', 'packLeader', 'troglodyte', 'lostTroglodyte', 'scarab'],
   stone: ['guardian', 'elemental', 'stoneCaller', 'stoneShard'],
   dragons: ['dragon']
 }

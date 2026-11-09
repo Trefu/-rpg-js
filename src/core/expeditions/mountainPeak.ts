@@ -1,4 +1,5 @@
 import { MountainEnemy, type MountainRole } from '../enemies/mountainPeak/MountainEnemy'
+import { Spectre } from '../enemies/mountainPeak/uniqueEncounters/Spectre'
 import { mob } from './encounters'
 import type { Encounter, IExpeditionConfig } from './types'
 import type { EnemyGroupId } from '../enemies/groups'
@@ -9,6 +10,10 @@ const encounter = (id: string, group: EnemyGroupId, ...members: [MountainRole, n
 })
 
 const encounters = {
+  'spectral-pass': { id: 'spectral-pass', group: 'skeletons' as const, mobs: [mob(() => new Spectre(3))] },
+  'goblin-riders': encounter('goblin-riders', 'goblins', ['goblinRider', 3, 2], ['warlock', 2]),
+  'troglodyte-cave': encounter('troglodyte-cave', 'beasts', ['troglodyte', 3], ['lostTroglodyte', 2]),
+  'mountain-scarabs': encounter('mountain-scarabs', 'beasts', ['scarab', 2, 3]),
   'trail-scouts': encounter('trail-scouts', 'goblins', ['scout', 1, 2]),
   'light-patrol': encounter('light-patrol', 'goblins', ['bomber', 2], ['archer', 2], ['goblinGuard', 2], ['warlock', 1]),
   'goblin-skirmish': encounter('goblin-skirmish', 'goblins', ['scout', 2, 2], ['goblinGuard', 2], ['warlock', 1]),
@@ -112,18 +117,22 @@ export const MOUNTAIN_PEAK: IExpeditionConfig = {
     late: ['goblins', 'bandits', 'orcs', 'skeletons', 'kobolds', 'beasts', 'stone'], boss: ['dragons']
   },
   enemyGroups: {
-    goblins: { intro: ['trail-scouts'], early: ['light-patrol', 'goblin-skirmish', 'goblin-duo', 'goblin-trio'], mid: ['goblin-cousins', 'goblin-bombs', 'goblin-hex-patrol', 'goblin-slingers'], late: ['demolition-crew', 'goblin-warband', 'royal-escort', 'goblin-slinging-trio'] },
+    goblins: { intro: ['trail-scouts'], early: ['light-patrol', 'goblin-skirmish', 'goblin-duo', 'goblin-trio'], mid: ['goblin-cousins', 'goblin-bombs', 'goblin-hex-patrol', 'goblin-slingers', 'goblin-riders'], late: ['demolition-crew', 'goblin-warband', 'royal-escort', 'goblin-slinging-trio'] },
     bandits: { early: ['bandit-ambush-3', 'bandits-debt', 'bandit-duo', 'bandit-trio'], mid: ['bandit-patrol', 'bandit-firing-line', 'bandit-pursuit', 'bandit-firing-trio'], late: ['bandit-veterans', 'bandit-vanguard', 'bandit-elite-duo', 'bandit-trio-veterans'] },
     orcs: { early: ['orc-outriders', 'orc-spears', 'orc-pair', 'orc-scouting-party'], mid: ['shaman-patrol', 'orc-raiders', 'orc-warriors', 'orc-trio'], late: ['orc-king-guard', 'orc-assault', 'orc-raiding-pair', 'orc-raiding-party'] },
     skeletons: { early: ['bone-patrol', 'bone-line', 'bone-pair', 'bone-archers', 'bone-trio'], mid: ['bone-legion', 'bone-bows', 'bone-vanguard', 'bone-line-trio'], late: ['frozen-crypt', 'bone-knights', 'bone-royal-pair', 'bone-trio-late'] },
     kobolds: { early: ['kobold-workers', 'kobold-traps', 'kobold-pair', 'kobold-trap-setting', 'kobold-mining-party'], mid: ['kobold-mine', 'kobold-excavation', 'kobold-scout-pair', 'kobold-trio'], late: ['stone-watch', 'kobold-sappers', 'kobold-warlock-trio', 'kobold-mining-trio'] },
-    beasts: { early: ['hill-pack', 'valley-hunt', 'wolf-pair', 'bear-and-pack'], mid: ['wolf-pack', 'bear-den', 'alpha-pair', 'wolves-and-bears'], late: ['high-pack', 'bear-hunters', 'triple-bears', 'alpha-and-wolf'] },
+    beasts: { early: ['hill-pack', 'valley-hunt', 'wolf-pair', 'bear-and-pack', 'mountain-scarabs'], mid: ['wolf-pack', 'bear-den', 'alpha-pair', 'wolves-and-bears', 'troglodyte-cave'], late: ['high-pack', 'bear-hunters', 'triple-bears', 'alpha-and-wolf'] },
     stone: { early: ['stone-guardians-2', 'stone-circle', 'stone-shard-pair', 'stone-trio'], mid: ['stone-patrol', 'stone-rubble', 'triple-golems'], late: ['stone-choir', 'stone-siege', 'stone-caller-pair', 'triple-golems-late'] },
     dragons: { boss: ['summit-dragon'] }
   },
   encounters,
   recruitableHeroIds: ['warrior', 'cleric', 'rogue'],
   curiosityEvents: [
+    { id: 'spectral-pass', uniquePerRun: true, title: 'El espectro del paso', flavor: 'Una figura bloquea una senda lateral. Su marca sentencia a todo el grupo a morir en 3 turnos.', choices: [
+      { id: 'fight', label: 'Desafiar al espectro (peligro: muerte en 3 turnos)', outcome: { kind: 'ambush', encounter: 'spectral-pass', flavor: 'El espectro alza la mano. Disipad la sentencia o derrotadlo antes de que termine la cuenta atrás.' } },
+      { id: 'leave', label: 'Evitar la senda', outcome: { kind: 'noop', flavor: 'Continuáis por el camino principal.' } }
+    ] },
     { id: 'abandoned-cache', title: 'El alijo del sendero', flavor: 'Un cofre junto a las huellas de una patrulla.', choices: [
       { id: 'supplies', label: 'Recoger vendas y marcharse', outcome: { kind: 'reward', effects: [{ kind: 'grantItem', itemId: 'bandages' }], flavor: 'Guardáis vendas en la bolsa compartida.' } },
       { id: 'risk', label: 'Buscar monedas: perder 15 HP por héroe y ganar 25 oro', outcome: { kind: 'reward', effects: [{ kind: 'damage', amount: 15 }, { kind: 'gold', amount: 25 }], flavor: 'Las zarzas cortan, pero encontráis una bolsa de monedas.' } }

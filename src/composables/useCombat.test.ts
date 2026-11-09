@@ -11,6 +11,7 @@ import { Warrior } from '@/core/heroes/Warrior'
 import { Cleric } from '@/core/heroes/Cleric'
 import { BOMB_SHRAPNEL, DRAGON_BREATH, MOUNTAIN_STAB } from '@/core/abilities/MountainActions'
 import type { DefensePatternConfig, DefensePhaseOutcome } from '@/core/defense/types'
+import { Spectre, SpectralSentence, SpectralFog } from '@/core/enemies/mountainPeak/uniqueEncounters/Spectre'
 
 vi.mock('@/core/AudioManager', () => ({
   AudioManager: { getInstance: () => new Proxy({}, { get: () => vi.fn() }) }
@@ -24,6 +25,23 @@ beforeEach(() => {
 })
 
 describe('Efectos de ataques enemigos de área', () => {
+  it.each([SpectralSentence, SpectralFog])('$name alcanza al grupo completo en el motor de combate', async ability => {
+    const game = useGameStore()
+    game.startGame([Warrior.createStarter(), Cleric.createStarter(), Rogue.createStarter()])
+    for (const hero of game.activeHeroes) hero.baseStats.agility.value = 1
+    const spectre = new Spectre()
+    spectre.baseStats.agility.value = 1000
+    vi.spyOn(spectre, 'selectAttackPattern').mockReturnValue(ability)
+    const combat = useCombat({ enemyAttackAnnouncementMs: 0 })
+    try {
+      combat.initializeCombat([spectre])
+      await vi.advanceTimersByTimeAsync(5000)
+      const type = ability === SpectralSentence ? 'death_sentence' : 'clouded'
+      expect(game.activeHeroes.every(hero => hero.hasStatusEffect(type))).toBe(true)
+      expect(spectre.hasStatusEffect(type)).toBe(false)
+      expect(combat.isDefenseActive.value).toBe(false)
+    } finally { combat.cleanup() }
+  })
   it('rechaza seleccionar un aliado con escudo divino sin gastar energía ni turno', async () => {
     const game = useGameStore()
     game.startGame([Cleric.createStarter(), Warrior.createStarter()])

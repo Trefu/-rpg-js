@@ -181,7 +181,7 @@ describe('Montañas Rocosas', () => {
   })
 
   it('las formaciones ofrecen parejas, tríos y grupos mayores con facciones coherentes', () => {
-    const encounterIds = Object.keys(MOUNTAIN_PEAK.encounters).filter(id => MOUNTAIN_PEAK.encounters[id].group !== 'dragons' && id !== 'trail-scouts')
+    const encounterIds = Object.keys(MOUNTAIN_PEAK.encounters).filter(id => MOUNTAIN_PEAK.encounters[id].group !== 'dragons' && id !== 'trail-scouts' && id !== 'spectral-pass')
     const sizes = new Set<number>()
     for (const id of encounterIds) {
       const enemies = resolveEncounterById(MOUNTAIN_PEAK, id) as MountainEnemy[]
