@@ -12,6 +12,10 @@ try {
   page.on('pageerror', error => errors.push(error.message))
   await page.goto('http://localhost:5191')
   await page.locator('.camp-view').waitFor()
+  await page.evaluate(async () => {
+    const { MOUNTAIN_PEAK } = await import('/src/core/expeditions/mountainPeak.ts')
+    MOUNTAIN_PEAK.generator.haunting.chance = 0
+  })
   await page.evaluate(() => {
     const game = window.__gameStore
     game.setPartyHeroes(['warrior', 'cleric', 'rogue'])
@@ -48,6 +52,11 @@ try {
     assert.equal(panel.radius, '2px')
     assert.equal(await page.locator('.camp-commands').count(), 0)
     assert.equal(await page.locator('.camp-hero-chips .stat-chip').count(), 33)
+    for (const kind of ['body', 'con', 'agi', 'atk', 'phys', 'crit']) {
+      const background = await page.locator(`.camp-hero-chips .stat-chip-${kind}`).first().evaluate(el => getComputedStyle(el).backgroundColor)
+      assert.notEqual(background, 'rgb(33, 21, 15)', `${kind} necesita fondo semántico`)
+      assert.notEqual(background, 'rgba(0, 0, 0, 0)', `${kind} necesita fondo visible`)
+    }
     await capture(`jrpg-camp-${width}`)
   }
   await page.locator('.gear-btn').click()

@@ -129,10 +129,9 @@ export const MOUNTAIN_PEAK: IExpeditionConfig = {
   encounters,
   recruitableHeroIds: ['warrior', 'cleric', 'rogue'],
   curiosityEvents: [
-    { id: 'spectral-pass', uniquePerRun: true, title: 'El espectro del paso', flavor: 'Una figura bloquea una senda lateral. Su marca sentencia a todo el grupo a morir en 3 turnos.', choices: [
-      { id: 'fight', label: 'Desafiar al espectro (peligro: muerte en 3 turnos)', outcome: { kind: 'ambush', encounter: 'spectral-pass', flavor: 'El espectro alza la mano. Disipad la sentencia o derrotadlo antes de que termine la cuenta atrás.' } },
-      { id: 'leave', label: 'Evitar la senda', outcome: { kind: 'noop', flavor: 'Continuáis por el camino principal.' } }
-    ] },
+    { id: 'spectral-pass', uniquePerRun: true, inescapable: true, title: 'Algo se acerca', flavor: 'Los pasos cesan. El aire se enfría. Algo se acerca por el sendero. CORRE.',
+      choices: [1, 2, 3].map(index => ({ id: `run-${index}`, label: 'CORRER', outcome: { kind: 'ambush' as const, encounter: 'spectral-pass', flavor: 'No importa hacia dónde corráis. El espectro ya está aquí.' } }))
+    },
     { id: 'abandoned-cache', title: 'El alijo del sendero', flavor: 'Un cofre junto a las huellas de una patrulla.', choices: [
       { id: 'supplies', label: 'Recoger vendas y marcharse', outcome: { kind: 'reward', effects: [{ kind: 'grantItem', itemId: 'bandages' }], flavor: 'Guardáis vendas en la bolsa compartida.' } },
       { id: 'risk', label: 'Buscar monedas: perder 15 HP por héroe y ganar 25 oro', outcome: { kind: 'reward', effects: [{ kind: 'damage', amount: 15 }, { kind: 'gold', amount: 25 }], flavor: 'Las zarzas cortan, pero encontráis una bolsa de monedas.' } }
@@ -171,6 +170,8 @@ export const MOUNTAIN_PEAK: IExpeditionConfig = {
     ] }
   ],
   generator: {
+    // SOLO PARA PRUEBAS: aparición garantizada. Restaurar chance: 0.1 al terminar.
+    haunting: { chance: 1, eventId: 'spectral-pass', depth: 3 },
     minNodesBeforeBoss: 8, shopChance: 0.15, curiosityChance: 0.2,
     maxRetries: 50, maxParentsPerNode: 2, proximityThreshold: 40, maxPathsPerRow: 4,
     forcedSingleRows: [2, 3, 5, 6, 8], forcedCombatRows: [1, 5, 8],

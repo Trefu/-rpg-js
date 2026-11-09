@@ -81,7 +81,7 @@ describe('rutas ampliadas de expedición', () => {
     expect(nodes.some(node => node.type === 'recruit-hero')).toBe(true)
   })
 
-  it('limita a tres filas únicas, sin conexiones entre ellas, incluso en el respaldo', () => {
+  it('limita las filas únicas salvo el evento espectral obligatorio, incluso en el respaldo', () => {
     for (const config of Object.values(EXPEDITIONS)) {
       for (const maxRetries of [0, 1]) {
         for (const roll of [0, 0.5, 0.99]) {
@@ -91,7 +91,8 @@ describe('rutas ampliadas de expedición', () => {
             const rows = new Map<number, typeof nodes>()
             for (const node of nodes) rows.set(node.depth!, [...(rows.get(node.depth!) ?? []), node])
             const singles = [...rows.values()].filter(row => row.length === 1).map(row => row[0])
-            expect(singles.length).toBeLessThanOrEqual(3)
+            const spectralRows = singles.filter(node => node.curiosityEventId === 'spectral-pass').length
+            expect(singles.length).toBeLessThanOrEqual(3 + spectralRows)
             const singleIds = new Set(singles.map(node => node.id))
             for (const node of singles) expect(node.connections.some(id => singleIds.has(id))).toBe(false)
             expect(generator.validateConnectivity(nodes).ok).toBe(true)
@@ -101,5 +102,32 @@ describe('rutas ampliadas de expedición', () => {
         }
       }
     }
+  })
+
+  it.each([0, 1, 50])('el Espectro se sortea una vez y fuerza la tercera fila con maxRetries=%s', maxRetries => {
+    for (const recruitedHeroClassIds of [[], ['warrior', 'cleric', 'rogue']]) {
+      vi.spyOn(Math, 'random').mockReturnValue(0.99).mockReturnValueOnce(0.0999)
+      const config = { ...MOUNTAIN_PEAK, generator: { ...MOUNTAIN_PEAK.generator, maxRetries } }
+      const rules = JSON.stringify(config)
+      const nodes = generator.generateExpeditionNodes(config, { recruitedHeroClassIds })
+      const haunted = nodes.filter(node => node.curiosityEventId === 'spectral-pass')
+      expect(haunted).toHaveLength(1)
+      const event = haunted[0]
+      expect(event.type).toBe('curiosity')
+      expect(event.depth).toBe(3)
+      expect(nodes.filter(node => node.depth === 3)).toEqual([event])
+      expect(nodes.filter(node => node.depth === 2).every(node => node.connections.length === 1 && node.connections[0] === event.id)).toBe(true)
+      expect(generator.validateConnectivity(nodes).ok).toBe(true)
+      // Removing the event must sever every route to the boss.
+      expect(generator.validateConnectivity(nodes.filter(node => node.id !== event.id)).ok).toBe(false)
+      expect(JSON.stringify(config)).toBe(rules)
+      vi.restoreAllMocks()
+    }
+  })
+
+  it('un sorteo igual al límite de 10% no crea evento ni señal espectral', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.99).mockReturnValueOnce(0.1)
+    const nodes = generator.generateExpeditionNodes(MOUNTAIN_PEAK)
+    expect(nodes.some(node => node.curiosityEventId === 'spectral-pass')).toBe(false)
   })
 })

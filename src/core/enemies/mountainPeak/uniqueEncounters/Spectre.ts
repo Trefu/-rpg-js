@@ -73,7 +73,7 @@ export const SpectralTouch = spectralAffliction('Toque de la ruina', 'spectralTo
 export const SpectralRend = spectralAffliction('Desgarro espectral', 'spectralRend', 0.65)
 for (const ability of [SpectralSentence, SpectralFog, SpectralTouch, SpectralRend]) registerAbility(ability)
 
-/** Only instantiated by mountain-peak's optional spectral encounter, never a random patrol. */
+/** Only instantiated by mountain-peak's map-assigned spectral event, never a random patrol. */
 export class Spectre extends Enemy {
   readonly sprite = sprite
   readonly enemyGroup = 'skeletons' as const

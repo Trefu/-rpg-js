@@ -24,7 +24,12 @@ const gameStore = useGameStore()
 const expeditionStore = useExpeditionStore()
 const audioManager = AudioManager.getInstance()
 // Pick once per visit; changes to the party or wallet must not reroll the event.
-const event = pickRandomFromList(expeditionStore.activeCuriosityEvents)
+const fixedEventId = expeditionStore.selectedNode?.curiosityEventId
+const event = fixedEventId
+  ? expeditionStore.currentConfig?.curiosityEvents?.find(event => event.id === fixedEventId)
+  : pickRandomFromList(expeditionStore.activeCuriosityEvents)
+if (!event) throw new Error(`Unknown fixed curiosity event: ${fixedEventId}`)
+const inescapable = event.inescapable === true
 const result = ref<ResolveResult | null>(null)
 const chosenChoice = ref<CuriosityChoice | null>(null)
 const departed = ref(false)
@@ -90,12 +95,14 @@ function choose(choice: CuriosityChoice) {
     else audioManager.playCuriosityNoopSound()
   }
   dialog.value?.focus()
+  if (inescapable && resolved.kind === 'ambush') continueAfterResolution()
 }
 
 function floorForSelectedNode(): number {
   const node = expeditionStore.selectedNode
   const config = expeditionStore.currentConfig
   if (!node || !config || node.id === 'start') return 1
+  if (node.curiosityEventId) return node.depth ?? 1
   if (node.id === 'boss') return config.totalFloors
   const row = Number(node.id.replace(/^branch-/, '').replace(/^extra-/, '').split('-')[1])
   return Math.max(2, Math.min(config.totalFloors - 1, (Number.isFinite(row) ? row : 1) + 1))
@@ -120,6 +127,7 @@ function continueAfterResolution() {
 }
 
 function close() {
+  if (inescapable) return
   if (isAmbush.value) return
   if (result.value) continueAfterResolution()
   else emit('close')
@@ -139,8 +147,8 @@ function onKeydown(e: KeyboardEvent) {
 <template>
   <transition name="curiosity-fade">
     <div class="curiosity-overlay" @mousedown.self="close">
-      <div ref="dialog" class="curiosity-modal" :class="{ 'is-ambush': isAmbush }" role="dialog" aria-modal="true" aria-labelledby="curiosity-title" aria-describedby="curiosity-description" tabindex="-1" @keydown="onKeydown">
-        <header class="curiosity-header"><span class="event-location"><span class="event-location-dot"></span>MONTAÑAS ROCOSAS · PISO {{ floorForSelectedNode() }}</span><button class="curiosity-close" type="button" @click="close" :disabled="isAmbush" :title="isAmbush ? 'Resuelve el combate para continuar' : 'Cerrar'" aria-label="Cerrar evento"><img :src="closeIcon" alt="" /></button></header>
+      <div ref="dialog" class="curiosity-modal" :class="{ 'is-ambush': isAmbush, 'is-inescapable': inescapable }" role="dialog" aria-modal="true" aria-labelledby="curiosity-title" aria-describedby="curiosity-description" tabindex="-1" @keydown="onKeydown">
+        <header class="curiosity-header"><span class="event-location"><span class="event-location-dot"></span>MONTAÑAS ROCOSAS · PISO {{ floorForSelectedNode() }}</span><button v-if="!inescapable" class="curiosity-close" type="button" @click="close" :disabled="isAmbush" :title="isAmbush ? 'Resuelve el combate para continuar' : 'Cerrar'" aria-label="Cerrar evento"><img :src="closeIcon" alt="" /></button></header>
         <div class="event-layout">
           <aside class="event-illustration" aria-hidden="true"><div class="event-rune rune-outer"></div><div class="event-rune rune-inner"></div><span class="event-star">✦</span><img :src="illustration" alt="" /><span class="event-illustration-label">{{ result ? 'EL CAMINO RECUERDA' : 'UN ALTO EN EL CAMINO' }}</span></aside>
           <div class="event-story">
@@ -148,8 +156,9 @@ function onKeydown(e: KeyboardEvent) {
             <template v-if="!result">
               <p id="curiosity-description" class="curiosity-flavor">{{ event.flavor }}</p>
               <div class="event-choice-heading"><span>Elige una opción</span></div>
-              <ul class="curiosity-choices"><li v-for="(choice, index) in event.choices" :key="choice.id"><button class="curiosity-choice-btn" :class="choiceTone(choice)" type="button" @click="choose(choice)"><span class="choice-number">{{ String(index + 1).padStart(2, '0') }}</span><span class="choice-body"><span class="choice-tone">{{ choice.outcome.kind === 'ambush' ? 'ACEPTAR EL RIESGO' : choiceTone(choice) === 'risk' ? 'COSTE Y RECOMPENSA' : choiceTone(choice) === 'neutral' ? 'CONTINUAR EL CAMINO' : 'APROVECHAR LA OCASIÓN' }}</span><strong>{{ choice.label }}</strong><span class="choice-effects"><span v-for="(preview, i) in previews(choice)" :key="i">{{ preview }}</span></span></span><span class="choice-arrow" aria-hidden="true">↗</span></button></li></ul>
-              <p class="event-skip-note">Pulsa fuera para ignorar.</p>
+               <ul v-if="inescapable" class="curiosity-choices spectral-choices"><li v-for="choice in event.choices" :key="choice.id"><button class="curiosity-choice-btn" type="button" @click="choose(choice)"><strong>{{ choice.label }}</strong></button></li></ul>
+               <ul v-else class="curiosity-choices"><li v-for="(choice, index) in event.choices" :key="choice.id"><button class="curiosity-choice-btn" :class="choiceTone(choice)" type="button" @click="choose(choice)"><span class="choice-number">{{ String(index + 1).padStart(2, '0') }}</span><span class="choice-body"><span class="choice-tone">{{ choice.outcome.kind === 'ambush' ? 'ACEPTAR EL RIESGO' : choiceTone(choice) === 'risk' ? 'COSTE Y RECOMPENSA' : choiceTone(choice) === 'neutral' ? 'CONTINUAR EL CAMINO' : 'APROVECHAR LA OCASIÓN' }}</span><strong>{{ choice.label }}</strong><span class="choice-effects"><span v-for="(preview, i) in previews(choice)" :key="i">{{ preview }}</span></span></span><span class="choice-arrow" aria-hidden="true">↗</span></button></li></ul>
+               <p v-if="!inescapable" class="event-skip-note">Pulsa fuera para ignorar.</p>
             </template>
             <template v-else>
               <span class="event-result-tag" :class="summary?.kind">{{ isAmbush ? 'COMBATE INMINENTE' : summary?.kind === 'reward' ? 'LA COMPAÑÍA PROGRESA' : summary?.kind === 'punishment' ? 'EL PRECIO DEL CAMINO' : 'LA HISTORIA CONTINÚA' }}</span>

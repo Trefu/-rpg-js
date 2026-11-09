@@ -44,6 +44,8 @@ export interface CuriosityEvent {
   id: string
   /** Do not offer this event again during the same expedition attempt. */
   uniquePerRun?: boolean
+  /** All choices lead directly to combat; cannot dismiss this event. */
+  inescapable?: boolean
   title: string
   flavor: string
   choices: CuriosityChoice[]

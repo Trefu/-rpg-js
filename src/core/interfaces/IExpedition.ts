@@ -11,6 +11,8 @@ export interface INode {
   completed: boolean
   /** Profundidad real del mapa, incluyendo los combates adicionales. */
   depth?: number
+  /** Event fixed during map generation, never rerolled when opening the node. */
+  curiosityEventId?: string
   enemies?: any[]
 }
 

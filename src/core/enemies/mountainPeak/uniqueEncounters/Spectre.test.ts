@@ -21,7 +21,7 @@ function context(ability: IAbility) {
 }
 
 describe('Encuentro único del Espectro', () => {
-  it('aparece solo en su encuentro opcional y no en las patrullas', () => {
+  it('aparece solo en su evento fijado al mapa, nunca en eventos aleatorios ni patrullas', () => {
     const enemies = resolveEncounterById(MOUNTAIN_PEAK, 'spectral-pass')
     expect(enemies).toHaveLength(1)
     expect(enemies[0]).toBeInstanceOf(Spectre)
@@ -30,11 +30,15 @@ describe('Encuentro único del Espectro', () => {
     }
     const store = useExpeditionStore()
     store.beginExpeditionWith(MOUNTAIN_PEAK)
-    expect(store.activeCuriosityEvents.some(event => event.id === 'spectral-pass')).toBe(true)
+    expect(store.activeCuriosityEvents.some(event => event.id === 'spectral-pass')).toBe(false)
     store.resolvedEventIds.push('spectral-pass')
     expect(store.activeCuriosityEvents.some(event => event.id === 'spectral-pass')).toBe(false)
     store.beginExpeditionWith(MOUNTAIN_PEAK)
-    expect(store.activeCuriosityEvents.some(event => event.id === 'spectral-pass')).toBe(true)
+    expect(store.activeCuriosityEvents.some(event => event.id === 'spectral-pass')).toBe(false)
+    const event = MOUNTAIN_PEAK.curiosityEvents!.find(event => event.id === 'spectral-pass')!
+    expect(event.inescapable).toBe(true)
+    expect(event.choices.map(choice => choice.label)).toEqual(['CORRER', 'CORRER', 'CORRER'])
+    for (const choice of event.choices) expect(choice.outcome).toMatchObject({ kind: 'ambush', encounter: 'spectral-pass' })
   })
 
   it('marca a todo el grupo y la muerte ocurre exactamente al tercer turno propio, incluso con escudo', async () => {

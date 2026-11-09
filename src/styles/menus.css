@@ -1,4 +1,14 @@
 /* Screen composition. Component legacy styles are in a lower cascade layer. */
+.mountain-omen { position: fixed; inset: 0; z-index: 20000; display: grid; place-items: center; padding: 24px; background: var(--jrpg-void); color: var(--jrpg-muted); font: bold clamp(1rem, 3vw, 1.5rem)/1.8 var(--jrpg-font); text-align: center; overflow: hidden; outline: none; animation: mountain-omen-reveal 3.5s ease-in-out both; }
+.mountain-omen p { position: relative; max-width: 30ch; border-block: 1px solid var(--jrpg-line); padding: 18px; }
+.mountain-omen-shadow { position: absolute; inset: 12% -10%; background: var(--jrpg-shadow); transform: rotate(-8deg); animation: mountain-shadow-pass 3.5s ease-in-out both; }
+@keyframes mountain-omen-reveal { 0%, 100% { opacity: 0; } 18%, 82% { opacity: 1; } }
+@keyframes mountain-shadow-pass { from { transform: translateX(-60%) rotate(-8deg); } to { transform: translateX(60%) rotate(-8deg); } }
+@media (prefers-reduced-motion: reduce) { .mountain-omen, .mountain-omen-shadow { animation: none; } }
+.curiosity-modal.is-inescapable { background: var(--jrpg-inset); }
+.spectral-choices .curiosity-choice-btn { justify-content: center; min-height: 44px; text-align: center; }
+.is-inescapable .event-illustration, .is-inescapable .event-chapter { display: none; }
+.is-inescapable .event-layout { grid-template-columns: minmax(0, 1fr); }
 .camp-heading, .shop-heading, .map-heading { margin: 0 0 22px; padding: 0 0 14px; border-bottom: 2px solid var(--jrpg-line); }
 .camp-heading { margin-bottom: 12px; padding-bottom: 8px; }
 .camp-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 14px; }
@@ -44,7 +54,7 @@
 .camp-hero-chips .hero-stat-chips { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .camp-hero-chips .hero-stat-chips-stack { gap: 4px; }
 .camp-hero-chips .hero-stat-chips { gap: 3px; }
-.camp-hero-chips .stat-chip { border-radius: 0; min-height: 44px; padding: 3px 5px; font-size: .7rem; justify-content: space-between; background: var(--jrpg-inset); border-color: currentColor; box-shadow: none; }
+.camp-hero-chips .stat-chip { border-radius: 0; min-height: 44px; padding: 3px 5px; font-size: .7rem; justify-content: space-between; background: color-mix(in srgb, currentColor 18%, var(--jrpg-inset)); border-color: currentColor; box-shadow: none; }
 .hero-party-toggle { grid-column: 1 / -1; margin: 0; width: 100%; font-size: .75rem; }
 .camp-hero-abilities { grid-column: 1 / -1; grid-row: auto; border-top: 1px solid var(--jrpg-line); color: var(--jrpg-muted); padding: 0; min-width: 0; }
 .camp-hero-abilities summary { min-height: 44px; display: list-item; align-content: center; padding: 10px 0; color: var(--jrpg-highlight); font-size: .8rem; }

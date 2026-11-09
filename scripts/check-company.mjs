@@ -14,6 +14,10 @@ try {
   page.on('pageerror', error => errors.push(error.message))
   await page.goto('http://localhost:5187')
   await page.locator('.camp-view').waitFor()
+  await page.evaluate(async () => {
+    const { MOUNTAIN_PEAK } = await import('/src/core/expeditions/mountainPeak.ts')
+    MOUNTAIN_PEAK.generator.haunting.chance = 0
+  })
   // A reduced roster fixture keeps the recruitment branch exercised.
   await page.evaluate(async () => {
     const { Warrior } = await import('/src/core/heroes/Warrior.ts')

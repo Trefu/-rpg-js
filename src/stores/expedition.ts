@@ -51,7 +51,8 @@ export const useExpeditionStore = defineStore('expedition', {
      */
     activeCuriosityEvents: (state): CuriosityEvent[] => {
       return (state.currentExpedition?.config.curiosityEvents
-        ?? SHARED_CURIOSITY_EVENTS).filter(event => !event.uniquePerRun || !state.resolvedEventIds.includes(event.id))
+        ?? SHARED_CURIOSITY_EVENTS).filter(event => event.id !== state.currentExpedition?.config.generator.haunting?.eventId
+          && (!event.uniquePerRun || !state.resolvedEventIds.includes(event.id)))
     }
   },
 

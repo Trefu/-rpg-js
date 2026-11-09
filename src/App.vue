@@ -3,6 +3,7 @@ import { computed, defineAsyncComponent, onUnmounted, ref, watch } from 'vue'
 import RecruitHeroModal from './components/expedition/RecruitHeroModal.vue'
 import CuriosityEventModal from './components/expedition/CuriosityEventModal.vue'
 import CuriosityEventToast from './components/expedition/CuriosityEventToast.vue'
+import MountainOmen from './components/expedition/MountainOmen.vue'
 import GameUI from './components/ui/GameUI.vue'
 import CampView from './components/expedition/CampView.vue'
 import ShopView from './components/expedition/ShopView.vue'
@@ -30,6 +31,12 @@ if (!gameStore.loadProgress()) gameStore.initializeCompany()
 const expeditionStore = useExpeditionStore()
 const currentView = computed(() => gameStore.currentLocation)
 const audioManager = AudioManager.getInstance()
+const omenVisible = ref(false)
+const omenSequence = ref(0)
+watch(() => expeditionStore.currentExpedition, expedition => {
+  omenSequence.value++
+  omenVisible.value = !!expedition?.nodes.some(node => node.curiosityEventId === 'spectral-pass')
+})
 
 if (import.meta.env.DEV) {
   ;(window as any).__gameStore = gameStore
@@ -278,7 +285,7 @@ const handleTrainingEnded = () => {
 </script>
 
 <template>
-  <div class="app">
+  <div class="app" :inert="omenVisible || undefined">
     <GameUI @reset-game="handleResetGame" />
 
     <ExpeditionMap v-if="currentView === 'expedition-map'" @node-selected="handleNodeSelected" />
@@ -308,6 +315,7 @@ const handleTrainingEnded = () => {
       @dismiss="dismissCuriosityToast"
     />
   </div>
+  <MountainOmen v-if="omenVisible" :key="omenSequence" @done="omenVisible = false" />
 </template>
 
 <style>

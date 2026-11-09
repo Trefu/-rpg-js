@@ -37,6 +37,8 @@ try {
     const { Warrior } = await import('/src/core/heroes/Warrior.ts')
     const { Cleric } = await import('/src/core/heroes/Cleric.ts')
     const { Rogue } = await import('/src/core/heroes/Rogue.ts')
+    const { MOUNTAIN_PEAK } = await import('/src/core/expeditions/mountainPeak.ts')
+    MOUNTAIN_PEAK.generator.haunting.chance = 0
     const game = window.__gameStore
     game.startGame([Warrior.createStarter(), Cleric.createStarter(), Rogue.createStarter()])
     for (const hero of game.activeHeroes) hero.gainExperience(350)

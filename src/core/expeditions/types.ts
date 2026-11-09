@@ -91,6 +91,8 @@ export interface ForcedNode {
  * probabilidades y los nodos forzados sin tocar codigo compartido.
  */
 export interface ExpeditionGeneratorConfig {
+  /** Single roll per generated map; inserts an unavoidable event row. */
+  haunting?: { chance: number; eventId: string; depth: number }
   minNodesBeforeBoss: number
   /** Máximo de caminos paralelos en filas no forzadas (por defecto, 4). */
   maxPathsPerRow?: number

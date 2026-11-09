@@ -475,6 +475,27 @@ function enforceBranching(nodes: INode[], config: IExpeditionConfig): INode[] {
 
 export function useExpeditionGenerator() {
   function generateExpeditionNodes(config: IExpeditionConfig, options: ExpeditionGenerationOptions = {}): INode[] {
+    const haunting = config.generator.haunting
+    // Roll once, outside layout retries and the linear fallback.
+    const haunted = haunting !== undefined && Math.random() < haunting.chance
+    const finalize = (nodes: INode[]) => {
+      const result = enforceBranching(extendCombatRoutes(nodes, config, options), config)
+      if (!haunted || !haunting) return result
+      const depths = [...new Set(result.map(node => node.depth!))].sort((a, b) => a - b)
+      const index = Math.max(1, Math.min(depths.length - 1, haunting.depth - 1))
+      const previousRow = result.filter(node => node.depth === depths[index - 1])
+      const nextIds = [...new Set(previousRow.flatMap(node => node.connections))]
+      const omen = createNode('spectral-event', 'curiosity', { x: 50, y: 0 })
+      omen.curiosityEventId = haunting.eventId
+      omen.connections = nextIds
+      for (const parent of previousRow) parent.connections = [omen.id]
+      for (const node of result) if (node.depth! >= depths[index]) node.depth!++
+      omen.depth = depths[index]
+      result.push(omen)
+      const totalRows = depths.length + 1
+      for (const node of result) node.position.y = 5 + (node.depth! - 1) * 90 / (totalRows - 1)
+      return result.sort((a, b) => a.depth! - b.depth! || a.position.x - b.position.x)
+    }
     for (let attempt = 0; attempt < config.generator.maxRetries; attempt++) {
       const rows = buildRows(config)
       const childrenOf = connectRows(rows, config.generator.proximityThreshold, config.generator.maxParentsPerNode)
@@ -482,12 +503,12 @@ export function useExpeditionGenerator() {
       enforceSpecialNodeRules(rows, config)
       const result = validateConnectivity(rows, childrenOf)
       if (result.ok) {
-        return enforceBranching(extendCombatRoutes(rows.flat(), config, options), config)
+        return finalize(rows.flat())
       }
     }
 
     console.warn('[useExpeditionGenerator] Exhausted retries, falling back to linear layout')
-    return enforceBranching(extendCombatRoutes(generateLinearFallback(config), config, options), config)
+    return finalize(generateLinearFallback(config))
   }
 
   return {
