@@ -332,7 +332,7 @@ function onAllyRowClick(hero: Hero | null) {
                                 ? `${displayedHero?.name} Defendiendo`
                                 : displayedHero?.name) }}
                     </span>
-                    <span class="mobile-hud-level">Nv {{ displayedHero?.level }}</span>
+                    <span class="mobile-hud-level">NV {{ displayedHero?.level }}</span>
                 </div>
                 <div class="mobile-hud-bar">
                     <div class="mobile-hud-bar-fill hp" :style="{ width: `${hpPercent}%` }"></div>
@@ -415,7 +415,7 @@ function onAllyRowClick(hero: Hero | null) {
                         <div class="mobile-hud-ally-body">
                             <div class="mobile-hud-ally-head">
                                 <span class="mobile-hud-ally-name">{{ hero?.name ?? 'Vacío' }}</span>
-                                <span v-if="hero" class="mobile-hud-ally-level">Nv {{ hero.level }}</span>
+                                <span v-if="hero" class="mobile-hud-ally-level">NV {{ hero.level }}</span>
                                 <span v-if="hero && (props.attackedHeroIds ?? []).includes(hero.id)"
                                     class="mobile-hud-ally-being-attacked">Defendiendo</span>
                             </div>

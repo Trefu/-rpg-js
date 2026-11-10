@@ -324,8 +324,10 @@ defineExpose({
         aria-hidden="true"
       />
       <div class="hero-info">
-        <div class="hero-name">{{ hero.name }}</div>
-        <div class="hero-level">Nivel {{ hero.level }}</div>
+        <div class="combat-hero-heading">
+          <div class="hero-name">{{ hero.name }}</div>
+          <span class="combat-hero-level">NV {{ hero.level }}</span>
+        </div>
         <div class="hero-bars">
           <div class="bar-line bar-line--hp">
             <div class="bar-track">
@@ -337,8 +339,8 @@ defineExpose({
           <div class="bar-line">
             <div class="bar-track">
               <div class="bar-fill bar-energy" :style="{ width: `${energyPercent}%` }"></div>
+              <span class="bar-value">{{ energyDisplay }}</span>
             </div>
-            <span class="bar-value">{{ energyDisplay }}</span>
           </div>
           <div class="bar-line">
             <div
@@ -359,8 +361,8 @@ defineExpose({
                 :key="`heroism-flash-${heroismFlashToken}`"
                 :style="{ width: `${heroismPercent}%` }"
               ></div>
+              <span class="bar-value bar-value-heroism">{{ heroismDisplay }}</span>
             </div>
-            <span class="bar-value bar-value-heroism">{{ heroismDisplay }}</span>
           </div>
         </div>
         <div
@@ -785,7 +787,15 @@ defineExpose({
   gap: 0.28rem;
 }
 
+.combat-hero-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
 .hero-name {
+  min-width: 0;
   color: #fff;
   font-weight: 700;
   font-size: 1.18rem;
@@ -795,7 +805,8 @@ defineExpose({
   text-overflow: ellipsis;
 }
 
-.hero-level {
+.combat-hero-level {
+  flex-shrink: 0;
   color: #ffd54f;
   font-weight: 700;
   font-size: 0.86rem;
@@ -906,12 +917,12 @@ defineExpose({
 .bar-track {
   position: relative;
   flex: 1;
-  height: 11px;
+  height: 18px;
   background: rgba(0, 0, 0, 0.6);
   border-radius: 5px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  min-width: 60px;
+  min-width: 0;
 }
 
 .bar-fill {
@@ -923,8 +934,7 @@ defineExpose({
   background: linear-gradient(90deg, #66bb6a, #2e7d32);
 }
 
-.bar-line--hp .bar-track { height: 18px; min-width: 0; }
-.bar-line--hp .bar-value {
+.bar-track .bar-value {
   position: absolute;
   inset: 0;
   z-index: 2;
@@ -1470,12 +1480,12 @@ defineExpose({
     font-size: 1rem;
   }
 
-  .hero-level {
+  .combat-hero-level {
     font-size: 0.74rem;
   }
 
   .bar-track {
-    height: 9px;
+    height: 18px;
   }
 
   .bar-value {
