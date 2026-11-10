@@ -73,7 +73,6 @@ export function isBasicAttack(ability: IAbility): boolean {
 }
 
 const SECOND_WIND_HEAL_PCT = 0.20
-const SECOND_WIND_ENERGY_RESTORE_PCT = 0.10
 const SECOND_WIND_CHARGES = 3
 
 /**
@@ -257,7 +256,7 @@ function applyRoguePoison(context: AbilityContext, stacks: number): void {
 export const RogueBasicAttack: IAbility = {
   ...BasicAttack,
   name: 'Daga Envenenada',
-  description: 'Un tajo físico que aplica cargas de veneno iguales a tu nivel por impacto y recupera energía. Gana golpes con el nivel.',
+  description: 'Un tajo físico que envenena al enemigo y recupera energía.',
   type: 'rogueAttack',
   tags: ['rogue', 'physical', 'poison', 'damage'],
   icon: thrownKnife,
@@ -287,7 +286,7 @@ function getRoguePoisonStacks(hero: Hero): number {
 
 export const RoguePoisonBomb: IAbility = {
   name: 'Bomba Venenosa',
-  description: 'Aplica cargas de veneno iguales a 3 × nivel + ⌊agilidad efectiva / 2⌋. Incluye la agilidad adicional de Paso Ligero al lanzar la bomba.',
+  description: 'Envenena al enemigo. Las cargas de veneno escalan con AGILIDAD.',
   type: 'roguePoisonBomb',
   cooldown: 1,
   energyCost: 25,
@@ -319,9 +318,17 @@ export const RoguePoisonBomb: IAbility = {
 registerAbility(RoguePoisonBomb)
 
 const rogueBackstabPipeline = damageStep({ stat: 'body', coef: 2.2, levelCoef: 2, statLabel: 'CUE' })
+const ROGUE_BACKSTAB_POISON_MULTIPLIER = 1.3
+function previewRogueBackstab(caster: Hero): AbilityDamagePreview {
+  const base = previewFromPipeline(rogueBackstabPipeline, 'physical')(caster)
+  const poisoned = previewFromPipeline(
+    { ...rogueBackstabPipeline, multiplier: ROGUE_BACKSTAB_POISON_MULTIPLIER }, 'physical'
+  )(caster)
+  return { ...base, conditional: { label: 'Si está envenenado', min: poisoned.min, max: poisoned.max, formula: poisoned.formula } }
+}
 export const RogueBackstab: IAbility = {
   name: 'Puñalada',
-  description: 'Una estocada precisa que inflige un gran daño físico a un enemigo. Inflige un 30% más de daño si el objetivo está envenenado.',
+  description: 'Una estocada que inflige gran daño físico. Hace más daño si el enemigo está envenenado.',
   type: 'rogueBackstab',
   cooldown: 1,
   energyCost: 30,
@@ -331,12 +338,12 @@ export const RogueBackstab: IAbility = {
   icon: swordSlice,
   animationDurationMs: 900,
   pipeline: rogueBackstabPipeline,
-  previewDamage: previewFromPipeline(rogueBackstabPipeline, 'physical'),
+  previewDamage: previewRogueBackstab,
   execute: async (context: AbilityContext) => {
     const caster = context.caster as Hero
     const target = context.target
     if (!target?.isAlive) return
-    const poisonMultiplier = target.hasStatusEffect(StatusEffects.POISON.type) ? 1.3 : 1
+    const poisonMultiplier = target.hasStatusEffect(StatusEffects.POISON.type) ? ROGUE_BACKSTAB_POISON_MULTIPLIER : 1
     const rawDamage = computeRawDamage(rogueBackstabPipeline, caster) * poisonMultiplier
     const { finalDamage } = dealDamage({ caster, target, ability: context.ability, rawDamage, effects: context })
     if (finalDamage > 0) context.playEnemyVfx?.(target.id, poisonSlash)
@@ -347,7 +354,7 @@ registerAbility(RogueBackstab)
 
 export const RogueHaste: IAbility = {
   name: 'Paso Ligero',
-  description: 'Aumenta un 25% su agilidad durante 2 turnos.',
+  description: 'Aumenta su agilidad durante 2 turnos.',
   type: 'rogueHaste',
   cooldown: 4,
   energyCost: 40,
@@ -371,7 +378,7 @@ registerAbility(RogueHaste)
 export const RogueUltimate: IAbility = {
   ...RogueBasicAttack,
   name: 'Danza de Víboras',
-  description: 'Desata cuatro veces los golpes del ataque básico. Cada impacto aplica 2 cargas; al final, detona todo el veneno y causa daño igual a las cargas explotadas × 5.',
+  description: 'Desata una ráfaga de golpes que envenenan al enemigo. Al terminar, detona todo su veneno para causar daño adicional.',
   type: 'rogueUltimate',
   tags: ['rogue', 'physical', 'poison', 'damage', 'ultimate'],
   icon: wingedSword,
@@ -488,9 +495,9 @@ export const WarriorInjuringStrike: IAbility = {
   icon: swordSlice,
   hitVfx: { asset: 'physical-slash-2', durationMs: 680 },
   animationDurationMs: 800,
-  pipeline: damageStep({ stat: 'body', coef: 1.2, levelCoef: 0.5, statLabel: 'CUE' }),
+  pipeline: damageStep({ stat: 'body', coef: 1.5, levelCoef: 3, statLabel: 'CUE' }),
   previewDamage: previewFromPipeline(
-    damageStep({ stat: 'body', coef: 1.2, levelCoef: 0.5, statLabel: 'CUE' }),
+    damageStep({ stat: 'body', coef: 1.5, levelCoef: 3, statLabel: 'CUE' }),
     'physical'
   ),
   execute: async (context: AbilityContext) => {
@@ -530,9 +537,9 @@ export const WarriorDevastatingStrike: IAbility = {
   icon: thunderBlade,
   requiresTarget: false,
   aoe: true,
-  pipeline: damageStep({ stat: 'body', coef: 1.5, levelCoef: 3, statLabel: 'CUE' }),
+  pipeline: damageStep({ stat: 'body', coef: 1.2, levelCoef: 0.5, statLabel: 'CUE' }),
   previewDamage: previewFromPipeline(
-    damageStep({ stat: 'body', coef: 1.5, levelCoef: 3, statLabel: 'CUE' }),
+    damageStep({ stat: 'body', coef: 1.2, levelCoef: 0.5, statLabel: 'CUE' }),
     'physical'
   ),
   execute: async (context: AbilityContext) => {
@@ -563,7 +570,7 @@ registerAbility(WarriorDevastatingStrike)
 
 export const SecondWind: IAbility = {
   name: 'Segundo Aliento',
-  description: `Cura ${Math.round(SECOND_WIND_HEAL_PCT * 100)}% de vida maxima y aplica el buff Segundo Aliento: cada bloqueo siguiente restaura ${Math.round(SECOND_WIND_ENERGY_RESTORE_PCT * 100)}% de la energia maxima (${SECOND_WIND_CHARGES} bloqueos). Mientras tengas cargas activas, los enemigos te priorizaran mucho mas como objetivo (mayor agro).`,
+  description: 'Recupera vida y permite restaurar energía al bloquear mientras queden cargas. Durante ese efecto, los enemigos prefieren atacarte.',
   type: 'secondWind',
   cooldown: 2,
   energyCost: 0,
@@ -614,7 +621,7 @@ registerAbility(SecondWind)
 
 export const ClericRadiantStrike: IAbility = {
   name: 'Luz Sagrada',
-  description: 'Un destello radiante que causa daño sagrado al objetivo y puede saltar a 1-2 enemigos adicionales cercanos.',
+  description: 'Un destello radiante que causa daño sagrado y puede saltar a otros enemigos cercanos.',
   type: 'clericRadiantStrike',
   cooldown: 0,
   energyCost: 30,
@@ -658,7 +665,7 @@ export function canReceiveDivineBlessing(target: import('../interfaces/ICharacte
 
 export const ClericDivineBlessing: IAbility = {
   name: 'Bendición Divina',
-  description: 'Otorga a un aliado vida temporal y +20% de daño durante 3 turnos. El escudo absorbe daño antes que su vida. Si bendice a otro aliado, Elara se cura la misma cantidad. No puede seleccionar a quien conserve vida temporal de esta bendición.',
+  description: 'Otorga un escudo y aumenta el daño de un aliado durante 3 turnos. Si Elara elige a otro aliado, también se cura. No puede aplicarse a quien conserve el escudo de esta bendición.',
   type: 'clericDivineBlessing',
   cooldown: 0,
   energyCost: 40,
@@ -706,7 +713,7 @@ registerAbility(ClericDivineBlessing)
 
 export const ClericHeal: IAbility = {
   name: 'Curar Heridas',
-  description: 'Canaliza luz radiante para restaurar 30% (+ bono por mente y nivel) de la vida maxima de un aliado (incluido el caster) y eliminar todos los efectos de daño por tiempo (Quemadura, Veneno, Congelado).',
+  description: 'Cura a un aliado o a la propia lanzadora y elimina cualquier efecto de daño por tiempo.',
   type: 'clericHeal',
   cooldown: 0,
   energyCost: 30,
@@ -783,14 +790,14 @@ export const WARRIOR_ULTIMATE_HIT_MULTIPLIER = 5
 
 export const WarriorUltimate: IAbility = {
   name: 'Tormenta de Acero',
-  description: 'Desata cinco veces los golpes de su ataque basico a nivel actual.',
+  description: 'Desata una ráfaga de ataques contra el enemigo. Cada impacto acumula quemadura.',
   type: 'warriorUltimate',
   cooldown: 0,
   energyCost: 0,
   heroismCost: 100,
   damageType: 'physical',
   targetType: 'enemies-only',
-  tags: ['warrior', 'physical', 'damage', 'ultimate'],
+  tags: ['warrior', 'physical', 'fire', 'damage', 'ultimate'],
   icon: wingedSword,
   animationDurationMs: BASIC_ATTACK_DURATION_MS,
   pipeline: damageStep({ stat: 'body', coef: 0.7, levelCoef: 2, statLabel: 'CUE' }),
@@ -805,14 +812,18 @@ export const WarriorUltimate: IAbility = {
     const baseHits = getBasicAttackHitCount(caster.level)
     const totalHits = baseHits * WARRIOR_ULTIMATE_HIT_MULTIPLIER
     context.log(`¡${caster.name} desata Tormenta de Acero! ${totalHits} golpes.`)
-    await runHitStorm(context, caster, target, context.ability, totalHits)
+    await runHitStorm(context, caster, target, context.ability, totalHits, () => {
+      if (!target.isAlive) return
+      target.addStatusEffect({ ...StatusEffects.BURN, stacks: caster.level })
+      context.log(`${target.name} recibe ${caster.level} cargas de quemadura.`)
+    })
   }
 }
 registerAbility(WarriorUltimate)
 
 export const ClericUltimate: IAbility = {
   name: 'Luz Divina',
-  description: 'Canaliza una luz sagrada que cura a todos los heroes un 50% de su vida maxima, elimina todos los efectos de daño por tiempo, purga cualquier debuff y bendice a los allies con +30% Cuerpo durante 3 turnos.',
+  description: 'Cura a todo el grupo, elimina el daño por tiempo y los efectos perjudiciales, y aumenta su Cuerpo durante 3 turnos.',
   type: 'clericUltimate',
   cooldown: 0,
   energyCost: 0,

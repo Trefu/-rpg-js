@@ -36,6 +36,14 @@ async function execute(ctx: AbilityContext) {
 }
 
 describe('Pícaro jugable', () => {
+  it.each([1, 4, 8])('Puñalada muestra el rango base y el opcional contra veneno en nivel %s', level => {
+    const hero = new Rogue(level)
+    const preview = RogueBackstab.previewDamage!(hero)
+    expect(preview.conditional?.label).toBe('Si está envenenado')
+    expect(preview.conditional!.min).toBeGreaterThan(preview.min)
+    expect(preview.conditional!.max).toBeGreaterThan(preview.max)
+    expect(preview.conditional!.formula).toContain('1.3')
+  })
   beforeEach(() => {
     vi.useFakeTimers()
     vi.spyOn(Math, 'random').mockReturnValue(0.5)

@@ -4,12 +4,14 @@ import type { IAbility, AbilityDamagePreview, AbilityEffectPreview } from '@/cor
 import type { Hero } from '@/core/Hero'
 import { getAbilityIcon } from '@/core/abilities/getAbilityIcon'
 import HotkeyIcon from './HotkeyIcon.vue'
+import DamageTypeIcon from '@/components/ui/DamageTypeIcon.vue'
+import AbilityDescription from '@/components/ui/AbilityDescription.vue'
 import { getBasicAttackHitCount, getAbilityHitCount, isBasicAttack } from '@/core/abilities/Abilities'
 import { formatPreviewRange } from '@/core/abilities/damagePipeline'
 import '@/styles/hint-colors.css'
 import backpackIcon from '@/assets/icons/backpack.png'
-import boltIcon from '@/assets/icons/bolt-shield.png'
-import hourglassIcon from '@/assets/icons/hourglass.png'
+import boltIcon from '@/assets/ui/display/ability-energy.png'
+import hourglassIcon from '@/assets/ui/display/ability-cooldown.png'
 
 type Slot =
   | { kind: 'ability', ability: IAbility, index: number }
@@ -405,7 +407,7 @@ function shortcutFor(index: number): string | null {
             </div>
             <button class="aab-info-close" type="button" aria-label="Cerrar" @click="closeInfo">✕</button>
           </header>
-          <p class="aab-info-desc">{{ infoAbility.description }}</p>
+          <AbilityDescription class="aab-info-desc" :text="infoAbility.description" />
           <p v-if="infoAbility.type === 'attack'" class="aab-info-hits">
             Golpes: <strong>{{ basicHitCount }}</strong>
             <span class="aab-info-hits-hint">(+1 por cada 4 niveles)</span>
@@ -431,23 +433,30 @@ function shortcutFor(index: number): string | null {
               class="aab-info-damage-hits"
               :title="`${hitCountFor(infoAbility)} ataques`"
             >× {{ hitCountFor(infoAbility) }}</span>
-            <span v-if="infoPreview?.damageTypeLabel" class="aab-info-damage-type">{{ infoPreview.damageTypeLabel }}</span>
+            <span v-if="infoPreview?.damageTypeLabel && infoPreview.kind !== 'heal'" class="aab-info-damage-type"><DamageTypeIcon :type="infoAbility.damageType" :attack-name="infoAbility.name" /> {{ infoPreview.damageTypeLabel }}</span>
+            <span v-if="infoEffectPreview?.kind === 'poison'" class="aab-info-damage-type"><DamageTypeIcon type="poison" /> Veneno</span>
+            <span v-if="infoPreview?.conditional" class="aab-info-damage-conditional"><DamageTypeIcon type="poison" /> {{ infoPreview.conditional.label }}: <strong>{{ formatPreviewRange(infoPreview.conditional) }}</strong></span>
           </button>
           <div v-if="(infoPreview || infoEffectPreview) && infoFormulaOpen" class="aab-info-formula" @click.stop>
             <div v-if="infoPreview" class="aab-info-formula-line" v-html="infoPreview.formula"></div>
-            <div v-else-if="infoEffectPreview" class="aab-info-formula-line" v-html="infoEffectPreview.formula"></div>
+            <template v-if="infoPreview?.conditional">
+              <span>{{ infoPreview.conditional.label }}</span>
+              <div class="aab-info-formula-line" v-html="infoPreview.conditional.formula"></div>
+            </template>
+            <div v-if="!infoPreview && infoEffectPreview" class="aab-info-formula-line" v-html="infoEffectPreview.formula"></div>
           </div>
 
           <footer class="aab-info-footer">
-            <span v-if="infoAbility.energyCost" class="aab-info-cost">
+            <span v-if="infoAbility.energyCost" class="aab-info-cost" :aria-label="`Coste: ${infoAbility.energyCost} de energía`" title="Coste de energía">
               <img :src="boltIcon" alt="" class="aab-info-cost-icon" />
               {{ infoAbility.energyCost }}
             </span>
-            <span v-if="infoAbility.cooldown > 0" class="aab-info-cd">
+            <span v-if="infoAbility.cooldown > 0" class="aab-info-cd" :aria-label="`Enfriamiento: ${infoAbility.cooldown} turnos`" title="Turnos de enfriamiento">
               <img :src="hourglassIcon" alt="" class="aab-info-cd-icon" />
               {{ infoAbility.cooldown }}t
             </span>
             <span v-if="cooldownOf(infoAbility.type) > 0" class="aab-info-cd-active">
+              <img :src="hourglassIcon" alt="" class="aab-info-cd-icon" />
               Enfriando: {{ cooldownOf(infoAbility.type) }}t
             </span>
             <span v-if="isSelectingTarget && selectedAbility?.type === infoAbility.type" class="aab-info-targeting">
@@ -872,10 +881,10 @@ function shortcutFor(index: number): string | null {
 
 .aab-info-cost-icon,
 .aab-info-cd-icon {
-  width: 14px;
-  height: 14px;
+  width: 20px;
+  height: 20px;
   object-fit: contain;
-  filter: drop-shadow(0 1px 1px #000a);
+  image-rendering: pixelated;
 }
 
 .aab-info-use {

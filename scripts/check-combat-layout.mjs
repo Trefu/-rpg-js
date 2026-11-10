@@ -63,6 +63,14 @@ try {
   await page.setViewportSize({ width: 1366, height: 768 })
   await page.locator('.desktop-actions .aab-btn').first().click()
   await page.locator('.aab-info-card').waitFor()
+  await page.waitForFunction(() => {
+    const panel = document.querySelector('.aab-info')
+    return panel && getComputedStyle(panel).opacity === '1' && !panel.classList.contains('aab-info-enter-active')
+  })
+  await page.locator('.aab-info-card .damage-type-icon').waitFor()
+  await page.waitForFunction(() => [...document.querySelectorAll('.aab-info-card .damage-type-icon')]
+    .every(image => image.complete && image.naturalWidth === 64))
+  if (process.env.CAMPAIGN_SCREENSHOTS) await page.screenshot({ path: `${process.env.CAMPAIGN_SCREENSHOTS}/combat-ability-damage-icons.png`, animations: 'disabled' })
   const overlayCheck = await page.locator('.aab-info-card').evaluate(panel => {
     const bounds = panel.getBoundingClientRect()
     const x = bounds.left + bounds.width / 2
@@ -78,15 +86,34 @@ try {
   assert.equal(overlayCheck, true, 'Status effects must never cover the ability panel')
   await page.locator('.aab-info-close').click()
   await page.locator('.aab-info-card').waitFor({ state: 'detached' })
+  await page.locator('.desktop-actions .aab-btn').nth(1).click()
+  await page.locator('.aab-info-card .aab-info-cost-icon').waitFor()
+  await page.waitForFunction(() => !document.querySelector('.aab-info')?.classList.contains('aab-info-enter-active'))
+  await page.waitForFunction(() => [...document.querySelectorAll('.aab-info-card .aab-info-cost-icon, .aab-info-card .aab-info-cd-icon')]
+    .every(image => image.complete && image.naturalWidth === 64))
+  if (process.env.CAMPAIGN_SCREENSHOTS) await page.screenshot({ path: `${process.env.CAMPAIGN_SCREENSHOTS}/combat-ability-cost-icons.png`, animations: 'disabled' })
+  await page.locator('.aab-info-close').click()
+  await page.locator('.aab-info-card').waitFor({ state: 'detached' })
+  await page.locator('.desktop-actions .aab-btn').nth(2).click()
+  await page.locator('.aab-info-card .aab-info-cd-icon').waitFor()
+  await page.waitForFunction(() => !document.querySelector('.aab-info')?.classList.contains('aab-info-enter-active'))
+  await page.waitForFunction(() => document.querySelector('.aab-info-card .aab-info-cd-icon')?.naturalWidth === 64)
+  if (process.env.CAMPAIGN_SCREENSHOTS) await page.screenshot({ path: `${process.env.CAMPAIGN_SCREENSHOTS}/combat-ability-cooldown-icon.png`, animations: 'disabled' })
+  await page.locator('.aab-info-close').click()
+  await page.locator('.aab-info-card').waitFor({ state: 'detached' })
   // Generated keycaps must load, and retain the existing keyboard bindings.
   const abilityKeys = page.locator('.desktop-actions .combat-hotkey')
   assert.deepEqual(await abilityKeys.evaluateAll(keys => keys.map(key => key.getAttribute('aria-label'))),
     ['Tecla Q', 'Tecla W', 'Tecla E', 'Tecla R', 'Tecla T'])
+  await page.waitForFunction(() => [...document.querySelectorAll('.desktop-actions .combat-hotkey img')]
+    .every(image => image.complete && image.naturalWidth === 64))
   assert.equal(await abilityKeys.locator('img').evaluateAll(images => images.every(image => image.complete && image.naturalWidth === 64)), true)
   await page.keyboard.press('q')
   await page.locator('.enemy-shortcut-badge').nth(5).waitFor()
   assert.deepEqual(await page.locator('.enemy-shortcut-badge .combat-hotkey').evaluateAll(keys => keys.map(key => key.getAttribute('aria-label'))),
     ['Tecla 1', 'Tecla 2', 'Tecla 3', 'Tecla 4', 'Tecla 5', 'Tecla 6'])
+  await page.waitForFunction(() => [...document.querySelectorAll('.enemy-shortcut-badge img')]
+    .every(image => image.complete && image.naturalWidth === 64))
   assert.equal(await page.locator('.enemy-shortcut-badge img').evaluateAll(images => images.every(image => image.complete && image.naturalWidth === 64)), true)
   if (process.env.CAMPAIGN_SCREENSHOTS) await page.screenshot({ path: `${process.env.CAMPAIGN_SCREENSHOTS}/combat-hotkeys-targets.png` })
   const healthBefore = await page.evaluate(() => window.__expeditionStore.currentExpedition.currentNode.enemies[5].health)

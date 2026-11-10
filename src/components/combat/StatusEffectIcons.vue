@@ -4,6 +4,7 @@ import type { IStatusEffect, StatusEffectSide } from '@/core/interfaces/IStatusE
 import { presentStatus, isActiveStatus, statusChanges } from '@/core/combat/statusPresentation'
 import '@/styles/combat-status.css'
 import { useExclusiveToggle } from '@/composables/useExclusiveToggle'
+import roundClockIcon from '@/assets/ui/status-round-clock.png'
 
 /**
  * El template tiene dos raices (un <div> para los iconos y un <Teleport>
@@ -258,7 +259,7 @@ function effectTagline(e: IStatusEffect): string {
     >
       <img :src="effect.icon" :alt="effect.name" />
       <span class="status-polarity" aria-hidden="true">{{ effect.isBuff ? '+' : '−' }}</span>
-      <span v-if="presentStatus(effect, side).turns !== null" class="enemy-status-turns">◷{{ effect.turns }}</span>
+      <span v-if="presentStatus(effect, side).turns !== null" class="enemy-status-turns"><img :src="roundClockIcon" class="status-round-clock" alt="" aria-hidden="true" />{{ effect.turns }}</span>
       <span v-if="presentStatus(effect, side).charges !== null" class="status-charges">◆{{ effect.charges }}</span>
       <span v-if="presentStatus(effect, side).shield !== null" class="status-shield">◇{{ effect.absorbRemaining }}</span>
       <span

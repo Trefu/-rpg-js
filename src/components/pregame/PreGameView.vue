@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import GoldAmount from '@/components/ui/GoldAmount.vue'
 import FormulaChip from '@/components/ui/FormulaChip.vue'
+import DamageTypeIcon from '@/components/ui/DamageTypeIcon.vue'
+import AbilityDescription from '@/components/ui/AbilityDescription.vue'
 import { computed, ref } from 'vue'
 import type { ExpeditionId, IExpeditionConfig } from '@/core/expeditions/types'
 import { Warrior } from '@/core/heroes/Warrior'
@@ -18,8 +20,8 @@ import { getBasicAttackHitCount, getAbilityHitCount } from '@/core/abilities/Abi
 import { formatPreviewRange } from '@/core/abilities/damagePipeline'
 import { getDamageTypeInfo } from '@/core/combat/damageTypes'
 import type { AbilityDamagePreview, IAbility } from '@/core/interfaces/IAbility'
-import boltIcon from '@/assets/icons/bolt-shield.png'
-import hourglassIcon from '@/assets/icons/hourglass.png'
+import boltIcon from '@/assets/ui/display/ability-energy.png'
+import hourglassIcon from '@/assets/ui/display/ability-cooldown.png'
 import '@/styles/hint-colors.css'
 
 const emit = defineEmits<{
@@ -344,7 +346,7 @@ function damageTypeClass(id?: string): string {
                       {{ ability.cooldown }} turno{{ ability.cooldown > 1 ? 's' : '' }}
                     </span>
                   </div>
-                  <p class="ability-row__desc">{{ ability.description }}</p>
+                  <AbilityDescription class="ability-row__desc" :text="ability.description" />
                   <p v-if="ability.type === 'attack'" class="ability-row__hits">
                     Golpes base: <strong>{{ focusedBasicHitCount }}</strong>
                   </p>
@@ -361,10 +363,11 @@ function damageTypeClass(id?: string): string {
                       :title="`${hitCountFor(ability)} ataques`"
                     >× {{ hitCountFor(ability) }}</span>
                     <span
-                    v-if="focusedAbilityPreviews[idx]!.damageTypeLabel"
+                    v-if="focusedAbilityPreviews[idx]!.damageTypeLabel && focusedAbilityPreviews[idx]!.kind !== 'heal'"
                     class="ability-row__dmg-type"
                     :class="damageTypeClass(ability.damageType)"
                   >
+                    <DamageTypeIcon :type="ability.damageType" :attack-name="ability.name" />
                     {{ focusedAbilityPreviews[idx]!.damageTypeLabel }}
                   </span>
                   </p>
@@ -373,6 +376,10 @@ function damageTypeClass(id?: string): string {
                     class="pregame-ability-formula"
                     :formula="focusedAbilityPreviews[idx]!.formula"
                   />
+                  <template v-if="focusedAbilityPreviews[idx]?.conditional">
+                    <p class="ability-row__dmg"><DamageTypeIcon type="poison" /> {{ focusedAbilityPreviews[idx]!.conditional!.label }}: <strong>{{ formatPreviewRange(focusedAbilityPreviews[idx]!.conditional!) }}</strong></p>
+                    <FormulaChip class="pregame-ability-formula" :formula="focusedAbilityPreviews[idx]!.conditional!.formula" />
+                  </template>
                 </div>
               </li>
             </ul>
@@ -1070,7 +1077,7 @@ function damageTypeClass(id?: string): string {
 .cooldown-icon {
   width: 0.9em;
   height: 0.9em;
-  filter: sepia(1) saturate(5) hue-rotate(0deg) brightness(1.2);
+  image-rendering: pixelated;
 }
 
 /* ============ CONFIRM MODAL ============ */

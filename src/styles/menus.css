@@ -56,15 +56,34 @@
 .camp-hero-chips .hero-stat-chips { gap: 3px; }
 .camp-hero-chips .stat-chip { border-radius: 0; min-height: 44px; padding: 3px 5px; font-size: .7rem; justify-content: space-between; background: color-mix(in srgb, currentColor 18%, var(--jrpg-inset)); border-color: currentColor; box-shadow: none; }
 .hero-party-toggle { grid-column: 1 / -1; margin: 0; width: 100%; font-size: .75rem; }
-.camp-hero-abilities, .camp-hero-attributes { grid-column: 1 / -1; grid-row: auto; border-top: 1px solid var(--jrpg-line); color: var(--jrpg-muted); padding: 0; min-width: 0; }
-.camp-hero-abilities summary, .camp-hero-attributes summary { min-height: 44px; display: list-item; align-content: center; padding: 10px 0; color: var(--jrpg-highlight); font-size: .8rem; }
-.camp-hero-attributes summary:focus-visible { outline: 2px solid var(--jrpg-orange); outline-offset: 2px; }
-.camp-hero-attributes .camp-hero-chips { border-top: 0; padding: 0 0 8px; }
+.camp-hero-inspect { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.camp-hero-inspect .campaign-button { min-width: 0; margin: 0; padding: 8px 4px; font-size: .75rem; }
+.camp-hero-modal { width: min(720px, calc(100vw - 24px)); max-width: none; max-height: calc(100dvh - 24px); padding: 0; box-sizing: border-box; color: var(--jrpg-text); font-family: var(--jrpg-font); }
+.camp-hero-modal[open] { display: flex; flex-direction: column; }
+.camp-hero-modal::backdrop { background: var(--jrpg-shadow); opacity: .8; }
+.camp-hero-modal-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--jrpg-line); flex-shrink: 0; }
+.camp-hero-modal-heading h2 { margin: 0; font: bold 1rem/1.5 var(--jrpg-font); overflow-wrap: anywhere; }
+.camp-hero-modal-heading button { flex-shrink: 0; min-width: 44px; }
+.camp-hero-modal-content { min-height: 0; padding: 16px; overflow-y: auto; overscroll-behavior: contain; scrollbar-color: var(--jrpg-frame) var(--jrpg-inset); }
+.camp-hero-modal .camp-hero-chips { border: 0; padding: 0; }
+.camp-hero-modal .camp-hero-abilities ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+.camp-hero-modal .camp-hero-abilities li { min-width: 0; padding: 12px; }
+.camp-hero-modal .camp-hero-abilities li > div:first-child { display: flex; align-items: center; gap: 8px; }
+.camp-hero-modal .camp-hero-abilities li > div:first-child img { width: 24px; height: 24px; object-fit: contain; }
+.camp-hero-modal .camp-hero-abilities p { line-height: 1.6; }
+@media (max-width: 480px) {
+  .camp-hero-modal-heading, .camp-hero-modal-content { padding: 10px; }
+  .camp-hero-modal-heading h2 { font-size: .85rem; }
+}
 .camp-hero-abilities li { background: var(--jrpg-inset); border: 0; border-left: 2px solid var(--jrpg-line); padding: 6px; font-size: .8rem; }
-.camp-view .formula-chip { border: 1px solid var(--jrpg-line); border-radius: 0; background: var(--jrpg-inset); padding: 4px; }
-.camp-view .formula-chip-label { color: var(--jrpg-muted); }
-.camp-view .formula-chip-expression { font: .75rem/1.5 var(--jrpg-font); color: var(--jrpg-text); }
+.camp-view .formula-chip, .camp-hero-modal .formula-chip { border: 1px solid var(--jrpg-line); border-radius: 0; background: var(--jrpg-inset); padding: 4px; }
+.camp-view .formula-chip-label, .camp-hero-modal .formula-chip-label { color: var(--jrpg-muted); }
+.camp-view .formula-chip-expression, .camp-hero-modal .formula-chip-expression { font: .75rem/1.5 var(--jrpg-font); color: var(--jrpg-text); }
 .camp-hero-abilities p, .camp-ability-formula { color: var(--jrpg-muted); font-size: .75rem; }
+.camp-ability-costs, .camp-ability-costs span { display: flex; align-items: center; gap: 6px; }
+.camp-ability-costs { flex-wrap: wrap; gap: 12px; }
+.camp-ability-costs:empty { display: none; }
+.camp-hero-abilities .camp-ability-costs img { width: 18px; height: 18px; object-fit: contain; image-rendering: pixelated; }
 .camp-ability-preview { color: var(--jrpg-highlight) !important; }
 .destination-picker { padding: 10px; margin-bottom: 10px; }
 .destination-options { gap: 0; }

@@ -27,33 +27,38 @@ try {
   const capture = async name => {
     if (process.env.CAMPAIGN_SCREENSHOTS) await page.screenshot({ path: `${process.env.CAMPAIGN_SCREENSHOTS}/${name}.png`, fullPage: true })
   }
-  const attributes = page.locator('.camp-hero-attributes')
+  const attributes = page.locator('button.camp-hero-attributes')
   assert.equal(await attributes.count(), 3)
-  assert.equal(await attributes.evaluateAll(items => items.every(item => !item.open)), true)
-  await attributes.first().locator('summary').focus()
+  assert.equal(await page.locator('.camp-hero-modal').count(), 0)
+  await attributes.first().focus()
   await page.keyboard.press('Enter')
-  assert.equal(await attributes.first().evaluate(item => item.open), true)
-  await page.keyboard.press('Space')
-  assert.equal(await attributes.first().evaluate(item => item.open), false)
-  for (const summary of await attributes.locator('summary').all()) await summary.click()
-  for (const details of await page.locator('.camp-hero-abilities').all()) {
-    await details.locator('summary').click()
-  }
+  await page.getByRole('dialog', { name: 'Atributos · Bjorn' }).waitFor()
+  await page.keyboard.press('Escape')
+  await page.locator('.camp-hero-modal').waitFor({ state: 'detached' })
+  assert.equal(await attributes.first().evaluate(el => el === document.activeElement), true)
+  await attributes.first().click()
   const semanticColors = await page.evaluate(() => {
     const pairs = [['cue', 'body'], ['mind', 'mind'], ['agi', 'agi'], ['con', 'con']]
     return pairs.map(([hint, chip]) => {
-      const terms = [...document.querySelectorAll(`.camp-ability-formula .hint-${hint}`)]
       const color = getComputedStyle(document.querySelector(`.camp-hero-chips .stat-chip-${chip}`)).color
-      return { hint, color, colors: terms.map(term => getComputedStyle(term).color) }
+      return { hint, color }
     })
   })
-  for (const { hint, color, colors } of semanticColors) {
+  await page.keyboard.press('Escape')
+  await page.locator('button.camp-hero-abilities').first().click()
+  for (const { hint, color } of semanticColors) {
     assert.notEqual(color, 'rgb(255, 255, 255)', hint)
+    const colors = await page.locator(`.camp-ability-formula .hint-${hint}`).evaluateAll(terms => terms.map(term => getComputedStyle(term).color))
     for (const termColor of colors) assert.equal(termColor, color, hint)
   }
   await capture('jrpg-camp-formulas')
-  for (const summary of await page.locator('.camp-hero-abilities summary').all()) await summary.click()
-  for (const summary of await attributes.locator('summary').all()) await summary.click()
+  await page.keyboard.press('Escape')
+  await page.locator('button.camp-hero-abilities').nth(2).click()
+  const bomb = page.locator('.camp-hero-modal li').filter({ hasText: 'Bomba Venenosa' })
+  assert.match(await bomb.innerText(), /Las cargas de veneno escalan con AGILIDAD/)
+  assert.equal(await bomb.locator('p .hint-agi').first().evaluate(el => getComputedStyle(el).color),
+    semanticColors.find(item => item.hint === 'agi').color)
+  await page.keyboard.press('Escape')
   for (const width of [1366, 768, 360]) {
     await page.setViewportSize({ width, height: 900 })
     await checkViewport()
@@ -61,13 +66,24 @@ try {
     assert.equal(panel.background, 'rgb(48, 32, 24)')
     assert.equal(panel.radius, '2px')
     assert.equal(await page.locator('.camp-commands').count(), 0)
-    assert.equal(await page.locator('.camp-hero-chips .stat-chip').count(), 33)
+    await capture(`jrpg-camp-${width}`)
+    const cardHeight = await page.locator('.company-hero').first().evaluate(el => el.getBoundingClientRect().height)
+    await attributes.first().click()
+    assert.equal(await page.locator('.camp-hero-chips .stat-chip').count(), 11)
+    assert.equal(await page.locator('.company-hero').first().evaluate(el => el.getBoundingClientRect().height), cardHeight)
+    assert.equal(await page.locator('.camp-hero-modal').evaluate(el => el.scrollWidth <= el.clientWidth), true)
     for (const kind of ['body', 'con', 'agi', 'atk', 'phys', 'crit']) {
       const background = await page.locator(`.camp-hero-chips .stat-chip-${kind}`).first().evaluate(el => getComputedStyle(el).backgroundColor)
       assert.notEqual(background, 'rgb(33, 21, 15)', `${kind} necesita fondo semántico`)
       assert.notEqual(background, 'rgba(0, 0, 0, 0)', `${kind} necesita fondo visible`)
     }
-    await capture(`jrpg-camp-${width}`)
+    await capture(`jrpg-attributes-${width}`)
+    await page.keyboard.press('Escape')
+    await page.locator('button.camp-hero-abilities').first().click()
+    assert.equal(await page.locator('.camp-hero-modal .camp-hero-abilities li').count(), 5)
+    assert.equal(await page.locator('.camp-hero-modal').evaluate(el => el.scrollWidth <= el.clientWidth), true)
+    await capture(`jrpg-abilities-${width}`)
+    await page.getByRole('button', { name: 'Cerrar', exact: true }).click()
   }
   await page.locator('.gear-btn').click()
   assert.equal(await page.locator('.gear-btn').getAttribute('aria-expanded'), 'true')

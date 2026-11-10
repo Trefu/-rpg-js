@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue'
+import { computed, nextTick, ref, shallowRef } from 'vue'
+import type { Hero } from '@/core/Hero'
+import CampHeroModal from './CampHeroModal.vue'
 import { MAX_HEROES, useGameStore } from '@/stores/game'
 import PartyEquipment from './PartyEquipment.vue'
 import { getInventoryEntries } from '@/core/items/inventory'
@@ -8,14 +10,11 @@ import { ITEM_MAX_USES } from '@/core/items/items'
 import { getExpedition, DEFAULT_EXPEDITION, listExpeditions } from '@/core/expeditions/registry'
 import type { ExpeditionId } from '@/core/expeditions/types'
 import GoldAmount from '@/components/ui/GoldAmount.vue'
-import FormulaChip from '@/components/ui/FormulaChip.vue'
 import swordIcon from '@/assets/icons/crossed-swords.png'
-import HeroStatChips from '@/components/combat/HeroStatChips.vue'
-import { getAbilityIcon } from '@/core/abilities/getAbilityIcon'
-import { formatPreviewRange } from '@/core/abilities/damagePipeline'
 import mountainPreview from '@/assets/backgrounds/mountain-preview.png'
 
 const game = useGameStore()
+const heroModal = shallowRef<{ hero: Hero; section: 'attributes' | 'abilities' } | null>(null)
 const difficultyLabels: Record<string, string> = { easy: 'Fácil', medium: 'Media', hard: 'Difícil' }
 const selectedExpeditionId = ref<ExpeditionId>(DEFAULT_EXPEDITION)
 const expedition = computed(() => getExpedition(selectedExpeditionId.value))
@@ -77,25 +76,10 @@ async function toggleHero(classId: string) {
             <article v-for="hero in section.heroes" :key="hero.heroClassId" class="company-hero campaign-panel" :class="{ 'in-party': selectedClasses.has(hero.heroClassId) }">
                 <div class="hero-portrait"><span class="hero-class">{{ classes[hero.heroClassId] ?? hero.heroClassId }}</span><img :src="hero.sprite" :alt="hero.name" /><span class="hero-level">{{ hero.level }}<small>NIVEL</small></span></div>
                 <div class="hero-dossier"><h3>{{ hero.name }}</h3><div class="hero-vitals"><span><i class="vital-dot hp"></i>{{ hero.maxHealth }} HP</span><span><i class="vital-dot energy"></i>{{ hero.maxEnergy }} EN</span></div><div class="hero-xp-label"><strong>{{ hero.experience }} / {{ hero.experienceToNextLevel }} XP</strong></div><progress :value="hero.experience" :max="hero.experienceToNextLevel" :aria-label="`Experiencia de ${hero.name}`" /></div>
-                <details class="camp-hero-attributes">
-                  <summary>Atributos</summary>
-                  <div class="camp-hero-chips"><HeroStatChips :hero="hero" :show-all="true" hide-attributes-header tooltip-position="above" /></div>
-                </details>
-                <details class="camp-hero-abilities">
-                  <summary>Habilidades · {{ hero.abilities.length }}</summary>
-                  <ul><li v-for="ability in hero.abilities" :key="ability.type">
-                    <div><img :src="getAbilityIcon(ability.type)" alt="" /><strong>{{ ability.name }}</strong></div>
-                    <p>{{ ability.description }}</p>
-                    <template v-if="ability.previewEffect">
-                      <p class="camp-ability-preview">{{ ability.previewEffect(hero).label }}: {{ ability.previewEffect(hero).value }}</p>
-                      <FormulaChip class="camp-ability-formula" :formula="ability.previewEffect(hero).formula" />
-                    </template>
-                    <template v-else-if="ability.previewDamage">
-                      <p class="camp-ability-preview">{{ ability.previewDamage(hero).kind === 'heal' ? 'Curación' : 'Daño' }}: {{ formatPreviewRange(ability.previewDamage(hero)) }}</p>
-                      <FormulaChip class="camp-ability-formula" :formula="ability.previewDamage(hero).formula" />
-                    </template>
-                  </li></ul>
-                </details>
+                <div class="camp-hero-inspect">
+                  <button type="button" class="campaign-button camp-hero-attributes" aria-haspopup="dialog" :aria-label="`Atributos de ${hero.name}`" @click="heroModal = { hero, section: 'attributes' }">Atributos</button>
+                  <button type="button" class="campaign-button camp-hero-abilities" aria-haspopup="dialog" :aria-label="`Habilidades de ${hero.name}`" @click="heroModal = { hero, section: 'abilities' }">Habilidades</button>
+                </div>
                 <button :id="`party-toggle-${hero.heroClassId}`" type="button" class="campaign-button hero-party-toggle" :class="{ primary: selectedClasses.has(hero.heroClassId) }" :aria-pressed="selectedClasses.has(hero.heroClassId)" :aria-label="`${selectedClasses.has(hero.heroClassId) ? 'Quitar' : 'Añadir'} a ${hero.name} ${selectedClasses.has(hero.heroClassId) ? 'del' : 'al'} grupo`" :disabled="!selectedClasses.has(hero.heroClassId) && game.activeHeroes.length >= MAX_HEROES" @click="toggleHero(hero.heroClassId)">{{ selectedClasses.has(hero.heroClassId) ? '✓ En el grupo' : game.activeHeroes.length >= MAX_HEROES ? 'Grupo completo' : '+ Añadir al grupo' }}</button>
             </article>
             <template v-if="section.party">
@@ -130,6 +114,7 @@ async function toggleHero(classId: string) {
       </aside>
     </div>
   </main>
+  <CampHeroModal v-if="heroModal" :hero="heroModal.hero" :section="heroModal.section" @close="heroModal = null" />
 </template>
 
 <style scoped>

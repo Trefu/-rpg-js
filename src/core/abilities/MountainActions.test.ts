@@ -58,13 +58,16 @@ describe('Apoyos enemigos basados en estadísticas', () => {
     await WarlockHex.execute(context)
     expect(playHeroVfx).toHaveBeenCalledTimes(2)
   })
-  it.each([[10, 8, 6], [20, 16, 13], [27.5, 22, 17], [40, 32, 26]])(
+  it.each([[0, 20, 0], [10, 28, 6], [20, 36, 13], [27.5, 42, 17], [40, 52, 26]])(
     'MEN %s determina el escudo y la curación del lanzador', async (mind, shield, heal) => {
       const caster = new MountainEnemy('shaman')
       const ally = new MountainEnemy('guardian')
       caster.baseStats.mind.value = mind
       ally.baseStats.mind.value = 100
       ally.health = 1
+      const previewCaster = Warrior.createStarter()
+      previewCaster.baseStats.mind.value = mind
+      expect(AncestralGuard.previewEffect!(previewCaster).value).toBe(shield)
       await cast(AncestralGuard, caster, [caster, ally])
       expect(ally.statusEffects.find(effect => effect.type === 'ancestral_guard')).toMatchObject({
         absorbRemaining: shield, maxAbsorb: shield, turns: 2
@@ -72,7 +75,7 @@ describe('Apoyos enemigos basados en estadísticas', () => {
       await cast(MountainMend, caster, [caster, ally])
       expect(ally.health).toBe(1 + heal)
       ally.takeDamage(shield + 3)
-      expect(ally.health).toBe(1 + heal - 3)
+      expect(ally.health).toBe(Math.max(0, 1 + heal - 3))
       expect(ally.hasStatusEffect('ancestral_guard')).toBe(false)
     }
   )
@@ -84,7 +87,7 @@ describe('Apoyos enemigos basados en estadísticas', () => {
     await cast(AncestralGuard, high)
     const capacity = (enemy: MountainEnemy) => enemy.statusEffects.find(effect => effect.type === 'ancestral_guard')!.maxAbsorb!
     expect(capacity(high)).toBeGreaterThan(capacity(low))
-    expect(capacity(low)).toBe(21)
+    expect(capacity(low)).toBe(41)
     expect(StatusEffects.ANCESTRAL_GUARD.absorbRemaining).toBe(0)
     expect(StatusEffects.ANCESTRAL_GUARD.maxAbsorb).toBe(0)
   })
@@ -113,6 +116,6 @@ describe('Apoyos enemigos basados en estadísticas', () => {
     await cast(MountainMend, caster, [ally])
     expect(ally.health).toBe(26)
     await cast(AncestralGuard, caster, [ally])
-    expect(ally.statusEffects.find(effect => effect.type === 'ancestral_guard')!.maxAbsorb).toBe(32)
+    expect(ally.statusEffects.find(effect => effect.type === 'ancestral_guard')!.maxAbsorb).toBe(52)
   })
 })

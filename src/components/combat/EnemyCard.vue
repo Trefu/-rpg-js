@@ -5,6 +5,7 @@ import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
 import type { VfxAssetId } from '@/core/interfaces/IAbility'
 import EnemyStatusIcons from './EnemyStatusIcons.vue'
 import HotkeyIcon from './HotkeyIcon.vue'
+import DamageTypeIcon from '@/components/ui/DamageTypeIcon.vue'
 import goblinSprite from '@/assets/sprites/enemies/goblin.png'
 import { VFX_SOURCES } from './vfxSources'
 import ShieldOverlay from './ShieldOverlay.vue'
@@ -38,6 +39,7 @@ const hpPercent = computed(() => {
 const hpLabel = computed(() => healthWithShield(props.enemy))
 
 const sprite = computed(() => props.enemy.sprite ?? goblinSprite)
+const intendedAttack = computed(() => props.enemy.attackPatterns?.find(attack => attack.name === props.enemy.intention))
 
 /** Full attack roster behind the "Próximo:" hint so variety is discoverable. */
 const repertoireTitle = computed(() => {
@@ -94,7 +96,7 @@ function onClick() {
       <span v-if="displayName && displayName !== enemy.name" class="enemy-name-index">{{ displayName.slice(enemy.name.length).trim() }}</span>
     </div>
     <span v-if="(isSelected || isAttacking) && !isDead" class="combat-target-label">{{ isAttacking ? '▶ Actúa' : '▶ Objetivo' }}</span>
-    <small v-if="!isDead && enemy.intention" class="enemy-intention" :title="repertoireTitle">Próximo: {{ enemy.intention }}</small>
+    <small v-if="!isDead && enemy.intention" class="enemy-intention" :title="repertoireTitle"><DamageTypeIcon v-if="intendedAttack" :type="intendedAttack.damageType" :attack-name="intendedAttack.name" /> Próximo: {{ enemy.intention }}</small>
     <div class="enemy-sprite-stage">
       <img :src="sprite" :alt="enemy.name" class="enemy-sprite-img" loading="lazy" decoding="async" />
     </div>

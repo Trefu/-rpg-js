@@ -108,11 +108,12 @@ const pause = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 // Support uses the caster's MEN, including its level growth. No damage
 // variance, criticals or outgoing-damage buffs apply to healing/shields.
 const GUARD_SCALING: DamageStep = { stat: 'mind', coef: 0.8, levelCoef: 0 }
+const GUARD_BASE_SHIELD = 20
 const MEND_SCALING: DamageStep = { stat: 'mind', coef: 0.65, levelCoef: 0 }
-function supportPreview(caster: ICharacter, scaling: DamageStep, label: string) {
+function supportPreview(caster: ICharacter, scaling: DamageStep, label: string, base = 0) {
   const source = caster as IEnemy
-  const value = Math.max(0, Math.floor(computeRawDamage(scaling, source)))
-  return { label, value, formula: `máx(0, ⌊${F.mind(`MEN ${source.baseStats.mind.value}`)} × ${scaling.coef}⌋) = ${F.heal(value)}` }
+  const value = Math.max(0, Math.floor(base + computeRawDamage(scaling, source)))
+  return { label, value, formula: `máx(0, ⌊${base ? `${base} + ` : ''}${F.mind(`MEN ${source.baseStats.mind.value}`)} × ${scaling.coef}⌋) = ${F.heal(value)}` }
 }
 
 function mostWoundedAlly(caster: ICharacter, allies?: ICharacter[]) {
@@ -123,10 +124,10 @@ function mostWoundedAlly(caster: ICharacter, allies?: ICharacter[]) {
 export const AncestralGuard: IAbility = {
   name: 'Guardia ancestral', type: 'mountainAncestralGuard', description: 'Protege al aliado enemigo más herido con un escudo que absorbe daño durante 2 turnos.',
   cooldown: 2, tags: ['buff'], icon: shieldIcon, targetType: 'allies-only', requiresTarget: false,
-  previewEffect: caster => supportPreview(caster, GUARD_SCALING, 'Escudo'),
+  previewEffect: caster => supportPreview(caster, GUARD_SCALING, 'Escudo', GUARD_BASE_SHIELD),
   execute: async ctx => {
     const ally = mostWoundedAlly(ctx.caster, ctx.allies)
-    const { value } = supportPreview(ctx.caster, GUARD_SCALING, 'Escudo')
+    const { value } = supportPreview(ctx.caster, GUARD_SCALING, 'Escudo', GUARD_BASE_SHIELD)
     if (ally && value > 0) {
       ally.addStatusEffect({ ...StatusEffects.ANCESTRAL_GUARD, absorbRemaining: value, maxAbsorb: value,
         description: `Absorbe hasta ${value} de daño durante 2 turnos.` })
@@ -157,7 +158,7 @@ export const MountainMend: IAbility = {
 registerAbility(MountainMend)
 
 export const AttackOrder: IAbility = {
-  name: 'Orden de ataque', type: 'mountainAttackOrder', description: 'Los enemigos aliados hacen +20% de daño durante 2 turnos.',
+  name: 'Orden de ataque', type: 'mountainAttackOrder', description: 'Aumenta el daño de los enemigos aliados durante 2 turnos.',
   cooldown: 3, tags: ['buff'], icon: swordIcon, targetType: 'allies-only', requiresTarget: false,
   execute: async ctx => {
     for (const ally of ctx.allies ?? [ctx.caster]) if (ally.isAlive) {

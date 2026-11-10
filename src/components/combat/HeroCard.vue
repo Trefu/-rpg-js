@@ -12,7 +12,7 @@ import { presentStatus, isActiveStatus } from '@/core/combat/statusPresentation'
 import { VFX_SOURCES } from './vfxSources'
 import ShieldOverlay from './ShieldOverlay.vue'
 import { healthWithShield } from '@/core/combat/shields'
-import hamburgerIcon from '@/assets/icons/hamburger-menu.png'
+import heroStatusIcon from '@/assets/ui/hero-status-sheet.png'
 
 interface Props {
   hero: Hero | null
@@ -333,9 +333,11 @@ defineExpose({
         type="button"
         class="hero-menu-btn"
         :class="{ open: isOpen, 'has-effects': buffDebuffEffects.length > 0 }"
+        :aria-label="`Ficha de ${hero.name}`"
+        :aria-expanded="isOpen"
         @click="toggleMenu"
       >
-        <img :src="hamburgerIcon" alt="Menu" class="hero-menu-icon" />
+        <img :src="heroStatusIcon" alt="" class="hero-menu-icon" />
         <span v-if="buffDebuffEffects.length > 0" class="hero-menu-badge">{{ buffDebuffEffects.length }}</span>
       </button>
 

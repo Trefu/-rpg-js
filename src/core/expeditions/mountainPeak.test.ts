@@ -147,12 +147,12 @@ describe('Montañas Rocosas', () => {
       await vi.runAllTimersAsync()
       await promise
     }
-    // Chamán Nv. 2: MEN 29 → 18 HP de cura y 23 de escudo.
+    // Chamán Nv. 2: MEN 29 → 18 HP de cura y 43 de escudo (20 base).
     expect(guardian.health).toBe(48)
     expect(hero.health).toBe(10)
     expect(guardian.hasStatusEffect('attack_order')).toBe(true)
     expect(hero.statusEffects).toHaveLength(0)
-    guardian.takeDamage(25, { damageType: 'physical' })
+    guardian.takeDamage(45, { damageType: 'physical' })
     expect(guardian.health).toBe(46)
     expect(guardian.hasStatusEffect('ancestral_guard')).toBe(false)
   })

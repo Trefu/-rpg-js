@@ -232,6 +232,8 @@ export type AbilityPreviewKind = 'damage' | 'heal'
  * de "Daño" y omitir el badge de hits.
  */
 export interface AbilityDamagePreview {
+  /** Optional damage range under an explicitly stated target condition. */
+  conditional?: { label: string; min: number; max: number; formula: string }
   /** Valor mínimo posible (floored). */
   min: number
   /** Valor máximo posible (floored). */

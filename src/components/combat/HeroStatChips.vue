@@ -8,6 +8,7 @@ interface Props {
   showAll?: boolean
   hideAttributesHeader?: boolean
   tooltipPosition?: 'below' | 'above'
+  tooltipTarget?: string | HTMLElement
   /**
    * Filtra los chips renderizados. Default `all`.
    * - `atributos`: solo la sección ATRIBUTOS (AGI, CUE, CON, MEN)
@@ -397,7 +398,7 @@ onBeforeUnmount(() => {
     </div>
   </div>
 
-  <Teleport to="body">
+  <Teleport :to="tooltipTarget ?? 'body'">
     <div
       v-if="activeChip"
       ref="tooltipEl"

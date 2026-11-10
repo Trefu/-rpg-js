@@ -31,7 +31,10 @@ describe('Bendición Divina de Elara', () => {
 
   it('reserva la fórmula para el chip y mantiene la descripción breve', () => {
     expect(ClericDivineBlessing.description).not.toMatch(/⌊|×|sin superar|vida máxima/)
-    expect(ClericDivineBlessing.description).toContain('+20% de daño durante 3 turnos')
+    expect(ClericDivineBlessing.description).toContain('escudo y aumenta el daño')
+    expect(ClericDivineBlessing.description).toContain('durante 3 turnos')
+    expect(ClericDivineBlessing.description).toContain('otro aliado, también se cura')
+    expect(ClericDivineBlessing.description).not.toContain('%')
     expect(ClericDivineBlessing.previewEffect!(Cleric.createStarter()).formula).toContain('× 2')
   })
 
