@@ -1,11 +1,11 @@
 /* Shared combat semantics. Deliberately distinct from menu selection colors. */
 .enemy-status-icons { overflow: visible; min-height: 44px; height: auto; gap: 6px; padding-block: 4px; background: transparent; border-radius: 0; }
-.enemy-status-icons.combat-status-strip { margin: 0; width: 100%; box-sizing: border-box; justify-content: flex-start; flex-wrap: nowrap; height: 62px; min-height: 62px; max-height: 62px; overflow-x: auto; overflow-y: hidden; padding: 6px; gap: 2px; scrollbar-width: thin; scrollbar-color: var(--jrpg-frame) var(--jrpg-inset); }
+.enemy-status-icons.combat-status-strip { margin: 0; width: 100%; box-sizing: border-box; align-items: flex-start; justify-content: flex-start; flex-wrap: nowrap; height: 52px; min-height: 52px; max-height: 52px; overflow-x: auto; overflow-y: hidden; padding: 2px 0 0; gap: 2px; scrollbar-width: thin; scrollbar-color: var(--jrpg-frame) var(--jrpg-inset); }
 .combat-status-strip::-webkit-scrollbar { height: 6px; }
 .combat-status-strip::-webkit-scrollbar-thumb { background: var(--jrpg-frame); }
 .combat-status-strip::-webkit-scrollbar-track { background: var(--jrpg-inset); }
 .combat-status-strip .enemy-status-icon { flex-shrink: 0; }
-.mobile-hud .mobile-hud-ally-effects.enemy-status-icons { flex-wrap: nowrap; padding: 6px; gap: 2px; background: transparent; }
+.mobile-hud .mobile-hud-ally-effects.enemy-status-icons { flex-wrap: nowrap; padding: 2px 0 0; gap: 2px; background: transparent; }
 .enemy-status-icons.is-empty { min-height: 0; height: 0; padding: 0; margin: 0; }
 /* Announce changes to screen readers without a visual banner or layout shift. */
 .combat-status-notice { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; pointer-events: none; }
@@ -30,11 +30,13 @@
 .status-polarity { position: absolute; top: 0; left: 1px; font: bold 12px var(--jrpg-font); color: var(--jrpg-debuff); }
 .status-shield { position: absolute; top: -4px; right: -4px; background: var(--jrpg-window); color: var(--jrpg-energy); font: bold 10px var(--jrpg-font); padding: 1px 3px; border: 1px solid var(--jrpg-line); }
 .is-buff .status-polarity { color: var(--jrpg-buff); }
-/* Compact 36px frames inside unchanged 44px keyboard/touch targets. */
-.combat-status-strip .enemy-status-icon { padding: 4px; border: 0; background-clip: content-box; box-shadow: none; }
-.combat-status-strip .enemy-status-icon::before { content: ''; position: absolute; inset: 4px; border: 1px solid var(--jrpg-debuff); border-radius: 2px; pointer-events: none; }
+/* Compact 32px frames inside unchanged 44px keyboard/touch targets. */
+.combat-status-strip .enemy-status-icon { padding: 2px 6px 10px; border: 0; background-clip: content-box; box-shadow: none; }
+.combat-status-strip .enemy-status-icon::before { content: ''; position: absolute; inset: 2px 6px 10px; border: 1px solid var(--jrpg-debuff); border-radius: 2px; pointer-events: none; }
+.combat-status-strip .enemy-status-icon img { width: 16px; height: 16px; }
 .combat-status-strip .enemy-status-icon.is-buff::before { border-color: var(--jrpg-buff); }
 .combat-status-strip .enemy-status-icon.is-info-open::before { border-color: var(--jrpg-orange); }
+.combat-status-strip .enemy-status-icon:focus-visible { outline-offset: -2px; }
 .combat-status-strip .enemy-status-stacks, .combat-status-strip .status-shield { top: 0; right: 0; }
 .combat-status-strip .enemy-status-turns, .combat-status-strip .status-charges { bottom: 0; left: 0; }
 .combat-status-strip .status-polarity { top: 4px; left: 5px; }
@@ -78,6 +80,10 @@
 .enemy-name-index { flex-shrink: 0; }
 .combat-view .enemy-name-top { display: flex; justify-content: center; gap: 4px; color: var(--jrpg-highlight); font-family: var(--jrpg-font); }
 .combat-view .heroes-container .hero-card, .combat-view .mobile-hud .mobile-hud-hero { background: var(--jrpg-window); border: 2px solid var(--jrpg-line); border-radius: 2px; box-shadow: inset 0 0 0 1px var(--jrpg-inset), 2px 2px var(--jrpg-shadow); }
+.combat-view .heroes-column { padding: 6px 10px; }
+.combat-view .heroes-container { gap: 6px; }
+.combat-view .heroes-container .hero-card { min-height: 0; padding: 6px 10px 4px; }
+.combat-view .hero-card .hero-info { gap: 2px; }
 .combat-view .heroes-container .hero-card.active { border-color: var(--jrpg-orange); box-shadow: inset 0 0 0 1px var(--jrpg-frame), 2px 2px var(--jrpg-shadow); }
 .combat-view .heroes-container .hero-card.being-attacked { border-color: var(--jrpg-debuff); box-shadow: inset 0 0 0 1px var(--jrpg-debuff); animation: none; }
 .combat-view .heroes-container .hero-card.target-selectable { border-style: dashed; border-color: var(--jrpg-orange); }

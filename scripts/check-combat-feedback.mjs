@@ -114,7 +114,7 @@ try {
   await page.locator('.combat-log-modal').waitFor({ state: 'detached' })
   // Applying a status must not add an automatic visual banner or move either HUD.
   for (const width of [1366, 360]) {
-    await page.setViewportSize({ width, height: 800 })
+    await page.setViewportSize({ width, height: width > 720 ? 768 : 800 })
     const heroSelector = width > 720 ? '.hero-card' : '.mobile-hud-hero'
     await page.locator(heroSelector).first().waitFor()
     const before = await page.evaluate(selector => {
@@ -164,6 +164,19 @@ try {
     assert.equal(await page.locator(heroSelector).first().evaluate(el => el.getBoundingClientRect().height), cardHeight)
     await strip.locator('.enemy-status-icon').last().focus()
     assert.ok(await strip.evaluate(el => el.scrollLeft > 0), 'Keyboard focus must reveal effects beyond the horizontal edge')
+    if (width > 720) {
+      await page.evaluate(async () => {
+        const { StatusEffects } = await import('/src/core/StatusEffects.ts')
+        for (const hero of window.__gameStore.activeHeroes.slice(1)) {
+          for (const effect of [StatusEffects.BURN, StatusEffects.POISON, StatusEffects.BLEED]) hero.addStatusEffect({ ...effect })
+        }
+      })
+      await page.waitForFunction(() => document.querySelectorAll('.hero-card')[2]?.querySelectorAll('.enemy-status-icon').length === 3)
+      const column = await page.locator('.heroes-column').evaluate(el => ({ height: el.clientHeight, scrollHeight: el.scrollHeight }))
+      assert.ok(column.scrollHeight <= column.height + 1, 'Three party members with statuses must fit without vertical scrolling at 1366×768')
+      assert.deepEqual(await strip.evaluate(el => ({ align: getComputedStyle(el).alignItems, top: getComputedStyle(el).paddingTop, bottom: getComputedStyle(el).paddingBottom })),
+        { align: 'flex-start', top: '2px', bottom: '0px' })
+    }
     if (process.env.CAMPAIGN_SCREENSHOTS) await page.screenshot({ path: `${process.env.CAMPAIGN_SCREENSHOTS}/combat-many-statuses-${width}.png` })
   }
   assert.deepEqual(errors, [])
