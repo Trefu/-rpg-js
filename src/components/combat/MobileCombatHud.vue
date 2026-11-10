@@ -419,7 +419,7 @@ function onAllyRowClick(hero: Hero | null) {
                                     </span>
                                 </div>
                                 <EnemyStatusIcons side="player" v-if="hero.statusEffects && hero.statusEffects.length"
-                                    :effects="hero.statusEffects" class="mobile-hud-ally-effects" />
+                                    :effects="hero.statusEffects" class="mobile-hud-ally-effects combat-status-strip" />
                             </template>
                         </div>
                     </button>

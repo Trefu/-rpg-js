@@ -6,6 +6,7 @@ import '@/styles/hint-colors.css'
 interface Props {
   hero: Hero | null
   showAll?: boolean
+  hideAttributesHeader?: boolean
   tooltipPosition?: 'below' | 'above'
   /**
    * Filtra los chips renderizados. Default `all`.
@@ -261,7 +262,7 @@ const chipGroups = computed<ChipGroup[]>(() => {
 })
 
 const showAtributosHeader = computed(() =>
-  props.showAll && props.only !== 'stats' && props.only !== 'defense'
+  !props.hideAttributesHeader && props.showAll && props.only !== 'stats' && props.only !== 'defense'
 )
 const showStatsHeader = computed(() => props.only !== 'atributos')
 
@@ -372,7 +373,7 @@ onBeforeUnmount(() => {
       :key="group.section"
       class="hero-stat-chips"
     >
-      <div class="stat-chip-section-label">{{ group.label }}</div>
+      <div v-if="!hideAttributesHeader || group.section !== 'atributos'" class="stat-chip-section-label">{{ group.label }}</div>
       <button
         v-for="chip in group.chips"
         :key="chip.key"

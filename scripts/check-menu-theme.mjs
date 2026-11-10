@@ -27,6 +27,15 @@ try {
   const capture = async name => {
     if (process.env.CAMPAIGN_SCREENSHOTS) await page.screenshot({ path: `${process.env.CAMPAIGN_SCREENSHOTS}/${name}.png`, fullPage: true })
   }
+  const attributes = page.locator('.camp-hero-attributes')
+  assert.equal(await attributes.count(), 3)
+  assert.equal(await attributes.evaluateAll(items => items.every(item => !item.open)), true)
+  await attributes.first().locator('summary').focus()
+  await page.keyboard.press('Enter')
+  assert.equal(await attributes.first().evaluate(item => item.open), true)
+  await page.keyboard.press('Space')
+  assert.equal(await attributes.first().evaluate(item => item.open), false)
+  for (const summary of await attributes.locator('summary').all()) await summary.click()
   for (const details of await page.locator('.camp-hero-abilities').all()) {
     await details.locator('summary').click()
   }
@@ -44,6 +53,7 @@ try {
   }
   await capture('jrpg-camp-formulas')
   for (const summary of await page.locator('.camp-hero-abilities summary').all()) await summary.click()
+  for (const summary of await attributes.locator('summary').all()) await summary.click()
   for (const width of [1366, 768, 360]) {
     await page.setViewportSize({ width, height: 900 })
     await checkViewport()

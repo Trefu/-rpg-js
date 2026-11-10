@@ -33,7 +33,7 @@ try {
       for (const enemy of node.enemies) { enemy.health = 1; enemy.baseStats.agility.value = 1 }
     })
     await page.locator('.map-node.available').first().click()
-    await page.getByRole('dialog', { name: 'Vista previa de combate' }).waitFor()
+    await page.getByRole('dialog', { name: 'Combate', exact: true }).waitFor()
     assert.equal(await page.evaluate(() => window.__gameStore.currentLocation), 'expedition-map')
     if (combat === 0) {
       const before = await page.evaluate(() => [...window.__expeditionStore.availableNodes])

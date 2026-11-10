@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import type { IAbility, AbilityDamagePreview, AbilityEffectPreview } from '@/core/interfaces/IAbility'
 import type { Hero } from '@/core/Hero'
 import { getAbilityIcon } from '@/core/abilities/getAbilityIcon'
+import HotkeyIcon from './HotkeyIcon.vue'
 import { getBasicAttackHitCount, getAbilityHitCount, isBasicAttack } from '@/core/abilities/Abilities'
 import { formatPreviewRange } from '@/core/abilities/damagePipeline'
 import '@/styles/hint-colors.css'
@@ -349,6 +350,7 @@ function shortcutFor(index: number): string | null {
       :class="slotClasses(slot)"
       :disabled="isSlotBlocked(slot)"
       :aria-pressed="slot.kind === 'ability' && isSelectedForTarget(slot.ability)"
+      :aria-keyshortcuts="isDesktop && slot.kind === 'ability' ? shortcutFor(slot.index) ?? undefined : undefined"
       :aria-label="slot.kind === 'ability' ? slot.ability.name : slot.kind === 'object' ? 'Objeto' : 'Slot vacío'"
       @click="handleSlotClick(slot, $event)"
       @mouseenter="slot.kind === 'ability' && isUltimate(slot.ability) && onUltPointerEnter(slot.ability, idx)"
@@ -358,7 +360,7 @@ function shortcutFor(index: number): string | null {
       @touchcancel="slot.kind === 'ability' && isUltimate(slot.ability) && onUltTouchEnd(slot.ability, idx, $event)"
     >
       <template v-if="slot.kind === 'ability'">
-        <span v-if="isDesktop && shortcutFor(slot.index)" class="aab-shortcut">{{ shortcutFor(slot.index) }}</span>
+        <HotkeyIcon v-if="isDesktop && shortcutFor(slot.index)" class="aab-shortcut" :value="shortcutFor(slot.index)!" />
         <img
           :src="iconFor(slot.ability.type)"
           :alt="slot.ability.name"

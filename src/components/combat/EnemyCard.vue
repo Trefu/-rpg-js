@@ -4,6 +4,7 @@ import type { IEnemy } from '@/core/interfaces/ICharacter'
 import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
 import type { VfxAssetId } from '@/core/interfaces/IAbility'
 import EnemyStatusIcons from './EnemyStatusIcons.vue'
+import HotkeyIcon from './HotkeyIcon.vue'
 import goblinSprite from '@/assets/sprites/enemies/goblin.png'
 import { VFX_SOURCES } from './vfxSources'
 import ShieldOverlay from './ShieldOverlay.vue'
@@ -85,6 +86,7 @@ function onClick() {
     'mobile-layout': isMobileLayout
    }" ref="rootEl" @click="onClick">
     <button v-if="!isDead" class="enemy-target-control" type="button" :aria-pressed="isSelected"
+      :aria-keyshortcuts="showAlwaysShortcut ? String(index + 1) : undefined"
       :aria-label="`${displayName ?? enemy.name}${enemy.intention ? ' · Próximo: ' + enemy.intention : ''}${isSelected ? ' · Objetivo seleccionado' : ''}`"
       @click.stop="onClick"></button>
     <div v-if="!isDead" class="enemy-name-top" :title="displayName ?? enemy.name">
@@ -129,7 +131,7 @@ function onClick() {
       </div>
     </div>
     <div v-if="showAlwaysShortcut" class="enemy-shortcut-badge">
-      <span class="key-cap">{{ index + 1 }}</span>
+      <HotkeyIcon :value="index + 1" />
     </div>
   </div>
 </template>

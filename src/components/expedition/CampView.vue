@@ -77,7 +77,10 @@ async function toggleHero(classId: string) {
             <article v-for="hero in section.heroes" :key="hero.heroClassId" class="company-hero campaign-panel" :class="{ 'in-party': selectedClasses.has(hero.heroClassId) }">
                 <div class="hero-portrait"><span class="hero-class">{{ classes[hero.heroClassId] ?? hero.heroClassId }}</span><img :src="hero.sprite" :alt="hero.name" /><span class="hero-level">{{ hero.level }}<small>NIVEL</small></span></div>
                 <div class="hero-dossier"><h3>{{ hero.name }}</h3><div class="hero-vitals"><span><i class="vital-dot hp"></i>{{ hero.maxHealth }} HP</span><span><i class="vital-dot energy"></i>{{ hero.maxEnergy }} EN</span></div><div class="hero-xp-label"><strong>{{ hero.experience }} / {{ hero.experienceToNextLevel }} XP</strong></div><progress :value="hero.experience" :max="hero.experienceToNextLevel" :aria-label="`Experiencia de ${hero.name}`" /></div>
-                <div class="camp-hero-chips"><HeroStatChips :hero="hero" :show-all="true" tooltip-position="above" /></div>
+                <details class="camp-hero-attributes">
+                  <summary>Atributos</summary>
+                  <div class="camp-hero-chips"><HeroStatChips :hero="hero" :show-all="true" hide-attributes-header tooltip-position="above" /></div>
+                </details>
                 <details class="camp-hero-abilities">
                   <summary>Habilidades · {{ hero.abilities.length }}</summary>
                   <ul><li v-for="ability in hero.abilities" :key="ability.type">

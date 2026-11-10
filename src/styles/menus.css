@@ -56,8 +56,10 @@
 .camp-hero-chips .hero-stat-chips { gap: 3px; }
 .camp-hero-chips .stat-chip { border-radius: 0; min-height: 44px; padding: 3px 5px; font-size: .7rem; justify-content: space-between; background: color-mix(in srgb, currentColor 18%, var(--jrpg-inset)); border-color: currentColor; box-shadow: none; }
 .hero-party-toggle { grid-column: 1 / -1; margin: 0; width: 100%; font-size: .75rem; }
-.camp-hero-abilities { grid-column: 1 / -1; grid-row: auto; border-top: 1px solid var(--jrpg-line); color: var(--jrpg-muted); padding: 0; min-width: 0; }
-.camp-hero-abilities summary { min-height: 44px; display: list-item; align-content: center; padding: 10px 0; color: var(--jrpg-highlight); font-size: .8rem; }
+.camp-hero-abilities, .camp-hero-attributes { grid-column: 1 / -1; grid-row: auto; border-top: 1px solid var(--jrpg-line); color: var(--jrpg-muted); padding: 0; min-width: 0; }
+.camp-hero-abilities summary, .camp-hero-attributes summary { min-height: 44px; display: list-item; align-content: center; padding: 10px 0; color: var(--jrpg-highlight); font-size: .8rem; }
+.camp-hero-attributes summary:focus-visible { outline: 2px solid var(--jrpg-orange); outline-offset: 2px; }
+.camp-hero-attributes .camp-hero-chips { border-top: 0; padding: 0 0 8px; }
 .camp-hero-abilities li { background: var(--jrpg-inset); border: 0; border-left: 2px solid var(--jrpg-line); padding: 6px; font-size: .8rem; }
 .camp-view .formula-chip { border: 1px solid var(--jrpg-line); border-radius: 0; background: var(--jrpg-inset); padding: 4px; }
 .camp-view .formula-chip-label { color: var(--jrpg-muted); }
@@ -165,7 +167,7 @@
 .combat-preview::backdrop { background: #0d0806d9; backdrop-filter: none; }
 .combat-preview { width: min(620px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: 0; overflow: hidden; box-sizing: border-box; }
 .combat-preview[open] { display: flex; flex-direction: column; }
-.preview-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px; border-bottom: 1px solid var(--jrpg-line); flex-shrink: 0; }
+.preview-heading { display: flex; align-items: center; justify-content: flex-end; gap: 16px; padding: 20px; border-bottom: 1px solid var(--jrpg-line); flex-shrink: 0; }
 .preview-heading h2 { margin: 0; font: bold 1.2rem/1.5 var(--jrpg-font); min-width: 0; }
 .preview-close { width: 44px; flex: 0 0 44px; padding: 0; font-size: 1.25rem; }
 .preview-content { padding: 0 20px 20px; overflow-y: auto; overscroll-behavior: contain; scrollbar-color: var(--jrpg-frame) var(--jrpg-inset); min-height: 0; }
@@ -187,7 +189,7 @@
 .preview-xp, .preview-gold { display: inline-flex; align-items: center; color: var(--jrpg-highlight); font: bold 1.2rem/1.4 var(--jrpg-font); }
 .preview-gold .gold-amount { display: inline-flex; align-items: center; font: inherit; color: inherit; }
 .preview-gold .gold-amount > span { font: inherit; color: inherit; }
-.preview-actions { display: flex; align-items: stretch; justify-content: space-between; gap: 12px; padding: 16px 20px; border-top: 1px solid var(--jrpg-line); flex-shrink: 0; background: var(--jrpg-window); }
+.preview-actions { display: flex; align-items: stretch; justify-content: flex-end; gap: 12px; padding: 16px 20px; border-top: 1px solid var(--jrpg-line); flex-shrink: 0; background: var(--jrpg-window); }
 .preview-actions button { font-size: .75rem; }
 .curiosity-modal :is(.curiosity-header, .event-footer, .event-choice-heading, .event-chosen) { border-color: var(--jrpg-line); background: none; }
 .curiosity-modal :is(.event-location, .event-chapter, .event-illustration-label, .choice-tone, .event-skip-note, .choice-effects, .event-chosen, .event-result-tag) { color: var(--jrpg-muted); font-family: var(--jrpg-font); letter-spacing: 0; }

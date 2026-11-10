@@ -1019,7 +1019,7 @@ const defenseClouded = ref(false)
       return
     }
 
-    if (isSelectingTarget.value && ['1', '2', '3', '4', '5'].includes(e.key)) {
+    if (isSelectingTarget.value && ['1', '2', '3', '4', '5', '6'].includes(e.key)) {
       const idx = parseInt(e.key, 10) - 1
       if (selectedItem.value && itemCanTargetAllies(selectedItem.value)) {
         const aliveAllies = heroes.value.filter(h => h.isAlive)

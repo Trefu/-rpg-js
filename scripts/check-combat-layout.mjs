@@ -28,6 +28,7 @@ try {
     game.navigateTo('combat')
   })
   await page.locator('.enemy-card').nth(5).waitFor()
+  await page.evaluate(() => document.fonts.ready)
 
   for (const [width, height] of [[1577, 773], [1366, 768], [1024, 600], [820, 650], [390, 844], [360, 640]]) {
     await page.setViewportSize({ width, height })
@@ -54,6 +55,7 @@ try {
       }), true, `${width}: HP clipped or covered by action bar`)
     }
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true)
+    if (width <= 720) assert.equal(await page.locator('.combat-hotkey:visible').count(), 0, 'Desktop hotkeys must stay hidden on mobile')
     await page.locator('.enemies-column').evaluate(el => { el.scrollTop = 0 })
     if (process.env.CAMPAIGN_SCREENSHOTS) await page.screenshot({ path: `${process.env.CAMPAIGN_SCREENSHOTS}/combat-layout-${width}.png` })
   }
@@ -75,8 +77,31 @@ try {
   })
   assert.equal(overlayCheck, true, 'Status effects must never cover the ability panel')
   await page.locator('.aab-info-close').click()
+  await page.locator('.aab-info-card').waitFor({ state: 'detached' })
+  // Generated keycaps must load, and retain the existing keyboard bindings.
+  const abilityKeys = page.locator('.desktop-actions .combat-hotkey')
+  assert.deepEqual(await abilityKeys.evaluateAll(keys => keys.map(key => key.getAttribute('aria-label'))),
+    ['Tecla Q', 'Tecla W', 'Tecla E', 'Tecla R', 'Tecla T'])
+  assert.equal(await abilityKeys.locator('img').evaluateAll(images => images.every(image => image.complete && image.naturalWidth === 64)), true)
+  await page.keyboard.press('q')
+  await page.locator('.enemy-shortcut-badge').nth(5).waitFor()
+  assert.deepEqual(await page.locator('.enemy-shortcut-badge .combat-hotkey').evaluateAll(keys => keys.map(key => key.getAttribute('aria-label'))),
+    ['Tecla 1', 'Tecla 2', 'Tecla 3', 'Tecla 4', 'Tecla 5', 'Tecla 6'])
+  assert.equal(await page.locator('.enemy-shortcut-badge img').evaluateAll(images => images.every(image => image.complete && image.naturalWidth === 64)), true)
+  if (process.env.CAMPAIGN_SCREENSHOTS) await page.screenshot({ path: `${process.env.CAMPAIGN_SCREENSHOTS}/combat-hotkeys-targets.png` })
+  const healthBefore = await page.evaluate(() => window.__expeditionStore.currentExpedition.currentNode.enemies[5].health)
+  await page.keyboard.press('6')
+  await page.waitForFunction(before => window.__expeditionStore.currentExpedition.currentNode.enemies[5].health < before, healthBefore)
+  await page.getByRole('button', { name: 'Bendición Divina', exact: true }).waitFor()
+  await page.waitForFunction(() => !document.querySelector('.desktop-actions .aab-btn')?.disabled)
+  await page.getByRole('button', { name: 'Bendición Divina', exact: true }).click()
+  await page.locator('.aab-info-use').click()
+  await page.locator('.hero-shortcut-badge').nth(2).waitFor()
+  assert.deepEqual(await page.locator('.hero-shortcut-badge .combat-hotkey').evaluateAll(keys => keys.map(key => key.getAttribute('aria-label'))),
+    ['Tecla 1', 'Tecla 2', 'Tecla 3'])
+  await page.keyboard.press('Escape')
   assert.deepEqual(errors, [])
-  console.log('OK: seis enemigos sin solapamientos, vida dentro de cada ficha y accesible sobre las acciones, escritorio/tablet/móvil.')
+  console.log('OK: seis enemigos sin solapamientos, vida accesible, iconos Q/W/E/R/T y 1–6 cargados, atajos de enemigos y aliados, escritorio/tablet/móvil.')
 } finally {
   await browser?.close()
   await server.close()

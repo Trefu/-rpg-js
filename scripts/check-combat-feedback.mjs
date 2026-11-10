@@ -26,6 +26,19 @@ try {
     game.navigateTo('combat')
   })
   await page.locator('.enemy-card').nth(1).waitFor()
+  const checkUltimate = async () => {
+    const selector = '.abilities-action-bar:visible .aab-ult'
+    const ult = page.locator(selector)
+    await ult.waitFor()
+    const border = await ult.evaluate(el => getComputedStyle(el).borderTopColor)
+    const bar = await page.locator('.hero-card .bar-heroism, .mobile-hud-bar-fill.heroism').first().evaluate(el => getComputedStyle(el).backgroundColor)
+    assert.equal(border, bar, 'Ultimate must share the heroism bar color')
+    await page.evaluate(() => { const hero = window.__gameStore.activeHero; hero.heroism = hero.maxHeroism })
+    await page.locator('.abilities-action-bar:visible .aab-ult-ready').waitFor()
+    assert.equal(await ult.evaluate(el => getComputedStyle(el).backgroundColor), bar)
+    await page.evaluate(() => { window.__gameStore.activeHero.heroism = 0 })
+  }
+  await checkUltimate()
   await page.evaluate(async () => {
     const { StatusEffects } = await import('/src/core/StatusEffects.ts')
     const hero = window.__gameStore.activeHeroes[0]
@@ -65,6 +78,7 @@ try {
   }
   await page.setViewportSize({ width: 360, height: 800 })
   await page.locator('.mobile-hud .combat-status-strip').waitFor()
+  await checkUltimate()
   assert.equal(await page.locator('.mobile-hud .combat-status-strip .enemy-status-stacks').count(), 2)
   await page.locator('.mobile-hud .combat-status-strip .enemy-status-icon').last().click()
   await page.locator('.esi-info-popup').waitFor()
@@ -128,6 +142,29 @@ try {
     assert.equal(after.heroHeight, before.heroHeight, `${width}: status notice moved the hero HUD`)
     assert.equal(after.enemyTop, before.enemyTop, `${width}: status notice moved enemy HP`)
     assert.equal(after.hidden, true)
+    // Many effects stay on one horizontal row; neither the strip nor the card grows vertically.
+    const cardHeight = await page.locator(heroSelector).first().evaluate(el => el.getBoundingClientRect().height)
+    await page.evaluate(async () => {
+      const { StatusEffects } = await import('/src/core/StatusEffects.ts')
+      const hero = window.__gameStore.activeHeroes[0]
+      for (const effect of [StatusEffects.SLOW, StatusEffects.WEAKNESS, StatusEffects.STRENGTH_BOOST,
+        StatusEffects.REGEN, StatusEffects.ARCANE_SHIELD, StatusEffects.HASTE, StatusEffects.ATTACK_ORDER,
+        StatusEffects.DIVINE_EMPOWERMENT]) hero.addStatusEffect({ ...effect })
+    })
+    const strip = page.locator(`${heroSelector} .combat-status-strip`).first()
+    await page.waitForFunction(selector => document.querySelector(selector)?.scrollWidth > document.querySelector(selector)?.clientWidth,
+      `${heroSelector} .combat-status-strip`)
+    const overflow = await strip.evaluate(el => ({
+      x: getComputedStyle(el).overflowX, y: getComputedStyle(el).overflowY,
+      height: el.clientHeight, scrollHeight: el.scrollHeight
+    }))
+    assert.equal(overflow.x, 'auto')
+    assert.equal(overflow.y, 'hidden')
+    assert.ok(overflow.scrollHeight <= overflow.height + 1, `${width}: effects generated vertical overflow`)
+    assert.equal(await page.locator(heroSelector).first().evaluate(el => el.getBoundingClientRect().height), cardHeight)
+    await strip.locator('.enemy-status-icon').last().focus()
+    assert.ok(await strip.evaluate(el => el.scrollLeft > 0), 'Keyboard focus must reveal effects beyond the horizontal edge')
+    if (process.env.CAMPAIGN_SCREENSHOTS) await page.screenshot({ path: `${process.env.CAMPAIGN_SCREENSHOTS}/combat-many-statuses-${width}.png` })
   }
   assert.deepEqual(errors, [])
   console.log('OK: estados compartidos, ×1, cargas, descripciones por bando, colores, teclado, foco, controles táctiles y reflujo móvil.')

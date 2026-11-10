@@ -6,6 +6,7 @@ import type { VfxAssetId } from '@/core/interfaces/IAbility'
 import { getEffectDescription } from '@/core/interfaces/IStatusEffect'
 import { useExclusiveToggle } from '@/composables/useExclusiveToggle'
 import HeroStatChips from './HeroStatChips.vue'
+import HotkeyIcon from './HotkeyIcon.vue'
 import StatusEffectIcons from './StatusEffectIcons.vue'
 import { presentStatus, isActiveStatus } from '@/core/combat/statusPresentation'
 import { VFX_SOURCES } from './vfxSources'
@@ -340,7 +341,7 @@ defineExpose({
 
 
       <div v-if="isTargetSelectable" class="hero-shortcut-badge">
-        <span class="key-cap">{{ index + 1 }}</span>
+        <HotkeyIcon :value="index + 1" />
       </div>
 
       <div class="hero-hit-container">

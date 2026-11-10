@@ -1,0 +1,10 @@
+/* Shared image badges: no extra frames over the generated keycap artwork. */
+.combat-hotkey { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; margin: 0; border: 0; background: transparent; box-shadow: none; vertical-align: middle; flex-shrink: 0; pointer-events: none; font: bold 14px var(--jrpg-font); color: var(--jrpg-text); }
+.combat-hotkey img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.abilities-action-bar .aab-shortcut.combat-hotkey { top: 3px; left: 4px; padding: 0; border: 0; background: transparent; border-radius: 0; }
+.enemy-card .enemy-shortcut-badge[class] { top: 58px; left: 4px; right: auto; bottom: auto; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; transform: none; }
+.hero-card .hero-shortcut-badge[class] { top: auto; bottom: 6px; left: 6px; }
+.enemy-shortcut-badge .combat-hotkey, .hero-shortcut-badge .combat-hotkey { width: 32px; height: 32px; }
+@media (max-width: 720px) {
+  .aab-shortcut.combat-hotkey, .hero-shortcut-badge, .enemy-shortcut-badge { display: none; }
+}
