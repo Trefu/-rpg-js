@@ -16,6 +16,8 @@
     "test:menus": "node scripts/check-menu-theme.mjs",
     "test:spectre-event": "node scripts/check-spectre-event.mjs",
     "test:combat-layout": "node scripts/check-combat-layout.mjs",
+    "test:combat-feedback": "node scripts/check-combat-feedback.mjs",
+    "test:combat-animations": "node scripts/check-combat-animations.mjs",
     "test:divine-blessing": "node scripts/check-divine-blessing.mjs",
     "prepare": "husky"
   },

@@ -23,26 +23,30 @@ const slots = computed(() => {
       entry,
       actor,
       isCurrent,
-      isSkip: entry.kind === 'skip'
+      isSkip: entry.kind === 'skip',
+      skipReason: actor?.activeEffectTypes.has('horror') ? 'Aterrorizado' : 'Aturdido'
     }
   })
 })
 </script>
 
 <template>
-  <div class="turn-order-bar" v-if="slots.length > 0">
-    <div class="turn-order-bar-slots">
+  <div class="turn-order-bar" v-if="slots.length > 0" role="region" aria-label="Orden de turnos, de izquierda a derecha">
+    <div class="turn-order-bar-slots" role="list">
       <div
         v-for="(slot, idx) in slots"
         :key="`${slot.entry.actorId}-${idx}`"
         class="turn-slot"
+        role="listitem"
         :class="{
           current: slot.isCurrent,
           skip: slot.isSkip,
           enemy: slot.actor?.kind === 'enemy',
           hero: slot.actor?.kind === 'hero'
         }"
-        :title="slot.actor?.name ?? ''"
+        :title="`${slot.actor?.name ?? ''}${slot.isSkip ? ' · ' + slot.skipReason + ': pierde su turno' : ''}`"
+        :aria-current="slot.isCurrent ? 'step' : undefined"
+        :aria-label="`${slot.actor?.name ?? ''}${slot.isCurrent ? ' · Ahora' : ''}${slot.isSkip ? ' · ' + slot.skipReason + ': pierde su turno' : ''}`"
       >
         <div
           class="turn-slot-icon-wrap"
@@ -64,6 +68,9 @@ const slots = computed(() => {
               {{ slot.actor?.name ?? '???' }}
             </span>
           </div>
+          <span v-if="slot.isCurrent" class="combat-turn-caption">▶ Ahora</span>
+          <span v-else-if="idx === 1" class="combat-turn-caption">Después →</span>
+          <span v-if="slot.isSkip" class="combat-turn-caption">{{ slot.skipReason }}: pierde turno</span>
         </div>
       </div>
     </div>
@@ -71,6 +78,7 @@ const slots = computed(() => {
 </template>
 
 <style scoped>
+@layer combat-legacy {
 .turn-order-bar {
   display: flex;
   align-items: center;
@@ -219,5 +227,6 @@ const slots = computed(() => {
     width: 38px;
     height: 38px;
   }
+}
 }
 </style>

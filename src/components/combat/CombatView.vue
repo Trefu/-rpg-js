@@ -13,6 +13,7 @@ import CombatLogModal from './CombatLogModal.vue'
 import CombatLogFab from './CombatLogFab.vue'
 import HeroCard from './HeroCard.vue'
 import EnemyCard from './EnemyCard.vue'
+import { combatantLabel } from '@/core/combat/combatLabels'
 import TurnOrderBar from './TurnOrderBar.vue'
 import MobileCombatHud from './MobileCombatHud.vue'
 import AbilitiesActionBar from './AbilitiesActionBar.vue'
@@ -50,6 +51,7 @@ const {
   selectedEnemy,
   selectedAbility,
   combatLog,
+  combatLogEntries,
   isSelectingTarget,
   attackingEnemyId,
   attackedHeroIds,
@@ -252,7 +254,7 @@ onUnmounted(() => {
       :current-actor-id="currentActorId"
     />
 
-    <AnnouncementBanner />
+    <div class="combat-announcement-slot"><AnnouncementBanner /></div>
 
     <div v-if="!isMobile" class="heroes-column">
       <div class="heroes-container">
@@ -261,7 +263,7 @@ onUnmounted(() => {
           :key="idx"
           :hero="hero"
           :index="idx"
-          :is-active="!!hero && idx === gameStore.activeHeroIndex"
+          :is-active="!!hero && hero.id === currentActorId"
           :is-target-selectable="isAllySelectable(hero)"
           :is-being-attacked="!!hero && attackedHeroIds.includes(hero.id)"
           :hit-popups="hero ? playerHitPopups.filter(p => p.heroId === hero.id) : []"
@@ -301,6 +303,7 @@ onUnmounted(() => {
         >
           <EnemyCard
             :enemy="enemy"
+            :display-name="combatantLabel(enemy, enemies)"
             :index="aliveIndexByEnemyId[enemy.id] ?? -1"
             :is-selected="selectedEnemy?.id === enemy.id"
             :is-selecting-target="isSelectingTarget && canTargetEnemies(selectedAbility)"
@@ -394,6 +397,7 @@ onUnmounted(() => {
     <CombatLogModal
       :show="showLogModal"
       :messages="combatLog"
+      :entries="combatLogEntries"
       @close="showLogModal = false"
     />
   </div>

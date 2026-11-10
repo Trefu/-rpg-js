@@ -658,7 +658,7 @@ export function canReceiveDivineBlessing(target: import('../interfaces/ICharacte
 
 export const ClericDivineBlessing: IAbility = {
   name: 'Bendición Divina',
-  description: 'Otorga a un aliado vida temporal igual a ⌊2 × Mente + 8 × nivel de Elara⌋ y +20% de daño durante 3 turnos. El escudo absorbe daño antes que su vida. Si bendice a otro aliado, Elara se cura la misma cantidad (sin superar su vida máxima). No puede seleccionar a quien conserve vida temporal de esta bendición.',
+  description: 'Otorga a un aliado vida temporal y +20% de daño durante 3 turnos. El escudo absorbe daño antes que su vida. Si bendice a otro aliado, Elara se cura la misma cantidad. No puede seleccionar a quien conserve vida temporal de esta bendición.',
   type: 'clericDivineBlessing',
   cooldown: 0,
   energyCost: 40,

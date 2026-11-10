@@ -348,6 +348,7 @@ function shortcutFor(index: number): string | null {
       class="aab-btn"
       :class="slotClasses(slot)"
       :disabled="isSlotBlocked(slot)"
+      :aria-pressed="slot.kind === 'ability' && isSelectedForTarget(slot.ability)"
       :aria-label="slot.kind === 'ability' ? slot.ability.name : slot.kind === 'object' ? 'Objeto' : 'Slot vacío'"
       @click="handleSlotClick(slot, $event)"
       @mouseenter="slot.kind === 'ability' && isUltimate(slot.ability) && onUltPointerEnter(slot.ability, idx)"

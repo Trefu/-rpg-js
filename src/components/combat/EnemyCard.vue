@@ -12,6 +12,7 @@ import { useMediaQuery } from '@/composables/useMediaQuery'
 
 interface Props {
   enemy: IEnemy
+  displayName?: string
   index: number
   isSelected: boolean
   isSelectingTarget: boolean
@@ -82,21 +83,43 @@ function onClick() {
     'target-selectable': isTargetSelectable,
     'target-all': isTargetAll,
     'mobile-layout': isMobileLayout
-  }" ref="rootEl" @click="onClick">
-    <div v-if="!isDead" class="enemy-name-top" :title="enemy.name">{{ enemy.name }}</div>
+   }" ref="rootEl" @click="onClick">
+    <button v-if="!isDead" class="enemy-target-control" type="button" :aria-pressed="isSelected"
+      :aria-label="`${displayName ?? enemy.name}${enemy.intention ? ' · Próximo: ' + enemy.intention : ''}${isSelected ? ' · Objetivo seleccionado' : ''}`"
+      @click.stop="onClick"></button>
+    <div v-if="!isDead" class="enemy-name-top" :title="displayName ?? enemy.name">
+      <span class="enemy-name-text">{{ enemy.name }}</span>
+      <span v-if="displayName && displayName !== enemy.name" class="enemy-name-index">{{ displayName.slice(enemy.name.length).trim() }}</span>
+    </div>
+    <span v-if="(isSelected || isAttacking) && !isDead" class="combat-target-label">{{ isAttacking ? '▶ Actúa' : '▶ Objetivo' }}</span>
     <small v-if="!isDead && enemy.intention" class="enemy-intention" :title="repertoireTitle">Próximo: {{ enemy.intention }}</small>
     <div class="enemy-sprite-stage">
       <img :src="sprite" :alt="enemy.name" class="enemy-sprite-img" loading="lazy" decoding="async" />
     </div>
-    <img
-      v-for="effect in vfxEffects ?? []"
-      :key="effect.key"
-      :src="VFX_SOURCES[effect.asset]"
-      class="enemy-vfx-effect"
-      :style="{ transform: `translate(-50%, -50%) rotate(${effect.rotationDeg ?? 0}deg)` }"
-      alt=""
-      aria-hidden="true"
-    />
+    <div class="enemy-feedback-layer">
+      <img
+        v-for="effect in vfxEffects ?? []"
+        :key="effect.key"
+        :src="VFX_SOURCES[effect.asset]"
+        class="enemy-vfx-effect"
+        :style="{ transform: `translate(-50%, -50%) rotate(${effect.rotationDeg ?? 0}deg)` }"
+        alt=""
+        aria-hidden="true"
+      />
+      <div v-if="hitPopups && hitPopups.length > 0" class="enemy-hit-container">
+        <div class="enemy-hit-layer">
+          <div
+            v-for="popup in hitPopups"
+            :key="popup.key"
+            class="enemy-hit-popup"
+            :class="{ crit: popup.isCrit, heal: popup.variant === 'heal', energy: popup.variant === 'energy' }"
+            :style="{ '--ox': popup.offsetX + 'px', '--oy': popup.offsetY + 'px', '--dur': popup.duration + 'ms' }"
+          >
+            {{ popup.variant === 'heal' || popup.variant === 'energy' ? '+' : '-' }}{{ popup.value }}{{ popup.suffix ?? '' }}
+          </div>
+        </div>
+      </div>
+    </div>
     <EnemyStatusIcons :effects="statusEffects" />
     <div class="enemy-health">
       <div class="health-bar">
@@ -108,19 +131,6 @@ function onClick() {
     <div v-if="showAlwaysShortcut" class="enemy-shortcut-badge">
       <span class="key-cap">{{ index + 1 }}</span>
     </div>
-    <div v-if="hitPopups && hitPopups.length > 0" class="enemy-hit-container">
-      <div class="enemy-hit-layer">
-        <div
-          v-for="popup in hitPopups"
-          :key="popup.key"
-          class="enemy-hit-popup"
-          :class="{ crit: popup.isCrit, heal: popup.variant === 'heal', energy: popup.variant === 'energy' }"
-          :style="{ '--ox': popup.offsetX + 'px', '--oy': popup.offsetY + 'px', '--dur': popup.duration + 'ms' }"
-        >
-          {{ popup.variant === 'heal' || popup.variant === 'energy' ? '+' : '-' }}{{ popup.value }}{{ popup.suffix ?? '' }}
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -129,7 +139,7 @@ function onClick() {
 .enemy-card {
   position: relative;
   display: grid;
-  grid-template-rows: 20px 32px minmax(40px, 1fr) 28px 24px;
+  grid-template-rows: 20px 32px minmax(40px, 1fr) 56px 24px;
   gap: 2px;
   width: 100%;
   height: 100%;
@@ -193,6 +203,14 @@ function onClick() {
 
 .enemy-card :deep(.enemy-status-icons) { grid-row: 4; margin: 0 auto; box-sizing: border-box; align-self: center; }
 
+.enemy-feedback-layer {
+  position: absolute;
+  inset: 0;
+  overflow: clip;
+  pointer-events: none;
+  z-index: 5;
+}
+
 .enemy-vfx-effect {
   position: absolute;
   left: 50%;
@@ -222,7 +240,9 @@ function onClick() {
 
 .enemy-name-top {
   grid-row: 1;
-  display: block;
+  display: flex;
+  justify-content: center;
+  gap: 4px;
   font-family: 'Georgia', serif;
   font-size: 0.85rem;
   font-weight: 700;

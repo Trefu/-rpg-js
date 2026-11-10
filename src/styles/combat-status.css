@@ -1,0 +1,88 @@
+/* Shared combat semantics. Deliberately distinct from menu selection colors. */
+.enemy-status-icons { overflow: visible; min-height: 44px; height: auto; gap: 6px; padding-block: 4px; background: transparent; border-radius: 0; }
+.enemy-status-icons.combat-status-strip { margin: 0; width: 100%; box-sizing: border-box; justify-content: flex-start; flex-wrap: wrap; max-height: 112px; overflow-x: hidden; overflow-y: auto; padding: 6px; gap: 4px; }
+.combat-status-strip .enemy-status-icon { flex-shrink: 0; }
+.enemy-status-icons.is-empty { min-height: 0; height: 0; padding: 0; margin: 0; }
+/* Announce changes to screen readers without a visual banner or layout shift. */
+.combat-status-notice { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; pointer-events: none; }
+.enemy-status-icons .enemy-status-icon {
+  box-sizing: border-box; min-width: 44px; width: 44px; height: 44px;
+  border-radius: 2px; background: var(--jrpg-inset); box-shadow: 1px 1px var(--jrpg-shadow);
+  border: 1px solid var(--jrpg-line); cursor: pointer;
+}
+.enemy-status-icon.is-buff { border-color: var(--jrpg-buff); }
+.enemy-status-icon.is-debuff { border-color: var(--jrpg-debuff); }
+.enemy-status-icons .enemy-status-icon:focus-visible { outline: 2px solid var(--jrpg-orange); outline-offset: 3px; }
+.enemy-status-icons .enemy-status-stacks {
+  top: -4px; right: -4px; bottom: auto; left: auto;
+  background: var(--jrpg-dot-stacks-background); color: var(--jrpg-dot-stacks-text);
+  border: 1px solid var(--jrpg-shadow); box-shadow: 1px 1px var(--jrpg-shadow);
+}
+.enemy-status-icons .enemy-status-turns, .status-charges {
+  position: absolute; bottom: -4px; left: -4px; top: auto; right: auto;
+  padding: 1px 3px; background: var(--jrpg-window); color: var(--jrpg-text);
+  font: bold 10px var(--jrpg-font); border: 1px solid var(--jrpg-line); border-radius: 2px;
+}
+.status-polarity { position: absolute; top: 0; left: 1px; font: bold 12px var(--jrpg-font); color: var(--jrpg-debuff); }
+.status-shield { position: absolute; top: -4px; right: -4px; background: var(--jrpg-window); color: var(--jrpg-energy); font: bold 10px var(--jrpg-font); padding: 1px 3px; border: 1px solid var(--jrpg-line); }
+.is-buff .status-polarity { color: var(--jrpg-buff); }
+.esi-info-popup[role="dialog"] { background: var(--jrpg-window); color: var(--jrpg-text); border: 2px solid var(--jrpg-frame); border-radius: 2px; box-shadow: 3px 3px var(--jrpg-shadow); font-family: var(--jrpg-font); max-height: calc(100dvh - 24px); overflow-y: auto; box-sizing: border-box; }
+.esi-info-popup .esi-info-close { min-width: 44px; min-height: 44px; border-radius: 2px; }
+.esi-info-popup .esi-info-close:focus-visible { outline: 2px solid var(--jrpg-orange); }
+.esi-info-popup .esi-info-tag { color: var(--jrpg-muted); }
+.status-modal .status-card-stacks { background: var(--jrpg-dot-stacks-background); color: var(--jrpg-dot-stacks-text); }
+.status-modal .status-card.buff { border-color: var(--jrpg-buff); }
+.status-modal .status-card.debuff, .status-modal .status-card.damage, .status-modal .status-card.stun { border-color: var(--jrpg-debuff); }
+.enemy-card:focus-visible { outline: 2px solid var(--jrpg-orange); outline-offset: -2px; }
+.enemy-target-control { position: absolute; inset: 0; z-index: 4; width: 100%; height: 100%; border: 0; border-radius: 2px; background: transparent; cursor: pointer; }
+.enemy-target-control:focus-visible { outline: 2px solid var(--jrpg-orange); outline-offset: -2px; }
+.combat-target-label { position: absolute; top: 64px; right: 4px; z-index: 4; padding: 2px 4px; background: var(--jrpg-window); color: var(--jrpg-orange); font: bold 11px var(--jrpg-font); border: 1px solid var(--jrpg-orange); }
+.turn-order-bar { background: var(--jrpg-inset); border-color: var(--jrpg-line); backdrop-filter: none; }
+.turn-order-bar .turn-slot { border-radius: 2px; background: var(--jrpg-window); color: var(--jrpg-text); box-shadow: none; }
+.turn-order-bar .turn-slot.current { border-color: var(--jrpg-orange); background: var(--jrpg-selection); box-shadow: inset 0 0 0 1px var(--jrpg-frame); }
+.turn-order-bar .turn-slot.hero { border-left-color: var(--jrpg-buff); }
+.turn-order-bar .turn-slot.enemy { border-left-color: var(--jrpg-debuff); }
+.turn-order-bar .turn-slot.current::after { content: '▶'; position: absolute; bottom: 2px; right: 3px; font-size: 10px; color: var(--jrpg-orange); }
+.turn-order-bar .turn-slot.skip::after { content: '×'; position: absolute; top: 2px; right: 3px; font-weight: bold; color: var(--jrpg-debuff); }
+.combat-turn-caption { font: 10px var(--jrpg-font); color: var(--jrpg-muted); white-space: normal; }
+.announcement-banner .announcement-frame { background: var(--jrpg-window); border-radius: 2px; border-color: var(--jrpg-frame); box-shadow: inset 0 0 0 1px var(--jrpg-shadow), 3px 3px var(--jrpg-shadow); }
+.announcement-banner .announcement-frame::before, .announcement-banner .announcement-frame::after { display: none; }
+.announcement-banner .announcement-text { font-family: var(--jrpg-font); font-size: clamp(.85rem, 2vw, 1.15rem); color: var(--jrpg-text); }
+.announcement-banner.variant-status .announcement-frame { border-color: var(--jrpg-stat-magic-defense); }
+.announcement-banner.variant-attack .announcement-frame { border-color: var(--jrpg-debuff); }
+.announcement-banner.variant-turn .announcement-frame { border-color: var(--jrpg-orange); }
+.announcement-banner.variant-crit .announcement-text { color: var(--jrpg-heroism); }
+.combat-log-modal[role="dialog"] { background: var(--jrpg-window); color: var(--jrpg-text); border-radius: 2px; border-color: var(--jrpg-frame); box-shadow: 3px 3px var(--jrpg-shadow); }
+.combat-log-modal .modal-header h3 { color: var(--jrpg-highlight); font-family: var(--jrpg-font); }
+.combat-log-filters { display: flex; gap: 6px; padding: 8px 16px; border-bottom: 1px solid var(--jrpg-line); }
+.combat-log-filters button, .combat-log-modal .close-btn { min-height: 44px; min-width: 44px; background: var(--jrpg-inset); color: var(--jrpg-text); border: 1px solid var(--jrpg-line); border-radius: 2px; font-family: var(--jrpg-font); }
+.combat-log-filters button[aria-pressed="true"] { background: var(--jrpg-selection); border-color: var(--jrpg-orange); }
+.combat-log-modal button:focus-visible { outline: 2px solid var(--jrpg-orange); outline-offset: 2px; }
+.combat-log-modal .combat-log-turn { border-block-start: 1px solid var(--jrpg-line); color: var(--jrpg-highlight); font-weight: bold; }
+.combat-announcement-slot { grid-area: notice; position: relative; display: grid; place-items: center; z-index: 4; pointer-events: none; }
+.combat-announcement-slot .announcement-banner { position: static; inset: auto; transform: none; max-width: 100%; }
+.combat-announcement-slot .announcement-frame { max-width: min(90vw, 750px); box-sizing: border-box; }
+.enemy-name-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.enemy-name-index { flex-shrink: 0; }
+.combat-view .enemy-name-top { display: flex; justify-content: center; gap: 4px; color: var(--jrpg-highlight); font-family: var(--jrpg-font); }
+.combat-view .heroes-container .hero-card, .combat-view .mobile-hud .mobile-hud-hero { background: var(--jrpg-window); border: 2px solid var(--jrpg-line); border-radius: 2px; box-shadow: inset 0 0 0 1px var(--jrpg-inset), 2px 2px var(--jrpg-shadow); }
+.combat-view .heroes-container .hero-card.active { border-color: var(--jrpg-orange); box-shadow: inset 0 0 0 1px var(--jrpg-frame), 2px 2px var(--jrpg-shadow); }
+.combat-view .heroes-container .hero-card.being-attacked { border-color: var(--jrpg-debuff); box-shadow: inset 0 0 0 1px var(--jrpg-debuff); animation: none; }
+.combat-view .heroes-container .hero-card.target-selectable { border-style: dashed; border-color: var(--jrpg-orange); }
+.combat-view .hero-portrait, .combat-view .mobile-hud-portrait { border-radius: 2px; }
+.combat-view .enemy-card.attacking { border-color: var(--jrpg-debuff); box-shadow: inset 0 0 0 1px var(--jrpg-debuff); animation: none; }
+.combat-view .mobile-hud { background: var(--jrpg-inset); border-color: var(--jrpg-line); }
+.combat-view .abilities-action-bar[class] { background: var(--jrpg-inset); backdrop-filter: none; }
+.combat-view .abilities-action-bar[class] .aab-btn { background: var(--jrpg-window); border-color: var(--jrpg-line); border-radius: 2px; color: var(--jrpg-text); box-shadow: 1px 1px var(--jrpg-shadow); }
+.combat-view .abilities-action-bar .aab-btn.aab-selected { background: var(--jrpg-selection); border-color: var(--jrpg-orange); }
+.combat-view .abilities-action-bar .aab-btn:focus-visible { outline: 2px solid var(--jrpg-orange); outline-offset: 2px; }
+.hero-hit-container .hero-hit-popup.heal, .mobile-hit-layer .mobile-hit-popup.heal, .enemy-hit-container .enemy-hit-popup.heal { color: var(--jrpg-stat-vitality); }
+.hero-hit-container .hero-hit-popup.energy, .mobile-hit-layer .mobile-hit-popup.energy, .enemy-hit-container .enemy-hit-popup.energy { color: var(--jrpg-energy); }
+.hero-hit-container .hero-hit-popup.blocked, .mobile-hit-layer .mobile-hit-popup.blocked { color: var(--jrpg-block); }
+.hero-hit-container .hero-hit-popup.crit, .mobile-hit-layer .mobile-hit-popup.crit, .enemy-hit-container .enemy-hit-popup.crit { color: var(--jrpg-heroism); }
+.combat-view .bar-fill.bar-hp, .combat-view .mobile-hud-bar-fill.hp, .combat-view .mobile-hud-ally-bar-fill.hp { background: var(--jrpg-hp); }
+.combat-view .bar-fill.bar-energy, .combat-view .mobile-hud-bar-fill.energy, .combat-view .mobile-hud-ally-bar-fill.energy { background: var(--jrpg-energy); }
+.combat-view .bar-fill.bar-heroism, .combat-view .mobile-hud-bar-fill.heroism, .combat-view .mobile-hud-ally-bar-fill.heroism { background: var(--jrpg-heroism); }
+@media (prefers-reduced-motion: reduce) {
+  .enemy-status-icons *, .turn-order-bar *, .announcement-banner * { animation: none !important; transition: none !important; }
+}

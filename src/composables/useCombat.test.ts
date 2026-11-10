@@ -176,6 +176,33 @@ afterEach(() => {
 })
 
 describe('Daño periódico de enemigos en el combate real', () => {
+  it('resume cuatro DoT sin alterar su orden ni desbloquear acciones antes de resolverlos', async () => {
+    const hero = useGameStore().activeHero!
+    hero.baseStats.agility.value = 1000
+    const enemy = new MountainEnemy('scout')
+    enemy.baseStats.agility.value = 1
+    const combat = useCombat()
+    combat.announcer.clear()
+    const announce = vi.spyOn(combat.announcer, 'show')
+    const takeDamage = vi.spyOn(hero, 'takeDamage')
+    const before = hero.health
+    try {
+      ;[StatusEffects.POISON, StatusEffects.BURN, StatusEffects.BLEED, StatusEffects.FREEZE].forEach((effect, index) => {
+        hero.addStatusEffect({ ...effect, stacks: index + 1, turns: 3 })
+      })
+      combat.initializeCombat([enemy])
+      await vi.advanceTimersByTimeAsync(2000)
+      expect(combat.isProcessingDot.value).toBe(true)
+      expect(combat.isPlayerInputLocked.value).toBe(true)
+      await vi.advanceTimersByTimeAsync(2200)
+      expect(takeDamage.mock.calls.map(call => call[0])).toEqual([1, 2, 3, 4])
+      expect(hero.health).toBe(before - 10)
+      expect(combat.isProcessingDot.value).toBe(false)
+      expect(announce.mock.calls.filter(call => call[1] === 'status')).toHaveLength(1)
+      expect(announce).toHaveBeenCalledWith(expect.stringContaining('−10 HP'), 'status', 1000, expect.any(Object))
+    } finally { combat.cleanup() }
+  })
+
   it.each([StatusEffects.POISON, StatusEffects.BURN, StatusEffects.BLEED, StatusEffects.FREEZE])(
     '$name notifica el daño del héroe también con un solo stack', async effect => {
       const hero = useGameStore().activeHero!
@@ -191,7 +218,7 @@ describe('Daño periódico de enemigos en el combate real', () => {
         await vi.advanceTimersByTimeAsync(6000)
         expect(announce).toHaveBeenCalledWith(
           expect.stringContaining(`${hero.name} recibe 1 de daño por `),
-          'status', 1800, expect.any(Object)
+          'status', 1000, expect.any(Object)
         )
       } finally { combat.cleanup() }
     }

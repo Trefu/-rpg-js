@@ -1,10 +1,36 @@
 <script setup lang="ts">
 import closeIcon from '@/assets/icons/cross-mark.png'
+import { computed, nextTick, ref, watch } from 'vue'
+import type { CombatLogEntry } from '@/core/combat/combatLog'
 
-defineProps<{
+const props = defineProps<{
   show: boolean
   messages: string[]
+  entries?: CombatLogEntry[]
 }>()
+const filter = ref('all')
+const filters = [{ id: 'all', label: 'Todos' }, { id: 'status', label: 'Estados' }, { id: 'damage', label: 'DoT' }]
+const visibleEntries = computed(() => (props.entries ?? props.messages.map(message => ({ message, kind: 'action', turn: 0 })))
+  .map((entry, index) => ({ ...entry, index }))
+  .filter(entry => filter.value === 'all' || entry.kind === filter.value))
+const dialog = ref<HTMLElement | null>(null)
+let previousFocus: HTMLElement | null = null
+watch(() => props.show, async show => {
+  if (show) {
+    previousFocus = document.activeElement as HTMLElement
+    await nextTick()
+    dialog.value?.querySelector<HTMLButtonElement>('button')?.focus()
+  } else if (previousFocus?.isConnected && previousFocus !== document.body) previousFocus.focus()
+  else document.querySelector<HTMLButtonElement>('.log-fab')?.focus()
+})
+function onKey(event: KeyboardEvent) {
+  if (event.key === 'Escape') emit('close')
+  if (event.key !== 'Tab') return
+  const buttons = [...(dialog.value?.querySelectorAll<HTMLButtonElement>('button') ?? [])]
+  const first = buttons[0], last = buttons[buttons.length - 1]
+  if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
+  else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
+}
 
 const emit = defineEmits<{
   (e: 'close'): void
@@ -14,21 +40,25 @@ const emit = defineEmits<{
 <template>
   <transition name="combat-log-modal">
     <div v-if="show" class="combat-log-modal-backdrop" @click.self="emit('close')">
-      <div class="combat-log-modal">
+      <div ref="dialog" class="combat-log-modal" role="dialog" aria-modal="true" aria-label="Registro de combate" @keydown="onKey">
         <header class="modal-header">
           <h3>Registro de combate</h3>
           <button class="close-btn" @click="emit('close')" aria-label="Cerrar"><img :src="closeIcon" alt="" class="close-icon" /></button>
         </header>
+        <nav class="combat-log-filters" aria-label="Filtrar registro">
+          <button v-for="option in filters" :key="option.id" type="button" :aria-pressed="filter === option.id" @click="filter = option.id">{{ option.label }}</button>
+        </nav>
         <div class="modal-body">
-          <p v-if="messages.length === 0" class="empty">Sin entradas todavía.</p>
+          <p v-if="visibleEntries.length === 0" class="empty">Sin entradas.</p>
           <ul v-else class="log-list">
             <li
-              v-for="(msg, idx) in messages"
-              :key="`${messages.length - idx}-${idx}`"
+              v-for="entry in visibleEntries"
+              :key="entry.index"
               class="log-line"
+              :class="{ 'combat-log-turn': entry.kind === 'turn' }"
             >
-              <span class="log-index">#{{ idx + 1 }}</span>
-              <span class="log-text">{{ msg }}</span>
+              <span class="log-index">{{ entry.kind === 'turn' ? '▶' : '#' + (entry.index + 1) }}</span>
+              <span class="log-text">{{ entry.message }}</span>
             </li>
           </ul>
         </div>
@@ -38,6 +68,7 @@ const emit = defineEmits<{
 </template>
 
 <style scoped>
+@layer combat-legacy {
 .combat-log-modal-backdrop {
   position: fixed;
   inset: 0;
@@ -169,4 +200,5 @@ const emit = defineEmits<{
 .combat-log-modal-enter-to .combat-log-modal { transform: translateY(0) scale(1); }
 .combat-log-modal-leave-from { opacity: 1; }
 .combat-log-modal-leave-to { opacity: 0; }
+}
 </style>

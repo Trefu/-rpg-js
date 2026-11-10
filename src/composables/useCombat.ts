@@ -1,4 +1,4 @@
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, watch } from 'vue'
 import { useGameStore } from '@/stores/game'
 import type { Hero } from '@/core/Hero'
 import { AudioManager } from '@/core/AudioManager'
@@ -26,6 +26,9 @@ import {
 } from '@/core/defense/DefenseEngine'
 import { getDefenseModifiers } from '@/core/defense/modifiers'
 import { useAnnouncer } from './useAnnouncer'
+import { combatantLabel } from '@/core/combat/combatLabels'
+import { statusChanges } from '@/core/combat/statusPresentation'
+import type { CombatLogEntry, CombatLogKind } from '@/core/combat/combatLog'
 import type { AnnouncementVariant } from './useAnnouncer'
 import type { CritResult } from '@/core/crit'
 import {
@@ -44,12 +47,7 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 const TURN_QUEUE_SIZE = 8
 
 // Tipos de estado que infligen daño por turno. Cada stack = 1 de daño fijo.
-const DO_STATUS_TYPES: Set<string> = new Set([
-  StatusEffects.BURN.type,
-  StatusEffects.POISON.type,
-  StatusEffects.FREEZE.type,
-  StatusEffects.BLEED.type
-])
+const DO_STATUS_TYPES = DOT_STATUS_TYPES
 
 // Tipos de estado con HoT (Heal over Time). Su tick cura al portador en vez
 // de dañarlo. El monto a curar viene de `damagePerTurn` (interpretado
@@ -138,6 +136,8 @@ export function useCombat(config: CombatConfig = {}) {
   const enemies = ref<IEnemy[]>([])
   const selectedEnemy = ref<IEnemy | null>(null)
   const combatLog = ref<string[]>([])
+  const combatLogEntries = ref<CombatLogEntry[]>([])
+  let logTurn = 0
   const isExecutingAction = ref(false)
   const isCombatEnded = ref(false)
   const isSelectingTarget = ref(false)
@@ -216,7 +216,7 @@ export function useCombat(config: CombatConfig = {}) {
     }))
     const enemiesList: TurnActor[] = enemies.value.map(e => ({
       id: e.id,
-      name: e.name,
+      name: combatantLabel(e, enemies.value),
       kind: 'enemy',
       agility: effectiveAgility(e),
       isAlive: e.isAlive,
@@ -225,6 +225,20 @@ export function useCombat(config: CombatConfig = {}) {
     }))
     return [...heroesList, ...enemiesList]
   })
+
+  const stopStatusLog = watch(() => [...heroes.value, ...enemies.value].map(actor => ({
+    id: actor.id,
+    name: combatantLabel(actor, enemies.value.some(enemy => enemy.id === actor.id) ? enemies.value : heroes.value),
+    effects: actor.statusEffects.map(effect => ({ ...effect }))
+  })), (after, before) => {
+    if (isCombatEnded.value) return
+    for (const actor of after) {
+      const previous = before.find(old => old.id === actor.id)
+      for (const message of statusChanges(previous?.effects ?? [], actor.effects)) {
+        addToLog(`${actor.name}: ${message}.`, 'status')
+      }
+    }
+  }, { flush: 'sync' })
 
   const currentActor = computed<TurnActor | null>(() => {
     if (!currentActorId.value) return null
@@ -1080,12 +1094,12 @@ const defenseClouded = ref(false)
     return min + Math.random() * (max - min)
   }
 
-  function showEnemyHit(enemyId: string, value: number, isCrit: boolean = false) {
+  function showEnemyHit(enemyId: string, value: number, isCrit: boolean = false, suffix?: string) {
     const key = popupKey++
     const offsetX = randBetween(-28, 28)
     const offsetY = randBetween(-14, 14)
     const duration = Math.round(randBetween(950, 1250))
-    enemyHitPopups.value.push({ id: enemyId, value, key, isCrit, offsetX, offsetY, duration })
+    enemyHitPopups.value.push({ id: enemyId, value, key, isCrit, offsetX, offsetY, duration, suffix })
     setTimeout(() => {
       enemyHitPopups.value = enemyHitPopups.value.filter(p => p.key !== key)
     }, duration)
@@ -1099,7 +1113,8 @@ const defenseClouded = ref(false)
     const offsetX = randBetween(-28, 28)
     const offsetY = randBetween(-14, 14)
     const duration = Math.round(randBetween(950, 1250))
-    playerHitPopups.value.push({ heroId, value, key, isCrit, variant: resolvedVariant, suffix, offsetX, offsetY, duration })
+    const resourceSuffix = suffix ?? (resolvedVariant === 'energy' ? ' EN' : resolvedVariant === 'heal' ? ' HP' : resolvedVariant === 'blocked' ? ' Bloqueo' : '')
+    playerHitPopups.value.push({ heroId, value, key, isCrit, variant: resolvedVariant, suffix: resourceSuffix, offsetX, offsetY, duration })
     setTimeout(() => {
       playerHitPopups.value = playerHitPopups.value.filter(p => p.key !== key)
     }, duration)
@@ -1234,7 +1249,7 @@ const defenseClouded = ref(false)
     if (effectType === StatusEffects.HORROR.type) skipLabel = 'aterrorizado y pierde su turno'
     else skipLabel = 'aturdido y pierde su turno'
     addToLog(`${actor.name} está ${skipLabel}.`)
-    showAnnouncement(`${actor.name} pierde su turno`, 'status', 1400)
+    showAnnouncement(`${actor.name}: ${skipLabel}`, 'status', 1400)
     if (combatant && typeof combatant.reduceStatusEffects === 'function') {
       combatant.reduceStatusEffects()
     }
@@ -1273,7 +1288,7 @@ const defenseClouded = ref(false)
     }
     isExecutingAction.value = false
     usedItemThisTurn.value = false
-    addToLog(`Turno de ${actor.name}.`)
+    addToLog(`Turno de ${actor.name}.`, 'turn')
     showAnnouncement(`Turno de ${actor.name}`, 'turn', 1200)
     await applyPlayerStatusTick()
     // FIX muerte-por-DoT: si el tick mató al heroe activo, debemos
@@ -1310,6 +1325,7 @@ const defenseClouded = ref(false)
       await runNextTurn()
       return
     }
+    addToLog(`Turno de ${actor.name}.`, 'turn')
     // Damage-over-time resolves before selecting an action, even if it kills
     // the last enemy. Duration is still consumed once at the end of its turn.
     await showEnemyStatusSequence(enemy)
@@ -1332,7 +1348,7 @@ const defenseClouded = ref(false)
     const decision = enemy.selectAction?.(gameStore.activeHeroes, targetPressure)
     const target = decision?.target ?? enemy.selectTarget(gameStore.activeHeroes)
     if (!target) {
-      addToLog(`${enemy.name} no encuentra un objetivo válido y pierde su turno.`)
+      addToLog(`${combatantLabel(enemy, enemies.value)} no encuentra un objetivo válido y pierde su turno.`)
       await delay(config.isTraining ? 600 : 1200)
       turnState.value = advanceAfterTurn(turnState.value, turnActors.value, actor.id)
       if (enemy.isAlive && typeof enemy.reduceStatusEffects === 'function') {
@@ -1349,9 +1365,7 @@ const defenseClouded = ref(false)
       targetPressure.set(target.id, (targetPressure.get(target.id) ?? 0) + 1)
     }
     const attackName = selectedPattern.name ?? 'atacar'
-    const aliveEnemiesCount = enemies.value.filter(e => e.isAlive).length
-    const enemyIndex = enemies.value.filter(e => e.name === enemy.name && e.isAlive).indexOf(enemy) + 1
-    const enemyLabel = aliveEnemiesCount > 1 ? `${enemy.name} ${enemyIndex}` : enemy.name
+    const enemyLabel = combatantLabel(enemy, enemies.value)
 
     const crit = !isSupport && typeof enemy.rollCrit === 'function'
       ? enemy.rollCrit()
@@ -1553,36 +1567,37 @@ const defenseClouded = ref(false)
         await delay(100)
       }
 
-      // Pacing por tick: banner aparece -> beat para que entre la animacion ->
-      // suena el SFX magico + golpe + danno -> resto del display.
+      // Resuelve en el mismo orden; el resumen visual no agrupa el daño del motor.
       const BANNER_LEAD_IN = 350
-      const BANNER_TOTAL = 1800
+      const summaries: { label: string, damage: number }[] = []
+      let healing = 0
 
       for (const effect of active) {
         // ---- DoT (burn / poison / freeze / bleed) ----
         if (DO_STATUS_TYPES.has(effect.type)) {
           const stacks = effect.stacks ?? 1
           const dmg = stacks
-          const damageKindLabel = DOT_KIND_LABEL[effect.type] ?? 'daño'
-          showAnnouncement(
-            `${p.name} recibe ${dmg} de daño por ${damageKindLabel}!`,
-            'status',
-            BANNER_TOTAL
-          )
-          addToLog(`${effect.name} x${stacks}: recibes ${dmg} de daño.`)
           await delay(BANNER_LEAD_IN)
           playDotSfx(effect.type)
           audioManager.playHitSound()
+          const before = p.health
           p.takeDamage(dmg, { damageType: DOT_DAMAGE_TYPE[effect.type] })
-          showPlayerHit(dmg, { heroId: p.id })
+          const dealt = before - p.health
+          showPlayerHit(dealt, { heroId: p.id, suffix: ` ${DOT_KIND_LABEL[effect.type]}` })
+          addToLog(`${p.name}: ${effect.name} ×${stacks} causa ${dealt} de daño.`, 'damage')
+          let totalDealt = dealt
           // `damagePerTurn` positivo puede sumarse como daño fijo extra
           // (no es el caso de los DoT actuales; reservado para custom).
           const dpt = effect.damagePerTurn
           if (typeof dpt === 'number' && dpt > 0) {
+            const beforeExtra = p.health
             p.takeDamage(dpt, { damageType: DOT_DAMAGE_TYPE[effect.type] })
-            showPlayerHit(dpt, { heroId: p.id, variant: 'damage' })
-            addToLog(`${effect.name}: +${dpt} de daño extra por turno.`)
+            const extra = beforeExtra - p.health
+            totalDealt += extra
+            showPlayerHit(extra, { heroId: p.id, variant: 'damage' })
+            addToLog(`${p.name}: ${effect.name} causa ${extra} de daño extra.`)
           }
+          summaries.push({ label: DOT_KIND_LABEL[effect.type] ?? effect.name, damage: totalDealt })
         }
 
         // ---- HoT (regen) ----
@@ -1596,12 +1611,8 @@ const defenseClouded = ref(false)
             const before = p.health
             p.heal(healAmount)
             const restored = p.health - before
-            showAnnouncement(
-              `${p.name} regenera ${healAmount} HP!`,
-              'status',
-              BANNER_TOTAL
-            )
-            addToLog(`${effect.name}: +${healAmount} HP.`)
+            healing += restored
+            addToLog(`${p.name}: ${effect.name}, +${restored} HP.`)
             await delay(BANNER_LEAD_IN)
             audioManager.playHitSound()
             if (restored > 0) showPlayerHit(restored, { heroId: p.id, variant: 'heal' })
@@ -1613,8 +1624,14 @@ const defenseClouded = ref(false)
         // la reaplica antes de agotar sus turnos, `reduceStatusEffects` la
         // elimina por expiracion sin detonar el efecto de Vulnerable.
 
-        await delay(BANNER_TOTAL - BANNER_LEAD_IN)
       }
+      const total = summaries.reduce((sum, entry) => sum + entry.damage, 0)
+      const detail = summaries.map(entry => `${entry.label} ${entry.damage}`).join(' / ')
+      const damageText = summaries.length === 1
+        ? `${p.name} recibe ${total} de daño por ${summaries[0].label}!`
+        : `${p.name}: −${total} HP · ${detail}`
+      showAnnouncement(`${summaries.length ? damageText : p.name}${healing ? ` · +${healing} HP` : ''}${!p.isAlive ? ' · Cae por daño periódico' : ''}`, 'status', 1000)
+      await delay(1000)
     } finally {
       isProcessingDot.value = false
     }
@@ -1632,6 +1649,15 @@ const defenseClouded = ref(false)
 
   async function showEnemyStatusSequence(enemy: IEnemy, announceOtherEffects = true) {
     if (enemy.isAlive && enemy.statusEffects.length > 0) {
+      const summaries: { label: string, damage: number }[] = []
+      const flushSummary = async () => {
+        if (!summaries.length) return
+        const total = summaries.reduce((sum, entry) => sum + entry.damage, 0)
+        const name = combatantLabel(enemy, enemies.value)
+        showAnnouncement(`${name}: −${total} HP · ${summaries.map(entry => `${entry.label} ${entry.damage}`).join(' / ')}${!enemy.isAlive ? ' · Cae por daño periódico' : ''}`, 'status', 1000)
+        summaries.length = 0
+        await delay(1000)
+      }
       for (const effect of enemy.statusEffects) {
         if (!enemy.isAlive) break
         if (effect.turns <= 0) continue
@@ -1640,25 +1666,27 @@ const defenseClouded = ref(false)
           const before = enemy.health
           enemy.takeDamage(damage, { damageType: DOT_DAMAGE_TYPE[effect.type] })
           const dealt = before - enemy.health
-          showEnemyHit(enemy.id, dealt)
+          showEnemyHit(enemy.id, dealt, false, ` ${DOT_KIND_LABEL[effect.type]}`)
           playDotSfx(effect.type)
           audioManager.playHitSound()
-          addToLog(`${enemy.name}: ${effect.name} x${effect.stacks ?? 1} causa ${dealt} de daño.`)
-          showAnnouncement(`${enemy.name} recibe ${dealt} de daño por ${DOT_KIND_LABEL[effect.type] ?? effect.name}.`, 'status', 1800)
-          await delay(1800)
+          addToLog(`${combatantLabel(enemy, enemies.value)}: ${effect.name} ×${effect.stacks ?? 1} causa ${dealt} de daño.`, 'damage')
+          summaries.push({ label: DOT_KIND_LABEL[effect.type] ?? effect.name, damage: dealt })
+          await delay(250)
           continue
         }
         if (HOT_STATUS_TYPES.has(effect.type)) {
           const before = enemy.health
           enemy.heal(Math.max(0, -(effect.damagePerTurn ?? 0)))
-          addToLog(`${enemy.name}: ${effect.name} recupera ${enemy.health - before} HP.`)
+          addToLog(`${combatantLabel(enemy, enemies.value)}: ${effect.name} recupera ${enemy.health - before} HP.`)
         }
         if (announceOtherEffects && effect.turns > 0 && effect.turnLabel && effect.announceOnTurn) {
-          showAnnouncement(`${enemy.name}: ${effect.turnLabel}`, 'status', 2000)
+          await flushSummary()
+          showAnnouncement(`${combatantLabel(enemy, enemies.value)}: ${effect.turnLabel}`, 'status', 2000)
           await delay(2000)
           await delay(200)
         }
       }
+      await flushSummary()
     }
   }
 
@@ -1694,8 +1722,10 @@ const defenseClouded = ref(false)
     }, 2000)
   }
 
-  function addToLog(message: string) {
+  function addToLog(message: string, kind: CombatLogKind = 'action') {
+    if (kind === 'turn') logTurn++
     combatLog.value.push(message)
+    combatLogEntries.value.push({ message, kind, turn: logTurn })
     nextTick(() => {
       if (combatLogRef.value) {
         combatLogRef.value.scrollTop = combatLogRef.value.scrollHeight
@@ -1756,7 +1786,7 @@ const defenseClouded = ref(false)
       }
       audioManager.playAttackSound()
       audioManager.playHitSound()
-      addToLog(`¡La luz salta a ${enemy.name}! ${splashDamage} de daño.`)
+      addToLog(`¡La luz salta a ${combatantLabel(enemy, enemies.value)}! ${splashDamage} de daño.`)
       await delay(280)
     }
     if (extras.length > 0) {
@@ -1800,7 +1830,7 @@ const defenseClouded = ref(false)
       showHeroVfx(hero.id, DEFAULT_IMPACT_VFX)
       audioManager.playAttackSound()
       audioManager.playHitSound()
-      addToLog(`¡${enemy.name} golpea a ${hero.name}! ${dmg} de daño.`)
+      addToLog(`¡${combatantLabel(enemy, enemies.value)} golpea a ${hero.name}! ${dmg} de daño.`)
       await delay(280)
     }
   }
@@ -1905,7 +1935,7 @@ const defenseClouded = ref(false)
         showHeroVfx(hero.id, opts.vfxForSplashees ?? DEFAULT_IMPACT_VFX)
         applyEnemyFailureEffect(hero, opts.failureEffect, opts.isCrit)
       }
-      addToLog(`¡La onda de ${enemy.name} alcanza a ${hero.name}! ${splashDamage} de daño.`)
+      addToLog(`¡La onda de ${combatantLabel(enemy, enemies.value)} alcanza a ${hero.name}! ${splashDamage} de daño.`)
       if (delayMs > 0) await delay(delayMs)
     }
   }
@@ -2017,8 +2047,8 @@ const defenseClouded = ref(false)
         }
         addToLog(
           primaryTargetId !== null && enemy.id === primaryTargetId
-            ? `¡${ability?.name ?? 'Golpe devastador'} golpea a ${enemy.name}! ${finalDamage} de daño.`
-            : `¡${ability?.name ?? 'Golpe devastador'} alcanza a ${enemy.name}! ${finalDamage} de daño.`
+            ? `¡${ability?.name ?? 'Golpe devastador'} golpea a ${combatantLabel(enemy, enemies.value)}! ${finalDamage} de daño.`
+            : `¡${ability?.name ?? 'Golpe devastador'} alcanza a ${combatantLabel(enemy, enemies.value)}! ${finalDamage} de daño.`
         )
       })
     )
@@ -2145,10 +2175,12 @@ const defenseClouded = ref(false)
   }
 
   function initializeCombat(enemyList: IEnemy[], isBoss: boolean = false) {
-    enemies.value = enemyList
     enemyVfxEffects.value = []
     heroVfxEffects.value = []
     combatLog.value = []
+    combatLogEntries.value = []
+    logTurn = 0
+    enemies.value = enemyList
     resetAbilityCooldowns()
     if (!config.isTraining) {
       if (enemyList.some(enemy => enemy.combatMusic === 'spectre')) {
@@ -2174,6 +2206,7 @@ const defenseClouded = ref(false)
   }
 
   function cleanup() {
+    stopStatusLog()
     enemyVfxEffects.value = []
     heroVfxEffects.value = []
     audioManager.stopCurrentMusic()
@@ -2185,6 +2218,7 @@ const defenseClouded = ref(false)
     enemies,
     selectedEnemy,
     combatLog,
+    combatLogEntries,
     isPlayerTurn,
     isCombatEnded,
     isSelectingTarget,

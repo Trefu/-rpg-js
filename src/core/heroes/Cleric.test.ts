@@ -29,6 +29,12 @@ describe('Bendición Divina de Elara', () => {
   beforeEach(() => vi.useFakeTimers())
   afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks() })
 
+  it('reserva la fórmula para el chip y mantiene la descripción breve', () => {
+    expect(ClericDivineBlessing.description).not.toMatch(/⌊|×|sin superar|vida máxima/)
+    expect(ClericDivineBlessing.description).toContain('+20% de daño durante 3 turnos')
+    expect(ClericDivineBlessing.previewEffect!(Cleric.createStarter()).formula).toContain('× 2')
+  })
+
   it('reemplaza Castigo Divino por un buff dirigido a aliados, manteniendo el coste de energía', () => {
     const cleric = Cleric.createStarter()
     expect(cleric.abilities).toContain(ClericDivineBlessing)

@@ -121,7 +121,7 @@ function mostWoundedAlly(caster: ICharacter, allies?: ICharacter[]) {
 }
 
 export const AncestralGuard: IAbility = {
-  name: 'Guardia ancestral', type: 'mountainAncestralGuard', description: 'Protege al aliado enemigo más herido durante 2 turnos. Escudo: MEN del lanzador × 0.8, redondeado hacia abajo.',
+  name: 'Guardia ancestral', type: 'mountainAncestralGuard', description: 'Protege al aliado enemigo más herido con un escudo que absorbe daño durante 2 turnos.',
   cooldown: 2, tags: ['buff'], icon: shieldIcon, targetType: 'allies-only', requiresTarget: false,
   previewEffect: caster => supportPreview(caster, GUARD_SCALING, 'Escudo'),
   execute: async ctx => {
@@ -129,7 +129,7 @@ export const AncestralGuard: IAbility = {
     const { value } = supportPreview(ctx.caster, GUARD_SCALING, 'Escudo')
     if (ally && value > 0) {
       ally.addStatusEffect({ ...StatusEffects.ANCESTRAL_GUARD, absorbRemaining: value, maxAbsorb: value,
-        description: `Absorbe hasta ${value} de daño durante 2 turnos (MEN del lanzador × 0.8).` })
+        description: `Absorbe hasta ${value} de daño durante 2 turnos.` })
       ctx.playEnemyVfx?.(ally.id, { asset: 'holy-light', durationMs: 1200 })
       ctx.log(`${ally.name} recibe Guardia ancestral: ${value} de escudo.`)
     }
@@ -139,7 +139,7 @@ export const AncestralGuard: IAbility = {
 registerAbility(AncestralGuard)
 
 export const MountainMend: IAbility = {
-  name: 'Cántico reparador', type: 'mountainMend', description: 'Cura al aliado enemigo más herido. Curación: MEN del lanzador × 0.65, redondeada hacia abajo.',
+  name: 'Cántico reparador', type: 'mountainMend', description: 'Restaura vida al aliado enemigo más herido.',
   cooldown: 2, tags: ['heal'], icon: heartIcon, targetType: 'allies-only', requiresTarget: false,
   previewEffect: caster => supportPreview(caster, MEND_SCALING, 'Curación'),
   execute: async ctx => {

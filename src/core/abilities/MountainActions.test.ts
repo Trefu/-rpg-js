@@ -13,6 +13,16 @@ async function cast(ability: IAbility, caster: MountainEnemy, allies?: MountainE
 }
 
 describe('Apoyos enemigos basados en estadísticas', () => {
+  it('reserva las fórmulas para los chips, no las descripciones de habilidades o estados', async () => {
+    const caster = new MountainEnemy('shaman')
+    for (const ability of [AncestralGuard, MountainMend]) {
+      expect(ability.description).not.toMatch(/MEN|×|redondead/)
+      expect(ability.previewEffect!(Warrior.createStarter()).formula).toContain('×')
+    }
+    await cast(AncestralGuard, caster)
+    expect(StatusEffects.ANCESTRAL_GUARD.description).not.toMatch(/MEN|×|redondead/)
+    expect(caster.statusEffects.find(effect => effect.type === 'ancestral_guard')?.description).not.toMatch(/MEN|×|redondead/)
+  })
   it.each([
     [AncestralGuard, 'holy-light'], [MountainMend, 'holy-heal'],
     [AttackOrder, 'haste-aura'], [StonePreparation, 'holy-light']

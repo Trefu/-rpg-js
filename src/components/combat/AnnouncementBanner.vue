@@ -13,7 +13,7 @@ const variantClass = computed(() => `variant-${variant.value}`)
 
 <template>
   <transition name="announcement">
-    <div v-if="visible && text" class="announcement-banner" :class="variantClass">
+    <div v-if="visible && text" class="announcement-banner" :class="variantClass" role="status" aria-live="polite" aria-atomic="true">
       <div class="announcement-frame">
         <span class="announcement-text">{{ text }}</span>
       </div>
@@ -22,6 +22,7 @@ const variantClass = computed(() => `variant-${variant.value}`)
 </template>
 
 <style scoped>
+@layer combat-legacy {
 .announcement-banner {
   position: absolute;
   top: 28px;
@@ -205,5 +206,6 @@ const variantClass = computed(() => `variant-${variant.value}`)
   .announcement-leave-to {
     transform: translateX(-50%) translateY(-10px);
   }
+}
 }
 </style>

@@ -26,6 +26,11 @@ function toggle() {
 function close() {
   open.value = false
 }
+
+function openFull() {
+  close()
+  emit('open-full')
+}
 </script>
 
 <template>
@@ -48,7 +53,7 @@ function close() {
           <div class="log-sheet-header">
             <span class="log-sheet-title">Registro</span>
             <span class="log-sheet-count">{{ totalCount }}</span>
-            <button v-if="totalCount > 6" type="button" class="log-sheet-full" @click="emit('open-full')">
+            <button v-if="totalCount > 6" type="button" class="log-sheet-full" @click="openFull">
               Ver completo
             </button>
           </div>

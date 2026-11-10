@@ -7,8 +7,8 @@ import type { IEnemy } from '@/core/interfaces/ICharacter'
 import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
 import type { VfxAssetId } from '@/core/interfaces/IAbility'
 import { MAX_HEROES } from '@/stores/game'
-import HeroDotIcons from './HeroDotIcons.vue'
 import EnemyStatusIcons from './EnemyStatusIcons.vue'
+import StatusEffectIcons from './StatusEffectIcons.vue'
 import MobileHeroStats from './MobileHeroStats.vue'
 import { VFX_SOURCES } from './vfxSources'
 
@@ -42,27 +42,12 @@ const emit = defineEmits<{
     (e: 'selectAlly', hero: Hero): void
 }>()
 
-/**
- * Tipos de DoT que ya tienen indicador visual propio via HeroDotIcons
- * (iconos sobre la cabeza del heroe). Los excluimos de la tira de iconos
- * para no duplicar la misma informacion en dos sitios.
- */
-const DOT_TYPES = new Set(['burn', 'poison', 'freeze'])
-
-/**
- * Iconos de buffs/debuffs no-DoT activos sobre el heroe mostrado en la
- * cabecera. El usuario los ve directamente en la card sin tener que abrir
- * el panel de aliados, asi sabe que efectos lleva encima.
- *
- * Si la lista esta vacia, el contenedor no se renderiza (cero ruido cuando
- * el heroe esta "limpio").
- */
+/** Todos los estados usan la misma tira accesible, incluidos los cuatro DoT. */
 const heroStatusIcons = computed<IStatusEffect[]>(() => {
     const h = displayedHero.value
     if (!h || !h.statusEffects) return []
     return h.statusEffects.filter(e =>
         (e.turns === undefined || e.turns > 0) &&
-        !DOT_TYPES.has(e.type) &&
         !!e.icon
     )
 })
@@ -304,25 +289,6 @@ function onAllyRowClick(hero: Hero | null) {
             @click="onHeroPortraitClick">
             <img v-if="displayedHero?.sprite" :src="displayedHero.sprite" :alt="displayedHero.name"
                 class="mobile-hud-portrait" decoding="async" />
-            <div
-                v-if="heroStatusIcons.length > 0"
-                class="mobile-hud-status-icons"
-                aria-label="Efectos de estado activos"
-            >
-                <div
-                    v-for="effect in heroStatusIcons"
-                    :key="effect.type"
-                    class="mobile-hud-status-icon"
-                    :class="['kind-' + (effect.isBuff ? 'buff' : 'debuff'), { 'is-dot': ['burn', 'poison', 'freeze', 'bleed'].includes(effect.type) }]"
-                    :title="effect.name"
-                >
-                    <img :src="effect.icon" :alt="effect.name" />
-                    <span
-                        v-if="typeof effect.stacks === 'number' && effect.stacks > 0"
-                        class="mobile-hud-status-icon-stacks"
-                    >x{{ effect.stacks }}</span>
-                </div>
-            </div>
             <div class="mobile-hud-info">
                 <div class="mobile-hud-name">
                     <span class="mobile-hud-name-text">
@@ -364,8 +330,8 @@ function onAllyRowClick(hero: Hero | null) {
                         {{ heroismDisplay }}
                     </span>
                 </div>
+                <StatusEffectIcons :key="displayedHero?.id" class="combat-status-strip" :effects="heroStatusIcons" side="player" />
             </div>
-            <HeroDotIcons v-if="displayedHero" :effects="displayedHero.statusEffects" />
         </button>
 
         <Teleport to="body">
@@ -374,7 +340,7 @@ function onAllyRowClick(hero: Hero | null) {
                     v-for="popup in displayedHeroPopups"
                     :key="popup.key"
                     class="mobile-hit-popup"
-                    :class="{ crit: popup.variant === 'crit' || popup.isCrit, blocked: popup.variant === 'blocked', heal: popup.variant === 'heal' || popup.variant === 'energy' }"
+                    :class="{ crit: popup.variant === 'crit' || popup.isCrit, blocked: popup.variant === 'blocked', heal: popup.variant === 'heal', energy: popup.variant === 'energy' }"
                     :style="{ '--ox': popup.offsetX + 'px', '--oy': popup.offsetY + 'px', '--dur': popup.duration + 'ms' }"
                 >
                     <span class="mobile-hit-value">{{ popup.variant === 'heal' || popup.variant === 'energy' ? '+' : '-' }}{{ popup.value }}{{ popup.suffix ?? '' }}</span>
@@ -452,7 +418,7 @@ function onAllyRowClick(hero: Hero | null) {
                                         {{ (hero as any).heroism ?? 0 }}/{{ (hero as any).maxHeroism ?? 100 }}
                                     </span>
                                 </div>
-                                <EnemyStatusIcons v-if="hero.statusEffects && hero.statusEffects.length"
+                                <EnemyStatusIcons side="player" v-if="hero.statusEffects && hero.statusEffects.length"
                                     :effects="hero.statusEffects" class="mobile-hud-ally-effects" />
                             </template>
                         </div>

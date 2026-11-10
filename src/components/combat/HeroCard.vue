@@ -6,20 +6,12 @@ import type { VfxAssetId } from '@/core/interfaces/IAbility'
 import { getEffectDescription } from '@/core/interfaces/IStatusEffect'
 import { useExclusiveToggle } from '@/composables/useExclusiveToggle'
 import HeroStatChips from './HeroStatChips.vue'
+import StatusEffectIcons from './StatusEffectIcons.vue'
+import { presentStatus, isActiveStatus } from '@/core/combat/statusPresentation'
 import { VFX_SOURCES } from './vfxSources'
 import ShieldOverlay from './ShieldOverlay.vue'
 import { healthWithShield } from '@/core/combat/shields'
 import hamburgerIcon from '@/assets/icons/hamburger-menu.png'
-import burnDotIcon from '@/assets/icons/fire.png'
-import poisonDotIcon from '@/assets/icons/poison-gas.png'
-import freezeDotIcon from '@/assets/icons/frostfire.png'
-
-const DOT_ICONS: Record<string, { icon: string; name: string }> = {
-  burn: { icon: burnDotIcon, name: 'Quemadura' },
-  poison: { icon: poisonDotIcon, name: 'Veneno' },
-  freeze: { icon: freezeDotIcon, name: 'Congelado' }
-}
-const DOT_TYPES = new Set(Object.keys(DOT_ICONS))
 
 interface Props {
   hero: Hero | null
@@ -93,15 +85,11 @@ const isUltimateReady = computed(() => {
 
 const activeEffects = computed<IStatusEffect[]>(() => {
   if (!props.hero) return []
-  return props.hero.statusEffects.filter(e => (e.turns === undefined) || e.turns > 0)
-})
-
-const dotEffects = computed<IStatusEffect[]>(() => {
-  return activeEffects.value.filter(e => DOT_TYPES.has(e.type))
+  return props.hero.statusEffects.filter(isActiveStatus)
 })
 
 const buffDebuffEffects = computed<IStatusEffect[]>(() => {
-  return activeEffects.value.filter(e => !DOT_TYPES.has(e.type))
+  return activeEffects.value
 })
 
 const exclusiveToggle = useExclusiveToggle(`hero-card-${props.index}`)
@@ -115,8 +103,6 @@ function toggleMenu(e: MouseEvent) {
 const rootEl = ref<HTMLElement | null>(null)
 const menuButtonEl = ref<HTMLElement | null>(null)
 const dropdownEl = ref<HTMLElement | null>(null)
-const hoveredDot = ref<string | null>(null)
-const touchedDot = ref<string | null>(null)
 
 // Maquina de estados del flash de la barra de Heroismo:
 //   - 'idle'   : sin animacion
@@ -227,39 +213,12 @@ function updateDropdownPosition() {
   }
 }
 
-function dotStacks(effect: IStatusEffect): number {
-  return effect.stacks && effect.stacks > 0 ? effect.stacks : 1
-}
-
-function dotDamagePerStack(effect: IStatusEffect): number {
-  if (typeof effect.damagePerTurn === 'number') return effect.damagePerTurn / dotStacks(effect)
-  return 1
-}
-
-function dotTooltip(effect: IStatusEffect): string {
-  const stacks = dotStacks(effect)
-  const dps = dotDamagePerStack(effect)
-  const turns = effect.turns
-  return `${stacks} stack${stacks === 1 ? '' : 's'} · ${turns} turno${turns === 1 ? '' : 's'} restante${turns === 1 ? '' : 's'}\n${dps} de daño por stack/turno`
-}
-
-function toggleDotTouch(type: string) {
-  touchedDot.value = touchedDot.value === type ? null : type
-}
-
-function isDotTooltipVisible(type: string): boolean {
-  return hoveredDot.value === type || touchedDot.value === type
-}
-
 function onDocClick(e: MouseEvent) {
   const target = e.target as Node
   const insideRoot = rootEl.value?.contains(target) ?? false
   const insideDropdown = dropdownEl.value?.contains(target) ?? false
   if (isOpen.value && !insideRoot && !insideDropdown) {
     closeMenu()
-  }
-  if (touchedDot.value && rootEl.value && !insideRoot && !insideDropdown) {
-    touchedDot.value = null
   }
 }
 
@@ -308,7 +267,7 @@ defineExpose({
   >
     <template v-if="hero">
       <div class="hero-card-badges">
-        <div v-if="isActive" class="active-badge">ACTIVO</div>
+        <div v-if="isActive" class="active-badge">▶ Turno</div>
         <div v-if="isBeingAttacked" class="being-attacked-badge">Defendiendo</div>
       </div>
       <div class="hero-portrait">
@@ -365,25 +324,7 @@ defineExpose({
             </div>
           </div>
         </div>
-        <div
-          v-if="buffDebuffEffects.length > 0"
-          class="hero-status-icons"
-          aria-label="Efectos de estado activos"
-        >
-          <div
-            v-for="effect in buffDebuffEffects"
-            :key="effect.type"
-            class="hero-status-icon"
-            :class="['kind-' + (effect.isBuff ? 'buff' : 'debuff'), { 'is-dot': effect.type === 'bleed' }]"
-            :title="effect.name"
-          >
-            <img :src="effect.icon" :alt="effect.name" />
-            <span
-              v-if="typeof effect.stacks === 'number' && effect.stacks > 0"
-              class="hero-status-icon-stacks"
-            >x{{ effect.stacks }}</span>
-          </div>
-        </div>
+        <StatusEffectIcons class="combat-status-strip" :effects="activeEffects" side="player" />
       </div>
 
       <button
@@ -397,24 +338,6 @@ defineExpose({
         <span v-if="buffDebuffEffects.length > 0" class="hero-menu-badge">{{ buffDebuffEffects.length }}</span>
       </button>
 
-      <div v-if="dotEffects.length > 0" class="hero-dot-icons">
-        <div
-          v-for="effect in dotEffects"
-          :key="effect.type"
-          class="hero-dot-icon"
-          :class="['dot-' + effect.type, { 'tooltip-open': isDotTooltipVisible(effect.type) }]"
-          @mouseenter="hoveredDot = effect.type"
-          @mouseleave="hoveredDot === effect.type && (hoveredDot = null)"
-          @click.stop="toggleDotTouch(effect.type)"
-        >
-          <img :src="DOT_ICONS[effect.type].icon" :alt="DOT_ICONS[effect.type].name" class="hero-dot-img" />
-          <span class="hero-dot-stack">{{ dotStacks(effect) }}</span>
-          <div v-if="isDotTooltipVisible(effect.type)" class="hero-dot-tooltip">
-            <div class="hero-dot-tooltip-name">{{ DOT_ICONS[effect.type].name }}</div>
-            <div class="hero-dot-tooltip-line">{{ dotTooltip(effect) }}</div>
-          </div>
-        </div>
-      </div>
 
       <div v-if="isTargetSelectable" class="hero-shortcut-badge">
         <span class="key-cap">{{ index + 1 }}</span>
@@ -457,7 +380,7 @@ defineExpose({
 
             <section class="hero-dropdown-section">
               <h4 class="hero-dropdown-section-title">
-                Buffs / Debuffs
+                Estados
                 <span class="section-badge">{{ buffDebuffEffects.length }}</span>
               </h4>
               <ul v-if="buffDebuffEffects.length > 0" class="hero-dropdown-effects">
@@ -474,13 +397,11 @@ defineExpose({
                     <span class="hero-effect-desc">{{ getEffectDescription(effect, 'player') }}</span>
                   </div>
                   <div class="hero-effect-tags">
-                    <span v-if="effect.stacks && effect.stacks > 1" class="effect-tag stack">x{{ effect.stacks }}</span>
-                    <span v-if="typeof effect.charges === 'number'" class="effect-tag charges">{{ effect.charges }}/{{ effect.maxCharges ?? effect.charges }}c</span>
-                    <span v-else-if="effect.turns !== undefined && Number.isFinite(effect.turns)" class="effect-tag turns">{{ effect.turns }}t</span>
+                    <span class="effect-tag">{{ presentStatus(effect).counters }}</span>
                   </div>
                 </li>
               </ul>
-              <p v-else class="hero-dropdown-empty">Sin buffs ni debuffs activos</p>
+              <p v-else class="hero-dropdown-empty">Sin efectos activos</p>
             </section>
           </div>
         </transition>

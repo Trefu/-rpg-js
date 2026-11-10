@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
+import { presentStatus, isActiveStatus } from '@/core/combat/statusPresentation'
+import { DOT_STATUS_TYPES } from '@/core/StatusEffects'
 import closeIcon from '@/assets/icons/cross-mark.png'
 import sparklesIcon from '@/assets/icons/sparkles.png'
 
@@ -15,7 +17,7 @@ const emit = defineEmits<{
 }>()
 
 const activeEffects = computed<IStatusEffect[]>(() =>
-  (props.effects || []).filter(e => e && (e.turns === undefined || e.turns > 0))
+  (props.effects || []).filter(isActiveStatus)
 )
 
 const totalActive = computed(() => activeEffects.value.length)
@@ -24,7 +26,24 @@ function onBackdropClick(e: MouseEvent) {
   if (e.target === e.currentTarget) emit('close')
 }
 
-const DAMAGE_STATUS_TYPES = new Set(['burn', 'poison', 'freeze'])
+const DAMAGE_STATUS_TYPES = DOT_STATUS_TYPES
+const dialog = ref<HTMLElement | null>(null)
+let previousFocus: HTMLElement | null = null
+watch(() => props.show, async show => {
+  if (show) {
+    previousFocus = document.activeElement as HTMLElement
+    await nextTick()
+    dialog.value?.querySelector<HTMLButtonElement>('button')?.focus()
+  } else previousFocus?.focus()
+})
+
+function onDialogKey(event: KeyboardEvent) {
+  if (event.key === 'Escape') { event.preventDefault(); emit('close') }
+  if (event.key === 'Tab') {
+    event.preventDefault()
+    dialog.value?.querySelector<HTMLButtonElement>('button')?.focus()
+  }
+}
 
 function effectAccent(effect: IStatusEffect): string {
   if (effect.isBuff) return 'buff'
@@ -34,16 +53,11 @@ function effectAccent(effect: IStatusEffect): string {
 }
 
 function effectDurationLabel(effect: IStatusEffect): string {
-  if (typeof effect.charges === 'number') {
-    return `${effect.charges} carga${effect.charges === 1 ? '' : 's'}`
-  }
-  if (effect.turns === undefined) return ''
-  return `${effect.turns} turno${effect.turns === 1 ? '' : 's'}`
+  return presentStatus(effect).counters
 }
 
 function totalDamage(effect: IStatusEffect): number {
-  if (!DAMAGE_STATUS_TYPES.has(effect.type)) return 0
-  return effect.stacks ?? 1
+  return presentStatus(effect).damage ?? 0
 }
 
 function turnsPercent(effect: IStatusEffect): number {
@@ -71,7 +85,7 @@ function progressTitle(effect: IStatusEffect): string {
 <template>
   <transition name="status-modal">
     <div v-if="show" class="status-modal-backdrop" @click="onBackdropClick">
-      <div class="status-modal" role="dialog" aria-modal="true">
+      <div ref="dialog" class="status-modal" role="dialog" aria-modal="true" aria-label="Efectos de estado" @keydown="onDialogKey">
         <header class="status-modal-header">
           <div>
             <h3 class="status-modal-title">Efectos de estado</h3>
@@ -96,27 +110,28 @@ function progressTitle(effect: IStatusEffect): string {
               <div class="status-card-icon">
                 <img :src="effect.icon" :alt="effect.name" />
                 <span
-                  v-if="(effect.stacks ?? 1) > 1"
+                  v-if="presentStatus(effect).stacks !== null"
                   class="status-card-stacks"
                   :title="`${effect.stacks} stacks`"
                 >
-                  x{{ effect.stacks }}
+                  ×{{ presentStatus(effect).stacks }}
                 </span>
               </div>
               <div class="status-card-info">
                 <div class="status-card-head">
-                  <span class="status-card-name">{{ effect.name }}</span>
+                  <span class="status-card-name">{{ effect.isBuff ? '+' : '−' }} {{ effect.name }}</span>
                   <span class="status-card-turns">{{ effectDurationLabel(effect) }}</span>
                 </div>
-                <p class="status-card-desc">{{ effect.description }}</p>
+                <p class="status-card-desc">{{ presentStatus(effect).description }}</p>
+                <p v-if="presentStatus(effect).rules" class="status-card-desc">{{ presentStatus(effect).rules }}</p>
                 <div v-if="DAMAGE_STATUS_TYPES.has(effect.type)" class="status-card-meta">
                   <span>Daño por turno: <b>-{{ totalDamage(effect) }}</b></span>
-                  <span v-if="(effect.stacks ?? 1) > 1" class="status-card-stacks-inline">
+                  <span v-if="(effect.stacks ?? 1) >= 1" class="status-card-stacks-inline">
                     ({{ effect.stacks }} stacks)
                   </span>
                 </div>
                 <div
-                  v-if="isChargeBased(effect) || (effect.maxDuration && effect.turns !== undefined)"
+                  v-if="isChargeBased(effect) || (effect.maxDuration && Number.isFinite(effect.maxDuration) && presentStatus(effect).turns !== null)"
                   class="status-card-bar"
                   :title="progressTitle(effect)"
                 >
