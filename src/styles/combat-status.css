@@ -1,6 +1,6 @@
 /* Shared combat semantics. Deliberately distinct from menu selection colors. */
 .abilities-action-bar .aab-info-damage { flex-wrap: wrap; max-width: 100%; }
-.aab-info-damage-conditional { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; flex-basis: 100%; text-transform: none; color: var(--jrpg-text); font-size: .75rem; }
+.aab-info-damage-conditional { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 4px; text-transform: none; color: var(--jrpg-text); font-size: .75rem; }
 .enemy-status-icons { overflow: visible; min-height: 44px; height: auto; gap: 6px; padding-block: 4px; background: transparent; border-radius: 0; }
 .enemy-status-icons.combat-status-strip { margin: 0; width: 100%; box-sizing: border-box; align-items: flex-start; justify-content: flex-start; flex-wrap: nowrap; height: 52px; min-height: 52px; max-height: 52px; overflow-x: auto; overflow-y: hidden; padding: 2px 0 0; gap: 2px; scrollbar-width: thin; scrollbar-color: var(--jrpg-frame) var(--jrpg-inset); }
 .combat-status-strip::-webkit-scrollbar { height: 6px; }
@@ -29,11 +29,9 @@
   padding: 1px 3px; background: var(--jrpg-window); color: var(--jrpg-text);
   font: bold 10px var(--jrpg-font); border: 1px solid var(--jrpg-line); border-radius: 2px;
 }
-.status-polarity { position: absolute; top: 0; left: 1px; font: bold 12px var(--jrpg-font); color: var(--jrpg-debuff); }
 .enemy-status-icons .enemy-status-turns { display: inline-flex; align-items: center; gap: 2px; }
 .enemy-status-icons .enemy-status-icon .status-round-clock { width: 10px; height: 10px; flex-shrink: 0; object-fit: contain; image-rendering: pixelated; }
 .status-shield { position: absolute; top: -4px; right: -4px; background: var(--jrpg-window); color: var(--jrpg-energy); font: bold 10px var(--jrpg-font); padding: 1px 3px; border: 1px solid var(--jrpg-line); }
-.is-buff .status-polarity { color: var(--jrpg-buff); }
 /* Compact 32px frames inside unchanged 44px keyboard/touch targets. */
 .combat-status-strip .enemy-status-icon { padding: 2px 6px 10px; border: 0; background-clip: content-box; box-shadow: none; }
 .combat-status-strip .enemy-status-icon::before { content: ''; position: absolute; inset: 2px 6px 10px; border: 1px solid var(--jrpg-debuff); border-radius: 2px; pointer-events: none; }
@@ -43,7 +41,6 @@
 .combat-status-strip .enemy-status-icon:focus-visible { outline-offset: -2px; }
 .combat-status-strip .enemy-status-stacks, .combat-status-strip .status-shield { top: 0; right: 0; }
 .combat-status-strip .enemy-status-turns, .combat-status-strip .status-charges { bottom: 0; left: 0; }
-.combat-status-strip .status-polarity { top: 4px; left: 5px; }
 .esi-info-popup[role="dialog"] { background: var(--jrpg-window); color: var(--jrpg-text); border: 2px solid var(--jrpg-frame); border-radius: 2px; box-shadow: 3px 3px var(--jrpg-shadow); font-family: var(--jrpg-font); max-height: calc(100dvh - 24px); overflow-y: auto; box-sizing: border-box; }
 .esi-info-popup .esi-info-close { min-width: 44px; min-height: 44px; border-radius: 2px; }
 .esi-info-popup .esi-info-close:focus-visible { outline: 2px solid var(--jrpg-orange); }

@@ -368,8 +368,9 @@ function damageTypeClass(id?: string): string {
                     :class="damageTypeClass(ability.damageType)"
                   >
                     <DamageTypeIcon :type="ability.damageType" :attack-name="ability.name" />
-                    {{ focusedAbilityPreviews[idx]!.damageTypeLabel }}
-                  </span>
+                    <template v-if="!focusedAbilityPreviews[idx]!.conditional">{{ focusedAbilityPreviews[idx]!.damageTypeLabel }}</template>
+                   </span>
+                    <template v-if="focusedAbilityPreviews[idx]!.conditional"> O {{ formatPreviewRange(focusedAbilityPreviews[idx]!.conditional!) }} <DamageTypeIcon :type="ability.damageType" :attack-name="ability.name" /> si enemigo está <span class="dmg-poison">ENVENENADO</span></template>
                   </p>
                   <FormulaChip
                     v-if="focusedAbilityPreviews[idx]?.formula"
@@ -377,7 +378,6 @@ function damageTypeClass(id?: string): string {
                     :formula="focusedAbilityPreviews[idx]!.formula"
                   />
                   <template v-if="focusedAbilityPreviews[idx]?.conditional">
-                    <p class="ability-row__dmg"><DamageTypeIcon type="poison" /> {{ focusedAbilityPreviews[idx]!.conditional!.label }}: <strong>{{ formatPreviewRange(focusedAbilityPreviews[idx]!.conditional!) }}</strong></p>
                     <FormulaChip class="pregame-ability-formula" :formula="focusedAbilityPreviews[idx]!.conditional!.formula" />
                   </template>
                 </div>
@@ -1070,13 +1070,15 @@ function damageTypeClass(id?: string): string {
 }
 
 .energy-icon {
-  width: 0.9em;
-  height: 0.9em;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
 }
 
 .cooldown-icon {
-  width: 0.9em;
-  height: 0.9em;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
   image-rendering: pixelated;
 }
 

@@ -24,6 +24,7 @@ import swordSlice from '@/assets/icons/sword-slice.png'
 import divineShieldIcon from '@/assets/icons/checked-shield.png'
 import thunderBlade from '@/assets/icons/thunder-blade.png'
 import heartDrop from '@/assets/icons/heart-drop.png'
+import secondWindIcon from '@/assets/icons/status/segundo-aliento.png'
 import stunGrenade from '@/assets/icons/stun-grenade.png'
 import thrownKnife from '@/assets/icons/thrown-knife.png'
 import smallFire from '@/assets/icons/small-fire.png'
@@ -576,7 +577,7 @@ export const SecondWind: IAbility = {
   energyCost: 0,
   targetType: 'allies-only',
   tags: ['buff', 'heal'],
-  icon: heartDrop,
+  icon: secondWindIcon,
   requiresTarget: false,
   animationDurationMs: 1200,
   customSound: '/assets/sounds/Buffs_Heals_SFX/Def_buff.wav',

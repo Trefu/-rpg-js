@@ -26,6 +26,7 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+const showEnemyIntentions = import.meta.env.DEV
 
 const emit = defineEmits<{
   (e: 'select', enemy: IEnemy): void
@@ -89,14 +90,14 @@ function onClick() {
    }" ref="rootEl" @click="onClick">
     <button v-if="!isDead" class="enemy-target-control" type="button" :aria-pressed="isSelected"
       :aria-keyshortcuts="showAlwaysShortcut ? String(index + 1) : undefined"
-      :aria-label="`${displayName ?? enemy.name}${enemy.intention ? ' · Próximo: ' + enemy.intention : ''}${isSelected ? ' · Objetivo seleccionado' : ''}`"
+      :aria-label="`${displayName ?? enemy.name}${showEnemyIntentions && enemy.intention ? ' · Próximo: ' + enemy.intention : ''}${isSelected ? ' · Objetivo seleccionado' : ''}`"
       @click.stop="onClick"></button>
     <div v-if="!isDead" class="enemy-name-top" :title="displayName ?? enemy.name">
       <span class="enemy-name-text">{{ enemy.name }}</span>
       <span v-if="displayName && displayName !== enemy.name" class="enemy-name-index">{{ displayName.slice(enemy.name.length).trim() }}</span>
     </div>
     <span v-if="(isSelected || isAttacking) && !isDead" class="combat-target-label">{{ isAttacking ? '▶ Actúa' : '▶ Objetivo' }}</span>
-    <small v-if="!isDead && enemy.intention" class="enemy-intention" :title="repertoireTitle"><DamageTypeIcon v-if="intendedAttack" :type="intendedAttack.damageType" :attack-name="intendedAttack.name" /> Próximo: {{ enemy.intention }}</small>
+    <small v-if="showEnemyIntentions && !isDead && enemy.intention" class="enemy-intention" :title="repertoireTitle"><DamageTypeIcon v-if="intendedAttack" :type="intendedAttack.damageType" :attack-name="intendedAttack.name" /> Próximo: {{ enemy.intention }}</small>
     <div class="enemy-sprite-stage">
       <img :src="sprite" :alt="enemy.name" class="enemy-sprite-img" loading="lazy" decoding="async" />
     </div>

@@ -45,10 +45,9 @@ onBeforeUnmount(() => {
               <FormulaChip class="camp-ability-formula" :formula="ability.previewEffect(hero).formula" />
             </template>
             <template v-else-if="ability.previewDamage">
-              <p class="camp-ability-preview"><DamageTypeIcon v-if="ability.previewDamage(hero).kind !== 'heal'" :type="ability.damageType" :attack-name="ability.name" /> {{ ability.previewDamage(hero).kind === 'heal' ? 'Curación' : 'Daño' }}: {{ formatPreviewRange(ability.previewDamage(hero)) }}</p>
+              <p class="camp-ability-preview">{{ ability.previewDamage(hero).kind === 'heal' ? 'Curación' : 'DAÑO' }} {{ formatPreviewRange(ability.previewDamage(hero)) }} <DamageTypeIcon v-if="ability.previewDamage(hero).kind !== 'heal'" :type="ability.damageType" :attack-name="ability.name" /><template v-if="ability.previewDamage(hero).conditional"> O {{ formatPreviewRange(ability.previewDamage(hero).conditional!) }} <DamageTypeIcon :type="ability.damageType" :attack-name="ability.name" /> si enemigo está <span class="dmg-poison">ENVENENADO</span></template></p>
               <FormulaChip class="camp-ability-formula" :formula="ability.previewDamage(hero).formula" />
               <template v-if="ability.previewDamage(hero).conditional">
-                <p class="camp-ability-preview"><DamageTypeIcon type="poison" /> {{ ability.previewDamage(hero).conditional!.label }}: {{ formatPreviewRange(ability.previewDamage(hero).conditional!) }}</p>
                 <FormulaChip class="camp-ability-formula" :formula="ability.previewDamage(hero).conditional!.formula" />
               </template>
             </template>

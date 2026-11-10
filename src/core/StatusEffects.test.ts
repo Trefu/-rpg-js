@@ -12,6 +12,20 @@ import { getEffectCategory } from '@/core/interfaces/IStatusEffect'
 import { Warrior } from '@/core/heroes/Warrior'
 
 describe('StatusEffects registry', () => {
+  it.each([
+    ['stun', 'aturdido'], ['weakness', 'debilitado'], ['injured', 'lesionado'],
+    ['clouded', 'nublado'], ['vulnerable', 'vulnerable'],
+    ['second_wind', 'segundo-aliento'], ['divine_protection', 'proteccion-divina'],
+    ['divine_empowerment', 'fervor-divino'], ['divine_blessing', 'bendicion-divina'],
+    ['ancestral_guard', 'guardia-ancestral']
+  ])('%s usa el icono aprobado de %s', (type, icon) => {
+    expect(StatusEffects.getByType(type)?.icon).toContain(`/status/${icon}.png`)
+  })
+
+  it('Lesionado no comparte icono con Hemorragia ni Herida abierta', () => {
+    expect(StatusEffects.INJURED.icon).not.toBe(StatusEffects.BLEED.icon)
+    expect(StatusEffects.INJURED.icon).not.toBe(StatusEffects.OPEN_WOUND.icon)
+  })
   it('getByType devuelve el efecto correcto para types conocidos', () => {
     const stun = StatusEffects.getByType('stun')
     expect(stun).not.toBeNull()

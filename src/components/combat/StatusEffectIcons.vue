@@ -258,7 +258,6 @@ function effectTagline(e: IStatusEffect): string {
       @keydown.space.stop.prevent="showEffectInfo(effect, $event)"
     >
       <img :src="effect.icon" :alt="effect.name" />
-      <span class="status-polarity" aria-hidden="true">{{ effect.isBuff ? '+' : '−' }}</span>
       <span v-if="presentStatus(effect, side).turns !== null" class="enemy-status-turns"><img :src="roundClockIcon" class="status-round-clock" alt="" aria-hidden="true" />{{ effect.turns }}</span>
       <span v-if="presentStatus(effect, side).charges !== null" class="status-charges">◆{{ effect.charges }}</span>
       <span v-if="presentStatus(effect, side).shield !== null" class="status-shield">◇{{ effect.absorbRemaining }}</span>

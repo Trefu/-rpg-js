@@ -83,7 +83,7 @@
 .camp-ability-costs, .camp-ability-costs span { display: flex; align-items: center; gap: 6px; }
 .camp-ability-costs { flex-wrap: wrap; gap: 12px; }
 .camp-ability-costs:empty { display: none; }
-.camp-hero-abilities .camp-ability-costs img { width: 18px; height: 18px; object-fit: contain; image-rendering: pixelated; }
+.camp-hero-abilities .camp-ability-costs img { width: 28px; height: 28px; flex-shrink: 0; object-fit: contain; image-rendering: pixelated; }
 .camp-ability-preview { color: var(--jrpg-highlight) !important; }
 .destination-picker { padding: 10px; margin-bottom: 10px; }
 .destination-options { gap: 0; }

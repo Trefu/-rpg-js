@@ -11,18 +11,24 @@ export {
   STACK_MERGING_CATEGORIES
 } from './interfaces/IStatusEffect'
 import type { Hero } from './Hero'
-import stunIcon from '@/assets/icons/ball-glow.png'
+import stunIcon from '@/assets/icons/status/aturdido.png'
 import burnIcon from '@/assets/icons/fire.png'
 import poisonIcon from '@/assets/icons/poison-gas.png'
 import freezeIcon from '@/assets/icons/frostfire.png'
 import strengthIcon from '@/assets/icons/muscle-up.png'
 import defenseIcon from '@/assets/icons/shield.png'
 import speedIcon from '@/assets/icons/footprint.png'
-import weaknessIcon from '@/assets/icons/anatomy.png'
+import weaknessIcon from '@/assets/icons/status/debilitado.png'
 import slowIcon from '@/assets/icons/snail.png'
-import secondWindIcon from '@/assets/icons/wind-slap.png'
+import vampiricShieldIcon from '@/assets/icons/wind-slap.png'
+import secondWindIcon from '@/assets/icons/status/segundo-aliento.png'
+import divineProtectionIcon from '@/assets/icons/status/proteccion-divina.png'
+import divineEmpowermentIcon from '@/assets/icons/status/fervor-divino.png'
+import divineBlessingIcon from '@/assets/icons/status/bendicion-divina.png'
+import ancestralGuardIcon from '@/assets/icons/status/guardia-ancestral.png'
 import swordWoundIcon from '@/assets/icons/open-wound.png'
-import cloudedIcon from '@/assets/sprites/VFX/Clouds_split/3_middle_pyramid.png'
+import injuredIcon from '@/assets/icons/status/lesionado.png'
+import cloudedIcon from '@/assets/icons/status/nublado.png'
 import bleedIcon from '@/assets/icons/bleeding-wound.png'
 import markIcon from '@/assets/icons/crosshair.png'
 import blindedIcon from '@/assets/icons/blindfold.png'
@@ -30,7 +36,7 @@ import spellReflectIcon from '@/assets/icons/mirror-mirror.png'
 import rootedIcon from '@/assets/icons/root-tip.png'
 import enrootedOverlay from '@/assets/sprites/VFX/enrooted.png'
 import furyIcon from '@/assets/icons/enrage.png'
-import vulnerableIcon from '@/assets/icons/spiked-shield.png'
+import vulnerableIcon from '@/assets/icons/status/vulnerable.png'
 import resistFireIcon from '@/assets/icons/fire-shield.png'
 import resistIceIcon from '@/assets/icons/ice-shield.png'
 import resistHolyIcon from '@/assets/icons/checked-shield.png'
@@ -220,7 +226,7 @@ export class StatusEffects {
     name: 'Escudo Vampírico',
     description: 'Cada bloqueo completo absorbe 30% del daño bloqueado como vida.',
     turns: 3,
-    icon: secondWindIcon,
+    icon: vampiricShieldIcon,
     isBuff: true,
     turnLabel: '¡Su escudo vampírico le roba vida al enemigo!',
     onBlock: (target, blockedFraction, hooks) => {
@@ -285,7 +291,7 @@ export class StatusEffects {
     descriptionOnEnemy: 'La onda en la barra de defensa se mueve más lento (más fácil defender).',
     descriptionOnPlayer: 'La onda en la barra de defensa se acelera (más difícil bloquear).',
     turns: 1,
-    icon: swordWoundIcon,
+    icon: injuredIcon,
     isBuff: false,
     turnLabel: '¡Está lesionado!',
     defenseWaveSpeedImpact: 0.4,
@@ -722,7 +728,7 @@ export class StatusEffects {
     descriptionOnEnemy: 'Infligido por Luz Divina: +30% Cuerpo en habilidades.',
     descriptionOnPlayer: 'Canalizada por Luz Divina: +30% Cuerpo efectivo en tus habilidades.',
     turns: 3,
-    icon: strengthIcon,
+    icon: divineBlessingIcon,
     isBuff: true,
     turnLabel: '¡Bendición Divina activa!',
     announceOnTurn: true,
@@ -738,20 +744,20 @@ export class StatusEffects {
   static readonly DIVINE_PROTECTION: IStatusEffect = {
     type: 'divine_protection', name: 'Bendición Divina · Vida temporal',
     description: 'Vida temporal que absorbe daño antes de perder HP. Escala con Mente y nivel de Elara. Dura 3 turnos.',
-    turns: 3, icon: defenseIcon, isBuff: true, absorbRemaining: 0, maxAbsorb: 0
+    turns: 3, icon: divineProtectionIcon, isBuff: true, absorbRemaining: 0, maxAbsorb: 0
   }
 
   static readonly DIVINE_EMPOWERMENT: IStatusEffect = {
     type: 'divine_empowerment', name: 'Fervor divino',
     description: 'Bendición Divina: inflige un 20% más de daño durante 3 turnos, incluso si se agota el escudo.',
-    turns: 3, icon: strengthIcon, isBuff: true,
+    turns: 3, icon: divineEmpowermentIcon, isBuff: true,
     defenseContribution: () => ({ attackDamageMultiplier: 0.2 })
   }
 
   static readonly ANCESTRAL_GUARD: IStatusEffect = {
     type: 'ancestral_guard', name: 'Guardia ancestral',
     description: 'Un escudo que absorbe daño durante 2 turnos.',
-    turns: 2, icon: defenseIcon, isBuff: true, absorbRemaining: 0, maxAbsorb: 0
+    turns: 2, icon: ancestralGuardIcon, isBuff: true, absorbRemaining: 0, maxAbsorb: 0
   }
 
   static readonly DEATH_SENTENCE: IStatusEffect = {

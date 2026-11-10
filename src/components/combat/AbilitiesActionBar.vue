@@ -433,9 +433,9 @@ function shortcutFor(index: number): string | null {
               class="aab-info-damage-hits"
               :title="`${hitCountFor(infoAbility)} ataques`"
             >× {{ hitCountFor(infoAbility) }}</span>
-            <span v-if="infoPreview?.damageTypeLabel && infoPreview.kind !== 'heal'" class="aab-info-damage-type"><DamageTypeIcon :type="infoAbility.damageType" :attack-name="infoAbility.name" /> {{ infoPreview.damageTypeLabel }}</span>
+            <span v-if="infoPreview?.damageTypeLabel && infoPreview.kind !== 'heal'" class="aab-info-damage-type"><DamageTypeIcon :type="infoAbility.damageType" :attack-name="infoAbility.name" /> <template v-if="!infoPreview.conditional">{{ infoPreview.damageTypeLabel }}</template></span>
             <span v-if="infoEffectPreview?.kind === 'poison'" class="aab-info-damage-type"><DamageTypeIcon type="poison" /> Veneno</span>
-            <span v-if="infoPreview?.conditional" class="aab-info-damage-conditional"><DamageTypeIcon type="poison" /> {{ infoPreview.conditional.label }}: <strong>{{ formatPreviewRange(infoPreview.conditional) }}</strong></span>
+            <span v-if="infoPreview?.conditional" class="aab-info-damage-conditional">O <strong class="aab-info-damage-values">{{ formatPreviewRange(infoPreview.conditional) }}</strong> <DamageTypeIcon :type="infoAbility.damageType" :attack-name="infoAbility.name" /> si enemigo está <span class="dmg-poison">ENVENENADO</span></span>
           </button>
           <div v-if="(infoPreview || infoEffectPreview) && infoFormulaOpen" class="aab-info-formula" @click.stop>
             <div v-if="infoPreview" class="aab-info-formula-line" v-html="infoPreview.formula"></div>
@@ -881,8 +881,9 @@ function shortcutFor(index: number): string | null {
 
 .aab-info-cost-icon,
 .aab-info-cd-icon {
-  width: 20px;
-  height: 20px;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
   object-fit: contain;
   image-rendering: pixelated;
 }
