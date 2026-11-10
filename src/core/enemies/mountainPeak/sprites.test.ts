@@ -10,8 +10,13 @@ describe('Avatares de Montañas Rocosas', () => {
   const sprites = [...new Set([...MOUNTAIN_ROLES.map(role => new MountainEnemy(role).sprite), new Spectre().sprite])]
 
   it('cada avatar de combate tiene enemigo y encuentro asignado a Montañas Rocosas', () => {
-    const avatars = readdirSync(fileURLToPath(new URL('../../../assets/sprites/enemies/', import.meta.url)))
-      .filter(file => file.endsWith('.png') && file !== 'dummy.png').sort()
+    const root = fileURLToPath(new URL('../../../assets/sprites/enemies/', import.meta.url))
+    const collect = (dir: string): string[] =>
+      readdirSync(dir, { withFileTypes: true }).flatMap(entry =>
+        entry.isDirectory()
+          ? entry.name === 'atlantida' ? [] : collect(`${dir}${entry.name}/`)
+          : entry.name.endsWith('.png') && entry.name !== 'dummy.png' ? [entry.name] : [])
+    const avatars = collect(root).sort()
     const assigned = new Set(Object.keys(MOUNTAIN_PEAK.encounters).flatMap(id =>
       resolveEncounterById(MOUNTAIN_PEAK, id).map(enemy => enemy.sprite!.split('/').pop())))
     expect([...assigned].sort()).toEqual(avatars)

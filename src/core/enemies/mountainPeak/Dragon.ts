@@ -1,5 +1,5 @@
 import { Enemy } from '../Enemy'
-import dragonSprite from '@/assets/sprites/enemies/dragon.png'
+import dragonSprite from '@/assets/sprites/enemies/mountain-peak/dragon.png'
 import type { EnemyAction } from '../../interfaces/ICharacter'
 import { FIRE_BREATH, DEEP_SLASH, TRIPLE_COMBO, DragonRoar } from '../../abilities/EnemyAttacks'
 

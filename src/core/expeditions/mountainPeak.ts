@@ -12,9 +12,7 @@ const encounter = (id: string, group: EnemyGroupId, ...members: [MountainRole, n
 const encounters = {
   'spectral-pass': { id: 'spectral-pass', group: 'skeletons' as const, mobs: [mob(() => new Spectre())] },
   'goblin-riders': encounter('goblin-riders', 'goblins', ['goblinRider', 3, 2], ['warlock', 2]),
-  'troglodyte-cave': encounter('troglodyte-cave', 'beasts', ['troglodyte', 3], ['lostTroglodyte', 2]),
-  'mountain-scarabs': encounter('mountain-scarabs', 'beasts', ['scarab', 2, 3]),
-  'trail-scouts': encounter('trail-scouts', 'goblins', ['scout', 1, 2]),
+  'mountain-scarabs': encounter('mountain-scarabs', 'beasts', ['scarab', 2, 3]),  'trail-scouts': encounter('trail-scouts', 'goblins', ['scout', 1, 2]),
   'light-patrol': encounter('light-patrol', 'goblins', ['bomber', 2], ['archer', 2], ['goblinGuard', 2], ['warlock', 1]),
   'goblin-skirmish': encounter('goblin-skirmish', 'goblins', ['scout', 2, 2], ['goblinGuard', 2], ['warlock', 1]),
   'goblin-cousins': encounter('goblin-cousins', 'goblins', ['scout', 3, 2], ['goblinGuard', 3], ['warlock', 2]),
@@ -103,7 +101,17 @@ const encounters = {
   'stone-caller-pair': encounter('stone-caller-pair', 'stone', ['guardian', 3], ['stoneCaller', 2]),
   'triple-golems-late': encounter('triple-golems-late', 'stone', ['guardian', 4, 3]),
   'summit-dragon': encounter('summit-dragon', 'dragons', ['dragon', 5]),
-  'dragon-mother-arrives': encounter('dragon-mother-arrives', 'dragons', ['dragon', 5])
+  'dragon-mother-arrives': encounter('dragon-mother-arrives', 'dragons', ['dragon', 5]),
+  'crystal-bats': encounter('crystal-bats', 'crystals', ['crystalBat', 2, 2], ['smokySpider', 2]),
+  'quarry-scouts': encounter('quarry-scouts', 'crystals', ['crystalKobold', 2, 2], ['quartzCrossbowman', 2]),
+  'geode-ambush': encounter('geode-ambush', 'crystals', ['smokySpider', 2, 2], ['spectralMiner', 2]),
+  'prism-patrol': encounter('prism-patrol', 'crystals', ['quartzCrossbowman', 3, 2], ['crystalSorceress', 3], ['crystalKobold', 3]),
+  'troll-vanguard': encounter('troll-vanguard', 'crystals', ['caveTroll', 3], ['crystalKobold', 3, 2], ['quartzCrossbowman', 3]),
+  'golem-quarry': encounter('golem-quarry', 'crystals', ['fluoriteGolem', 3], ['crystalKobold', 3], ['spectralMiner', 3, 2]),
+  'salamander-den': encounter('salamander-den', 'crystals', ['obsidianSalamander', 3, 2], ['smokySpider', 3], ['crystalBat', 3]),
+  'sorceress-coven': encounter('sorceress-coven', 'crystals', ['crystalSorceress', 4, 2], ['spectralMiner', 4], ['crystalBat', 4, 2]),
+  'drake-nest': encounter('drake-nest', 'crystals', ['crystalDrake', 4], ['crystalSorceress', 4], ['quartzCrossbowman', 4, 2]),
+  'deep-crystal-court': encounter('deep-crystal-court', 'crystals', ['caveTroll', 5], ['fluoriteGolem', 5], ['crystalSorceress', 5], ['crystalDrake', 5])
 }
 
 export const MOUNTAIN_PEAK: IExpeditionConfig = {
@@ -122,7 +130,7 @@ export const MOUNTAIN_PEAK: IExpeditionConfig = {
     orcs: { early: ['orc-outriders', 'orc-spears', 'orc-pair', 'orc-scouting-party'], mid: ['shaman-patrol', 'orc-raiders', 'orc-warriors', 'orc-trio'], late: ['orc-king-guard', 'orc-assault', 'orc-raiding-pair', 'orc-raiding-party'] },
     skeletons: { early: ['bone-patrol', 'bone-line', 'bone-pair', 'bone-archers', 'bone-trio'], mid: ['bone-legion', 'bone-bows', 'bone-vanguard', 'bone-line-trio'], late: ['frozen-crypt', 'bone-knights', 'bone-royal-pair', 'bone-trio-late'] },
     kobolds: { early: ['kobold-workers', 'kobold-traps', 'kobold-pair', 'kobold-trap-setting', 'kobold-mining-party'], mid: ['kobold-mine', 'kobold-excavation', 'kobold-scout-pair', 'kobold-trio'], late: ['stone-watch', 'kobold-sappers', 'kobold-warlock-trio', 'kobold-mining-trio'] },
-    beasts: { early: ['hill-pack', 'valley-hunt', 'wolf-pair', 'bear-and-pack', 'mountain-scarabs'], mid: ['wolf-pack', 'bear-den', 'alpha-pair', 'wolves-and-bears', 'troglodyte-cave'], late: ['high-pack', 'bear-hunters', 'triple-bears', 'alpha-and-wolf'] },
+    beasts: { early: ['hill-pack', 'valley-hunt', 'wolf-pair', 'bear-and-pack', 'mountain-scarabs'], mid: ['wolf-pack', 'bear-den', 'alpha-pair', 'wolves-and-bears'], late: ['high-pack', 'bear-hunters', 'triple-bears', 'alpha-and-wolf'] },
     stone: { early: ['stone-guardians-2', 'stone-circle', 'stone-shard-pair', 'stone-trio'], mid: ['stone-patrol', 'stone-rubble', 'triple-golems'], late: ['stone-choir', 'stone-siege', 'stone-caller-pair', 'triple-golems-late'] },
     dragons: { boss: ['summit-dragon'] }
   },

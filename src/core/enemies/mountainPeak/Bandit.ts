@@ -1,5 +1,5 @@
 import { Enemy } from '../Enemy'
-import goblinSprite from '@/assets/sprites/enemies/bandit.png'
+import goblinSprite from '@/assets/sprites/enemies/mountain-peak/bandit.png'
 import type { ICharacter } from '../../interfaces/ICharacter'
 import type { DefensePatternConfig } from '../../defense/types'
 import { SLASH, GUST_OF_FOG, QUICK_STRIKE, DEEP_SLASH } from '../../abilities/EnemyAttacks'

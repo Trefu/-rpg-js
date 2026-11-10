@@ -1,5 +1,5 @@
 import { Enemy } from '../Enemy'
-import orcSprite from '@/assets/sprites/enemies/orc.png'
+import orcSprite from '@/assets/sprites/enemies/mountain-peak/orc.png'
 import type { DefensePatternConfig } from '../../defense/types'
 import { MULTIPLE_AXE_STRIKES, CRUSHING_BLOW, AXE_CLEAVE, AXE_HOOK } from '../../abilities/EnemyAttacks'
 

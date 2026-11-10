@@ -19,36 +19,52 @@ import {
   AXE_CLEAVE, AXE_HOOK, MULTIPLE_AXE_STRIKES, CRUSHING_BLOW
 } from '../../abilities/EnemyAttacks'
 import { GOBLIN_WARLOCK_ATTACKS } from './GoblinWarlock'
-import goblinSprite from '@/assets/sprites/enemies/goblin.png'
-import archerSprite from '@/assets/sprites/enemies/goblin-archer.png'
-import wolfSprite from '@/assets/sprites/enemies/wolf.png'
-import shamanSprite from '@/assets/sprites/enemies/orc-chaman.png'
-import guardianSprite from '@/assets/sprites/enemies/stone-golem.png'
-import captainSprite from '@/assets/sprites/enemies/bandit-captain.png'
-import dragonSprite from '@/assets/sprites/enemies/dragon.png'
-import skeletonSprite from '@/assets/sprites/enemies/skeleton.png'
-import skeletonArcherSprite from '@/assets/sprites/enemies/skeleton-archer.png'
-import deathKnightSprite from '@/assets/sprites/enemies/skeleton-death-knight.png'
-import skeletonKingSprite from '@/assets/sprites/enemies/skeleton-king.png'
-import elementalSprite from '@/assets/sprites/enemies/stone-elemental.png'
-import bearSprite from '@/assets/sprites/enemies/bear.png'
-import bomberSprite from '@/assets/sprites/enemies/goblin-bomber.png'
-import warlockSprite from '@/assets/sprites/enemies/goblin-warlock.png'
-import minerSprite from '@/assets/sprites/enemies/kobold-miner.png'
-import trapperSprite from '@/assets/sprites/enemies/kobold-tramper.png'
-import koboldWarlockSprite from '@/assets/sprites/enemies/kobold-warlock.png'
-import orcSprite from '@/assets/sprites/enemies/orc.png'
-import orcArcherSprite from '@/assets/sprites/enemies/orc-archer.png'
-import orcKingSprite from '@/assets/sprites/enemies/orc-king.png'
-import goblinKingSprite from '@/assets/sprites/enemies/goblin-king.png'
-import banditSprite from '@/assets/sprites/enemies/bandit.png'
-import banditArcherSprite from '@/assets/sprites/enemies/bandit-archer.png'
-import banditMedicSprite from '@/assets/sprites/enemies/bandit-rogue.png'
-import packLeaderSprite from '@/assets/sprites/enemies/alpha-wolf.png'
-import goblinRiderSprite from '@/assets/sprites/enemies/goblin-with-wolf.png'
-import troglodyteSprite from '@/assets/sprites/enemies/troglodyte.png'
-import lostTroglodyteSprite from '@/assets/sprites/enemies/lost-troglodyte.png'
-import scarabSprite from '@/assets/sprites/enemies/mountain-scarab.png'
+import {
+  QUARTZ_BOLT, SHARD_BURST, CRYSTAL_LANCE, PRISM_BEAM, CRYSTAL_WEB,
+  AMETHYST_MAUL, CAVE_TREMOR, FLUORITE_SLAM, SMOKE_FANGS, OBSIDIAN_LASH,
+  MOLTEN_SCATTER, INDIGO_DIVE, ECHO_SCREECH, SPECTRAL_LANTERN, PHANTOM_PICK,
+  DRAKE_CRYSTAL_BREATH, DRAKE_CROWN_BEAM
+} from '../../abilities/CrystalActions'
+import goblinSprite from '@/assets/sprites/enemies/mountain-peak/goblin.png'
+import archerSprite from '@/assets/sprites/enemies/mountain-peak/goblin-archer.png'
+import wolfSprite from '@/assets/sprites/enemies/mountain-peak/wolf.png'
+import shamanSprite from '@/assets/sprites/enemies/mountain-peak/orc-chaman.png'
+import guardianSprite from '@/assets/sprites/enemies/mountain-peak/stone-golem.png'
+import captainSprite from '@/assets/sprites/enemies/mountain-peak/bandit-captain.png'
+import dragonSprite from '@/assets/sprites/enemies/mountain-peak/dragon.png'
+import skeletonSprite from '@/assets/sprites/enemies/mountain-peak/skeleton.png'
+import skeletonArcherSprite from '@/assets/sprites/enemies/mountain-peak/skeleton-archer.png'
+import deathKnightSprite from '@/assets/sprites/enemies/mountain-peak/skeleton-death-knight.png'
+import skeletonKingSprite from '@/assets/sprites/enemies/mountain-peak/skeleton-king.png'
+import elementalSprite from '@/assets/sprites/enemies/mountain-peak/stone-elemental.png'
+import bearSprite from '@/assets/sprites/enemies/mountain-peak/bear.png'
+import bomberSprite from '@/assets/sprites/enemies/mountain-peak/goblin-bomber.png'
+import warlockSprite from '@/assets/sprites/enemies/mountain-peak/goblin-warlock.png'
+import minerSprite from '@/assets/sprites/enemies/mountain-peak/kobold-miner.png'
+import trapperSprite from '@/assets/sprites/enemies/mountain-peak/kobold-tramper.png'
+import koboldWarlockSprite from '@/assets/sprites/enemies/mountain-peak/kobold-warlock.png'
+import orcSprite from '@/assets/sprites/enemies/mountain-peak/orc.png'
+import orcArcherSprite from '@/assets/sprites/enemies/mountain-peak/orc-archer.png'
+import orcKingSprite from '@/assets/sprites/enemies/mountain-peak/orc-king.png'
+import goblinKingSprite from '@/assets/sprites/enemies/mountain-peak/goblin-king.png'
+import banditSprite from '@/assets/sprites/enemies/mountain-peak/bandit.png'
+import banditArcherSprite from '@/assets/sprites/enemies/mountain-peak/bandit-archer.png'
+import banditMedicSprite from '@/assets/sprites/enemies/mountain-peak/bandit-rogue.png'
+import packLeaderSprite from '@/assets/sprites/enemies/mountain-peak/alpha-wolf.png'
+import goblinRiderSprite from '@/assets/sprites/enemies/mountain-peak/goblin-with-wolf.png'
+import troglodyteSprite from '@/assets/sprites/enemies/atlantida/troglodyte.png'
+import lostTroglodyteSprite from '@/assets/sprites/enemies/atlantida/lost-troglodyte.png'
+import scarabSprite from '@/assets/sprites/enemies/mountain-peak/mountain-scarab.png'
+import caveTrollSprite from '@/assets/sprites/enemies/crystal-caverns/cave-troll.png'
+import crystalSorceressSprite from '@/assets/sprites/enemies/crystal-caverns/crystal-sorceress.png'
+import crystalKoboldSprite from '@/assets/sprites/enemies/crystal-caverns/crystal-kobold.png'
+import crystalDrakeSprite from '@/assets/sprites/enemies/crystal-caverns/crystal-drake.png'
+import spectralMinerSprite from '@/assets/sprites/enemies/crystal-caverns/spectral-miner.png'
+import crystalBatSprite from '@/assets/sprites/enemies/crystal-caverns/crystal-bat.png'
+import fluoriteGolemSprite from '@/assets/sprites/enemies/crystal-caverns/fluorite-golem.png'
+import obsidianSalamanderSprite from '@/assets/sprites/enemies/crystal-caverns/obsidian-salamander.png'
+import quartzCrossbowmanSprite from '@/assets/sprites/enemies/crystal-caverns/quartz-crossbowman.png'
+import smokySpiderSprite from '@/assets/sprites/enemies/crystal-caverns/smoky-spider.png'
 
 export type MountainRole = 'scout' | 'archer' | 'wolf' | 'shaman' | 'guardian' | 'captain' | 'dragon'
   | 'skeleton' | 'skeletonArcher' | 'deathKnight' | 'skeletonKing' | 'elemental' | 'bear'
@@ -56,6 +72,8 @@ export type MountainRole = 'scout' | 'archer' | 'wolf' | 'shaman' | 'guardian' |
   | 'goblinGuard' | 'banditRaider' | 'banditArcher' | 'banditGuard' | 'banditMedic'
   | 'koboldGuard' | 'orcGuard' | 'packLeader' | 'stoneCaller' | 'stoneShard'
   | 'goblinRider' | 'troglodyte' | 'lostTroglodyte' | 'scarab'
+  | 'caveTroll' | 'crystalSorceress' | 'crystalKobold' | 'crystalDrake' | 'spectralMiner'
+  | 'crystalBat' | 'fluoriteGolem' | 'obsidianSalamander' | 'quartzCrossbowman' | 'smokySpider'
 export type MountainCombatRole = 'dps' | 'tank' | 'buffer'
 interface RoleSpec {
   name: string
@@ -113,10 +131,32 @@ const ROLES: Record<MountainRole, RoleSpec> = {
   shaman: { name: 'Chamán de montaña', sprite: shamanSprite, hp: 50, growth: 15, body: 18, mind: 27, agility: 10, xp: 30, gold: 15, actions: [AncestralGuard, MOUNTAIN_EMBER, MountainMend, MOUNTAIN_FROST, GUST_OF_FOG, WarlockHex] },
   guardian: { name: 'Guardián de piedra', sprite: guardianSprite, hp: 110, growth: 25, body: 34, mind: 12, agility: 8, xp: 40, gold: 22, actions: [StonePreparation, STONE_SMASH, MOUNTAIN_SLAM, MOUNTAIN_QUAKE, MOUNTAIN_STAB], scripted: true },
   captain: { name: 'Capitán del paso', sprite: captainSprite, hp: 300, growth: 60, body: 60, mind: 12, agility: 16, xp: 48, gold: 26, actions: [AttackOrder, MOUNTAIN_CLEAVE, MOUNTAIN_OVERHEAD, MOUNTAIN_WHIRL, MOUNTAIN_RIPOSTE], scripted: true },
-  dragon: { name: 'Dragón de la cima', sprite: dragonSprite, hp: 1800, growth: 100, body: 65, mind: 60, agility: 25, xp: 160, gold: 100, actions: [DRAGON_CLAWS, DRAGON_BREATH, DRAGON_TAIL, DragonRoar], scripted: true }
+  dragon: { name: 'Dragón de la cima', sprite: dragonSprite, hp: 1800, growth: 100, body: 65, mind: 60, agility: 25, xp: 160, gold: 100, actions: [DRAGON_CLAWS, DRAGON_BREATH, DRAGON_TAIL, DragonRoar], scripted: true },
+  // Cristalinos de la cueva (assets enemies-nov): patrones rápidos de esquirla.
+  crystalBat: { name: 'Murciélago de alas índigo', sprite: crystalBatSprite, hp: 40, growth: 12, body: 22, mind: 12, agility: 16, xp: 24, gold: 10, actions: [INDIGO_DIVE, ECHO_SCREECH, MOUNTAIN_POUNCE, QUICK_CLAWS] },
+  smokySpider: { name: 'Araña de cuarzo ahumado', sprite: smokySpiderSprite, hp: 55, growth: 14, body: 25, mind: 14, agility: 13, xp: 27, gold: 14, actions: [SMOKE_FANGS, CRYSTAL_WEB, MOUNTAIN_REND, SPIKE_TRAP] },
+  crystalKobold: { name: 'Kobold cristalino', sprite: crystalKoboldSprite, hp: 58, growth: 14, body: 26, mind: 12, agility: 12, xp: 26, gold: 18, actions: [MINING_PICK, QUARTZ_BOLT, GRAVEL_SHOWER, SHARD_BURST] },
+  quartzCrossbowman: { name: 'Ballestero de cuarzo', sprite: quartzCrossbowmanSprite, hp: 46, growth: 12, body: 24, mind: 12, agility: 12, xp: 25, gold: 13, actions: [QUARTZ_BOLT, TRIPLE_ARROW, HEAVY_ARROW, SHARD_BURST] },
+  spectralMiner: { name: 'Minero espectral', sprite: spectralMinerSprite, hp: 52, growth: 14, body: 22, mind: 22, agility: 12, xp: 30, gold: 16, actions: [PHANTOM_PICK, SPECTRAL_LANTERN, SHARD_BURST, GUST_OF_FOG] },
+  obsidianSalamander: { name: 'Salamandra de obsidiana', sprite: obsidianSalamanderSprite, hp: 65, growth: 16, body: 26, mind: 18, agility: 12, xp: 30, gold: 16, actions: [OBSIDIAN_LASH, MOLTEN_SCATTER, MOUNTAIN_EMBER, MOUNTAIN_SLAM] },
+  crystalSorceress: { name: 'Hechicera encapuchada', sprite: crystalSorceressSprite, hp: 55, growth: 15, body: 18, mind: 28, agility: 12, xp: 32, gold: 17, actions: [AttackOrder, PRISM_BEAM, CRYSTAL_LANCE, GUST_OF_FOG, WarlockHex, MountainMend], scripted: true },
+  caveTroll: { name: 'Trol de amatista', sprite: caveTrollSprite, hp: 125, growth: 26, body: 33, mind: 12, agility: 8, xp: 40, gold: 22, actions: [AncestralGuard, AMETHYST_MAUL, CAVE_TREMOR, MOUNTAIN_SLAM, MOUNTAIN_OVERHEAD], scripted: true },
+  fluoriteGolem: { name: 'Gólem de fluorita', sprite: fluoriteGolemSprite, hp: 115, growth: 24, body: 32, mind: 16, agility: 7, xp: 40, gold: 20, actions: [StonePreparation, FLUORITE_SLAM, EARTH_SPIKES, EARTH_BOULDER, CAVE_TREMOR], scripted: true },
+  crystalDrake: { name: 'Draco de la corona', sprite: crystalDrakeSprite, hp: 150, growth: 30, body: 30, mind: 24, agility: 12, xp: 55, gold: 30, actions: [DRAKE_CRYSTAL_BREATH, DRAKE_CROWN_BEAM, CRYSTAL_LANCE, DRAGON_TAIL], scripted: true }
 } satisfies Record<MountainRole, { name: string; sprite: string; hp: number; growth: number; body: number; mind: number; agility: number; xp: number; gold: number; actions: EnemyAction[]; scripted?: boolean }>
 
-export const MOUNTAIN_ROLES = Object.keys(ROLES) as MountainRole[]
+export const CRYSTAL_CAVERN_ROLES: readonly MountainRole[] = ['crystalBat', 'smokySpider', 'crystalKobold', 'quartzCrossbowman', 'spectralMiner',
+  'obsidianSalamander', 'crystalSorceress', 'caveTroll', 'fluoriteGolem', 'crystalDrake']
+export const ATLANTIDA_ROLES: readonly MountainRole[] = ['troglodyte', 'lostTroglodyte']
+const RESERVED_ROLES: readonly MountainRole[] = [...CRYSTAL_CAVERN_ROLES, ...ATLANTIDA_ROLES]
+
+/**
+ * Roles accesibles en Montañas Rocosas. Los cristalinos (`CRYSTAL_CAVERN_ROLES`)
+ * y los trogloditas (`ATLANTIDA_ROLES`) se excluyen: pertenecen a expediciones
+ * futuras y solo se alcanzan mediante sus encuentros propios.
+ */
+export const MOUNTAIN_ROLES = Object.keys(ROLES)
+  .filter(role => !RESERVED_ROLES.includes(role as MountainRole)) as MountainRole[]
 const GROUP_ROLES: Record<EnemyGroupId, readonly MountainRole[]> = {
   goblins: ['scout', 'archer', 'bomber', 'warlock', 'goblinGuard', 'goblinRider'],
   bandits: ['captain', 'banditRaider', 'banditArcher', 'banditGuard', 'banditMedic'],
@@ -125,6 +165,7 @@ const GROUP_ROLES: Record<EnemyGroupId, readonly MountainRole[]> = {
   kobolds: ['koboldMiner', 'koboldTrapper', 'koboldWarlock', 'koboldGuard'],
   beasts: ['wolf', 'bear', 'packLeader', 'troglodyte', 'lostTroglodyte', 'scarab'],
   stone: ['guardian', 'elemental', 'stoneCaller', 'stoneShard'],
+  crystals: ['crystalBat', 'smokySpider', 'crystalKobold', 'quartzCrossbowman', 'spectralMiner', 'obsidianSalamander', 'crystalSorceress', 'caveTroll', 'fluoriteGolem', 'crystalDrake'],
   dragons: ['dragon']
 }
 
@@ -141,8 +182,8 @@ export class MountainEnemy extends Enemy {
     return (Object.keys(GROUP_ROLES) as EnemyGroupId[]).find(group => GROUP_ROLES[group].includes(this.role))!
   }
   get combatRole(): MountainCombatRole {
-    if (['guardian', 'elemental', 'deathKnight', 'bear', 'goblinGuard', 'banditGuard', 'koboldGuard', 'orcGuard'].includes(this.role)) return 'tank'
-    if (['shaman', 'warlock', 'koboldWarlock', 'skeletonKing', 'orcKing', 'banditMedic', 'packLeader', 'stoneCaller'].includes(this.role)) return 'buffer'
+    if (['guardian', 'elemental', 'deathKnight', 'bear', 'goblinGuard', 'banditGuard', 'koboldGuard', 'orcGuard', 'caveTroll', 'fluoriteGolem'].includes(this.role)) return 'tank'
+    if (['shaman', 'warlock', 'koboldWarlock', 'skeletonKing', 'orcKing', 'banditMedic', 'packLeader', 'stoneCaller', 'crystalSorceress', 'spectralMiner'].includes(this.role)) return 'buffer'
     return 'dps'
   }
   private actionIndex = 0

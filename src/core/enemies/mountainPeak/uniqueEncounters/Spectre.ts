@@ -4,7 +4,7 @@ import type { ICharacter, IEnemy } from '../../../interfaces/ICharacter'
 import { StatusEffects } from '../../../StatusEffects'
 import { computeRawDamage, damageStep } from '../../../abilities/damagePipeline'
 import { registerAbility } from '../../../abilities/registry'
-import sprite from '@/assets/sprites/enemies/spectre.png'
+import sprite from '@/assets/sprites/enemies/mountain-peak/spectre.png'
 import curseIcon from '@/assets/icons/cursed-star.png'
 
 const wait = (ctx: AbilityContext) => new Promise(resolve => setTimeout(resolve, ctx.animationDelay))

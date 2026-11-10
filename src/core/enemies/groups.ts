@@ -7,6 +7,7 @@ export const ENEMY_GROUPS = {
   kobolds: { name: 'Kobolds' },
   beasts: { name: 'Bestias de las cumbres' },
   stone: { name: 'Guardianes pétreos' },
+  crystals: { name: 'Cristalinos de la cueva' },
   dragons: { name: 'Dragones' }
 } as const
 

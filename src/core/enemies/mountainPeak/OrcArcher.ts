@@ -1,5 +1,5 @@
 import { Enemy } from '../Enemy'
-import orcArcherSprite from '@/assets/sprites/enemies/orc-archer.png'
+import orcArcherSprite from '@/assets/sprites/enemies/mountain-peak/orc-archer.png'
 import type { DefensePatternConfig } from '../../defense/types'
 import { POISON_ARROW, TRIPLE_ARROW, HEAVY_ARROW, ENTANGLE } from '../../abilities/EnemyAttacks'
 
