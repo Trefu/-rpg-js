@@ -1,5 +1,6 @@
 /* Shared combat semantics. Deliberately distinct from menu selection colors. */
 .abilities-action-bar .aab-info-damage { flex-wrap: wrap; max-width: 100%; }
+.abilities-action-bar .aab-info-damage, .abilities-action-bar .aab-info-cost, .abilities-action-bar .aab-info-cd, .abilities-action-bar .aab-info-cd-active { box-sizing: border-box; min-height: 44px; display: inline-flex; align-items: center; }
 .aab-info-damage-conditional { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 4px; text-transform: none; color: var(--jrpg-text); font-size: .75rem; }
 .enemy-status-icons { overflow: visible; min-height: 44px; height: auto; gap: 6px; padding-block: 4px; background: transparent; border-radius: 0; }
 .enemy-status-icons.combat-status-strip { margin: 0; width: 100%; box-sizing: border-box; align-items: flex-start; justify-content: flex-start; flex-wrap: nowrap; height: 52px; min-height: 52px; max-height: 52px; overflow-x: auto; overflow-y: hidden; padding: 2px 0 0; gap: 2px; scrollbar-width: thin; scrollbar-color: var(--jrpg-frame) var(--jrpg-inset); }
