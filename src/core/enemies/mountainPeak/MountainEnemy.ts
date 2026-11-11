@@ -172,10 +172,10 @@ const GROUP_ROLES: Record<EnemyGroupId, readonly MountainRole[]> = {
 /** Expedition-specific stats keep training and other enemy variants independent. */
 export class MountainEnemy extends Enemy {
   // Buffed per-level scaling: a full run was reachable without losses.
-  static readonly STAT_GROWTH_PER_LEVEL = 2.0
-  static readonly AGILITY_GROWTH_PER_LEVEL = 0.5
-  static readonly CONSTITUTION_GROWTH_PER_LEVEL = 0.9
-  static readonly HP_GROWTH_PER_LEVEL = 1.3
+  static readonly STAT_GROWTH_PER_LEVEL = 2.2
+  static readonly AGILITY_GROWTH_PER_LEVEL = 0.6
+  static readonly CONSTITUTION_GROWTH_PER_LEVEL = 1.0
+  static readonly HP_GROWTH_PER_LEVEL = 1.35
   readonly sprite: string
   get isBoss(): boolean { return this.role === 'captain' || this.role === 'dragon' }
   get enemyGroup(): EnemyGroupId {

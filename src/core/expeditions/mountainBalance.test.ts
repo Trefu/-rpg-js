@@ -178,9 +178,11 @@ describe('Calibración reproducible de tres intentos', () => {
     // Los comunes reforzados pueden detener al grupo antes de la tienda;
     // la primera victoria todavía debe permitir obtener progreso persistente.
     expect(results.every(result => result.depths[0] >= 1 && result.depths[0] < 6)).toBe(true)
-    expect(results.filter(result => result.win <= 3).length).toBeGreaterThan(results.length / 2)
-    // La mediana depende de la secuencia aleatoria sembrada, que el nuevo
-    // generador de mapa (mas caminos y combates) consume de forma distinta.
-    expect(results.map(r => r.win).sort()[Math.floor(results.length / 2)]).toBeLessThanOrEqual(3)
+    // Recalibrado tras el buff de dificultad pedido (medio/tardío/jefe +1
+    // nivel y crecimiento de stats): el bot alcanza la victoria en 3
+    // intentos en ~1/3 de las campañas; un jugador real bloquea mejor.
+    expect(results.filter(result => result.win <= 3).length).toBeGreaterThanOrEqual(6)
+    // La mediana de intentos también se movió con el buff: ahora es 4.
+    expect(results.map(r => r.win).sort()[Math.floor(results.length / 2)]).toBeLessThanOrEqual(4)
   }, 60000)
 })
