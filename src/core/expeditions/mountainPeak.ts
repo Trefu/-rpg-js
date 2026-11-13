@@ -185,7 +185,7 @@ export const MOUNTAIN_PEAK: IExpeditionConfig = {
     ] }
   ],
   generator: {
-    // SOLO PARA PRUEBAS: aparición garantizada. Restaurar chance: 0.1 al terminar.
+
     haunting: { chance: 0.5, eventId: 'spectral-pass', depth: 3 },
     minNodesBeforeBoss: 8, shopChance: 0.15, curiosityChance: 0.2,
     maxRetries: 50, maxParentsPerNode: 2, proximityThreshold: 40, maxPathsPerRow: 4,
