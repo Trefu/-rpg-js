@@ -17,6 +17,8 @@
   --jrpg-debuff: #ef9681;
   --jrpg-heroism: #ffe066;
   --jrpg-block: #f0bf80;
+  /* Escudo que absorbe daño: azul, igual que el stat de Mente que lo alimenta. */
+  --jrpg-shield: var(--jrpg-stat-mind);
   --jrpg-dot-stacks-background: linear-gradient(135deg, #b388ff, #6a40c4);
   --jrpg-dot-stacks-text: #fff;
   --jrpg-hp: #8eb875;

@@ -61,9 +61,13 @@ function spectralAffliction(name: string, type: string, coefficient: number): IA
         const caster = ctx.caster as IEnemy
         const damage = Math.max(1, Math.floor(computeRawDamage(pipeline, caster)))
         const stacks = Math.max(1, Math.floor(caster.baseStats.mind.value / 15))
-        const before = target.health
-        target.takeDamage(damage, { damageType: 'arcane' })
-        ctx.showPlayerHit(before - target.health, { heroId: target.id })
+        // `takeDamage` devuelve el desglose HP/absorbido: si un escudo come
+        // el golpe entero, el floater es "◇N Escudo" (azul) y el popup de
+        // daño solo aparece con el daño que realmente llegó a HP.
+        const applied = target.takeDamage(damage, { damageType: 'arcane' })
+        if (applied.hpDamage > 0) ctx.showPlayerHit(applied.hpDamage, { heroId: target.id })
+        if (applied.absorbed > 0) ctx.showPlayerHit(applied.absorbed, { heroId: target.id, variant: 'shield' })
+        const absorbNote = applied.absorbed > 0 ? ` (${applied.absorbed} absorbido por escudo)` : ''
         if (target.isAlive) {
           target.addStatusEffect({ ...StatusEffects.INJURED })
           for (const dot of [StatusEffects.BURN, StatusEffects.POISON, StatusEffects.FREEZE]) {
@@ -71,7 +75,7 @@ function spectralAffliction(name: string, type: string, coefficient: number): IA
           }
         }
         ctx.playHeroVfx?.(target.id, { asset: 'poison-bomb', durationMs: 900 })
-        ctx.log(`${name}: ${target.name} recibe ${before - target.health} de daño arcano, Lesión y ${stacks} cargas de Quemadura, Veneno y Congelación.`)
+        ctx.log(`${name}: ${target.name} recibe ${applied.hpDamage + applied.absorbed} de daño arcano${absorbNote}, Lesión y ${stacks} cargas de Quemadura, Veneno y Congelación.`)
       }
       await wait(ctx)
     }

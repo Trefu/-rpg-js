@@ -4,6 +4,7 @@ import type { AnnouncementVariant } from '@/composables/useAnnouncer'
 import type { AbilityTag } from '../abilities/registry'
 import type { DamageStep } from '../abilities/damagePipeline'
 import type { DamageTypeId } from '../combat/damageTypes'
+import type { HitPopupVariant } from '../combat/hitPopups'
 
 /** Alias local de `DamageTypeId` para que las abilities lo puedan usar directamente. */
 export type DamageType = DamageTypeId
@@ -23,18 +24,18 @@ export interface AbilityEffects {
   /** Log a un mensaje en el combat log. */
   log: (message: string) => void
   /** Popup de daño sobre un enemigo (id = enemyId). */
-  showEnemyHit: (id: string, value: number, isCrit?: boolean) => void
+  showEnemyHit: (id: string, value: number, isCrit?: boolean, suffix?: string, variant?: HitPopupVariant) => void
   /** VFX sobre un enemigo (ej: slash, big-hit). */
   playEnemyVfx: (enemyId: string, effect: VfxEffect) => void
   /** VFX sobre un heroe aliado (ej: heal, buff). */
   playHeroVfx?: (heroId: string, effect: VfxEffect) => void
-  /** Popup de hit sobre un heroe (daño, crit, bloqueo, heal). */
+  /** Popup de hit sobre un heroe (daño, crit, bloqueo, escudo, heal). */
   showPlayerHit: (
     value: number,
     options?: {
       heroId?: string | null
       isCrit?: boolean
-      variant?: 'damage' | 'crit' | 'blocked' | 'heal' | 'energy'
+      variant?: HitPopupVariant
       suffix?: string
     }
   ) => void

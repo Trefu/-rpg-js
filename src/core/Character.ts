@@ -1,5 +1,6 @@
 import { ICharacter } from './interfaces/ICharacter'
 import type { IStatusEffect } from './interfaces/IStatusEffect'
+import type { TakeDamageResult } from './interfaces/ICharacter'
 import { DOT_STATUS_TYPES, STACKABLE_NON_DOT_STATUS_TYPES, getEffectCategory, STACK_MERGING_CATEGORIES } from './StatusEffects'
 import { getIncomingDamageMultiplier } from './combat/damageModifiers'
 import type { DamageTypeId } from './combat/damageTypes'
@@ -112,9 +113,13 @@ export abstract class Character implements ICharacter {
    * Tier 3: `arcane_shield`), el escudo consume el daño primero y solo
    * el excedente reduce HP. Cuando `absorbRemaining` llega a 0, el
    * efecto se elimina.
+   *
+   * Devuelve un `TakeDamageResult` con el desglose HP/absorbido para que
+   * los floaters de combate muestren la verdad: el daño que el escudo
+   * comió sale como popup azul de escudo, no como un `-0` mentiroso.
    */
-  public takeDamage(amount: number, opts?: { damageType?: DamageTypeId | string }): void {
-    if (amount <= 0) return
+  public takeDamage(amount: number, opts?: { damageType?: DamageTypeId | string }): TakeDamageResult {
+    if (amount <= 0) return { hpDamage: 0, absorbed: 0 }
     let finalAmount = amount
     if (opts?.damageType) {
       const mult = getIncomingDamageMultiplier(this.statusEffects, opts.damageType)
@@ -130,11 +135,13 @@ export abstract class Character implements ICharacter {
     const shields = this.statusEffects.filter(
       e => e.turns > 0 && typeof e.absorbRemaining === 'number' && e.absorbRemaining > 0
     )
+    let absorbedTotal = 0
     for (const shield of shields) {
       if (finalAmount <= 0) break
       const absorbed = Math.min(shield.absorbRemaining!, finalAmount)
       shield.absorbRemaining! -= absorbed
       finalAmount -= absorbed
+      absorbedTotal += absorbed
       if (shield.absorbRemaining! <= 0) {
         // Escudo agotado: eliminarlo (dispara `onRemove`).
         this.removeStatusEffect(shield.type)
@@ -143,6 +150,7 @@ export abstract class Character implements ICharacter {
 
     this.health = Math.max(0, this.health - finalAmount)
     this.checkHealth()
+    return { hpDamage: finalAmount, absorbed: absorbedTotal }
   }
 
   public heal(amount: number): void {

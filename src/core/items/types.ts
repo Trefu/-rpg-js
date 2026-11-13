@@ -1,6 +1,7 @@
 import type { ICharacter } from '@/core/interfaces/ICharacter'
 import type { AudioManager } from '@/core/AudioManager'
 import type { AnnouncementVariant } from '@/composables/useAnnouncer'
+import type { HitPopupVariant } from '@/core/combat/hitPopups'
 
 /**
  * Contexto que reciben las funciones `execute` de los objetos.
@@ -13,7 +14,7 @@ export interface ItemContext {
   /** Heroe seleccionado como beneficiario (cuando el objeto requiere objetivo). */
   target: ICharacter
   addToLog: (message: string) => void
-  showPlayerHit: (value: number, options?: { heroId?: string | null, isCrit?: boolean, variant?: 'damage' | 'crit' | 'blocked' | 'heal' }) => void
+  showPlayerHit: (value: number, options?: { heroId?: string | null, isCrit?: boolean, variant?: HitPopupVariant }) => void
   showAnnouncement: (text: string, variant?: AnnouncementVariant, duration?: number) => void
   audioManager: AudioManager
   /**

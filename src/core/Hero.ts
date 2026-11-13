@@ -1,7 +1,7 @@
 import { Character } from './Character'
 import type { IAbility } from './interfaces/IAbility'
 import type { IStatusEffect } from './interfaces/IStatusEffect'
-import type { ICombatant, IInventory, ILevelable, IPlayerStats, IStat } from './interfaces/ICharacter'
+import type { ICombatant, IInventory, ILevelable, IPlayerStats, IStat, TakeDamageResult } from './interfaces/ICharacter'
 import { BasicAttack } from './abilities/Abilities'
 import { DOT_STATUS_TYPES, STACKABLE_NON_DOT_STATUS_TYPES, getEffectCategory, STACK_MERGING_CATEGORIES, NON_TURN_BASED_CATEGORIES } from './StatusEffects'
 import { computeDefense, computeMagicDefense } from './defense/computeDefense'
@@ -397,15 +397,16 @@ export class Hero extends Character implements ICombatant, ILevelable, IInventor
    * forja). Llama a `super.takeDamage` para mantener intacta la logica
    * de escudos/multiplicadores de `Character`.
    */
-  public takeDamage(amount: number, opts?: { damageType?: string }): void {
-    if (!this.isAlive || amount <= 0) return
+  public takeDamage(amount: number, opts?: { damageType?: string }): TakeDamageResult {
+    if (!this.isAlive || amount <= 0) return { hpDamage: 0, absorbed: 0 }
     const before = this.health
-    super.takeDamage(amount, opts)
+    const result = super.takeDamage(amount, opts)
     const lost = before - this.health
-    if (lost <= 0) return
+    if (lost <= 0) return result
     const divisor = Math.max(1, this.heroismPerDamageTakenDivisor)
     const gained = Math.floor(lost / divisor)
     if (gained > 0) this.restoreHeroism(gained)
+    return result
   }
 
   public spendGold(amount: number): boolean {

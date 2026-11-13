@@ -16,6 +16,19 @@ export interface TakeDamageOptions {
   damageType?: DamageTypeId | string
 }
 
+/**
+ * Desglose de un golpe aplicado con `takeDamage`. Permite que la UI
+ * distinga el daño que llego a HP del que un escudo absorbió, en lugar
+ * de inferirlo restando vida antes/después (que da 0 cuando el escudo
+ * come el golpe entero).
+ */
+export interface TakeDamageResult {
+  /** Daño que efectivamente redujo la vida del personaje (0 si el escudo absorbió todo). */
+  hpDamage: number
+  /** Daño que los escudos (`absorbRemaining`) consumieron antes de tocar HP. */
+  absorbed: number
+}
+
 export interface ICharacter {
   readonly id: string
   name: string
@@ -30,7 +43,7 @@ export interface ICharacter {
   removeStatusEffect(effectType: string): void
   hasStatusEffect(type: string): boolean
   attack(): number
-  takeDamage(amount: number, opts?: TakeDamageOptions): void
+  takeDamage(amount: number, opts?: TakeDamageOptions): TakeDamageResult
   heal(amount: number): void
   getHealthPercentage(): number
 }
@@ -58,7 +71,7 @@ export interface IEnemyStats {
 
 export interface ICombatant extends ICharacter {
   attack: () => number
-  takeDamage(amount: number, opts?: TakeDamageOptions): void
+  takeDamage(amount: number, opts?: TakeDamageOptions): TakeDamageResult
   heal(amount: number): void
   statusEffects: IStatusEffect[]
 }

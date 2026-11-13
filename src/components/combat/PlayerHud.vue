@@ -6,10 +6,12 @@ import { getEffectDescription } from '@/core/interfaces/IStatusEffect'
 import hamburgerIcon from '@/assets/icons/hamburger-menu.png'
 import ShieldOverlay from './ShieldOverlay.vue'
 import { healthWithShield } from '@/core/combat/shields'
+import { hitPopupClasses, hitPopupText } from '@/core/combat/hitPopups'
+import type { HitPopup } from '@/core/combat/hitPopups'
 
 interface Props {
   player: Hero | null
-  hitPopups: { value: number, key: number, isCrit?: boolean }[]
+  hitPopups: HitPopup[]
   /**
    * `ultiHoverHeroId` es el id del heroe cuyo botón de ulti esta highlighted.
    * Combinado con `ultiHoverActive` decide si la animación es continua
@@ -205,8 +207,8 @@ onBeforeUnmount(() => {
         </div>
       </div>
       <transition-group name="hud-hit" tag="div" class="hud-hit-container">
-        <div v-for="popup in hitPopups" :key="popup.key" class="hud-hit-popup" :class="{ crit: popup.isCrit }">
-          -{{ popup.value }}
+        <div v-for="popup in hitPopups" :key="popup.key" class="hud-hit-popup" :class="hitPopupClasses(popup)">
+          {{ hitPopupText(popup) }}
         </div>
       </transition-group>
     </div>
@@ -502,6 +504,23 @@ onBeforeUnmount(() => {
   font-weight: 900;
   text-shadow: 0 0 16px #ff8c00, 0 0 8px rgba(0, 0, 0, 0.85);
   animation: hud-hit-crit 0.9s cubic-bezier(.68, -0.55, .27, 1.55);
+}
+
+.hud-hit-popup.blocked,
+.hud-hit-popup.shield {
+  color: #4ea3ff;
+  font-size: 1.1rem;
+  text-shadow: 0 0 10px rgba(78, 163, 255, 0.9), 0 2px 8px rgba(0, 0, 0, 0.85);
+}
+
+.hud-hit-popup.heal {
+  color: #5cff8a;
+  text-shadow: 0 0 12px rgba(92, 255, 138, 0.85), 0 2px 8px rgba(0, 0, 0, 0.85);
+}
+
+.hud-hit-popup.energy {
+  color: #6ee7ff;
+  text-shadow: 0 0 12px rgba(110, 231, 255, 0.85), 0 2px 8px rgba(0, 0, 0, 0.85);
 }
 
 .hud-menu-btn {

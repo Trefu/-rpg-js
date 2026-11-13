@@ -1,4 +1,5 @@
 import type { ICharacter } from './ICharacter'
+import type { HitPopupVariant } from '../combat/hitPopups'
 
 export type StatusEffectSide = 'enemy' | 'player'
 export type DefenseEffectSide = 'player' | 'enemy'
@@ -68,7 +69,7 @@ export interface StatusEffectPopupOptions {
   /** Sufijo legible mostrado tras el numero (ej. 'HP', 'EN'). Default: ''. */
   suffix?: string
   isCrit?: boolean
-  variant?: 'damage' | 'crit' | 'blocked' | 'heal' | 'energy'
+  variant?: HitPopupVariant
 }
 
 /**

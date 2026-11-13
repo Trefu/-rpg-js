@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import {
   applyDamageVariance,
   computeRawDamage,
@@ -48,7 +48,7 @@ function fakeTarget() {
     isAlive: true,
     health: 100,
     maxHealth: 100,
-    takeDamage: () => {}
+    takeDamage: (amount: number) => ({ hpDamage: amount, absorbed: 0 })
   }
 }
 
@@ -260,6 +260,7 @@ describe('dealDamage (pipeline completo)', () => {
       takeDamage: (amount: number, opts?: { damageType?: string }) => {
         tookDamage = amount
         damageTypeArg = opts?.damageType
+        return { hpDamage: amount, absorbed: 0 }
       }
     }
     const caster = fakeCaster(100, 0, 1)
@@ -286,7 +287,10 @@ describe('dealDamage (pipeline completo)', () => {
     let tookDamage = -1
     const target = {
       id: 't1',
-      takeDamage: (amount: number) => { tookDamage = amount }
+      takeDamage: (amount: number) => {
+        tookDamage = amount
+        return { hpDamage: amount, absorbed: 0 }
+      }
     }
     const result = dealDamage({
       caster: fakeCaster(0, 0, 1),
@@ -297,6 +301,46 @@ describe('dealDamage (pipeline completo)', () => {
     })
     expect(result.finalDamage).toBe(0)
     expect(tookDamage).toBe(-1) // no se llamo
+  })
+
+  it('si el escudo absorbe todo, el floater es azul de escudo y no un "-0"', () => {
+    const showEnemyHit = vi.fn()
+    const target = {
+      id: 't1',
+      name: 'T',
+      isAlive: true,
+      takeDamage: () => ({ hpDamage: 0, absorbed: 30 })
+    }
+    const result = dealDamage({
+      caster: fakeCaster(100, 0, 1),
+      target: target as never,
+      ability: baseAbility,
+      rawDamage: 50,
+      effects: { ...makeEffects(), showEnemyHit }
+    })
+    expect(result.finalDamage).toBeGreaterThan(0)
+    expect(showEnemyHit).toHaveBeenCalledTimes(1)
+    expect(showEnemyHit).toHaveBeenCalledWith('t1', 30, false, ' Escudo', 'shield')
+  })
+
+  it('absorción parcial: dos floaters, HP real en rojo y lo absorbido en azul', () => {
+    const showEnemyHit = vi.fn()
+    const target = {
+      id: 't1',
+      name: 'T',
+      isAlive: true,
+      takeDamage: () => ({ hpDamage: 10, absorbed: 20 })
+    }
+    dealDamage({
+      caster: fakeCaster(100, 0, 1),
+      target: target as never,
+      ability: baseAbility,
+      rawDamage: 50,
+      effects: { ...makeEffects(), showEnemyHit }
+    })
+    expect(showEnemyHit).toHaveBeenCalledTimes(2)
+    expect(showEnemyHit).toHaveBeenNthCalledWith(1, 't1', 10, false)
+    expect(showEnemyHit).toHaveBeenNthCalledWith(2, 't1', 20, false, ' Escudo', 'shield')
   })
 
   it('sigue funcionando cuando el caster es un Enemy (no Hero)', () => {

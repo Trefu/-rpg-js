@@ -1,5 +1,5 @@
 import { Enemy } from './Enemy'
-import { ICharacter, IEnemy, type EnemyAction } from '../interfaces/ICharacter'
+import { ICharacter, IEnemy, type EnemyAction, type TakeDamageResult } from '../interfaces/ICharacter'
 import dummySprite from '@/assets/sprites/enemies/dummy.png'
 import type { DefensePatternConfig } from '../defense/types'
 import {
@@ -68,13 +68,15 @@ export class Dummy extends Enemy implements IEnemy {
     }
   }
 
-  public override takeDamage(amount: number, opts?: { damageType?: string }): void {
+  public override takeDamage(amount: number, opts?: { damageType?: string }): TakeDamageResult {
     // Dummy ignora damageType y resistances (no recibe daño real en training).
     // Solo aplica el multiplicador de daño entrante del caster via opts si existe,
     // pero como Dummy NO muere ni pierde HP por debajo de 1, no tiene efecto.
     void opts
+    const before = this.health
     this.health = Math.max(1, this.health - amount)
     this.isAlive = true
+    return { hpDamage: Math.max(0, before - this.health), absorbed: 0 }
   }
 
   public override getEffectiveCritChance(): number {

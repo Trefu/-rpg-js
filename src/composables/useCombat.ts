@@ -1,8 +1,9 @@
 import { ref, computed, nextTick, watch } from 'vue'
+import type { Ref } from 'vue'
 import { useGameStore } from '@/stores/game'
 import type { Hero } from '@/core/Hero'
 import { AudioManager } from '@/core/AudioManager'
-import type { IEnemy, ICharacter } from '@/core/interfaces/ICharacter'
+import type { IEnemy, ICharacter, TakeDamageResult } from '@/core/interfaces/ICharacter'
 import type { IAbility, AbilityContext, VfxAssetId, VfxEffect } from '@/core/interfaces/IAbility'
 import type { IStatusEffect } from '@/core/interfaces/IStatusEffect'
 import type { IItem, ItemTargetType } from '@/core/items/types'
@@ -27,6 +28,8 @@ import {
 import { getDefenseModifiers } from '@/core/defense/modifiers'
 import { useAnnouncer } from './useAnnouncer'
 import { combatantLabel } from '@/core/combat/combatLabels'
+import { HIT_POPUP_DEFAULT_SUFFIX, hitPopupVariant } from '@/core/combat/hitPopups'
+import type { HitPopup, HitPopupVariant } from '@/core/combat/hitPopups'
 import { statusChanges } from '@/core/combat/statusPresentation'
 import type { CombatLogEntry, CombatLogKind } from '@/core/combat/combatLog'
 import type { AnnouncementVariant } from './useAnnouncer'
@@ -154,30 +157,10 @@ export function useCombat(config: CombatConfig = {}) {
    */
   const attackedHeroIds = ref<string[]>([])
   const combatLogRef = ref<HTMLDivElement | null>(null)
-  const enemyHitPopups = ref<{
-    id: string
-    value: number
-    key: number
-    isCrit?: boolean
-    variant?: 'damage' | 'crit' | 'heal' | 'energy'
-    suffix?: string
-    offsetX: number
-    offsetY: number
-    duration: number
-  }[]>([])
+  const enemyHitPopups = ref<HitPopup[]>([])
   const enemyVfxEffects = ref<EnemyVfxEffect[]>([])
   const heroVfxEffects = ref<HeroVfxEffect[]>([])
-  const playerHitPopups = ref<{
-    heroId: string | null
-    value: number
-    key: number
-    isCrit?: boolean
-    variant?: 'damage' | 'crit' | 'blocked' | 'heal' | 'energy'
-    suffix?: string
-    offsetX: number
-    offsetY: number
-    duration: number
-  }[]>([])
+  const playerHitPopups = ref<HitPopup[]>([])
   const abilityCooldowns = ref<{ [type: string]: number }>({})
 
   // ---- Motor de turnos (FF/Persona style) ----
@@ -438,9 +421,8 @@ const defenseClouded = ref(false)
 
       if (result.outcome === 'success') {
         const blockedDmg = Math.floor(phaseDamage / 2)
-        target.takeDamage(blockedDmg, { damageType: pattern.damageType })
+        const applied = hitPlayerAndReport(target, blockedDmg, { damageType: pattern.damageType, variant: 'blocked' })
         pendingDefensePrimaryDamageDealt += blockedDmg
-        showPlayerHit(blockedDmg, { heroId: target.id, variant: 'blocked' })
         // block.gif tiene un ciclo de 520 ms; mantenerlo más tiempo repite el bloqueo.
         showHeroVfx(target.id, { asset: 'hero-block', durationMs: 520 })
         audioManager.playBlockSound()
@@ -448,7 +430,7 @@ const defenseClouded = ref(false)
           const restored = target.restoreEnergy(5)
           if (restored > 0) addToLog(`¡Bloqueo exitoso! +${restored} de energía.`)
         }
-        addToLog(`Bloqueaste el golpe. Recibes ${blockedDmg} de daño.`)
+        addToLog(`Bloqueaste el golpe. Recibes ${blockedDmg} de daño${applied.absorbed > 0 ? ` (${applied.absorbed} absorbido por escudo)` : ''}.`)
         // Splash per-fase: el resto del party recibe el `damageMultiplier`
         // del daño mitigado de ESTA fase. Sin delay entre splashees para
         // mantener el ritmo del desafio (FEEDBACK_DURATION_MS ya cubre
@@ -467,15 +449,14 @@ const defenseClouded = ref(false)
         }
       } else {
         const dmg = Math.max(1, phaseDamage)
-        target.takeDamage(dmg, { damageType: pattern.damageType })
+        const applied = hitPlayerAndReport(target, dmg, { damageType: pattern.damageType, isCrit: wasCrit, variant: wasCrit ? 'crit' : 'damage' })
         pendingDefensePrimaryDamageDealt += dmg
-        showPlayerHit(dmg, { heroId: target.id, isCrit: wasCrit, variant: wasCrit ? 'crit' : 'damage' })
         const failureVfx = resolveFailureVfx(pattern, wasCrit, defensePhaseIndex.value)
         showHeroVfx(target.id, failureVfx)
         if (pattern.customSound) audioManager.playCustomSound(pattern.customSound)
         else audioManager.playAttackSound()
         audioManager.playHitSound()
-        addToLog(`¡El golpe atraviesa tu defensa! Recibes ${phaseDamage} de daño.`)
+        addToLog(`¡El golpe atraviesa tu defensa! Recibes ${phaseDamage} de daño${applied.absorbed > 0 ? ` (${applied.absorbed} absorbido por escudo)` : ''}.`)
         // Splash per-fase (mismo caso que en success, sobre el daño real
         // que sufrio el primario). `splashKind: 'damage'` para que los
         // splashees muestren animacion de impacto + floater de daño,
@@ -1094,30 +1075,82 @@ const defenseClouded = ref(false)
     return min + Math.random() * (max - min)
   }
 
-  function showEnemyHit(enemyId: string, value: number, isCrit: boolean = false, suffix?: string) {
+  /**
+   * Empuja un floater a la capa indicada. Los valores <= 0 no se muestran:
+   * un golpe totalmente absorbido por un escudo no tiene "-0" que ensenar,
+   * tiene su propio popup azul de escudo (ver `hitPlayerAndReport`).
+   */
+  function spawnPopup(layer: Ref<HitPopup[]>, popup: Omit<HitPopup, 'key'>) {
+    if (!(popup.value > 0)) return
     const key = popupKey++
-    const offsetX = randBetween(-28, 28)
-    const offsetY = randBetween(-14, 14)
-    const duration = Math.round(randBetween(950, 1250))
-    enemyHitPopups.value.push({ id: enemyId, value, key, isCrit, offsetX, offsetY, duration, suffix })
+    const entry: HitPopup = {
+      ...popup,
+      key,
+      offsetX: popup.offsetX ?? randBetween(-28, 28),
+      offsetY: popup.offsetY ?? randBetween(-14, 14),
+      duration: Math.round(randBetween(950, 1250))
+    }
+    layer.value = [...layer.value, entry]
     setTimeout(() => {
-      enemyHitPopups.value = enemyHitPopups.value.filter(p => p.key !== key)
-    }, duration)
+      layer.value = layer.value.filter(p => p.key !== key)
+    }, entry.duration)
   }
 
-  function showPlayerHit(value: number, options: { heroId?: string | null, isCrit?: boolean, variant?: 'damage' | 'crit' | 'blocked' | 'heal' | 'energy', suffix?: string } = {}) {
-    const { heroId = null, isCrit = false, variant, suffix } = options
-    const key = popupKey++
-    const resolvedVariant: 'damage' | 'crit' | 'blocked' | 'heal' | 'energy' =
-      variant ?? (isCrit ? 'crit' : 'damage')
-    const offsetX = randBetween(-28, 28)
-    const offsetY = randBetween(-14, 14)
-    const duration = Math.round(randBetween(950, 1250))
-    const resourceSuffix = suffix ?? (resolvedVariant === 'energy' ? ' EN' : resolvedVariant === 'heal' ? ' HP' : resolvedVariant === 'blocked' ? ' Bloqueo' : '')
-    playerHitPopups.value.push({ heroId, value, key, isCrit, variant: resolvedVariant, suffix: resourceSuffix, offsetX, offsetY, duration })
-    setTimeout(() => {
-      playerHitPopups.value = playerHitPopups.value.filter(p => p.key !== key)
-    }, duration)
+  function showEnemyHit(enemyId: string, value: number, isCrit: boolean = false, suffix?: string, variant?: HitPopupVariant) {
+    spawnPopup(enemyHitPopups, {
+      id: enemyId,
+      value,
+      isCrit,
+      variant: variant ?? (isCrit ? 'crit' : 'damage'),
+      suffix
+    })
+  }
+
+  function showPlayerHit(value: number, options: { heroId?: string | null, isCrit?: boolean, variant?: HitPopupVariant, suffix?: string, offsetY?: number } = {}) {
+    const { heroId = null, isCrit = false, variant, suffix, offsetY } = options
+    const resolvedVariant = hitPopupVariant({ variant, isCrit })
+    spawnPopup(playerHitPopups, {
+      heroId,
+      value,
+      isCrit,
+      variant: resolvedVariant,
+      suffix: suffix ?? HIT_POPUP_DEFAULT_SUFFIX[resolvedVariant],
+      offsetY
+    })
+  }
+
+  /**
+   * Aplica dano a un heroe y lo refleja en floaters SIN MENTIR:
+   * - lo que llego a HP sale como popup de dano (rojo, critico, bloqueo...),
+   * - lo que el escudo absorbió sale como companion azul "◇N Escudo",
+   *   desplazado un poco hacia abajo para que no tape la cifra principal.
+   * Un golpe totalmente absorbido ya no produce el viejo "-0".
+   */
+  function hitPlayerAndReport(
+    hero: Hero,
+    amount: number,
+    opts: { damageType?: DamageTypeId | string, variant?: HitPopupVariant, suffix?: string, isCrit?: boolean } = {}
+  ): TakeDamageResult {
+    const result = hero.takeDamage(amount, { damageType: opts.damageType })
+    if (result.hpDamage > 0) {
+      showPlayerHit(result.hpDamage, { heroId: hero.id, isCrit: opts.isCrit, variant: opts.variant, suffix: opts.suffix })
+    }
+    if (result.absorbed > 0) {
+      showPlayerHit(result.absorbed, { heroId: hero.id, variant: 'shield', offsetY: result.hpDamage > 0 ? 20 : undefined })
+    }
+    return result
+  }
+
+  /** Espejo de `hitPlayerAndReport` para el bando enemigo. */
+  function hitEnemyAndReport(
+    enemy: IEnemy,
+    amount: number,
+    opts: { damageType?: DamageTypeId | string, suffix?: string, isCrit?: boolean } = {}
+  ): TakeDamageResult {
+    const result = enemy.takeDamage(amount, { damageType: opts.damageType })
+    if (result.hpDamage > 0) showEnemyHit(enemy.id, result.hpDamage, opts.isCrit ?? false, opts.suffix)
+    if (result.absorbed > 0) showEnemyHit(enemy.id, result.absorbed, false, HIT_POPUP_DEFAULT_SUFFIX.shield, 'shield')
+    return result
   }
 
   function actionRequiresTarget(ability: IAbility | null): boolean {
@@ -1569,7 +1602,7 @@ const defenseClouded = ref(false)
 
       // Resuelve en el mismo orden; el resumen visual no agrupa el daño del motor.
       const BANNER_LEAD_IN = 350
-      const summaries: { label: string, damage: number }[] = []
+      const summaries: { label: string, damage: number, absorbed?: number }[] = []
       let healing = 0
 
       for (const effect of active) {
@@ -1580,24 +1613,23 @@ const defenseClouded = ref(false)
           await delay(BANNER_LEAD_IN)
           playDotSfx(effect.type)
           audioManager.playHitSound()
-          const before = p.health
-          p.takeDamage(dmg, { damageType: DOT_DAMAGE_TYPE[effect.type] })
-          const dealt = before - p.health
-          showPlayerHit(dealt, { heroId: p.id, suffix: ` ${DOT_KIND_LABEL[effect.type]}` })
-          addToLog(`${p.name}: ${effect.name} ×${stacks} causa ${dealt} de daño.`, 'damage')
+          const applied = hitPlayerAndReport(p, dmg, { damageType: DOT_DAMAGE_TYPE[effect.type], suffix: ` ${DOT_KIND_LABEL[effect.type]}` })
+          const dealt = applied.hpDamage
+          const absorbNote = applied.absorbed > 0 ? ` (escudo absorbe ${applied.absorbed})` : ''
+          addToLog(`${p.name}: ${effect.name} ×${stacks} causa ${dealt + applied.absorbed} de daño${absorbNote}.`, 'damage')
           let totalDealt = dealt
+          let totalAbsorbed = applied.absorbed
           // `damagePerTurn` positivo puede sumarse como daño fijo extra
           // (no es el caso de los DoT actuales; reservado para custom).
           const dpt = effect.damagePerTurn
           if (typeof dpt === 'number' && dpt > 0) {
-            const beforeExtra = p.health
-            p.takeDamage(dpt, { damageType: DOT_DAMAGE_TYPE[effect.type] })
-            const extra = beforeExtra - p.health
+            const appliedExtra = hitPlayerAndReport(p, dpt, { damageType: DOT_DAMAGE_TYPE[effect.type] })
+            const extra = appliedExtra.hpDamage
             totalDealt += extra
-            showPlayerHit(extra, { heroId: p.id, variant: 'damage' })
-            addToLog(`${p.name}: ${effect.name} causa ${extra} de daño extra.`)
+            totalAbsorbed += appliedExtra.absorbed
+            addToLog(`${p.name}: ${effect.name} causa ${extra + appliedExtra.absorbed} de daño extra${appliedExtra.absorbed > 0 ? ` (escudo absorbe ${appliedExtra.absorbed})` : ''}.`)
           }
-          summaries.push({ label: DOT_KIND_LABEL[effect.type] ?? effect.name, damage: totalDealt })
+          summaries.push({ label: DOT_KIND_LABEL[effect.type] ?? effect.name, damage: totalDealt, absorbed: totalAbsorbed })
         }
 
         // ---- HoT (regen) ----
@@ -1626,11 +1658,13 @@ const defenseClouded = ref(false)
 
       }
       const total = summaries.reduce((sum, entry) => sum + entry.damage, 0)
+      const totalAbsorbed = summaries.reduce((sum, entry) => sum + (entry.absorbed ?? 0), 0)
+      const shieldNote = totalAbsorbed > 0 ? ` · Escudo absorbe ${totalAbsorbed}` : ''
       const detail = summaries.map(entry => `${entry.label} ${entry.damage}`).join(' / ')
       const damageText = summaries.length === 1
         ? `${p.name} recibe ${total} de daño por ${summaries[0].label}!`
         : `${p.name}: −${total} HP · ${detail}`
-      showAnnouncement(`${summaries.length ? damageText : p.name}${healing ? ` · +${healing} HP` : ''}${!p.isAlive ? ' · Cae por daño periódico' : ''}`, 'status', 1000)
+      showAnnouncement(`${summaries.length ? damageText : p.name}${shieldNote}${healing ? ` · +${healing} HP` : ''}${!p.isAlive ? ' · Cae por daño periódico' : ''}`, 'status', 1000)
       await delay(1000)
     } finally {
       isProcessingDot.value = false
@@ -1649,12 +1683,13 @@ const defenseClouded = ref(false)
 
   async function showEnemyStatusSequence(enemy: IEnemy, announceOtherEffects = true) {
     if (enemy.isAlive && enemy.statusEffects.length > 0) {
-      const summaries: { label: string, damage: number }[] = []
+      const summaries: { label: string, damage: number, absorbed?: number }[] = []
       const flushSummary = async () => {
         if (!summaries.length) return
         const total = summaries.reduce((sum, entry) => sum + entry.damage, 0)
+        const totalAbsorbed = summaries.reduce((sum, entry) => sum + (entry.absorbed ?? 0), 0)
         const name = combatantLabel(enemy, enemies.value)
-        showAnnouncement(`${name}: −${total} HP · ${summaries.map(entry => `${entry.label} ${entry.damage}`).join(' / ')}${!enemy.isAlive ? ' · Cae por daño periódico' : ''}`, 'status', 1000)
+        showAnnouncement(`${name}: −${total} HP · ${summaries.map(entry => `${entry.label} ${entry.damage}`).join(' / ')}${totalAbsorbed > 0 ? ` · Escudo absorbe ${totalAbsorbed}` : ''}${!enemy.isAlive ? ' · Cae por daño periódico' : ''}`, 'status', 1000)
         summaries.length = 0
         await delay(1000)
       }
@@ -1663,14 +1698,12 @@ const defenseClouded = ref(false)
         if (effect.turns <= 0) continue
         if (DO_STATUS_TYPES.has(effect.type)) {
           const damage = (effect.stacks ?? 1) + Math.max(0, effect.damagePerTurn ?? 0)
-          const before = enemy.health
-          enemy.takeDamage(damage, { damageType: DOT_DAMAGE_TYPE[effect.type] })
-          const dealt = before - enemy.health
-          showEnemyHit(enemy.id, dealt, false, ` ${DOT_KIND_LABEL[effect.type]}`)
+          const applied = hitEnemyAndReport(enemy, damage, { damageType: DOT_DAMAGE_TYPE[effect.type], suffix: ` ${DOT_KIND_LABEL[effect.type]}` })
           playDotSfx(effect.type)
           audioManager.playHitSound()
-          addToLog(`${combatantLabel(enemy, enemies.value)}: ${effect.name} ×${effect.stacks ?? 1} causa ${dealt} de daño.`, 'damage')
-          summaries.push({ label: DOT_KIND_LABEL[effect.type] ?? effect.name, damage: dealt })
+          const absorbNote = applied.absorbed > 0 ? ` (escudo absorbe ${applied.absorbed})` : ''
+          addToLog(`${combatantLabel(enemy, enemies.value)}: ${effect.name} ×${effect.stacks ?? 1} causa ${applied.hpDamage + applied.absorbed} de daño${absorbNote}.`, 'damage')
+          summaries.push({ label: DOT_KIND_LABEL[effect.type] ?? effect.name, damage: applied.hpDamage, absorbed: applied.absorbed })
           await delay(250)
           continue
         }
@@ -1779,8 +1812,7 @@ const defenseClouded = ref(false)
       if (splashBase <= 0) continue
       const splashDamage = applyDamageVariance(splashBase)
       if (splashDamage <= 0) continue
-      enemy.takeDamage(splashDamage, { damageType: splashType })
-      showEnemyHit(enemy.id, splashDamage)
+      hitEnemyAndReport(enemy, splashDamage, { damageType: splashType })
       if (splashType === 'holy') {
         showEnemyVfx(enemy.id, { asset: 'holy-light', durationMs: 900 })
       }
@@ -1825,8 +1857,7 @@ const defenseClouded = ref(false)
     attackedHeroIds.value = [...baseIds, ...extras.map(h => h.id)]
     for (const hero of extras) {
       const dmg = Math.max(0, baseDmg)
-      hero.takeDamage(dmg, { damageType: 'physical' })
-      showPlayerHit(dmg, { heroId: hero.id })
+      hitPlayerAndReport(hero, dmg, { damageType: 'physical' })
       showHeroVfx(hero.id, DEFAULT_IMPACT_VFX)
       audioManager.playAttackSound()
       audioManager.playHitSound()
@@ -1925,17 +1956,15 @@ const defenseClouded = ref(false)
       audioManager.playHitSound()
     }
     for (const hero of pool) {
-      hero.takeDamage(splashDamage, { damageType })
+      const applied = hitPlayerAndReport(hero, splashDamage, { damageType, variant: kind === 'blocked' ? 'blocked' : 'damage' })
       if (kind === 'blocked') {
-        showPlayerHit(splashDamage, { heroId: hero.id, variant: 'blocked' })
         // Sin VFX en el splashee: la animacion de bloqueo del primario
         // ya cubre el feedback visual de la fase.
       } else {
-        showPlayerHit(splashDamage, { heroId: hero.id })
         showHeroVfx(hero.id, opts.vfxForSplashees ?? DEFAULT_IMPACT_VFX)
         applyEnemyFailureEffect(hero, opts.failureEffect, opts.isCrit)
       }
-      addToLog(`¡La onda de ${combatantLabel(enemy, enemies.value)} alcanza a ${hero.name}! ${splashDamage} de daño.`)
+      addToLog(`¡La onda de ${combatantLabel(enemy, enemies.value)} alcanza a ${hero.name}! ${splashDamage} de daño${applied.absorbed > 0 ? ` (${applied.absorbed} absorbido por escudo)` : ''}.`)
       if (delayMs > 0) await delay(delayMs)
     }
   }
@@ -1996,8 +2025,7 @@ const defenseClouded = ref(false)
     if (aliveHeroes.length === 0 || finalDamage <= 0) return
     for (const hero of aliveHeroes) {
       const dmg = Math.max(1, finalDamage)
-      hero.takeDamage(dmg, { damageType })
-      showPlayerHit(dmg, { heroId: hero.id })
+      hitPlayerAndReport(hero, dmg, { damageType })
       showHeroVfx(hero.id, DEFAULT_IMPACT_VFX)
       audioManager.playAttackSound()
       audioManager.playHitSound()
@@ -2035,8 +2063,7 @@ const defenseClouded = ref(false)
     const vfxPool = ability ? getBasicAttackHitVfx(ability) : []
     await Promise.all(
       targets.map(async (enemy, idx) => {
-        enemy.takeDamage(finalDamage, { damageType: aoeType })
-        showEnemyHit(enemy.id, finalDamage)
+        hitEnemyAndReport(enemy, finalDamage, { damageType: aoeType })
         const vfx = vfxPool.length > 0 ? vfxPool[idx % vfxPool.length] : undefined
         if (vfx) {
           showEnemyVfx(enemy.id, {

@@ -1,5 +1,5 @@
 import { Character } from '../Character'
-import { ICharacter, ICombatant, type EnemyAction, type IEnemyStats, type IStat } from '../interfaces/ICharacter'
+import { ICharacter, ICombatant, type EnemyAction, type IEnemyStats, type IStat, type TakeDamageResult } from '../interfaces/ICharacter'
 import type { IStatusEffect } from '../interfaces/IStatusEffect'
 import type { DefensePatternConfig } from '../defense/types'
 import type { Hero } from '../Hero'
@@ -203,8 +203,8 @@ export abstract class Enemy extends Character implements ICombatant {
     return Math.floor(scaled * multiplier)
   }
 
-  public override takeDamage(amount: number, opts?: { damageType?: string }): void {
-    super.takeDamage(amount, opts)
+  public override takeDamage(amount: number, opts?: { damageType?: string }): TakeDamageResult {
+    const result = super.takeDamage(amount, opts)
     if (
       this.enrageThreshold !== null
       && this.isAlive
@@ -214,6 +214,7 @@ export abstract class Enemy extends Character implements ICombatant {
       const template = StatusEffects.ENRAGED
       this.addStatusEffect({ ...template, turns: template.turns })
     }
+    return result
   }
 
   public rollCrit(): CritResult {

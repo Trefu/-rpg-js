@@ -10,6 +10,8 @@ import goblinSprite from '@/assets/sprites/enemies/mountain-peak/goblin.png'
 import { VFX_SOURCES } from './vfxSources'
 import ShieldOverlay from './ShieldOverlay.vue'
 import { healthWithShield } from '@/core/combat/shields'
+import { hitPopupClasses, hitPopupText } from '@/core/combat/hitPopups'
+import type { HitPopup } from '@/core/combat/hitPopups'
 import { useMediaQuery } from '@/composables/useMediaQuery'
 
 interface Props {
@@ -21,7 +23,7 @@ interface Props {
   isActionTargetRequired: boolean
   isAttacking: boolean
   showShortcut: boolean
-  hitPopups?: { value: number, key: number, isCrit?: boolean, variant?: 'damage' | 'crit' | 'heal' | 'energy', suffix?: string, offsetX: number, offsetY: number, duration: number }[]
+  hitPopups?: HitPopup[]
   vfxEffects?: { key: number, asset: VfxAssetId, rotationDeg?: number }[]
 }
 
@@ -117,10 +119,10 @@ function onClick() {
             v-for="popup in hitPopups"
             :key="popup.key"
             class="enemy-hit-popup"
-            :class="{ crit: popup.isCrit, heal: popup.variant === 'heal', energy: popup.variant === 'energy' }"
+            :class="hitPopupClasses(popup)"
             :style="{ '--ox': popup.offsetX + 'px', '--oy': popup.offsetY + 'px', '--dur': popup.duration + 'ms' }"
           >
-            {{ popup.variant === 'heal' || popup.variant === 'energy' ? '+' : '-' }}{{ popup.value }}{{ popup.suffix ?? '' }}
+            {{ hitPopupText(popup) }}
           </div>
         </div>
       </div>
@@ -366,6 +368,14 @@ function onClick() {
   font-size: 2rem;
   font-weight: 900;
   text-shadow: 0 0 14px rgba(110, 231, 255, 0.9), 0 0 6px rgba(0, 0, 0, 0.95), 0 2px 8px rgba(0, 0, 0, 0.95);
+}
+
+/* Daño absorbido por un escudo del enemigo: no tocó HP, azul con glifo ◇. */
+.enemy-hit-popup.shield {
+  color: #4ea3ff;
+  font-size: 1.8rem;
+  font-weight: 800;
+  text-shadow: 0 0 12px rgba(78, 163, 255, 0.9), 0 0 6px rgba(0, 0, 0, 0.95), 0 2px 8px rgba(0, 0, 0, 0.95);
 }
 
 @keyframes enemy-hit-rise {

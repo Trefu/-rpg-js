@@ -112,6 +112,7 @@
 .hero-hit-container .hero-hit-popup.heal, .mobile-hit-layer .mobile-hit-popup.heal, .enemy-hit-container .enemy-hit-popup.heal { color: var(--jrpg-stat-vitality); }
 .hero-hit-container .hero-hit-popup.energy, .mobile-hit-layer .mobile-hit-popup.energy, .enemy-hit-container .enemy-hit-popup.energy { color: var(--jrpg-energy); }
 .hero-hit-container .hero-hit-popup.blocked, .mobile-hit-layer .mobile-hit-popup.blocked { color: var(--jrpg-block); }
+.hero-hit-container .hero-hit-popup.shield, .mobile-hit-layer .mobile-hit-popup.shield, .enemy-hit-container .enemy-hit-popup.shield { color: var(--jrpg-shield); }
 .hero-hit-container .hero-hit-popup.crit, .mobile-hit-layer .mobile-hit-popup.crit, .enemy-hit-container .enemy-hit-popup.crit { color: var(--jrpg-heroism); }
 .combat-view .bar-fill.bar-hp, .combat-view .mobile-hud-bar-fill.hp, .combat-view .mobile-hud-ally-bar-fill.hp { background: var(--jrpg-hp); }
 .combat-view .bar-fill.bar-energy, .combat-view .mobile-hud-bar-fill.energy, .combat-view .mobile-hud-ally-bar-fill.energy { background: var(--jrpg-energy); }

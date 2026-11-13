@@ -11,6 +11,8 @@ import EnemyStatusIcons from './EnemyStatusIcons.vue'
 import StatusEffectIcons from './StatusEffectIcons.vue'
 import MobileHeroStats from './MobileHeroStats.vue'
 import { VFX_SOURCES } from './vfxSources'
+import { hitPopupClasses, hitPopupText } from '@/core/combat/hitPopups'
+import type { HitPopup } from '@/core/combat/hitPopups'
 
 const props = defineProps<{
     player: Hero | null
@@ -22,7 +24,7 @@ const props = defineProps<{
     isAllySelectable?: (hero: Hero | null) => boolean
     activeHeroIndex?: number
     attackedHeroIds?: string[]
-    hitPopups?: { heroId: string | null, value: number, key: number, isCrit?: boolean, variant?: 'damage' | 'crit' | 'blocked' | 'heal' | 'energy', suffix?: string, offsetX: number, offsetY: number, duration: number }[]
+    hitPopups?: HitPopup[]
     heroVfxEffects?: { heroId: string, key: number, asset: VfxAssetId, durationMs: number, mirrored?: boolean, rotationDeg?: number }[]
     /**
      * `ultiHoverHeroId` es el id del heroe cuyo botón de ulti esta highlighted.
@@ -340,10 +342,10 @@ function onAllyRowClick(hero: Hero | null) {
                     v-for="popup in displayedHeroPopups"
                     :key="popup.key"
                     class="mobile-hit-popup"
-                    :class="{ crit: popup.variant === 'crit' || popup.isCrit, blocked: popup.variant === 'blocked', heal: popup.variant === 'heal', energy: popup.variant === 'energy' }"
+                    :class="hitPopupClasses(popup)"
                     :style="{ '--ox': popup.offsetX + 'px', '--oy': popup.offsetY + 'px', '--dur': popup.duration + 'ms' }"
                 >
-                    <span class="mobile-hit-value">{{ popup.variant === 'heal' || popup.variant === 'energy' ? '+' : '-' }}{{ popup.value }}{{ popup.suffix ?? '' }}</span>
+                    <span class="mobile-hit-value">{{ hitPopupText(popup) }}</span>
                 </div>
             </TransitionGroup>
             <div v-if="displayedHeroVfx.length > 0" class="mobile-vfx-layer">
@@ -528,6 +530,14 @@ function onAllyRowClick(hero: Hero | null) {
 }
 
 .mobile-hit-popup.blocked {
+    color: #4ea3ff;
+    font-size: 2.2rem;
+    border-color: rgba(78, 163, 255, 0.55);
+    text-shadow: 0 0 12px rgba(78, 163, 255, 0.9), 0 2px 6px rgba(0, 0, 0, 0.9);
+}
+
+/* Daño absorbido por un escudo: no tocó HP, azul con glifo ◇. */
+.mobile-hit-popup.shield {
     color: #4ea3ff;
     font-size: 2.2rem;
     border-color: rgba(78, 163, 255, 0.55);

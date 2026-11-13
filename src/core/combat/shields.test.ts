@@ -1,5 +1,42 @@
 import { describe, expect, it } from 'vitest'
 import { getShieldLayers } from './shields'
+import { Hero } from '../Hero'
+import { StatusEffects } from '../StatusEffects'
+
+const STAT_INPUT = { value: 10, growthPerLevel: 0 }
+
+function shieldedHero(shield: number): { hero: Hero, healthBefore: number } {
+  const hero = new Hero({
+    id: 'hero-shield-test', name: 'Probe', maxHealth: 100,
+    agility: STAT_INPUT, constitution: STAT_INPUT, mind: STAT_INPUT, body: STAT_INPUT
+  })
+  hero.addStatusEffect({ ...StatusEffects.ARCANE_SHIELD, absorbRemaining: shield, maxAbsorb: shield })
+  return { hero, healthBefore: hero.health }
+}
+
+describe('takeDamage devuelve el desglose HP/absorbido', () => {
+  it('un golpe totalmente absorbido no reduce HP y lo reporta como absorbido', () => {
+    const { hero, healthBefore } = shieldedHero(30)
+    expect(hero.takeDamage(10)).toEqual({ hpDamage: 0, absorbed: 10 })
+    expect(hero.health).toBe(healthBefore)
+  })
+
+  it('una absorción parcial reparte el golpe entre escudo y HP', () => {
+    const { hero, healthBefore } = shieldedHero(30)
+    expect(hero.takeDamage(50)).toEqual({ hpDamage: 20, absorbed: 30 })
+    expect(hero.health).toBe(healthBefore - 20)
+  })
+
+  it('sin escudo todo el daño va a HP y absorbed es 0', () => {
+    const hero = new Hero({
+      id: 'hero-plain-test', name: 'Probe', maxHealth: 100,
+      agility: STAT_INPUT, constitution: STAT_INPUT, mind: STAT_INPUT, body: STAT_INPUT
+    })
+    const healthBefore = hero.health
+    expect(hero.takeDamage(7)).toEqual({ hpDamage: 7, absorbed: 0 })
+    expect(hero.health).toBe(healthBefore - 7)
+  })
+})
 
 describe('Capas de vida temporal sobre la barra de HP', () => {
   it('50 de escudo sobre 100 HP ocupa exactamente la mitad', () => {

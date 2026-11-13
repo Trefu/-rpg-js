@@ -355,8 +355,12 @@ export function dealDamage(args: {
     : scaledDamage
 
   if (finalDamage > 0 && !skipApply) {
-    target.takeDamage(finalDamage, { damageType: ability.damageType })
-    effects.showEnemyHit(target.id, finalDamage, crit.isCrit)
+    // `takeDamage` devuelve el desglose HP/absorbido: el floater principal
+    // muestra solo el daño que llegó a HP y lo que el escudo comió sale
+    // como companion azul "◇N Escudo" (nunca un "-0" ni daño inflado).
+    const applied = target.takeDamage(finalDamage, { damageType: ability.damageType })
+    if (applied.hpDamage > 0) effects.showEnemyHit(target.id, applied.hpDamage, crit.isCrit)
+    if (applied.absorbed > 0) effects.showEnemyHit(target.id, applied.absorbed, false, ' Escudo', 'shield')
     playAbilitySfx(effects.audioManager, ability)
     setTimeout(() => effects.audioManager.playHitSound(), 150)
   }

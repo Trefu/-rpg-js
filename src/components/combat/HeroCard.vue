@@ -12,6 +12,8 @@ import { presentStatus, isActiveStatus } from '@/core/combat/statusPresentation'
 import { VFX_SOURCES } from './vfxSources'
 import ShieldOverlay from './ShieldOverlay.vue'
 import { healthWithShield } from '@/core/combat/shields'
+import { hitPopupClasses, hitPopupText } from '@/core/combat/hitPopups'
+import type { HitPopup } from '@/core/combat/hitPopups'
 import heroStatusIcon from '@/assets/ui/hero-status-sheet.png'
 
 interface Props {
@@ -21,7 +23,7 @@ interface Props {
   isTargetSelectable: boolean
   /** Cuando true, marca visualmente al heroe como objetivo de un ataque enemigo en curso. */
   isBeingAttacked?: boolean
-  hitPopups?: { value: number, key: number, isCrit?: boolean, variant?: 'damage' | 'crit' | 'blocked' | 'heal' | 'energy', suffix?: string, heroId?: string | null }[]
+  hitPopups?: HitPopup[]
   /** VFX activos sobre este heroe (ej. impact / big-hit al fallar defensa). */
   vfxEffects?: { key: number, asset: VfxAssetId, mirrored?: boolean, rotationDeg?: number }[]
   /**
@@ -352,10 +354,10 @@ defineExpose({
             v-for="popup in hitPopups"
             :key="popup.key"
             class="hero-hit-popup"
-            :class="{ crit: popup.variant === 'crit' || popup.isCrit, blocked: popup.variant === 'blocked', heal: popup.variant === 'heal', energy: popup.variant === 'energy' }"
+            :class="hitPopupClasses(popup)"
             :style="{ '--ox': popup.offsetX + 'px', '--oy': popup.offsetY + 'px', '--dur': popup.duration + 'ms' }"
           >
-            {{ popup.variant === 'heal' || popup.variant === 'energy' ? '+' : '-' }}{{ popup.value }}{{ popup.suffix ?? '' }}
+            {{ hitPopupText(popup) }}
           </div>
         </TransitionGroup>
       </div>
@@ -1338,6 +1340,14 @@ defineExpose({
 }
 
 .hero-hit-popup.blocked {
+  color: #4ea3ff;
+  font-size: 1.15rem;
+  font-weight: 800;
+  text-shadow: 0 0 10px rgba(78, 163, 255, 0.9), 0 2px 6px rgba(0, 0, 0, 0.85);
+}
+
+/* Daño absorbido por un escudo: no tocó HP, se pinta azul con glifo ◇. */
+.hero-hit-popup.shield {
   color: #4ea3ff;
   font-size: 1.15rem;
   font-weight: 800;
